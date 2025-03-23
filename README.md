@@ -7,7 +7,7 @@
 Clone source:
 
 ```bash
-git clone --single-branch -b 0.0.18 https://github.com/lqh2307/tile-server.git
+git clone --single-branch -b 0.0.18 https://github.com/lqh2307/tileserver-gl.git
 ```
 
 Jump to folder:
@@ -96,7 +96,7 @@ npm install --omit=dev
 Run:
 
 ```bash
-npm run server --
+npm run server
 ```
 
 ENVs:
