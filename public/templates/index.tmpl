@@ -579,7 +579,7 @@
                 <p>description: Cancel clean up/seed tasks</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'cancel')">Cancel sync</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'cancel')">Cancel sync</a>
               </div>
             </div>
             <div class="item">
@@ -589,7 +589,7 @@
                 <p>description: Start clean up/seed tasks</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'all')">Sync all</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'all')">Sync all</a>
               </div>
             </div>  
             <div class="item">
@@ -599,7 +599,7 @@
                 <p>description: Start clean up styles</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpStyles')">Clean styles</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpStyles')">Clean styles</a>
               </div>
             </div>
             <div class="item">
@@ -609,7 +609,7 @@
                 <p>description: Start clean up geojsons</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpGeoJSONs')">Clean geojsons</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpGeoJSONs')">Clean geojsons</a>
               </div>
             </div>
             <div class="item">
@@ -619,7 +619,7 @@
                 <p>description: Start clean up datas</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpDatas')">Clean datas</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpDatas')">Clean datas</a>
               </div>
             </div>
             <div class="item">
@@ -629,7 +629,7 @@
                 <p>description: Start clean up sprites</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpSprites')">Clean sprites</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpSprites')">Clean sprites</a>
               </div>
             </div>
             <div class="item">
@@ -639,7 +639,7 @@
                 <p>description: Start clean up fonts</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpFonts')">Clean fonts</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpFonts')">Clean fonts</a>
               </div>
             </div>
             <div class="item">
@@ -649,7 +649,7 @@
                 <p>description: Start seed styles</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'seedStyles')">Seed styles</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'seedStyles')">Seed styles</a>
               </div>
             </div>
             <div class="item">
@@ -659,7 +659,7 @@
                 <p>description: Start seed geojsons</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'seedGeoJSONs')">Seed geojsons</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'seedGeoJSONs')">Seed geojsons</a>
               </div>
             </div>
             <div class="item">
@@ -669,7 +669,7 @@
                 <p>description: Start seed datas</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'seedDatas')">Seed datas</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'seedDatas')">Seed datas</a>
               </div>
             </div>
             <div class="item">
@@ -679,7 +679,7 @@
                 <p>description: Start seed sprites</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'seedSprites')">Seed sprites</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'seedSprites')">Seed sprites</a>
               </div>
             </div>
             <div class="item">
@@ -689,7 +689,7 @@
                 <p>description: Start seed fonts</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="actionManager(event, 'seedFonts')">Seed fonts</a>
+                <a class="btn" href="#" onclick="handleAction(event, 'seedFonts')">Seed fonts</a>
               </div>
             </div>
             <div class="item">
@@ -814,7 +814,7 @@
                 <p>description: Kill server</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="configManager(event, 'kill')">Kill server</a>
+                <a class="btn" href="#" onclick="handleConfig(event, 'kill')">Kill server</a>
               </div>
             </div>
             <div class="item">
@@ -824,7 +824,7 @@
                 <p>description: Restart server</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="configManager(event, 'restart')">Restart server</a>
+                <a class="btn" href="#" onclick="handleConfig(event, 'restart')">Restart server</a>
               </div>
             </div>
           </div>
@@ -832,7 +832,7 @@
       }
     }
 
-    function actionManager(event, action) {
+    function handleAction(event, action) {
       event.preventDefault();
 
       if (action === "all") {
@@ -982,7 +982,7 @@
       }
     }
 
-    function configManager(event, action) {
+    function handleConfig(event, action) {
       event.preventDefault();
 
       if (action === "restart") {
@@ -1222,19 +1222,27 @@
             });
         }
       } else if (action === "cancel") {
-        fetch(`${baseURL}/styles/${styleID}/export/style.json?cancel=true`, {
-          method: "GET",
-        })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Canceling render style...");
-            } else {
-              alert(`Failed to cancel render style: Status code: ${response.status} - ${response.statusText}`);
-            }
+        let maxRetries = 5;
+
+        function tryFetch() {
+          fetch(`${baseURL}/styles/${styleID}/export/style.json?cancel=true`, {
+            method: "GET",
           })
-          .catch((error) => {
-            alert(`Failed to cancel render style: ${error.message}`);
-          });
+            .then((response) => {
+              if (response.status === 200) {
+                alert("Canceling render style...");
+              } else if (response.status === 404 && maxRetries-- >= 0) {
+                tryFetch();
+              } else {
+                alert(`Failed to cancel render style: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to cancel render style: ${error.message}`);
+            });
+        }
+
+        tryFetch();
       }
     }
 
