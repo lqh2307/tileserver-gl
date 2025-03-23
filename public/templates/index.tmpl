@@ -418,27 +418,13 @@
 
       document.getElementById(tabId).classList.add("active");
 
-      if (tabId === "styles-tab" && !document.querySelector("#styles-tab").innerHTML.trim()) {
-        renderContents("styles-tab");
-      } else if (tabId === "geojsons-tab" && !document.querySelector("#geojsons-tab").innerHTML.trim()) {
-        renderContents("geojsons-tab");
-      } else if (tabId === "geojson_groups-tab" && !document.querySelector("#geojson_groups-tab").innerHTML.trim()) {
-        renderContents("geojson_groups-tab");
-      } else if (tabId === "datas-tab" && !document.querySelector("#datas-tab").innerHTML.trim()) {
-        renderContents("datas-tab");
-      } else if (tabId === "fonts-tab" && !document.querySelector("#fonts-tab").innerHTML.trim()) {
-        renderContents("fonts-tab");
-      } else if (tabId === "sprites-tab" && !document.querySelector("#sprites-tab").innerHTML.trim()) {
-        renderContents("sprites-tab");
-      } else if (tabId === "actions-tab" && !document.querySelector("#actions-tab").innerHTML.trim()) {
-        renderContents("actions-tab");
-      } else if (tabId === "configs-tab" && !document.querySelector("#configs-tab").innerHTML.trim()) {
-        renderContents("configs-tab");
-      }
+      renderContents(tabId);
     }
 
     function renderContents(tabId) {
-      if (tabId === "styles-tab") {
+      const innerHTML = document.querySelector(`#${tabId}`).innerHTML.trim();
+
+      if (tabId === "styles-tab" && !innerHTML) {
         document.querySelector("#styles-tab").innerHTML = `
           <div class="box">
             {{#each styles}}
@@ -473,7 +459,7 @@
             {{/each}}
           </div>
         `;
-      } if (tabId === "geojsons-tab") {
+      } if (tabId === "geojsons-tab" && !innerHTML) {
         document.querySelector("#geojsons-tab").innerHTML = `
           <div class="box">
             {{#each geojsons}}
@@ -497,7 +483,7 @@
             {{/each}}
           </div>
         `;
-      } if (tabId === "geojson_groups-tab") {
+      } if (tabId === "geojson_groups-tab" && !innerHTML) {
         document.querySelector("#geojson_groups-tab").innerHTML = `
           <div class="box">
             {{#each geojson_groups}}
@@ -517,7 +503,7 @@
             {{/each}}
           </div>
         `;
-      } else if (tabId === "datas-tab") {
+      } else if (tabId === "datas-tab" && !innerHTML) {
         document.querySelector("#datas-tab").innerHTML = `
           <div class="box">
             {{#each datas}}
@@ -545,7 +531,7 @@
             {{/each}}
           </div>
         `;
-      } else if (tabId === "fonts-tab") {
+      } else if (tabId === "fonts-tab" && !innerHTML) {
         document.querySelector("#fonts-tab").innerHTML = `
           <div class="box">
             {{#each fonts}}
@@ -563,7 +549,7 @@
             {{/each}}
           </div>
         `;
-      } else if (tabId === "sprites-tab") {
+      } else if (tabId === "sprites-tab" && !innerHTML) {
         document.querySelector("#sprites-tab").innerHTML = `
           <div class="box">
             {{#each sprites}}
@@ -583,7 +569,7 @@
             {{/each}}
           </div>
         `;
-      } else if (tabId === "actions-tab") {
+      } else if (tabId === "actions-tab" && !innerHTML) {
         document.querySelector("#actions-tab").innerHTML = `
           <div class="box">
             <div class="item">
@@ -728,7 +714,7 @@
             </div>
           </div>
         `;
-      } else if (tabId === "configs-tab") {
+      } else if (tabId === "configs-tab" && !innerHTML) {
         document.querySelector("#configs-tab").innerHTML = `
           <div class="box">
             <div class="item">
