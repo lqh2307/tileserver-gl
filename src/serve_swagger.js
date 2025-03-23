@@ -10,27 +10,29 @@ import express from "express";
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
 async function serveSwagger() {
-  const version = await getVersion();
+  return async (req, res, next) => {
+    const version = await getVersion();
 
-  return swaggerUi.setup(
-    swaggerJsdoc({
-      swaggerDefinition: {
-        openapi: "3.0.0",
-        info: {
-          title: "Tile Server API",
-          version: version,
-          description: "API for tile server",
+    return swaggerUi.setup(
+      swaggerJsdoc({
+        swaggerDefinition: {
+          openapi: "3.0.0",
+          info: {
+            title: "Tile Server API",
+            version: version,
+            description: "API for tile server",
+          },
         },
-      },
-      servers: [
-        {
-          url: getRequestHost(req),
-          description: "Tile server",
-        },
-      ],
-      apis: ["src/*.js"],
-    })
-  );
+        servers: [
+          {
+            url: getRequestHost(req),
+            description: "Tile server",
+          },
+        ],
+        apis: ["src/*.js"],
+      })
+    );
+  }
 }
 
 export const serve_swagger = {
