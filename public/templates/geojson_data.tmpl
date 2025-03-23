@@ -1,0 +1,336 @@
+{{#if layer}}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>{{layer}} - Tile Server</title>
+
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl.css" />
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl-inspect.css" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial,Helvetica,sans-serif;
+    }
+
+    h1 {
+      position:absolute;
+      top:5px;
+      right:0;
+      width:240px;
+      margin:0;
+      font-size:18px;
+    }
+
+    #map {
+      position:absolute;
+      top:0;
+      left:0;
+      right:250px;
+      bottom:0;
+    }
+
+    #layerList {
+      position:absolute;
+      top:35px;
+      right:0;
+      bottom:0;
+      width:240px;
+      max-height:100%;
+      overflow-y:auto;
+    }
+  </style>
+
+  <script src="{{base_url}}/maplibre-gl.js"></script>
+  <script src="{{base_url}}/maplibre-gl-inspect.js"></script>
+</head>
+
+<body>
+  <h1>Layer list</h1>
+  <div id="map"></div>
+  <div id="layerList">
+
+  <script>
+    const baseURL = "{{base_url}}";
+    const group = "{{group}}";
+    const layer = "{{layer}}";
+
+    fetch(`${baseURL}/geojsons/${group}/${layer}.json`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+      })
+      .then((response) => {
+        if (response.status === 200) {
+          return response.json();
+        } else {
+          alert(`Failed to fetch GeoJSON info: Status code: ${response.status} - ${response.statusText}`);
+        }
+      })
+      .then((jsonResponse) => {
+        const style = {
+          "version": 8,
+          "sources": {
+            [layer]: {
+              "type": "geojson",
+              "data": jsonResponse.url
+            }
+          },
+          "layers": []
+        };
+
+        const map = new maplibregl.Map({
+          container: "map",
+          hash: true,
+          style: style
+        });
+
+        map.addControl(new maplibregl.NavigationControl({
+          visualizePitch: true
+        }));
+
+        const inspect = new MaplibreInspect({
+          showInspectMap: true,
+          showInspectButton: false
+        });
+
+        map.addControl(inspect);
+
+        map.on("load", () => {
+          const item = document.createElement("div");
+
+          const layerColor = inspect.assignLayerColor(layer);
+
+          item.innerHTML = `
+            <div style="display:flex;align-items:center;cursor:pointer;">
+              <div style="width:15px;height:15px;display:inline-block;background:${layerColor};"></div>
+              <span style="margin-left:5px;color:${layerColor};display:inline-block;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${layer}</span>
+            </div>
+          `;
+
+          item.onclick = () => {
+            const newVisibility = map.getLayoutProperty(`${layer}_polygon`, "visibility") === "none" ? "visible" : "none";
+
+            map.setLayoutProperty(`${layer}_polygon`, "visibility", newVisibility);
+            map.setLayoutProperty(`${layer}_line`, "visibility", newVisibility);
+            map.setLayoutProperty(`${layer}_circle`, "visibility", newVisibility);
+
+            item.style.textDecoration = newVisibility === "visible" ? "none" : "line-through";
+          };
+
+          layerList.appendChild(item);
+        });
+
+        let currentMarker;
+
+        map.on("click", (event) => {
+          if (currentMarker !== undefined) {
+            currentMarker.remove();
+          }
+
+          currentMarker = new maplibregl.Marker({
+            draggable: true
+          })
+            .setLngLat([event.lngLat.lng, event.lngLat.lat])
+            .addTo(map);
+
+          alert(`Position: [${event.lngLat.lng}, ${event.lngLat.lat}]`);
+
+          currentMarker.on("dragend", () => {
+            const lngLat = currentMarker.getLngLat();
+
+            alert(`Position: [${lngLat.lng}, ${lngLat.lat}]`);
+          });
+        });
+
+        map.on("contextmenu", (event) => {
+          if (currentMarker !== undefined) {
+            currentMarker.remove();
+
+            currentMarker = undefined;
+          }
+        });
+      })
+      .catch((error) => {
+        alert(`Failed to fetch GeoJSON info: Status code: ${error.message}`);
+      });
+  </script>
+</body>
+
+</html>
+{{else}}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>{{group}} - Tile Server</title>
+
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl.css" />
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl-inspect.css" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial,Helvetica,sans-serif;
+    }
+
+    h1 {
+      position:absolute;
+      top:5px;
+      right:0;
+      width:240px;
+      margin:0;
+      font-size:18px;
+    }
+
+    #map {
+      position:absolute;
+      top:0;
+      left:0;
+      right:250px;
+      bottom:0;
+    }
+
+    #layerList {
+      position:absolute;
+      top:35px;
+      right:0;
+      bottom:0;
+      width:240px;
+      max-height:100%;
+      overflow-y:auto;
+    }
+  </style>
+
+  <script src="{{base_url}}/maplibre-gl.js"></script>
+  <script src="{{base_url}}/maplibre-gl-inspect.js"></script>
+</head>
+
+<body>
+  <h1>Layer list</h1>
+  <div id="map"></div>
+  <div id="layerList">
+
+  <script>
+    const baseURL = "{{base_url}}";
+    const group = "{{group}}";
+
+    fetch(`${baseURL}/geojsons/${group}.json`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+      })
+      .then((response) => {
+        if (response.status === 200) {
+          return response.json();
+        } else {
+          alert(`Failed to fetch GeoJSON group info: Status code: ${response.status} - ${response.statusText}`);
+        }
+      })
+      .then((jsonResponse) => {
+        const style = {
+          "version": 8,
+          "sources": {},
+          "layers": []
+        };
+
+        for (const layer in jsonResponse.geojsons) {
+          style["sources"][layer] = {
+            "type": "geojson",
+            "data": jsonResponse.geojsons[layer].url
+          }
+        }
+
+        const map = new maplibregl.Map({
+          container: "map",
+          hash: true,
+          style: style
+        });
+
+        map.addControl(new maplibregl.NavigationControl({
+          visualizePitch: true
+        }));
+
+        const inspect = new MaplibreInspect({
+          showInspectMap: true,
+          showInspectButton: false
+        });
+
+        map.addControl(inspect);
+
+        map.on("load", () => {
+          for (const layer in jsonResponse.geojsons) {
+            const item = document.createElement("div");
+
+            const layerColor = inspect.assignLayerColor(layer);
+
+            item.innerHTML = `
+              <div style="display:flex;align-items:center;cursor:pointer;">
+                <div style="width:15px;height:15px;display:inline-block;background:${layerColor};"></div>
+                <span style="margin-left:5px;color:${layerColor};display:inline-block;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${layer}</span>
+              </div>
+            `;
+
+            item.onclick = () => {
+              const newVisibility = map.getLayoutProperty(`${layer}_polygon`, "visibility") === "none" ? "visible" : "none";
+
+              map.setLayoutProperty(`${layer}_polygon`, "visibility", newVisibility);
+              map.setLayoutProperty(`${layer}_line`, "visibility", newVisibility);
+              map.setLayoutProperty(`${layer}_circle`, "visibility", newVisibility);
+
+              item.style.textDecoration = newVisibility === "visible" ? "none" : "line-through";
+            };
+
+            layerList.appendChild(item);
+          }
+        });
+
+        let currentMarker;
+
+        map.on("click", (event) => {
+          if (currentMarker !== undefined) {
+            currentMarker.remove();
+          }
+
+          currentMarker = new maplibregl.Marker({
+            draggable: true
+          })
+            .setLngLat([event.lngLat.lng, event.lngLat.lat])
+            .addTo(map);
+
+          alert(`Position: [${event.lngLat.lng}, ${event.lngLat.lat}]`);
+
+          currentMarker.on("dragend", () => {
+            const lngLat = currentMarker.getLngLat();
+
+            alert(`Position: [${lngLat.lng}, ${lngLat.lat}]`);
+          });
+        });
+
+        map.on("contextmenu", (event) => {
+          if (currentMarker !== undefined) {
+            currentMarker.remove();
+
+            currentMarker = undefined;
+          }
+        });
+      })
+      .catch((error) => {
+        alert(`Failed to fetch GeoJSON info: Status code: ${error.message}`);
+      });
+  </script>
+</body>
+
+</html>
+{{/if}}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>{{name}} - Tile Server</title>
+
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/leaflet.css" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial,Helvetica,sans-serif;
+    }
+
+    #map {
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+    }
+  </style>
+
+  <script src="{{base_url}}/leaflet.js"></script>
+  <script src="{{base_url}}/leaflet-hash.js"></script>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <script>
+    const baseURL = "{{base_url}}";
+    const id = "{{id}}";
+
+    fetch(`${baseURL}/datas/${id}.json`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+      .then((response) => {
+        if (response.status === 200) {
+          return response.json();
+        } else {
+          alert(`Failed to fetch tileJSON: Status code: ${response.status} - ${response.statusText}`);
+        }
+      })
+      .then((jsonResponse) => {
+        const map = L.map("map", {
+          zoomControl: false,
+          maxBounds: [[-90, -180], [90, 180]],
+          maxBoundsViscosity: 1
+        });
+
+        for (const tile of jsonResponse.tiles || []) {
+          L.tileLayer(tile, {
+            minZoom: jsonResponse.minzoom,
+            maxZoom: jsonResponse.maxzoom,
+            maxNativeZoom: 22,
+            attribution: jsonResponse.attribution
+          }).addTo(map);
+        }
+
+        if (jsonResponse.cacheCoverages !== undefined) {
+          const cacheCoverageLayers = {};
+          const cacheCoverageGeoJSONLayers = {};
+
+          for (const { bboxs, zooms } of jsonResponse.cacheCoverages) {
+            for (const zoom of zooms) {
+              if (cacheCoverageLayers[zoom] === undefined) {
+                cacheCoverageLayers[zoom] = {
+                  type: "MultiLineString",
+                  coordinates: []
+                };
+              }
+
+              for (const bbox of bboxs) {
+                cacheCoverageLayers[zoom].coordinates.push([
+                  [bbox[0], bbox[1]],
+                  [bbox[2], bbox[1]],
+                  [bbox[2], bbox[3]],
+                  [bbox[0], bbox[3]],
+                  [bbox[0], bbox[1]]
+                ]);
+              }
+            }
+          }
+
+          let isCoverageVisible = true;
+
+          function updateVisibleCoverages() {
+            for (const zoom in cacheCoverageGeoJSONLayers) {
+              cacheCoverageGeoJSONLayers[zoom].remove();
+
+              delete cacheCoverageGeoJSONLayers[zoom];
+            }
+
+            if (isCoverageVisible === true) {
+              const currentZoom = map.getZoom();
+
+              if (cacheCoverageGeoJSONLayers[currentZoom] === undefined && cacheCoverageLayers[currentZoom] !== undefined) {
+                cacheCoverageGeoJSONLayers[currentZoom] = L.geoJSON(cacheCoverageLayers[currentZoom], {
+                  weight: 1,
+                  color: "rgba(255, 0, 0, 0.6)"
+                });
+
+                cacheCoverageGeoJSONLayers[currentZoom].addTo(map);
+              }
+            }
+          }
+
+          map.on("zoomend", updateVisibleCoverages);
+
+          const cacheCoveragesButton = document.createElement("div");
+          cacheCoveragesButton.innerHTML = "Hide cache Coverages";
+          cacheCoveragesButton.style.cssText = "position:absolute;bottom:50px;left:10px;padding:5px 10px;font-size:14px;cursor:pointer;background:rgba(0, 150, 255, 0.5);color:white;border:none;border-radius:5px;display:inline-block;z-index:1000;";
+
+          cacheCoveragesButton.onclick = () => {
+            if (isCoverageVisible === true) {
+              cacheCoveragesButton.innerHTML = "Show cache Coverages";
+
+              isCoverageVisible = false;
+            } else {
+              cacheCoveragesButton.innerHTML = "Hide cache Coverages";
+
+              isCoverageVisible = true;
+            }
+
+            updateVisibleCoverages();
+          };
+
+          document.body.appendChild(cacheCoveragesButton);
+
+          updateVisibleCoverages();
+        }
+
+        new L.Control.Zoom({
+          position: "topright",
+        }).addTo(map);
+
+        new L.Hash(map);
+
+        let currentMarker;
+
+        map.on("click", (event) => {
+          if (currentMarker !== undefined) {
+            currentMarker.remove();
+          }
+
+          currentMarker = L.marker([event.latlng.lat, event.latlng.lng], {
+            draggable: true
+          }).addTo(map);
+
+          alert(`Position: [${event.latlng.lng}, ${event.latlng.lat}]`);
+
+          currentMarker.on("dragend", () => {
+            const position = currentMarker.getLatLng();
+
+            alert(`Position: [${position.lng}, ${position.lat}]`);
+          });
+        });
+
+        map.on("contextmenu", () => {
+          if (currentMarker !== undefined) {
+            currentMarker.remove();
+
+            currentMarker = undefined;
+          }
+        });
+      })
+      .catch((error) => {
+        alert(`Failed to fetch tileJSON: Status code: ${error.message}`);
+      });
+  </script>
+</body>
+
+</html>

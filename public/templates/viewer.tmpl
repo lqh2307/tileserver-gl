@@ -1,130 +1,152 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{name}} - TileServer GL</title>
-  <link rel="stylesheet" type="text/css" href="{{public_url}}maplibre-gl.css{{&key_query}}" />
-  <link rel="stylesheet" type="text/css" href="{{public_url}}maplibre-gl-inspect.css{{&key_query}}" />
-  <link rel="stylesheet" type="text/css" href="{{public_url}}leaflet.css{{&key_query}}" />
-  <script src="{{public_url}}maplibre-gl.js{{&key_query}}"></script>
-  <script src="{{public_url}}maplibre-gl-inspect.js{{&key_query}}"></script>
-  <script src="{{public_url}}leaflet.js{{&key_query}}"></script>
-  <script src="{{public_url}}leaflet-hash.js{{&key_query}}"></script>
+
+  <title>{{name}} - Tile Server</title>
+
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl.css" />
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/leaflet.css" />
+
   <style>
-    body { margin:0; padding:0; }
-    #map { position:absolute; top:0; bottom:0; width:100%; }
-    .leaflet-control-layers-toggle {
-      background-image: url({{public_url}}images/layers.png{{&key_query}});
-      width: 36px;
-      height: 36px;
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial,Helvetica,sans-serif;
     }
-    .leaflet-retina .leaflet-control-layers-toggle {
-      background-image: url({{public_url}}images/layers-2x.png{{&key_query}});
-      background-size: 26px 26px;
-    }
-    .leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
-      background-image: url({{public_url}}images/marker-icon.png{{&key_query}});
+
+    #map {
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
     }
   </style>
+
+  <script src="{{base_url}}/maplibre-gl.js"></script>
+  <script src="{{base_url}}/leaflet.js"></script>
+  <script src="{{base_url}}/leaflet-hash.js"></script>
 </head>
+
 <body>
-  <h1 style="display:none;">{{name}}</h1>
-  <div id='map'></div>
+  <div id="map"></div>
+
   <script>
-    function isWebglSupported() {
-        if (window.WebGLRenderingContext) {
-            const canvas = document.createElement('canvas');
-            try {
-                const context = canvas.getContext('webgl2') || canvas.getContext('webgl');
-                if (context && typeof context.getParameter == 'function') {
-                    return true;
-                }
-            } catch (e) {
-                // WebGL is supported, but disabled
-            }
-            return false;
-        }
-        // WebGL not supported
-        return false;
-    }
-    var q = (location.search || '').substr(1).split('&');
-    var preference =
-      q.indexOf('vector') >= 0 ? 'vector' :
-        (q.indexOf('raster') >= 0 ? 'raster' :
-          (isWebglSupported() ? 'vector' : 'raster'));
+    const baseURL = "{{base_url}}";
+    const id = "{{id}}";
 
-    var keyMatch = location.search.match(/[\?\&]key=([^&]+)/i);
-    var keyParam = keyMatch ? '?key=' + keyMatch[1] : '';    
-
-    if (preference == 'vector') {
-      maplibregl.setRTLTextPlugin('{{public_url}}mapbox-gl-rtl-text.js' + keyParam);
-      var map = new maplibregl.Map({
-        container: 'map',
-        style: '{{public_url}}styles/{{id}}/style.json' + keyParam,
-        hash: true,
-        maxPitch: 85
+    if (location.search.indexOf("vector") >= 0) {
+      const map = new maplibregl.Map({
+        container: "map",
+        style: `${baseURL}/styles/${id}/style.json`,
+        hash: true
       });
+
       map.addControl(new maplibregl.NavigationControl({
-         visualizePitch: true,
-         showZoom: true,
-         showCompass: true
+        visualizePitch: true
       }));
-      map.addControl(new MaplibreInspect({
-         showMapPopupOnHover: false,
-         showInspectMapPopupOnHover: false,
-         selectThreshold: 5
-      }));
+
+      let currentMarker;
+
+      map.on("click", (event) => {
+        if (currentMarker !== undefined) {
+          currentMarker.remove();
+        }
+
+        currentMarker = new maplibregl.Marker({
+          draggable: true
+        })
+          .setLngLat([event.lngLat.lng, event.lngLat.lat])
+          .addTo(map);
+
+        alert(`Position: [${event.lngLat.lng}, ${event.lngLat.lat}]`);
+
+        currentMarker.on("dragend", () => {
+          const lngLat = currentMarker.getLngLat();
+
+          alert(`Position: [${lngLat.lng}, ${lngLat.lat}]`);
+        });
+      });
+
+      map.on("contextmenu", (event) => {
+        if (currentMarker !== undefined) {
+          currentMarker.remove();
+
+          currentMarker = undefined;
+        }
+      });
     } else {
-        var map = L.map('map', { minZoom: 1, zoomControl: false });
-        new L.Control.Zoom({ position: 'topright' }).addTo(map);
-        
-        var tile_urls = [], tile_attribution, tile_minzoom, tile_maxzoom;
-        var url = '{{public_url}}styles/512/{{id}}.json' + keyParam;
-        var req = new XMLHttpRequest();
-        req.overrideMimeType("application/json");
-        req.open('GET', url, true);
-        req.onload = function() {
-            var jsonResponse = JSON.parse(req.responseText);
-            for (key in jsonResponse) {
-              var keyl = key.toLowerCase();
-                switch(keyl) {
-                  case "tiles":
-                    tile_urls = jsonResponse[key];
-                    break;
-                  case "attribution":
-                    tile_attribution = jsonResponse[key];
-                    break;
-                  case "minzoom":
-                    tile_minzoom = jsonResponse[key];
-                    break;
-                  case "maxzoom":
-                    tile_maxzoom = jsonResponse[key];
-                    break;
-                }
+      fetch(`${baseURL}/styles/${id}.json`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+      })
+        .then((response) => {
+          if (response.status === 200) {
+            return response.json();
+          } else {
+            alert(`Failed to fetch tileJSON: Status code: ${response.status} - ${response.statusText}`);
+          }
+        })
+        .then((jsonResponse) => {
+          const map = L.map("map", {
+            zoomControl: false,
+            maxBounds: [[-90, -180], [90, 180]],
+            maxBoundsViscosity: 1
+          });
+
+          for (const tile of jsonResponse.tiles || []) {
+            L.tileLayer(tile, {
+              minZoom: jsonResponse.minzoom,
+              maxZoom: jsonResponse.maxzoom,
+              maxNativeZoom: 22,
+              attribution: jsonResponse.attribution
+            }).addTo(map);
+          }
+
+          new L.Control.Zoom({
+            position: "topright"
+          }).addTo(map);
+
+          new L.Hash(map)
+
+          let currentMarker;
+
+          map.on("click", (event) => {
+            if (currentMarker !== undefined) {
+              currentMarker.remove();
             }
 
-            for (tile_url in tile_urls) {
-                L.tileLayer(tile_urls[tile_url], {
-                    tileSize: 512,
-                    zoomOffset: -1,
-                    minZoom: tile_minzoom,
-                    maxZoom: tile_maxzoom,
-                    attribution: tile_attribution
-                }).addTo(map);
-            }
-        
-            map.eachLayer(function(layer) {
-              // do not add scale prefix even if retina display is detected
-              layer.scalePrefix = '.';
+            currentMarker = L.marker([event.latlng.lat, event.latlng.lng], {
+              draggable: true
+            }).addTo(map);
+
+            alert(`Position: [${event.latlng.lng}, ${event.latlng.lat}]`);
+
+            currentMarker.on("dragend", () => {
+              const position = currentMarker.getLatLng();
+
+              alert(`Position: [${position.lng}, ${position.lat}]`);
             });
-        };
-        req.send(null);
-      
-        setTimeout(function() {
-            new L.Hash(map);
-        }, 0);
+          });
+
+          map.on("contextmenu", (event) => {
+            if (currentMarker !== undefined) {
+              currentMarker.remove();
+
+              currentMarker = undefined;
+            }
+          });
+        })
+        .catch((error) => {
+          alert(`Failed to fetch tileJSON: Status code: ${error.message}`);
+        });
     }
   </script>
 </body>
+
 </html>

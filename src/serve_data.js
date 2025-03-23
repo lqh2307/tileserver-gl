@@ -1,423 +1,1077 @@
-'use strict';
+"use strict";
 
-import fsp from 'node:fs/promises';
-import path from 'path';
-
-import clone from 'clone';
-import express from 'express';
-import Pbf from 'pbf';
-import { VectorTile } from '@mapbox/vector-tile';
-import SphericalMercator from '@mapbox/sphericalmercator';
-
+import { StatusCodes } from "http-status-codes";
+import { printLog } from "./logger.js";
+import { config } from "./config.js";
+import { seed } from "./seed.js";
+import sqlite3 from "sqlite3";
+import express from "express";
 import {
-  fixTileJSONCenter,
-  getTileUrls,
-  isValidHttpUrl,
-  fetchTileData,
-} from './utils.js';
-import { getPMtilesInfo, openPMtiles } from './pmtiles_adapter.js';
-import { gunzipP, gzipP } from './promises.js';
-import { openMbTilesWrapper } from './mbtiles_wrapper.js';
+  createXYZMetadata,
+  getXYZTileFromURL,
+  cacheXYZTileFile,
+  getXYZMetadata,
+  getXYZTileMD5,
+  openXYZMD5DB,
+  validateXYZ,
+  getXYZTile,
+} from "./tile_xyz.js";
+import {
+  createMBTilesMetadata,
+  getMBTilesTileFromURL,
+  cacheMBtilesTileData,
+  downloadMBTilesFile,
+  getMBTilesMetadata,
+  getMBTilesTileMD5,
+  validateMBTiles,
+  getMBTilesTile,
+  openMBTilesDB,
+} from "./tile_mbtiles.js";
+import {
+  compileTemplate,
+  getRequestHost,
+  calculateMD5,
+  isExistFile,
+  gzipAsync,
+} from "./utils.js";
+import {
+  getPMTilesMetadata,
+  validatePMTiles,
+  getPMTilesTile,
+  openPMTiles,
+} from "./tile_pmtiles.js";
+import {
+  createPostgreSQLMetadata,
+  getPostgreSQLTileFromURL,
+  cachePostgreSQLTileData,
+  getPostgreSQLMetadata,
+  getPostgreSQLTileMD5,
+  validatePostgreSQL,
+  getPostgreSQLTile,
+  openPostgreSQLDB,
+} from "./tile_postgresql.js";
 
-import fs from 'node:fs';
-import { fileURLToPath } from 'url';
+/**
+ * Serve data handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function serveDataHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
 
-const packageJson = JSON.parse(
-  fs.readFileSync(
-    path.dirname(fileURLToPath(import.meta.url)) + '/../package.json',
-    'utf8',
-  ),
-);
+    try {
+      const item = config.repo.datas[id];
 
-const isLight = packageJson.name.slice(-6) === '-light';
-const serve_rendered = (
-  await import(`${!isLight ? `./serve_rendered.js` : `./serve_light.js`}`)
-).serve_rendered;
-
-export const serve_data = {
-  /**
-   * Initializes the serve_data module.
-   * @param {object} options Configuration options.
-   * @param {object} repo Repository object.
-   * @param {object} programOpts - An object containing the program options
-   * @returns {express.Application} The initialized Express application.
-   */
-  init: function (options, repo, programOpts) {
-    const { verbose } = programOpts;
-    const app = express().disable('x-powered-by');
-
-    /**
-     * Handles requests for tile data, responding with the tile image.
-     * @param {object} req - Express request object.
-     * @param {object} res - Express response object.
-     * @param {string} req.params.id - ID of the tile.
-     * @param {string} req.params.z - Z coordinate of the tile.
-     * @param {string} req.params.x - X coordinate of the tile.
-     * @param {string} req.params.y - Y coordinate of the tile.
-     * @param {string} req.params.format - Format of the tile.
-     * @returns {Promise<void>}
-     */
-    app.get('/:id/:z/:x/:y.:format', async (req, res) => {
-      if (verbose) {
-        console.log(
-          `Handling tile request for: /data/%s/%s/%s/%s.%s`,
-          String(req.params.id).replace(/\n|\r/g, ''),
-          String(req.params.z).replace(/\n|\r/g, ''),
-          String(req.params.x).replace(/\n|\r/g, ''),
-          String(req.params.y).replace(/\n|\r/g, ''),
-          String(req.params.format).replace(/\n|\r/g, ''),
-        );
-      }
-      const item = repo[req.params.id];
-      if (!item) {
-        return res.sendStatus(404);
-      }
-      const tileJSONFormat = item.tileJSON.format;
-      const z = parseInt(req.params.z, 10);
-      const x = parseInt(req.params.x, 10);
-      const y = parseInt(req.params.y, 10);
-      if (isNaN(z) || isNaN(x) || isNaN(y)) {
-        return res.status(404).send('Invalid Tile');
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      let format = req.params.format;
-      if (format === options.pbfAlias) {
-        format = 'pbf';
-      }
-      if (
-        format !== tileJSONFormat &&
-        !(format === 'geojson' && tileJSONFormat === 'pbf')
-      ) {
-        return res.status(404).send('Invalid format');
-      }
-      if (
-        z < item.tileJSON.minzoom ||
-        x < 0 ||
-        y < 0 ||
-        z > item.tileJSON.maxzoom ||
-        x >= Math.pow(2, z) ||
-        y >= Math.pow(2, z)
-      ) {
-        return res.status(404).send('Out of bounds');
-      }
-
-      const fetchTile = await fetchTileData(
-        item.source,
-        item.sourceType,
-        z,
-        x,
-        y,
+      const compiled = await compileTemplate(
+        item.tileJSON.format === "pbf" ? "vector_data" : "raster_data",
+        {
+          id: id,
+          name: item.tileJSON.name,
+          base_url: getRequestHost(req),
+        }
       );
-      if (fetchTile == null) return res.status(204).send();
 
-      let data = fetchTile.data;
-      let headers = fetchTile.headers;
-      let isGzipped = data.slice(0, 2).indexOf(Buffer.from([0x1f, 0x8b])) === 0;
+      return res.status(StatusCodes.OK).send(compiled);
+    } catch (error) {
+      printLog("error", `Failed to serve data "${id}": ${error}`);
 
-      if (isGzipped) {
-        data = await gunzipP(data);
-        isGzipped = false;
-      }
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
 
-      if (tileJSONFormat === 'pbf') {
-        if (options.dataDecoratorFunc) {
-          data = options.dataDecoratorFunc(
-            req.params.id,
-            'data',
-            data,
+/**
+ * Get data tile handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getDataTileHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+    const item = config.repo.datas[id];
+
+    /* Check data is exist? */
+    if (item === undefined) {
+      return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+    }
+
+    /* Check data tile format */
+    if (
+      req.params.format !== item.tileJSON.format ||
+      ["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(
+        req.params.format
+      ) === false
+    ) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .send("Data tile format is not support");
+    }
+
+    /* Get tile name */
+    const z = Number(req.params.z);
+    const x = Number(req.params.x);
+    const y = Number(req.params.y);
+    const tileName = `${z}/${x}/${y}`;
+
+    /* Get tile data */
+    try {
+      let dataTile;
+
+      if (item.sourceType === "mbtiles") {
+        try {
+          dataTile = await getMBTilesTile(item.source, z, x, y);
+        } catch (error) {
+          if (
+            item.sourceURL !== undefined &&
+            error.message === "Tile does not exist"
+          ) {
+            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+            const targetURL = item.sourceURL
+              .replace("{z}", `${z}`)
+              .replace("{x}", `${x}`)
+              .replace("{y}", `${tmpY}`);
+
+            printLog(
+              "info",
+              `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+            );
+
+            /* Get data */
+            dataTile = await getMBTilesTileFromURL(
+              targetURL,
+              60000 // 1 mins
+            );
+
+            /* Cache */
+            if (item.storeCache === true) {
+              printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+              cacheMBtilesTileData(
+                item.source,
+                z,
+                x,
+                tmpY,
+                dataTile.data,
+                item.storeMD5,
+                item.storeTransparent
+              ).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+                )
+              );
+            }
+          } else {
+            throw error;
+          }
+        }
+      } else if (item.sourceType === "pmtiles") {
+        dataTile = await getPMTilesTile(item.source, z, x, y);
+      } else if (item.sourceType === "xyz") {
+        try {
+          dataTile = await getXYZTile(
+            item.source,
             z,
             x,
             y,
+            item.tileJSON.format
           );
-        }
-      }
-
-      if (format === 'pbf') {
-        headers['Content-Type'] = 'application/x-protobuf';
-      } else if (format === 'geojson') {
-        headers['Content-Type'] = 'application/json';
-        const tile = new VectorTile(new Pbf(data));
-        const geojson = {
-          type: 'FeatureCollection',
-          features: [],
-        };
-        for (const layerName in tile.layers) {
-          const layer = tile.layers[layerName];
-          for (let i = 0; i < layer.length; i++) {
-            const feature = layer.feature(i);
-            const featureGeoJSON = feature.toGeoJSON(x, y, z);
-            featureGeoJSON.properties.layer = layerName;
-            geojson.features.push(featureGeoJSON);
-          }
-        }
-        data = JSON.stringify(geojson);
-      }
-      if (headers) {
-        delete headers['ETag'];
-      }
-      headers['Content-Encoding'] = 'gzip';
-      res.set(headers);
-
-      if (!isGzipped) {
-        data = await gzipP(data);
-      }
-
-      return res.status(200).send(data);
-    });
-
-    /**
-     * Handles requests for elevation data.
-     * @param {object} req - Express request object.
-     * @param {object} res - Express response object.
-     * @param {string} req.params.id - ID of the elevation data.
-     * @param {string} req.params.z - Z coordinate of the tile.
-     * @param {string} req.params.x - X coordinate of the tile (either integer or float).
-     * @param {string} req.params.y - Y coordinate of the tile (either integer or float).
-     * @returns {Promise<void>}
-     */
-    app.get('/:id/elevation/:z/:x/:y', async (req, res, next) => {
-      try {
-        if (verbose) {
-          console.log(
-            `Handling elevation request for: /data/%s/elevation/%s/%s/%s`,
-            String(req.params.id).replace(/\n|\r/g, ''),
-            String(req.params.z).replace(/\n|\r/g, ''),
-            String(req.params.x).replace(/\n|\r/g, ''),
-            String(req.params.y).replace(/\n|\r/g, ''),
-          );
-        }
-        const item = repo?.[req.params.id];
-        if (!item) return res.sendStatus(404);
-        if (!item.source) return res.status(404).send('Missing source');
-        if (!item.tileJSON) return res.status(404).send('Missing tileJSON');
-        if (!item.sourceType) return res.status(404).send('Missing sourceType');
-        const { source, tileJSON, sourceType } = item;
-        if (sourceType !== 'pmtiles' && sourceType !== 'mbtiles') {
-          return res
-            .status(400)
-            .send('Invalid sourceType. Must be pmtiles or mbtiles.');
-        }
-        const encoding = tileJSON?.encoding;
-        if (encoding == null) {
-          return res.status(400).send('Missing tileJSON.encoding');
-        } else if (encoding !== 'terrarium' && encoding !== 'mapbox') {
-          return res
-            .status(400)
-            .send('Invalid encoding. Must be terrarium or mapbox.');
-        }
-        const format = tileJSON?.format;
-        if (format == null) {
-          return res.status(400).send('Missing tileJSON.format');
-        } else if (format !== 'webp' && format !== 'png') {
-          return res.status(400).send('Invalid format. Must be webp or png.');
-        }
-        const z = parseInt(req.params.z, 10);
-        const x = parseFloat(req.params.x);
-        const y = parseFloat(req.params.y);
-        if (tileJSON.minzoom == null || tileJSON.maxzoom == null) {
-          return res.status(404).send(JSON.stringify(tileJSON));
-        }
-        const TILE_SIZE = tileJSON.tileSize || 512;
-        let bbox;
-        let xy;
-        var zoom = z;
-
-        if (Number.isInteger(x) && Number.isInteger(y)) {
-          const intX = parseInt(req.params.x, 10);
-          const intY = parseInt(req.params.y, 10);
+        } catch (error) {
           if (
-            zoom < tileJSON.minzoom ||
-            zoom > tileJSON.maxzoom ||
-            intX < 0 ||
-            intY < 0 ||
-            intX >= Math.pow(2, zoom) ||
-            intY >= Math.pow(2, zoom)
+            item.sourceURL !== undefined &&
+            error.message === "Tile does not exist"
           ) {
-            return res.status(404).send('Out of bounds');
+            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+            const targetURL = item.sourceURL
+              .replace("{z}", `${z}`)
+              .replace("{x}", `${x}`)
+              .replace("{y}", `${tmpY}`);
+
+            printLog(
+              "info",
+              `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+            );
+
+            /* Get data */
+            dataTile = await getXYZTileFromURL(
+              targetURL,
+              60000 // 1 mins
+            );
+
+            /* Cache */
+            if (item.storeCache === true) {
+              printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+              cacheXYZTileFile(
+                item.source,
+                item.md5Source,
+                z,
+                x,
+                tmpY,
+                item.tileJSON.format,
+                dataTile.data,
+                item.storeMD5,
+                item.storeTransparent
+              ).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+                )
+              );
+            }
+          } else {
+            throw error;
           }
-          xy = [intX, intY];
-          bbox = new SphericalMercator().bbox(intX, intY, zoom);
-        } else {
-          //no zoom limit with coordinates
-          if (zoom < tileJSON.minzoom) {
-            zoom = tileJSON.minzoom;
-          }
-          if (zoom > tileJSON.maxzoom) {
-            zoom = tileJSON.maxzoom;
-          }
-          bbox = [x, y, x + 0.1, y + 0.1];
-          const { minX, minY } = new SphericalMercator().xyz(bbox, zoom);
-          xy = [minX, minY];
         }
+      } else if (item.sourceType === "pg") {
+        try {
+          dataTile = await getPostgreSQLTile(item.source, z, x, y);
+        } catch (error) {
+          if (
+            item.sourceURL !== undefined &&
+            error.message === "Tile does not exist"
+          ) {
+            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
-        const fetchTile = await fetchTileData(
-          source,
-          sourceType,
-          zoom,
-          xy[0],
-          xy[1],
-        );
-        if (fetchTile == null) return res.status(204).send();
+            const targetURL = item.sourceURL
+              .replace("{z}", `${z}`)
+              .replace("{x}", `${x}`)
+              .replace("{y}", `${tmpY}`);
 
-        let data = fetchTile.data;
-        var param = {
-          long: bbox[0].toFixed(7),
-          lat: bbox[1].toFixed(7),
-          encoding,
-          format,
-          tile_size: TILE_SIZE,
-          z: zoom,
-          x: xy[0],
-          y: xy[1],
-        };
+            printLog(
+              "info",
+              `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+            );
 
-        res
-          .status(200)
-          .send(await serve_rendered.getTerrainElevation(data, param));
-      } catch (err) {
-        return res
-          .status(500)
-          .header('Content-Type', 'text/plain')
-          .send(err.message);
+            /* Get data */
+            dataTile = await getPostgreSQLTileFromURL(
+              targetURL,
+              60000 // 1 mins
+            );
+
+            /* Cache */
+            if (item.storeCache === true) {
+              printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+              cachePostgreSQLTileData(
+                item.source,
+                z,
+                x,
+                tmpY,
+                dataTile.data,
+                item.storeMD5,
+                item.storeTransparent
+              ).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+                )
+              );
+            }
+          } else {
+            throw error;
+          }
+        }
       }
-    });
+
+      /* Gzip pbf data tile */
+      if (
+        dataTile.headers["content-type"] === "application/x-protobuf" &&
+        dataTile.headers["content-encoding"] === undefined
+      ) {
+        dataTile.data = await gzipAsync(dataTile.data);
+
+        dataTile.headers["content-encoding"] = "gzip";
+      }
+
+      res.set(dataTile.headers);
+
+      return res.status(StatusCodes.OK).send(dataTile.data);
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to get data "${id}" - Tile "${tileName}": ${error}`
+      );
+
+      if (error.message === "Tile does not exist") {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Get data tileJSON handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getDataHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.repo.datas[id];
+
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+      }
+
+      const requestHost = getRequestHost(req);
+
+      res.header("content-type", "application/json");
+
+      return res.status(StatusCodes.OK).send({
+        ...item.tileJSON,
+        tilejson: "2.2.0",
+        scheme: "xyz",
+        id: id,
+        tiles: [
+          `${requestHost}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format}`,
+        ],
+      });
+    } catch (error) {
+      printLog("error", `Failed to get data "${id}": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get data tile MD5 handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getDataTileMD5Handler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+    const item = config.repo.datas[id];
+
+    /* Check data is exist? */
+    if (item === undefined) {
+      return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+    }
+
+    /* Check data tile format */
+    if (
+      req.params.format !== item.tileJSON.format ||
+      ["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(
+        req.params.format
+      ) === false
+    ) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .send("Data tile format is not support");
+    }
+
+    /* Get tile name */
+    const z = Number(req.params.z);
+    const x = Number(req.params.x);
+    const y = Number(req.params.y);
+    const tileName = `${z}/${x}/${y}`;
+
+    /* Get tile data MD5 */
+    try {
+      let md5;
+
+      if (item.sourceType === "mbtiles") {
+        if (item.storeMD5 === true) {
+          md5 = await getMBTilesTileMD5(item.source, z, x, y);
+        } else {
+          const tile = await getMBTilesTile(item.source, z, x, y);
+
+          md5 = calculateMD5(tile.data);
+        }
+      } else if (item.sourceType === "pmtiles") {
+        const tile = await getPMTilesTile(item.source, z, x, y);
+
+        md5 = calculateMD5(tile.data);
+      } else if (item.sourceType === "xyz") {
+        if (item.storeMD5 === true) {
+          md5 = await getXYZTileMD5(item.md5Source, z, x, y);
+        } else {
+          const tile = await getXYZTile(
+            item.source,
+            z,
+            x,
+            y,
+            item.tileJSON.format
+          );
+
+          md5 = calculateMD5(tile.data);
+        }
+      } else if (item.sourceType === "pg") {
+        if (item.storeMD5 === true) {
+          md5 = await getPostgreSQLTileMD5(item.source, z, x, y);
+        } else {
+          const tile = await getPostgreSQLTile(item.source, z, x, y);
+
+          md5 = calculateMD5(tile.data);
+        }
+      }
+
+      /* Add MD5 to header */
+      res.set({
+        etag: md5,
+      });
+
+      return res.status(StatusCodes.OK).send();
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to get md5 data "${id}" - Tile "${tileName}": ${error}`
+      );
+
+      if (
+        error.message === "Tile MD5 does not exist" ||
+        error.message === "Tile does not exist"
+      ) {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Get data tile list handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getDatasListHandler() {
+  return async (req, res, next) => {
+    try {
+      const requestHost = getRequestHost(req);
+
+      const result = await Promise.all(
+        Object.keys(config.repo.datas).map(async (id) => {
+          return {
+            id: id,
+            name: config.repo.datas[id].tileJSON.name,
+            url: `${requestHost}/datas/${id}.json`,
+          };
+        })
+      );
+
+      return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+      printLog("error", `Failed to get datas": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get data tileJSON list handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getDataTileJSONsListHandler() {
+  return async (req, res, next) => {
+    try {
+      const requestHost = getRequestHost(req);
+
+      const result = await Promise.all(
+        Object.keys(config.repo.datas).map(async (id) => {
+          const item = config.repo.datas[id];
+
+          return {
+            ...item.tileJSON,
+            tilejson: "2.2.0",
+            scheme: "xyz",
+            id: id,
+            tiles: [
+              `${requestHost}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format}`,
+            ],
+          };
+        })
+      );
+
+      return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+      printLog("error", `Failed to get data tileJSONs": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+export const serve_data = {
+  init: () => {
+    const app = express().disable("x-powered-by");
+
+    if (process.env.SERVE_FRONT_PAGE !== "false") {
+      /* Serve data */
+      /**
+       * @swagger
+       * tags:
+       *   - name: Data
+       *     description: Data related endpoints
+       * /datas/{id}/:
+       *   get:
+       *     tags:
+       *       - Data
+       *     summary: Serve data page
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the data
+       *     responses:
+       *       200:
+       *         description: Data page
+       *         content:
+       *           text/html:
+       *             schema:
+       *               type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.use("/:id/$", serveDataHandler());
+    }
 
     /**
-     * Handles requests for tilejson for the data tiles.
-     * @param {object} req - Express request object.
-     * @param {object} res - Express response object.
-     * @param {string} req.params.id - ID of the data source.
-     * @returns {Promise<void>}
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/datas.json:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Get all datas
+     *     responses:
+     *       200:
+     *         description: List of all datas
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
+     *                 properties:
+     *                   id:
+     *                     type: string
+     *                   name:
+     *                     type: string
+     *                   url:
+     *                     type: string
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
      */
-    app.get('/:id.json', (req, res) => {
-      if (verbose) {
-        console.log(
-          `Handling tilejson request for: /data/%s.json`,
-          String(req.params.id).replace(/\n|\r/g, ''),
-        );
-      }
-      const item = repo[req.params.id];
-      if (!item) {
-        return res.sendStatus(404);
-      }
-      const tileSize = undefined;
-      const info = clone(item.tileJSON);
-      info.tiles = getTileUrls(
-        req,
-        info.tiles,
-        `data/${req.params.id}`,
-        tileSize,
-        info.format,
-        item.publicUrl,
-        {
-          pbf: options.pbfAlias,
-        },
-      );
-      return res.send(info);
-    });
+    app.get("/datas.json", getDatasListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/tilejsons.json:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Get all data tileJSONs
+     *     responses:
+     *       200:
+     *         description: List of all data tileJSONs
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/tilejsons.json", getDataTileJSONsListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/{id}.json:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Get data by ID
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
+     *     responses:
+     *       200:
+     *         description: Data information
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/:id.json", getDataHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/{id}/{z}/{x}/{y}.{format}:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Get data tile
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
+     *       - in: path
+     *         name: z
+     *         required: true
+     *         schema:
+     *           type: integer
+     *           example: 0
+     *         description: Zoom level
+     *       - in: path
+     *         name: x
+     *         required: true
+     *         schema:
+     *           type: integer
+     *           example: 0
+     *         description: Tile X coordinate
+     *       - in: path
+     *         name: y
+     *         required: true
+     *         schema:
+     *           type: integer
+     *           example: 0
+     *         description: Tile Y coordinate
+     *       - in: path
+     *         name: format
+     *         required: true
+     *         schema:
+     *           type: string
+     *           enum: [jpeg, jpg, pbf, png, webp, gif]
+     *           example: png
+     *         description: Tile format
+     *     responses:
+     *       200:
+     *         description: Data tile
+     *         content:
+     *           application/octet-stream:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       204:
+     *         description: No content
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get(
+      `/:id/:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}).:format`,
+      getDataTileHandler()
+    );
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/{id}/md5/{z}/{x}/{y}.{format}:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Get data tile MD5
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
+     *       - in: path
+     *         name: z
+     *         required: true
+     *         schema:
+     *           type: integer
+     *           example: 0
+     *         description: Zoom level
+     *       - in: path
+     *         name: x
+     *         required: true
+     *         schema:
+     *           type: integer
+     *           example: 0
+     *         description: Tile X coordinate
+     *       - in: path
+     *         name: y
+     *         required: true
+     *         schema:
+     *           type: integer
+     *           example: 0
+     *         description: Tile Y coordinate
+     *       - in: path
+     *         name: format
+     *         required: true
+     *         schema:
+     *           type: string
+     *           enum: [jpeg, jpg, pbf, png, webp, gif]
+     *           example: png
+     *         description: Tile format
+     *     responses:
+     *       200:
+     *         description: Data tile MD5
+     *         content:
+     *           application/octet-stream:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       204:
+     *         description: No content
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get(
+      `/:id/md5/:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}).:format`,
+      getDataTileMD5Handler()
+    );
 
     return app;
   },
-  /**
-   * Adds a new data source to the repository.
-   * @param {object} options Configuration options.
-   * @param {object} repo Repository object.
-   * @param {object} params Parameters object.
-   * @param {string} id ID of the data source.
-   * @param {object} programOpts - An object containing the program options
-   * @param {string} programOpts.publicUrl Public URL for the data.
-   * @param {boolean} programOpts.verbose Whether verbose logging should be used.
-   * @param {Function} dataResolver Function to resolve data.
-   * @returns {Promise<void>}
-   */
-  add: async function (options, repo, params, id, programOpts) {
-    const { publicUrl } = programOpts;
-    let inputFile;
-    let inputType;
-    if (params.pmtiles) {
-      inputType = 'pmtiles';
-      if (isValidHttpUrl(params.pmtiles)) {
-        inputFile = params.pmtiles;
-      } else {
-        inputFile = path.resolve(options.paths.pmtiles, params.pmtiles);
-      }
-    } else if (params.mbtiles) {
-      inputType = 'mbtiles';
-      if (isValidHttpUrl(params.mbtiles)) {
-        console.log(
-          `ERROR: MBTiles does not support web based files. "${params.mbtiles}" is not a valid data file.`,
-        );
-        process.exit(1);
-      } else {
-        inputFile = path.resolve(options.paths.mbtiles, params.mbtiles);
-      }
+
+  add: async () => {
+    if (config.datas === undefined) {
+      printLog("info", "No datas in config. Skipping...");
+    } else {
+      const ids = Object.keys(config.datas);
+
+      printLog("info", `Loading ${ids.length} datas...`);
+
+      await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const item = config.datas[id];
+            const dataInfo = {};
+
+            /* Load data */
+            if (item.mbtiles !== undefined) {
+              dataInfo.sourceType = "mbtiles";
+
+              if (
+                item.mbtiles.startsWith("https://") === true ||
+                item.mbtiles.startsWith("http://") === true
+              ) {
+                dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${id}/${id}.mbtiles`;
+
+                /* Download MBTiles file if not exist */
+                if ((await isExistFile(dataInfo.path)) === false) {
+                  printLog(
+                    "info",
+                    `Downloading MBTiles file "${dataInfo.path}" - From "${item.mbtiles}"...`
+                  );
+
+                  await downloadMBTilesFile(
+                    item.mbtiles,
+                    dataInfo.path,
+                    5,
+                    3600000 // 1 hour
+                  );
+                }
+
+                dataInfo.source = await openMBTilesDB(
+                  dataInfo.path,
+                  sqlite3.OPEN_READONLY,
+                  false
+                );
+
+                dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
+              } else {
+                if (item.cache !== undefined) {
+                  dataInfo.path = `${process.env.DATA_DIR}/caches/mbtiles/${item.mbtiles}/${item.mbtiles}.mbtiles`;
+
+                  const cacheSource = seed.datas?.[item.mbtiles];
+
+                  if (
+                    cacheSource === undefined ||
+                    cacheSource.storeType !== "mbtiles"
+                  ) {
+                    throw new Error(
+                      `Cache mbtiles data "${item.mbtiles}" is invalid`
+                    );
+                  }
+
+                  if (item.cache.forward === true) {
+                    dataInfo.sourceURL = cacheSource.url;
+                    dataInfo.scheme = cacheSource.scheme;
+                    dataInfo.storeCache = item.cache.store;
+                    dataInfo.storeMD5 = cacheSource.storeMD5;
+                    dataInfo.storeTransparent = cacheSource.storeTransparent;
+                  }
+
+                  /* Open MBTiles */
+                  if (
+                    dataInfo.storeCache === true ||
+                    (await isExistFile(dataInfo.path)) === false
+                  ) {
+                    dataInfo.source = await openMBTilesDB(
+                      dataInfo.path,
+                      sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+                      false
+                    );
+                  } else {
+                    dataInfo.source = await openMBTilesDB(
+                      dataInfo.path,
+                      sqlite3.OPEN_READONLY,
+                      false
+                    );
+                  }
+
+                  /* Get MBTiles metadata */
+                  dataInfo.tileJSON = createMBTilesMetadata({
+                    ...cacheSource.metadata,
+                    cacheCoverages: cacheSource.coverages,
+                  });
+                } else {
+                  dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
+
+                  /* Open MBTiles */
+                  dataInfo.source = await openMBTilesDB(
+                    dataInfo.path,
+                    sqlite3.OPEN_READONLY,
+                    false
+                  );
+
+                  /* Get MBTiles metadata */
+                  dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
+                }
+              }
+
+              /* Validate MBTiles */
+              validateMBTiles(dataInfo.tileJSON);
+            } else if (item.pmtiles !== undefined) {
+              dataInfo.sourceType = "pmtiles";
+
+              if (
+                item.pmtiles.startsWith("https://") === true ||
+                item.pmtiles.startsWith("http://") === true
+              ) {
+                dataInfo.path = item.pmtiles;
+
+                /* Open PMTiles */
+                dataInfo.source = openPMTiles(dataInfo.path);
+
+                /* Get PMTiles metadata */
+                dataInfo.tileJSON = await getPMTilesMetadata(dataInfo.source);
+              } else {
+                dataInfo.path = `${process.env.DATA_DIR}/pmtiles/${item.pmtiles}`;
+
+                /* Open PMTiles */
+                dataInfo.source = openPMTiles(dataInfo.path);
+
+                /* Get PMTiles metadata */
+                dataInfo.tileJSON = await getPMTilesMetadata(dataInfo.source);
+              }
+
+              validatePMTiles(dataInfo.tileJSON);
+            } else if (item.xyz !== undefined) {
+              dataInfo.sourceType = "xyz";
+
+              if (item.cache !== undefined) {
+                dataInfo.path = `${process.env.DATA_DIR}/caches/xyzs/${item.xyz}`;
+                const md5FilePath = `${dataInfo.path}/${item.xyz}.sqlite`;
+
+                const cacheSource = seed.datas?.[item.xyz];
+
+                if (
+                  cacheSource === undefined ||
+                  cacheSource.storeType !== "xyz"
+                ) {
+                  throw new Error(`Cache xyz data "${item.xyz}" is invalid`);
+                }
+
+                if (item.cache.forward === true) {
+                  dataInfo.sourceURL = cacheSource.url;
+                  dataInfo.scheme = cacheSource.scheme;
+                  dataInfo.storeCache = item.cache.store;
+                  dataInfo.storeMD5 = cacheSource.storeMD5;
+                  dataInfo.storeTransparent = cacheSource.storeTransparent;
+                }
+
+                if (
+                  dataInfo.storeCache === true ||
+                  (await isExistFile(md5FilePath)) === false
+                ) {
+                  dataInfo.md5Source = await openXYZMD5DB(
+                    md5FilePath,
+                    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+                    false
+                  );
+                } else {
+                  dataInfo.md5Source = await openXYZMD5DB(
+                    md5FilePath,
+                    sqlite3.OPEN_READONLY,
+                    false
+                  );
+                }
+
+                dataInfo.source = dataInfo.path;
+
+                /* Get XYZ metadata */
+                dataInfo.tileJSON = createXYZMetadata({
+                  ...cacheSource.metadata,
+                  cacheCoverages: cacheSource.coverages,
+                });
+              } else {
+                dataInfo.path = `${process.env.DATA_DIR}/xyzs/${item.xyz}`;
+
+                dataInfo.source = dataInfo.path;
+
+                /* Get XYZ metadata */
+                dataInfo.tileJSON = await getXYZMetadata(dataInfo.source);
+              }
+
+              validateXYZ(dataInfo.tileJSON);
+            } else if (item.pg !== undefined) {
+              dataInfo.sourceType = "pg";
+
+              if (item.cache !== undefined) {
+                dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+                const cacheSource = seed.datas?.[item.pg];
+
+                if (
+                  cacheSource === undefined ||
+                  cacheSource.storeType !== "pg"
+                ) {
+                  throw new Error(`Cache pg data "${item.pg}" is invalid`);
+                }
+
+                if (item.cache.forward === true) {
+                  dataInfo.sourceURL = cacheSource.url;
+                  dataInfo.scheme = cacheSource.scheme;
+                  dataInfo.storeCache = item.cache.store;
+                  dataInfo.storeMD5 = cacheSource.storeMD5;
+                  dataInfo.storeTransparent = cacheSource.storeTransparent;
+                }
+
+                /* Open PostgreSQL */
+                dataInfo.source = await openPostgreSQLDB(dataInfo.path, true);
+
+                /* Get PostgreSQL metadata */
+                dataInfo.tileJSON = createPostgreSQLMetadata({
+                  ...cacheSource.metadata,
+                  cacheCoverages: cacheSource.coverages,
+                });
+              } else {
+                dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+                /* Open PostgreSQL */
+                dataInfo.source = await openPostgreSQLDB(dataInfo.path, true);
+
+                /* Get PostgreSQL metadata */
+                dataInfo.tileJSON = await getPostgreSQLMetadata(
+                  dataInfo.source
+                );
+              }
+
+              validatePostgreSQL(dataInfo.tileJSON);
+            }
+
+            /* Add to repo */
+            config.repo.datas[id] = dataInfo;
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to load data "${id}": ${error}. Skipping...`
+            );
+          }
+        })
+      );
     }
-
-    let tileJSON = {
-      tiles: params.domains || options.domains,
-    };
-
-    if (!isValidHttpUrl(inputFile)) {
-      const inputFileStats = await fsp.stat(inputFile);
-      if (!inputFileStats.isFile() || inputFileStats.size === 0) {
-        throw Error(`Not valid input file: "${inputFile}"`);
-      }
-    }
-
-    let source;
-    let sourceType;
-    if (inputType === 'pmtiles') {
-      source = openPMtiles(inputFile);
-      sourceType = 'pmtiles';
-      const metadata = await getPMtilesInfo(source);
-
-      tileJSON['encoding'] = params['encoding'];
-      tileJSON['tileSize'] = params['tileSize'];
-      tileJSON['name'] = id;
-      tileJSON['format'] = 'pbf';
-      Object.assign(tileJSON, metadata);
-
-      tileJSON['tilejson'] = '2.0.0';
-      delete tileJSON['filesize'];
-      delete tileJSON['mtime'];
-      delete tileJSON['scheme'];
-
-      Object.assign(tileJSON, params.tilejson || {});
-      fixTileJSONCenter(tileJSON);
-
-      if (options.dataDecoratorFunc) {
-        tileJSON = options.dataDecoratorFunc(id, 'tilejson', tileJSON);
-      }
-    } else if (inputType === 'mbtiles') {
-      sourceType = 'mbtiles';
-      const mbw = await openMbTilesWrapper(inputFile);
-      const info = await mbw.getInfo();
-      source = mbw.getMbTiles();
-      tileJSON['encoding'] = params['encoding'];
-      tileJSON['tileSize'] = params['tileSize'];
-      tileJSON['name'] = id;
-      tileJSON['format'] = 'pbf';
-
-      Object.assign(tileJSON, info);
-
-      tileJSON['tilejson'] = '2.0.0';
-      delete tileJSON['filesize'];
-      delete tileJSON['mtime'];
-      delete tileJSON['scheme'];
-
-      Object.assign(tileJSON, params.tilejson || {});
-      fixTileJSONCenter(tileJSON);
-
-      if (options.dataDecoratorFunc) {
-        tileJSON = options.dataDecoratorFunc(id, 'tilejson', tileJSON);
-      }
-    }
-
-    repo[id] = {
-      tileJSON,
-      publicUrl,
-      source,
-      sourceType,
-    };
   },
 };

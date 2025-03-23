@@ -1,0 +1,388 @@
+{
+  "type": "object",
+  "properties": {
+    "styles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "zoom": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 22
+              },
+              "center": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "minItems": 3,
+                "maxItems": 3
+              }
+            }
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "skip": {
+            "type": "boolean"
+          },
+          "refreshBefore": {
+            "type": "object",
+            "properties": {
+              "time": {
+                "type": "string",
+                "minLength": 1
+              },
+              "day": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "anyOf": [{ "required": ["time"] }, { "required": ["day"] }]
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxTry": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": ["metadata", "url"]
+      }
+    },
+    "geojsons": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "skip": {
+            "type": "boolean"
+          },
+          "refreshBefore": {
+            "type": "object",
+            "properties": {
+              "time": {
+                "type": "string",
+                "minLength": 1
+              },
+              "day": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "md5": {
+                "type": "boolean"
+              }
+            },
+            "anyOf": [
+              { "required": ["time"] },
+              { "required": ["day"] },
+              { "required": ["md5"] }
+            ]
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxTry": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": ["metadata", "url"]
+      }
+    },
+    "datas": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "attribution": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["baselayer", "overlay"]
+              },
+              "scheme": {
+                "type": "string",
+                "enum": ["tms", "xyz"]
+              },
+              "format": {
+                "type": "string",
+                "enum": ["gif", "png", "jpg", "jpeg", "webp", "pbf"]
+              },
+              "minzoom": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 22
+              },
+              "maxzoom": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 22
+              },
+              "bounds": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "center": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "vector_layers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "minzoom": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 22
+                    },
+                    "maxzoom": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 22
+                    },
+                    "fields": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": ["id"]
+                },
+                "minItems": 0
+              },
+              "tilestats": {
+                "type": "object",
+                "properties": {
+                  "layerCount": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "required": ["format"]
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scheme": {
+            "type": "string",
+            "enum": ["tms", "xyz"]
+          },
+          "skip": {
+            "type": "boolean"
+          },
+          "refreshBefore": {
+            "type": "object",
+            "properties": {
+              "time": {
+                "type": "string",
+                "minLength": 1
+              },
+              "day": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "md5": {
+                "type": "boolean"
+              }
+            },
+            "anyOf": [
+              { "required": ["time"] },
+              { "required": ["day"] },
+              { "required": ["md5"] }
+            ]
+          },
+          "coverages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "zooms": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 22
+                  },
+                  "minItems": 0,
+                  "maxItems": 23
+                },
+                "bboxs": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["zooms", "bboxs"]
+            },
+            "minItems": 1
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "concurrency": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxTry": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "storeType": {
+            "type": "string",
+            "enum": ["xyz", "mbtiles", "pg"]
+          },
+          "storeMD5": {
+            "type": "boolean"
+          },
+          "storeTransparent": {
+            "type": "boolean"
+          }
+        },
+        "required": ["metadata", "storeType", "url"]
+      }
+    },
+    "sprites": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "refreshBefore": {
+            "type": "object",
+            "properties": {
+              "time": {
+                "type": "string",
+                "minLength": 1
+              },
+              "day": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "anyOf": [{ "required": ["time"] }, { "required": ["day"] }]
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxTry": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "skip": {
+            "type": "boolean"
+          }
+        },
+        "required": ["url"]
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "refreshBefore": {
+            "type": "object",
+            "properties": {
+              "time": {
+                "type": "string",
+                "minLength": 1
+              },
+              "day": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "anyOf": [{ "required": ["time"] }, { "required": ["day"] }]
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "concurrency": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxTry": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "skip": {
+            "type": "boolean"
+          }
+        },
+        "required": ["url"]
+      }
+    }
+  }
+}

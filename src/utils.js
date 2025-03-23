@@ -1,430 +1,1006 @@
-'use strict';
+"use strict";
 
-import path from 'path';
-import fsPromises from 'fs/promises';
-import fs from 'node:fs';
-import clone from 'clone';
-import { combine } from '@jsse/pbfont';
-import { existsP } from './promises.js';
-import { getPMtilesTile } from './pmtiles_adapter.js';
+import { StatusCodes } from "http-status-codes";
+import fsPromise from "node:fs/promises";
+import { printLog } from "./logger.js";
+import { exec } from "child_process";
+import handlebars from "handlebars";
+import https from "node:https";
+import http from "node:http";
+import path from "node:path";
+import crypto from "crypto";
+import axios from "axios";
+import proj4 from "proj4";
+import sharp from "sharp";
+import fs from "node:fs";
+import zlib from "zlib";
+import util from "util";
+import Ajv from "ajv";
 
-export const allowedSpriteFormats = allowedOptions(['png', 'json']);
-
-export const allowedTileSizes = allowedOptions(['256', '512']);
+sharp.cache(false);
 
 /**
- * Restrict user input to an allowed set of options.
- * @param {string[]} opts - An array of allowed option strings.
- * @param {object} [config] - Optional configuration object.
- * @param {string} [config.defaultValue] - The default value to return if input doesn't match.
- * @returns {function(string): string} - A function that takes a value and returns it if valid or a default.
+ * Compile template
+ * @param {"index"|"viewer"|"vector_data"|"raster_data"|"geojson_group"|"geojson"|"wmts"} template
+ * @param {Object} data
+ * @returns {Promise<string>}
  */
-export function allowedOptions(opts, { defaultValue } = {}) {
-  const values = Object.fromEntries(opts.map((key) => [key, key]));
-  return (value) => values[value] || defaultValue;
+export async function compileTemplate(template, data) {
+  return handlebars.compile(
+    await fsPromise.readFile(`public/templates/${template}.tmpl`, "utf8")
+  )(data);
 }
 
 /**
- * Parses a scale string to a number.
- * @param {string} scale The scale string (e.g., '2x', '4x').
- * @param {number} maxScale Maximum allowed scale digit.
- * @returns {number|null} The parsed scale as a number or null if invalid.
+ * Get data from URL
+ * @param {string} url URL to fetch data from
+ * @param {number} timeout Timeout in milliseconds
+ * @param {"arraybuffer"|"json"|"text"|"stream"|"blob"|"document"|"formdata"} responseType Response type
+ * @param {boolean} keepAlive Whether to keep the connection alive
+ * @returns {Promise<axios.AxiosResponse>}
  */
-export function allowedScales(scale, maxScale = 9) {
-  if (scale === undefined) {
-    return 1;
-  }
-
-  // eslint-disable-next-line security/detect-non-literal-regexp
-  const regex = new RegExp(`^[2-${maxScale}]x$`);
-  if (!regex.test(scale)) {
-    return null;
-  }
-
-  return parseInt(scale.slice(0, -1), 10);
-}
-
-/**
- * Checks if a string is a valid sprite scale and returns it if it is within the allowed range, and null if it does not conform.
- * @param {string} scale - The scale string to validate (e.g., '2x', '3x').
- * @param {number} [maxScale] - The maximum scale value. If no value is passed in, it defaults to a value of 3.
- * @returns {string|null} - The valid scale string or null if invalid.
- */
-export function allowedSpriteScales(scale, maxScale = 3) {
-  if (!scale) {
-    return '';
-  }
-  const match = scale?.match(/^([2-9]\d*)x$/);
-  if (!match) {
-    return null;
-  }
-  const parsedScale = parseInt(match[1], 10);
-  if (parsedScale <= maxScale) {
-    return `@${parsedScale}x`;
-  }
-  return null;
-}
-
-/**
- * Replaces local:// URLs with public http(s):// URLs.
- * @param {object} req - Express request object.
- * @param {string} url - The URL string to fix.
- * @param {string} publicUrl - The public URL prefix to use for replacements.
- * @returns {string} - The fixed URL string.
- */
-export function fixUrl(req, url, publicUrl) {
-  if (!url || typeof url !== 'string' || url.indexOf('local://') !== 0) {
-    return url;
-  }
-  const queryParams = [];
-  if (req.query.key) {
-    queryParams.unshift(`key=${encodeURIComponent(req.query.key)}`);
-  }
-  let query = '';
-  if (queryParams.length) {
-    query = `?${queryParams.join('&')}`;
-  }
-  return url.replace('local://', getPublicUrl(publicUrl, req)) + query;
-}
-
-/**
- * Generates a new URL object from the Express request.
- * @param {object} req - Express request object.
- * @returns {URL} - URL object with correct host and optionally path.
- */
-function getUrlObject(req) {
-  const urlObject = new URL(`${req.protocol}://${req.headers.host}/`);
-  // support overriding hostname by sending X-Forwarded-Host http header
-  urlObject.hostname = req.hostname;
-
-  // support overriding port by sending X-Forwarded-Port http header
-  const xForwardedPort = req.get('X-Forwarded-Port');
-  if (xForwardedPort) {
-    urlObject.port = xForwardedPort;
-  }
-
-  // support add url prefix by sending X-Forwarded-Path http header
-  const xForwardedPath = req.get('X-Forwarded-Path');
-  if (xForwardedPath) {
-    urlObject.pathname = path.posix.join(xForwardedPath, urlObject.pathname);
-  }
-  return urlObject;
-}
-
-/**
- * Gets the public URL, either from a provided publicUrl or generated from the request.
- * @param {string} publicUrl - The optional public URL to use.
- * @param {object} req - The Express request object.
- * @returns {string} - The final public URL string.
- */
-export function getPublicUrl(publicUrl, req) {
-  if (publicUrl) {
-    return publicUrl;
-  }
-  return getUrlObject(req).toString();
-}
-
-/**
- * Generates an array of tile URLs based on given parameters.
- * @param {object} req - Express request object.
- * @param {string | string[]} domains - Domain(s) to use for tile URLs.
- * @param {string} path - The base path for the tiles.
- * @param {number} [tileSize] - The size of the tile (optional).
- * @param {string} format - The format of the tiles (e.g., 'png', 'jpg').
- * @param {string} publicUrl - The public URL to use (if not using domains).
- * @param {object} [aliases] - Aliases for format extensions.
- * @returns {string[]} An array of tile URL strings.
- */
-export function getTileUrls(
-  req,
-  domains,
-  path,
-  tileSize,
-  format,
-  publicUrl,
-  aliases,
+export async function getDataFromURL(
+  url,
+  timeout,
+  responseType,
+  keepAlive = false
 ) {
-  const urlObject = getUrlObject(req);
-  if (domains) {
-    if (domains.constructor === String && domains.length > 0) {
-      domains = domains.split(',');
+  try {
+    return await axios({
+      method: "GET",
+      url: url,
+      timeout: timeout,
+      responseType: responseType,
+      headers: {
+        "User-Agent": "Tile Server",
+      },
+      validateStatus: (status) => {
+        return status === StatusCodes.OK;
+      },
+      httpAgent: new http.Agent({
+        keepAlive: keepAlive,
+      }),
+      httpsAgent: new https.Agent({
+        keepAlive: keepAlive,
+      }),
+    });
+  } catch (error) {
+    if (error.response) {
+      error.message = `Status code: ${error.response.status} - ${error.response.statusText}`;
+      error.statusCode = error.response.status;
     }
-    const hostParts = urlObject.host.split('.');
-    const relativeSubdomainsUsable =
-      hostParts.length > 1 &&
-      !/^([0-9]{1,3}\.){3}[0-9]{1,3}(\:[0-9]+)?$/.test(urlObject.host);
-    const newDomains = [];
-    for (const domain of domains) {
-      if (domain.indexOf('*') !== -1) {
-        if (relativeSubdomainsUsable) {
-          const newParts = hostParts.slice(1);
-          newParts.unshift(domain.replace('*', hostParts[0]));
-          newDomains.push(newParts.join('.'));
-        }
-      } else {
-        newDomains.push(domain);
+
+    throw error;
+  }
+}
+
+/**
+ * Check tile URL is local?
+ * @param {string} url URL tile to check
+ * @returns {boolean}
+ */
+export function isLocalTileURL(url) {
+  return (
+    url.startsWith("mbtiles://") === true ||
+    url.startsWith("pmtiles://") === true ||
+    url.startsWith("xyz://") === true ||
+    url.startsWith("pg://") === true
+  );
+}
+
+/**
+ * Get xyz tile indices from longitude, latitude, and zoom level (tile size = 256)
+ * @param {number} lon Longitude in EPSG:4326
+ * @param {number} lat Latitude in EPSG:4326
+ * @param {number} z Zoom level
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @returns {[number, number, number]} Tile indices [x, y, z]
+ */
+export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz") {
+  const size = 256 * (1 << z);
+  const bc = size / 360;
+  const cc = size / (2 * Math.PI);
+  const zc = size / 2;
+  const maxTileIndex = (1 << z) - 1;
+
+  // Limit longitude
+  if (lon > 180) {
+    lon = 180;
+  } else if (lon < -180) {
+    lon = -180;
+  }
+
+  // Limit latitude
+  if (lat > 85.051129) {
+    lat = 85.051129;
+  } else if (lat < -85.051129) {
+    lat = -85.051129;
+  }
+
+  let x = Math.floor((zc + lon * bc) / 256);
+  let y = Math.floor(
+    (scheme === "tms"
+      ? size -
+        (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
+      : zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) / 256
+  );
+
+  // Limit x
+  if (x < 0) {
+    x = 0;
+  } else if (x > maxTileIndex) {
+    x = maxTileIndex;
+  }
+
+  // Limit y
+  if (y < 0) {
+    y = 0;
+  } else if (y > maxTileIndex) {
+    y = maxTileIndex;
+  }
+
+  return [x, y, z];
+}
+
+/**
+ * Get longitude, latitude from tile indices x, y, and zoom level (tile size = 256)
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {number} z Zoom level
+ * @param {"center"|"topLeft"|"bottomRight"} position Tile position: "center", "topLeft", or "bottomRight"
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @returns {[number, number]} [longitude, latitude] in EPSG:4326
+ */
+export function getLonLatFromXYZ(
+  x,
+  y,
+  z,
+  position = "topLeft",
+  scheme = "xyz"
+) {
+  const size = 256 * (1 << z);
+  const bc = size / 360;
+  const cc = size / (2 * Math.PI);
+  const zc = size / 2;
+
+  let px = x * 256;
+  let py = y * 256;
+
+  if (position === "center") {
+    px = (x + 0.5) * 256;
+    py = (y + 0.5) * 256;
+  } else if (position === "bottomRight") {
+    px = (x + 1) * 256;
+    py = (y + 1) * 256;
+  }
+
+  return [
+    (px - zc) / bc,
+    (360 / Math.PI) *
+      (Math.atan(Math.exp((zc - (scheme === "tms" ? size - py : py)) / cc)) -
+        Math.PI / 4),
+  ];
+}
+
+/**
+ * Get tile bounds for specific zoom levels intersecting multiple bounding boxes
+ * @param {[number, number, number, number][]} bboxs Array of bounding boxes [west, south, east, north] in EPSG:4326
+ * @param {number[]} zooms Array of specific zoom levels
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @returns {{ total: number, tilesSummaries: {string, { x: [number, number], y: [number, number] } } }} Object containing total tiles and an array of tile summaries (one per bbox)
+ */
+export function getTilesBoundsFromBBoxs(bboxs, zooms, scheme) {
+  const tilesSummaries = [];
+  let total = 0;
+
+  for (const bbox of bboxs) {
+    const tilesSummary = {};
+
+    for (const zoom of zooms) {
+      const maxTileIndex = (1 << zoom) - 1;
+
+      let [xMin, yMin] = getXYZFromLonLatZ(bbox[0], bbox[3], zoom, scheme);
+      let [xMax, yMax] = getXYZFromLonLatZ(bbox[2], bbox[1], zoom, scheme);
+
+      if (scheme === "tms") {
+        [yMin, yMax] = [maxTileIndex - yMax, maxTileIndex - yMin];
+      }
+
+      // Limit yMin <= yMax
+      if (yMin > yMax) {
+        [yMin, yMax] = [yMax, yMin];
+      }
+
+      tilesSummary[`${zoom}`] = {
+        x: [xMin, xMax],
+        y: [yMin, yMax],
+      };
+
+      total += (xMax - xMin + 1) * (yMax - yMin + 1);
+    }
+
+    tilesSummaries.push(tilesSummary);
+  }
+
+  return { total, tilesSummaries };
+}
+
+/**
+ * Get tile bounds for specific zoom levels intersecting multiple bounding boxes
+ * @param {{ bboxs: [number, number, number, number][], zooms: number[] }[]} coverages - Array of coverage objects, each containing bounding boxes [west, south, east, north] in EPSG:4326 and an array of specific zoom levels
+ * @param {"xyz"|"tms"} scheme - Tile scheme
+ * @returns {{ grandTotal: number, summaries: { total: number, tilesSummaries: {string, { x: [number, number], y: [number, number] } } }[] }} - Object containing total tile count and an array of tile summaries (one per coverage)
+ */
+export function getTilesBoundsFromCoverages(coverages, scheme) {
+  const summaries = [];
+  let grandTotal = 0;
+
+  for (const coverage of coverages) {
+    const { total, tilesSummaries } = getTilesBoundsFromBBoxs(
+      coverage.bboxs,
+      coverage.zooms,
+      scheme
+    );
+
+    summaries.push({ total, tilesSummaries });
+
+    grandTotal += total;
+  }
+
+  return { grandTotal, summaries };
+}
+
+/**
+ * Convert tile indices to a bounding box that intersects the outer tiles
+ * @param {number} xMin Minimum x tile index
+ * @param {number} yMin Minimum y tile index
+ * @param {number} xMax Maximum x tile index
+ * @param {number} yMax Maximum y tile index
+ * @param {number} z Zoom level
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @returns {[number, number, number, number]} Bounding box [lonMin, latMin, lonMax, latMax] in EPSG:4326
+ */
+export function getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme = "xyz") {
+  const [lonMin, latMax] = getLonLatFromXYZ(xMin, yMin, z, "topLeft", scheme);
+  const [lonMax, latMin] = getLonLatFromXYZ(
+    xMax,
+    yMax,
+    z,
+    "bottomRight",
+    z,
+    scheme
+  );
+
+  return [lonMin, latMin, lonMax, latMax];
+}
+
+/**
+ * Get bounding box from center and radius
+ * @param {[number, number]} center [lon, lat] of center (EPSG:4326)
+ * @param {number} radius Radius in metter (EPSG:3857)
+ * @returns {[number, number, number, number]} [minLon, minLat, maxLon, maxLat]
+ */
+export function getBBoxFromCircle(center, radius) {
+  const [xCenter, yCenter] = proj4("EPSG:4326", "EPSG:3857", center);
+
+  let [minLon, minLat] = proj4("EPSG:3857", "EPSG:4326", [
+    xCenter - radius,
+    yCenter - radius,
+  ]);
+  let [maxLon, maxLat] = proj4("EPSG:3857", "EPSG:4326", [
+    xCenter + radius,
+    yCenter + radius,
+  ]);
+
+  // Limit longitude
+  if (minLon > 180) {
+    minLon = 180;
+  } else if (minLon < -180) {
+    minLon = -180;
+  }
+
+  if (maxLon > 180) {
+    maxLon = 180;
+  } else if (maxLon < -180) {
+    maxLon = -180;
+  }
+
+  // Limit latitude
+  if (minLat > 85.051129) {
+    minLat = 85.051129;
+  } else if (minLat < -85.051129) {
+    minLat = -85.051129;
+  }
+
+  if (maxLat > 85.051129) {
+    maxLat = 85.051129;
+  } else if (maxLat < -85.051129) {
+    maxLat = -85.051129;
+  }
+
+  return [minLon, minLat, maxLon, maxLat];
+}
+
+/**
+ * Get bounding box from an array of points
+ * @param {[number, number][]} points Array of points in the format [lon, lat]
+ * @returns {[number, number, number, number]} Bounding box in the format [minLon, minLat, maxLon, maxLat]
+ */
+export function getBBoxFromPoint(points) {
+  let minLon = -180;
+  let minLat = -85.051129;
+  let maxLon = 180;
+  let maxLat = 85.051129;
+
+  for (let index = 0; index < points.length; index++) {
+    if (index === 0) {
+      minLon = points[index][0];
+      minLat = points[index][1];
+      maxLon = points[index][0];
+      maxLat = points[index][1];
+    } else {
+      if (points[index][0] < minLon) {
+        minLon = points[index][0];
+      }
+
+      if (points[index][1] < minLat) {
+        minLat = points[index][1];
+      }
+
+      if (points[index][0] > maxLon) {
+        maxLon = points[index][0];
+      }
+
+      if (points[index][1] > maxLat) {
+        maxLat = points[index][1];
       }
     }
-    domains = newDomains;
-  }
-  if (!domains || domains.length == 0) {
-    domains = [urlObject.host];
   }
 
-  const queryParams = [];
-  if (req.query.key) {
-    queryParams.push(`key=${encodeURIComponent(req.query.key)}`);
-  }
-  if (req.query.style) {
-    queryParams.push(`style=${encodeURIComponent(req.query.style)}`);
-  }
-  const query = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
-
-  if (aliases && aliases[format]) {
-    format = aliases[format];
+  // Limit longitude
+  if (minLon > 180) {
+    minLon = 180;
+  } else if (minLon < -180) {
+    minLon = -180;
   }
 
-  let tileParams = `{z}/{x}/{y}`;
-  if (tileSize && ['png', 'jpg', 'jpeg', 'webp'].includes(format)) {
-    tileParams = `${tileSize}/{z}/{x}/{y}`;
+  if (maxLon > 180) {
+    maxLon = 180;
+  } else if (maxLon < -180) {
+    maxLon = -180;
   }
 
-  if (format && format != '') {
-    format = `.${format}`;
-  } else {
-    format = '';
+  // Limit latitude
+  if (minLat > 85.051129) {
+    minLat = 85.051129;
+  } else if (minLat < -85.051129) {
+    minLat = -85.051129;
   }
 
-  const uris = [];
-  if (!publicUrl) {
-    let xForwardedPath = `${req.get('X-Forwarded-Path') ? '/' + req.get('X-Forwarded-Path') : ''}`;
-    for (const domain of domains) {
-      uris.push(
-        `${req.protocol}://${domain}${xForwardedPath}/${path}/${tileParams}${format}${query}`,
-      );
-    }
-  } else {
-    uris.push(`${publicUrl}${path}/${tileParams}${format}${query}`);
+  if (maxLat > 85.051129) {
+    maxLat = 85.051129;
+  } else if (maxLat < -85.051129) {
+    maxLat = -85.051129;
   }
 
-  return uris;
+  return [minLon, minLat, maxLon, maxLat];
 }
 
 /**
- * Fixes the center in the tileJSON if no center is available.
- * @param {object} tileJSON - The tileJSON object to process.
+ * Get XYZ tile from bounding box for specific zoom levels intersecting a bounding box
+ * @param {[number, number, number, number]} bbox [west, south, east, north] in EPSG:4326
+ * @param {number[]} zooms Array of specific zoom levels
+ * @returns {string[]} Array values as z/x/y
+ */
+export function getXYZTileFromBBox(bbox, zooms) {
+  const tiles = [];
+
+  for (const zoom of zooms) {
+    const [xMin, yMin] = getXYZFromLonLatZ(bbox[0], bbox[3], zoom, "xyz");
+    const [xMax, yMax] = getXYZFromLonLatZ(bbox[2], bbox[1], zoom, "xyz");
+
+    for (let x = xMin; x <= xMax; x++) {
+      for (let y = yMin; y <= yMax; y++) {
+        tiles.push(`/${zoom}/${x}/${y}`);
+      }
+    }
+  }
+
+  return tiles;
+}
+
+/**
+ * Delay function to wait for a specified time
+ * @param {number} ms Time to wait in milliseconds
+ * @returns {Promise<void>}
+ */
+export async function delay(ms) {
+  if (ms >= 0) {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+}
+
+/**
+ * Calculate MD5 hash of a buffer
+ * @param {Buffer} buffer The data buffer
+ * @returns {string} The MD5 hash
+ */
+export function calculateMD5(buffer) {
+  return crypto.createHash("md5").update(buffer).digest("hex");
+}
+
+/**
+ * Attempt do function multiple times
+ * @param {function} fn The function to attempt
+ * @param {number} maxTry Number of retry attempts on failure
+ * @param {number} after Delay in milliseconds between each retry
+ * @returns {Promise<void>}
+ */
+export async function retry(fn, maxTry, after = 0) {
+  for (let attempt = 1; attempt <= maxTry; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const remainingAttempts = maxTry - attempt;
+      if (remainingAttempts > 0) {
+        printLog(
+          "warn",
+          `${error}. ${remainingAttempts} try remaining - After ${after} ms...`
+        );
+
+        await delay(after);
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+/**
+ * Recursively removes empty folders in a directory
+ * @param {string} folderPath The root directory to check for empty folders
+ * @param {RegExp} regex The regex to match files
+ * @returns {Promise<void>}
+ */
+export async function removeEmptyFolders(folderPath, regex) {
+  const entries = await fsPromise.readdir(folderPath, {
+    withFileTypes: true,
+  });
+
+  let hasMatchingFile = false;
+
+  await Promise.all(
+    entries.map(async (entry) => {
+      const fullPath = `${folderPath}/${entry.name}`;
+
+      if (
+        entry.isFile() === true &&
+        (regex === undefined || regex.test(entry.name) === true)
+      ) {
+        hasMatchingFile = true;
+      } else if (entry.isDirectory() === true) {
+        await removeEmptyFolders(fullPath, regex);
+
+        const subEntries = await fsPromise.readdir(fullPath).catch(() => []);
+        if (subEntries.length > 0) {
+          hasMatchingFile = true;
+        }
+      }
+    })
+  );
+
+  if (hasMatchingFile === false) {
+    await fsPromise.rm(folderPath, {
+      recursive: true,
+      force: true,
+    });
+  }
+}
+
+/**
+ * Recursively removes old cache locks
+ * @returns {Promise<void>}
+ */
+export async function removeOldCacheLocks() {
+  let fileNames = await findFiles(
+    `${process.env.DATA_DIR}/caches`,
+    /^.*\.(lock|tmp)$/,
+    true,
+    true
+  );
+
+  await Promise.all(
+    fileNames.map((fileName) =>
+      fsPromise.rm(fileName, {
+        force: true,
+      })
+    )
+  );
+}
+
+/**
+ * Check folder is exist?
+ * @param {string} dirPath Directory path
+ * @returns {Promise<boolean>}
+ */
+export async function isExistFolder(dirPath) {
+  try {
+    const stat = await fsPromise.stat(dirPath);
+
+    return stat.isDirectory();
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return false;
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Check file is exist?
+ * @param {string} filePath File path
+ * @returns {Promise<boolean>}
+ */
+export async function isExistFile(filePath) {
+  try {
+    const stat = await fsPromise.stat(filePath);
+
+    return stat.isFile();
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return false;
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Find matching files in a directory
+ * @param {string} dirPath The directory path to search
+ * @param {RegExp} regex The regex to match files
+ * @param {boolean} recurse Whether to search recursively in subdirectories
+ * @param {boolean} includeDirPath Whether to include directory path
+ * @returns {Promise<string>} Array of filepaths matching the regex
+ */
+export async function findFiles(
+  dirPath,
+  regex,
+  recurse = false,
+  includeDirPath = false
+) {
+  const entries = await fsPromise.readdir(dirPath, {
+    withFileTypes: true,
+  });
+
+  const results = [];
+
+  for (const entry of entries) {
+    if (entry.isDirectory() === true) {
+      if (recurse === true) {
+        const fileNames = await findFiles(
+          `${dirPath}/${entry.name}`,
+          regex,
+          recurse,
+          includeDirPath
+        );
+
+        fileNames.forEach((fileName) => {
+          if (includeDirPath === true) {
+            results.push(`${dirPath}/${entry.name}/${fileName}`);
+          } else {
+            results.push(`${entry.name}/${fileName}`);
+          }
+        });
+      }
+    } else if (regex.test(entry.name) === true) {
+      if (includeDirPath === true) {
+        results.push(`${dirPath}/${entry.name}`);
+      } else {
+        results.push(entry.name);
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Find matching folders in a directory
+ * @param {string} dirPath The directory path to search
+ * @param {RegExp} regex The regex to match folders
+ * @param {boolean} recurse Whether to search recursively in subdirectories
+ * @param {boolean} includeDirPath Whether to include directory path
+ * @returns {Promise<string>} Array of folder paths matching the regex
+ */
+export async function findFolders(
+  dirPath,
+  regex,
+  recurse = false,
+  includeDirPath = false
+) {
+  const entries = await fsPromise.readdir(dirPath, {
+    withFileTypes: true,
+  });
+
+  const results = [];
+
+  for (const entry of entries) {
+    if (entry.isDirectory() === true) {
+      if (regex.test(entry.name) === true) {
+        if (includeDirPath === true) {
+          results.push(`${dirPath}/${entry.name}`);
+        } else {
+          results.push(entry.name);
+        }
+      }
+
+      if (recurse === true) {
+        const directoryNames = await findFolders(
+          `${dirPath}/${entry.name}`,
+          regex,
+          recurse,
+          includeDirPath
+        );
+
+        directoryNames.forEach((directoryName) => {
+          if (includeDirPath === true) {
+            results.push(`${dirPath}/${entry.name}/${directoryName}`);
+          } else {
+            results.push(`${entry.name}/${directoryName}`);
+          }
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Remove files or folders
+ * @param {string[]} fileOrFolders File or folder paths
+ * @returns {Promise<void>}
+ */
+export async function removeFilesOrFolders(fileOrFolders) {
+  await Promise.all(
+    fileOrFolders.map((fileOrFolder) =>
+      fsPromise.rm(fileOrFolder, {
+        force: true,
+        recursive: true,
+      })
+    )
+  );
+}
+
+/**
+ * Get request host
+ * @param {Request} req Request object
+ * @returns {string}
+ */
+export function getRequestHost(req) {
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+  const host = req.headers["x-forwarded-host"] || req.headers["host"];
+  const prefix = req.headers["x-forwarded-prefix"] || "";
+
+  return `${protocol}://${host}${prefix}`;
+}
+
+/**
+ * Return either a format as an extension: png, pbf, jpg, webp, gif and
+ * headers - Content-Type and Content-Encoding - for a response containing this kind of image
+ * @param {Buffer} buffer Input data
+ * @returns {Object}
+ */
+export function detectFormatAndHeaders(buffer) {
+  let format;
+  const headers = {};
+
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    format = "png";
+    headers["content-type"] = "image/png";
+  } else if (
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[buffer.length - 2] === 0xff &&
+    buffer[buffer.length - 1] === 0xd9
+  ) {
+    format = "jpeg"; // equivalent jpg
+    headers["content-type"] = "image/jpeg"; // equivalent image/jpg
+  } else if (
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x38 &&
+    (buffer[4] === 0x39 || buffer[4] === 0x37) &&
+    buffer[5] === 0x61
+  ) {
+    format = "gif";
+    headers["content-type"] = "image/gif";
+  } else if (
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    format = "webp";
+    headers["content-type"] = "image/webp";
+  } else {
+    format = "pbf";
+    headers["content-type"] = "application/x-protobuf";
+
+    if (buffer[0] === 0x78 && buffer[1] === 0x9c) {
+      headers["content-encoding"] = "deflate";
+    } else if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
+      headers["content-encoding"] = "gzip";
+    }
+  }
+
+  return {
+    format,
+    headers,
+  };
+}
+
+/**
+ * Compress data using gzip algorithm asynchronously
+ * @param {Buffer|string} input The data to compress
+ * @param {zlib.ZlibOptions} options Optional zlib compression options
+ * @returns {Promise<Buffer>} A Promise that resolves to the compressed data as a Buffer
+ */
+export const gzipAsync = util.promisify(zlib.gzip);
+
+/**
+ * Decompress gzip-compressed data asynchronously
+ * @param {Buffer|string} input The compressed data to decompress
+ * @param {zlib.ZlibOptions} options Optional zlib decompression options
+ * @returns {Promise<Buffer>} A Promise that resolves to the decompressed data as a Buffer
+ */
+export const unzipAsync = util.promisify(zlib.unzip);
+
+/**
+ * Decompress deflate-compressed data asynchronously
+ * @param {Buffer|string} input The compressed data to decompress
+ * @param {zlib.ZlibOptions} options Optional zlib decompression options
+ * @returns {Promise<Buffer>} A Promise that resolves to the decompressed data as a Buffer
+ */
+export const inflateAsync = util.promisify(zlib.inflate);
+
+/**
+ * Validate tileJSON
+ * @param {Object} schema JSON schema
+ * @param {Object} jsonData JSON data
  * @returns {void}
  */
-export function fixTileJSONCenter(tileJSON) {
-  if (tileJSON.bounds && !tileJSON.center) {
-    const fitWidth = 1024;
-    const tiles = fitWidth / 256;
-    tileJSON.center = [
-      (tileJSON.bounds[0] + tileJSON.bounds[2]) / 2,
-      (tileJSON.bounds[1] + tileJSON.bounds[3]) / 2,
-      Math.round(
-        -Math.log((tileJSON.bounds[2] - tileJSON.bounds[0]) / 360 / tiles) /
-          Math.LN2,
-      ),
-    ];
+export function validateJSON(schema, jsonData) {
+  try {
+    const validate = new Ajv({
+      allErrors: true,
+      useDefaults: true,
+    }).compile(schema);
+
+    if (!validate(jsonData)) {
+      throw validate.errors
+        .map((error) => `\n\t${error.instancePath} ${error.message}`)
+        .join();
+    }
+  } catch (error) {
+    throw error;
   }
 }
 
 /**
- * Reads a file and returns a Promise with the file data.
- * @param {string} filename - Path to the file to read.
- * @returns {Promise<Buffer>} - A Promise that resolves with the file data as a Buffer or rejects with an error.
+ * Deep clone an object using JSON serialization
+ * @param {Object} obj The object to clone
+ * @returns {Object} The deep-cloned object
  */
-export function readFile(filename) {
+export function deepClone(obj) {
+  if (obj !== undefined) {
+    return JSON.parse(JSON.stringify(obj));
+  }
+}
+
+/**
+ * Get version of server
+ * @returns {string}
+ */
+export function getVersion() {
+  return JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+}
+
+/**
+ * Get JSON schema
+ * @param {"delete"|"cleanup"|"config"|"seed"} schema
+ * @returns {Promise<Object>}
+ */
+export async function getJSONSchema(schema) {
+  return JSON.parse(await fsPromise.readFile(`schema/${schema}.json`, "utf8"));
+}
+
+/**
+ * Run an external command and wait for it to finish
+ * @param {string} command The command to run
+ * @returns {Promise<string>} The command's stdout
+ */
+export async function runCommand(command) {
   return new Promise((resolve, reject) => {
-    const sanitizedFilename = path.normalize(filename); // Normalize path, remove ..
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
-    fs.readFile(String(sanitizedFilename), (err, data) => {
-      if (err) {
-        reject(err);
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(stderr);
       } else {
-        resolve(data);
+        resolve(stdout);
       }
     });
   });
 }
 
 /**
- * Retrieves font data for a given font and range.
- * @param {object} allowedFonts - An object of allowed fonts.
- * @param {string} fontPath - The path to the font directory.
- * @param {string} name - The name of the font.
- * @param {string} range - The range (e.g., '0-255') of the font to load.
- * @param {object} [fallbacks] - Optional fallback font list.
- * @returns {Promise<Buffer>} A promise that resolves with the font data Buffer or rejects with an error.
+ * Check if PNG image file/buffer is full transparent (alpha = 0)
+ * @param {Buffer} buffer Buffer of the PNG image
+ * @returns {Promise<boolean>}
  */
-async function getFontPbf(allowedFonts, fontPath, name, range, fallbacks) {
-  if (!allowedFonts || (allowedFonts[name] && fallbacks)) {
-    const fontMatch = name?.match(/^[\p{L}\p{N} \-\.~!*'()@&=+,#$\[\]]+$/u);
-    const sanitizedName = fontMatch?.[0] || 'invalid';
-    if (!name || typeof name !== 'string' || name.trim() === '' || !fontMatch) {
-      console.error(
-        'ERROR: Invalid font name: %s',
-        sanitizedName.replace(/\n|\r/g, ''),
-      );
-      throw new Error('Invalid font name');
+export async function isFullTransparentPNGImage(buffer) {
+  try {
+    if (
+      buffer[0] !== 0x89 ||
+      buffer[1] !== 0x50 ||
+      buffer[2] !== 0x4e ||
+      buffer[3] !== 0x47 ||
+      buffer[4] !== 0x0d ||
+      buffer[5] !== 0x0a ||
+      buffer[6] !== 0x1a ||
+      buffer[7] !== 0x0a
+    ) {
+      return false;
     }
 
-    const rangeMatch = range?.match(/^[\d-]+$/);
-    const sanitizedRange = rangeMatch?.[0] || 'invalid';
-    if (!/^\d+-\d+$/.test(range)) {
-      console.error(
-        'ERROR: Invalid range: %s',
-        sanitizedRange.replace(/\n|\r/g, ''),
-      );
-      throw new Error('Invalid range');
+    const { data, info } = await sharp(buffer).raw().toBuffer({
+      resolveWithObject: true,
+    });
+
+    if (info.channels !== 4) {
+      return false;
     }
-    const filename = path.join(
-      fontPath,
-      sanitizedName,
-      `${sanitizedRange}.pbf`,
-    );
 
-    if (!fallbacks) {
-      fallbacks = clone(allowedFonts || {});
-    }
-    delete fallbacks[name];
-
-    try {
-      const data = await readFile(filename);
-      return data;
-    } catch (err) {
-      console.error(
-        'ERROR: Font not found: %s, Error: %s',
-        filename.replace(/\n|\r/g, ''),
-        String(err),
-      );
-      if (fallbacks && Object.keys(fallbacks).length) {
-        let fallbackName;
-
-        let fontStyle = name.split(' ').pop();
-        if (['Regular', 'Bold', 'Italic'].indexOf(fontStyle) < 0) {
-          fontStyle = 'Regular';
-        }
-        fallbackName = `Noto Sans ${fontStyle}`;
-        if (!fallbacks[fallbackName]) {
-          fallbackName = `Open Sans ${fontStyle}`;
-          if (!fallbacks[fallbackName]) {
-            fallbackName = Object.keys(fallbacks)[0];
-          }
-        }
-        console.error(
-          `ERROR: Trying to use %s as a fallback for: %s`,
-          fallbackName,
-          sanitizedName,
-        );
-        delete fallbacks[fallbackName];
-        return getFontPbf(null, fontPath, fallbackName, range, fallbacks);
-      } else {
-        throw new Error('Font load error');
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] !== 0) {
+        return false;
       }
     }
-  } else {
-    throw new Error('Font not allowed');
-  }
-}
-/**
- * Combines multiple font pbf buffers into one.
- * @param {object} allowedFonts - An object of allowed fonts.
- * @param {string} fontPath - The path to the font directory.
- * @param {string} names - Comma-separated font names.
- * @param {string} range - The range of the font (e.g., '0-255').
- * @param {object} [fallbacks] - Fallback font list.
- * @returns {Promise<Buffer>} - A promise that resolves to the combined font data buffer.
- */
-export async function getFontsPbf(
-  allowedFonts,
-  fontPath,
-  names,
-  range,
-  fallbacks,
-) {
-  const fonts = names.split(',');
-  const queue = [];
-  for (const font of fonts) {
-    queue.push(
-      getFontPbf(
-        allowedFonts,
-        fontPath,
-        font,
-        range,
-        clone(allowedFonts || fallbacks),
-      ),
-    );
-  }
 
-  const combined = combine(await Promise.all(queue), names);
-  return Buffer.from(combined.buffer, 0, combined.buffer.length);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
- * Lists available fonts in a given font directory.
- * @param {string} fontPath - The path to the font directory.
- * @returns {Promise<object>} - Promise that resolves with an object where keys are the font names.
+ * Create file with lock
+ * @param {string} filePath File path to store file
+ * @param {Buffer} data Data buffer
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<void>}
  */
-export async function listFonts(fontPath) {
-  const existingFonts = {};
+export async function createFileWithLock(filePath, data, timeout) {
+  const startTime = Date.now();
 
-  const files = await fsPromises.readdir(fontPath);
-  for (const file of files) {
-    const stats = await fsPromises.stat(path.join(fontPath, file));
-    if (
-      stats.isDirectory() &&
-      (await existsP(path.join(fontPath, file, '0-255.pbf')))
-    ) {
-      existingFonts[path.basename(file)] = true;
+  const lockFilePath = `${filePath}.lock`;
+  let lockFileHandle;
+
+  while (Date.now() - startTime <= timeout) {
+    try {
+      lockFileHandle = await fsPromise.open(lockFilePath, "wx");
+
+      const tempFilePath = `${filePath}.tmp`;
+
+      try {
+        await fsPromise.mkdir(path.dirname(filePath), {
+          recursive: true,
+        });
+
+        await fsPromise.writeFile(tempFilePath, data);
+
+        await fsPromise.rename(tempFilePath, filePath);
+      } catch (error) {
+        await fsPromise.rm(tempFilePath, {
+          force: true,
+        });
+
+        throw error;
+      }
+
+      await lockFileHandle.close();
+
+      await fsPromise.rm(lockFilePath, {
+        force: true,
+      });
+
+      return;
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        await fsPromise.mkdir(path.dirname(filePath), {
+          recursive: true,
+        });
+
+        continue;
+      } else if (error.code === "EEXIST") {
+        await delay(50);
+      } else {
+        if (lockFileHandle !== undefined) {
+          await lockFileHandle.close();
+
+          await fsPromise.rm(lockFilePath, {
+            force: true,
+          });
+        }
+
+        throw error;
+      }
     }
   }
 
-  return existingFonts;
+  throw new Error(`Timeout to access lock file`);
 }
 
 /**
- * Checks if a string is a valid HTTP or HTTPS URL.
- * @param {string} string - The string to validate.
- * @returns {boolean} True if the string is a valid HTTP/HTTPS URL, false otherwise.
+ * Remove file with lock
+ * @param {string} filePath File path to remove file
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<void>}
  */
-export function isValidHttpUrl(string) {
-  let url;
+export async function removeFileWithLock(filePath, timeout) {
+  const startTime = Date.now();
 
-  try {
-    url = new URL(string);
-  } catch (_) {
-    return false;
-  }
+  const lockFilePath = `${filePath}.lock`;
+  let lockFileHandle;
 
-  return url.protocol === 'http:' || url.protocol === 'https:';
-}
+  while (Date.now() - startTime <= timeout) {
+    try {
+      lockFileHandle = await fsPromise.open(lockFilePath, "wx");
 
-/**
- * Fetches tile data from either PMTiles or MBTiles source.
- * @param {object} source - The source object, which may contain a mbtiles object, or pmtiles object.
- * @param {string} sourceType - The source type, which should be `pmtiles` or `mbtiles`
- * @param {number} z - The zoom level.
- * @param {number} x - The x coordinate of the tile.
- * @param {number} y - The y coordinate of the tile.
- * @returns {Promise<object | null>} - A promise that resolves to an object with data and headers or null if no data is found.
- */
-export async function fetchTileData(source, sourceType, z, x, y) {
-  if (sourceType === 'pmtiles') {
-    return await new Promise(async (resolve) => {
-      const tileinfo = await getPMtilesTile(source, z, x, y);
-      if (!tileinfo?.data) return resolve(null);
-      resolve({ data: tileinfo.data, headers: tileinfo.header });
-    });
-  } else if (sourceType === 'mbtiles') {
-    return await new Promise((resolve) => {
-      source.getTile(z, x, y, (err, tileData, tileHeader) => {
-        if (err) {
-          return resolve(null);
-        }
-        resolve({ data: tileData, headers: tileHeader });
+      await fsPromise.rm(filePath, {
+        force: true,
       });
-    });
+
+      await lockFileHandle.close();
+
+      await fsPromise.rm(lockFilePath, {
+        force: true,
+      });
+
+      return;
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        return;
+      } else if (error.code === "EEXIST") {
+        await delay(50);
+      } else {
+        if (lockFileHandle !== undefined) {
+          await lockFileHandle.close();
+
+          await fsPromise.rm(lockFilePath, {
+            force: true,
+          });
+        }
+
+        throw error;
+      }
+    }
   }
+
+  throw new Error(`Timeout to access lock file`);
 }

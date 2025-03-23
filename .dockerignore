@@ -1,8 +1,7 @@
 *
 !src
+!data
 !public
-!test
+!schema
 !package.json
-!package-lock.json
-!docker-entrypoint.sh
-**.gitignore
+!entrypoint.sh

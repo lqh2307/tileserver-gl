@@ -1,325 +1,1488 @@
-'use strict';
+"use strict";
 
-import path from 'path';
-import fs from 'node:fs';
-
-import clone from 'clone';
-import express from 'express';
-import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
-
+import { StatusCodes } from "http-status-codes";
+import { printLog } from "./logger.js";
+import { config } from "./config.js";
+import { seed } from "./seed.js";
+import express from "express";
 import {
-  allowedSpriteScales,
-  allowedSpriteFormats,
-  fixUrl,
-  readFile,
-} from './utils.js';
+  compileTemplate,
+  isLocalTileURL,
+  getRequestHost,
+  getJSONSchema,
+  validateJSON,
+  isExistFile,
+} from "./utils.js";
+import {
+  getStyleJSONFromURL,
+  downloadStyleFile,
+  cacheStyleFile,
+  validateStyle,
+  getStyle,
+} from "./style.js";
+import {
+  createRenderedMetadata,
+  renderPostgreSQLTiles,
+  renderMBTilesTiles,
+  renderXYZTiles,
+  renderImage,
+} from "./image.js";
+import os from "os";
 
-const httpTester = /^https?:\/\//i;
+/**
+ * Serve style handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function serveStyleHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.repo.styles[id];
+
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
+      }
+
+      const compiled = await compileTemplate("viewer", {
+        id: id,
+        name: item.name,
+        base_url: getRequestHost(req),
+      });
+
+      return res.status(StatusCodes.OK).send(compiled);
+    } catch (error) {
+      printLog("error", `Failed to serve style "${id}": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Serve WMTS handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function serveWMTSHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.repo.styles[id].rendered;
+
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("WMTS does not exist");
+      }
+
+      const compiled = await compileTemplate("wmts", {
+        id: id,
+        name: item.tileJSON.name,
+        base_url: getRequestHost(req),
+      });
+
+      res.header("content-type", "text/xml");
+
+      return res.status(StatusCodes.OK).send(compiled);
+    } catch (error) {
+      printLog("error", `Failed to serve WMTS "${id}": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get styleJSON handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getStyleHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.repo.styles[id];
+
+      /* Check style is used? */
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
+      }
+
+      let styleJSON;
+
+      /* Get styleJSON and cache if not exist if use cache */
+      try {
+        styleJSON = await getStyle(item.path, false);
+      } catch (error) {
+        if (
+          item.sourceURL !== undefined &&
+          error.message === "Style does not exist"
+        ) {
+          printLog(
+            "info",
+            `Forwarding style "${id}" - To "${item.sourceURL}"...`
+          );
+
+          styleJSON = await getStyleJSONFromURL(
+            item.sourceURL,
+            60000, // 1 mins
+            false
+          );
+
+          if (item.storeCache === true) {
+            printLog("info", `Caching style "${id}" - File "${item.path}"...`);
+
+            cacheStyleFile(item.path, styleJSON).catch((error) =>
+              printLog(
+                "error",
+                `Failed to cache style "${id}" - File "${item.path}": ${error}`
+              )
+            );
+          }
+        } else {
+          throw error;
+        }
+      }
+
+      if (req.query.raw !== "true") {
+        styleJSON = JSON.parse(styleJSON);
+
+        const requestHost = getRequestHost(req);
+
+        /* Fix sprite url */
+        if (styleJSON.sprite !== undefined) {
+          if (styleJSON.sprite.startsWith("sprites://") === true) {
+            styleJSON.sprite = styleJSON.sprite.replace(
+              "sprites://",
+              `${requestHost}/sprites/`
+            );
+          }
+        }
+
+        /* Fix fonts url */
+        if (styleJSON.glyphs !== undefined) {
+          if (styleJSON.glyphs.startsWith("fonts://") === true) {
+            styleJSON.glyphs = styleJSON.glyphs.replace(
+              "fonts://",
+              `${requestHost}/fonts/`
+            );
+          }
+        }
+
+        /* Fix source urls */
+        await Promise.all(
+          Object.keys(styleJSON.sources).map(async (id) => {
+            const source = styleJSON.sources[id];
+
+            // Fix tileJSON URL
+            if (source.url !== undefined) {
+              if (isLocalTileURL(source.url) === true) {
+                const sourceID = source.url.split("/")[2];
+
+                source.url = `${requestHost}/datas/${sourceID}.json`;
+              }
+            }
+
+            // Fix tileJSON URLs
+            if (source.urls !== undefined) {
+              const urls = new Set(
+                source.urls.map((url) => {
+                  if (isLocalTileURL(url) === true) {
+                    const sourceID = url.split("/")[2];
+
+                    url = `${requestHost}/datas/${sourceID}.json`;
+                  }
+
+                  return url;
+                })
+              );
+
+              source.urls = Array.from(urls);
+            }
+
+            // Fix tile URL
+            if (source.tiles !== undefined) {
+              const tiles = new Set(
+                source.tiles.map((tile) => {
+                  if (isLocalTileURL(tile) === true) {
+                    const sourceID = tile.split("/")[2];
+                    const sourceData = config.repo.datas[sourceID];
+
+                    tile = `${requestHost}/datas/${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+                  }
+
+                  return tile;
+                })
+              );
+
+              source.tiles = Array.from(tiles);
+            }
+          })
+        );
+      }
+
+      res.header("content-type", "application/json");
+
+      return res.status(StatusCodes.OK).send(styleJSON);
+    } catch (error) {
+      printLog("error", `Failed to get style "${id}": ${error}`);
+
+      if (error.message === "Style does not exist") {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Render style handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function renderStyleHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.repo.styles[id];
+
+      /* Check rendered is exist? */
+      if (item === undefined || item.rendered === undefined) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send("Rendered does not exist");
+      }
+
+      if (req.query.cancel === "true") {
+        /* Check export is not running? (export === true is not running) */
+        if (item.rendered.export === true) {
+          printLog(
+            "warn",
+            "No render is currently running. Skipping cancel render..."
+          );
+
+          return res.status(StatusCodes.NOT_FOUND).send("OK");
+        } else {
+          printLog("info", `Canceling render...`);
+
+          item.rendered.export = true;
+
+          return res.status(StatusCodes.OK).send("OK");
+        }
+      } else {
+        /* Check export is running? (export === false is not running) */
+        if (item.rendered.export === false) {
+          printLog("warn", "A render is already running. Skipping render...");
+
+          return res.status(StatusCodes.CONFLICT).send("OK");
+        } else {
+          /* Render style */
+          try {
+            validateJSON(await getJSONSchema("render"), req.body);
+          } catch (error) {
+            return res
+              .status(StatusCodes.BAD_REQUEST)
+              .send(`Options is invalid: ${error}`);
+          }
+
+          const defaultTileScale = 1;
+          const defaultTileSize = 256;
+          const defaultConcurrency = os.cpus().length;
+          const defaultStoreMD5 = false;
+          const defaultStoreTransparent = false;
+          const defaultCreateOverview = true;
+
+          setTimeout(() => {
+            item.rendered.export = false;
+
+            if (req.body.storeType === "xyz") {
+              renderXYZTiles(
+                id,
+                req.body.metadata,
+                req.body.tileScale || defaultTileScale,
+                req.body.tileSize || defaultTileSize,
+                req.body.bbox,
+                req.body.maxzoom,
+                req.body.concurrency || defaultConcurrency,
+                req.body.storeMD5 || defaultStoreMD5,
+                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.createOverview || defaultCreateOverview,
+                req.body.refreshBefore?.time ||
+                  req.body.refreshBefore?.day ||
+                  req.body.refreshBefore?.md5
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to render style "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.rendered.export = true;
+                });
+            } else if (req.body.storeType === "mbtiles") {
+              renderMBTilesTiles(
+                id,
+                req.body.metadata,
+                req.body.tileScale || defaultTileScale,
+                req.body.tileSize || defaultTileSize,
+                req.body.bbox,
+                req.body.maxzoom,
+                req.body.concurrency || defaultConcurrency,
+                req.body.storeMD5 || defaultStoreMD5,
+                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.createOverview || defaultCreateOverview,
+                req.body.refreshBefore?.time ||
+                  req.body.refreshBefore?.day ||
+                  req.body.refreshBefore?.md5
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to render style "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.rendered.export = true;
+                });
+            } else if (req.body.storeType === "pg") {
+              renderPostgreSQLTiles(
+                id,
+                req.body.metadata,
+                req.body.tileScale || defaultTileScale,
+                req.body.tileSize || defaultTileSize,
+                req.body.bbox,
+                req.body.maxzoom,
+                req.body.concurrency || defaultConcurrency,
+                req.body.storeMD5 || defaultStoreMD5,
+                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.createOverview || defaultCreateOverview,
+                req.body.refreshBefore?.time ||
+                  req.body.refreshBefore?.day ||
+                  req.body.refreshBefore?.md5
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to render style "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.rendered.export = true;
+                });
+            }
+          }, 0);
+
+          return res.status(StatusCodes.CREATED).send("OK");
+        }
+      }
+    } catch (error) {
+      printLog("error", `Failed to render style "${id}": ${error}`);
+
+      if (error instanceof SyntaxError) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send("option parameter is invalid");
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Get style list handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getStylesListHandler() {
+  return async (req, res, next) => {
+    try {
+      const requestHost = getRequestHost(req);
+
+      const result = await Promise.all(
+        Object.keys(config.repo.styles).map(async (id) => {
+          return {
+            id: id,
+            name: config.repo.styles[id].name,
+            url: `${requestHost}/styles/${id}/style.json`,
+          };
+        })
+      );
+
+      return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+      printLog("error", `Failed to get styles": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get rendered tile handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getRenderedTileHandler() {
+  return async (req, res, next) => {
+    if (
+      req.params.tileSize !== undefined &&
+      ["256", "512"].includes(req.params.tileSize) === false
+    ) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .send("Tile size is not support");
+    }
+
+    const id = req.params.id;
+    const item = config.repo.styles[id];
+
+    /* Check rendered is exist? */
+    if (item === undefined || item.rendered === undefined) {
+      return res.status(StatusCodes.NOT_FOUND).send("Rendered does not exist");
+    }
+
+    /* Get and check rendered tile scale (Default: 1). Ex: @2x -> 2 */
+    const tileScale = Number(req.params.tileScale?.slice(1, -1)) || 1;
+
+    /* Get tile size (Default: 256px x 256px) */
+    const z = Number(req.params.z);
+    const x = Number(req.params.x);
+    const y = Number(req.params.y);
+    const tileSize = Number(req.params.tileSize) || 256;
+
+    /* Render tile */
+    try {
+      const image = await renderImage(
+        tileScale,
+        tileSize,
+        item.rendered.compressionLevel,
+        item.rendered.styleJSON,
+        z,
+        x,
+        y
+      );
+
+      res.header("content-type", `image/png`);
+
+      return res.status(StatusCodes.OK).send(image);
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to get rendered "${id}" - Tile "${z}/${x}/${y}: ${error}`
+      );
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get rendered tileJSON handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getRenderedHandler() {
+  return async (req, res, next) => {
+    if (
+      req.params.tileSize !== undefined &&
+      ["256", "512"].includes(req.params.tileSize) === false
+    ) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .send("Tile size is not support");
+    }
+
+    const id = req.params.id;
+
+    try {
+      const item = config.repo.styles[id];
+
+      /* Check rendered is exist? */
+      if (item === undefined || item.rendered === undefined) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send("Rendered does not exist");
+      }
+
+      const requestHost = getRequestHost(req);
+
+      res.header("content-type", "application/json");
+
+      /* Get render info */
+      return res.status(StatusCodes.OK).send({
+        ...item.rendered.tileJSON,
+        tilejson: "2.2.0",
+        scheme: "xyz",
+        id: id,
+        tiles: [
+          req.params.tileSize === undefined
+            ? `${requestHost}/styles/${id}/{z}/{x}/{y}.png`
+            : `${requestHost}/styles/${id}/${req.params.tileSize}/{z}/{x}/{y}.png`,
+        ],
+      });
+    } catch (error) {
+      printLog("error", `Failed to get rendered "${id}": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get rendered list handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getRenderedsListHandler() {
+  return async (req, res, next) => {
+    try {
+      const requestHost = getRequestHost(req);
+
+      const result = [];
+
+      Object.keys(config.repo.styles).map((id) => {
+        const item = config.repo.styles[id].rendered;
+
+        if (item !== undefined) {
+          result.push({
+            id: id,
+            name: item.tileJSON.name,
+            url: [
+              `${requestHost}/styles/256/${id}.json`,
+              `${requestHost}/styles/512/${id}.json`,
+            ],
+          });
+        }
+      });
+
+      return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+      printLog("error", `Failed to get rendereds": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get styleJSON list handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getStyleJSONsListHandler() {
+  return async (req, res, next) => {
+    try {
+      const requestHost = getRequestHost(req);
+
+      const result = await Promise.all(
+        Object.keys(config.repo.styles).map(async (id) => {
+          const item = config.repo.styles[id];
+
+          /* Get styleJSON and cache if not exist if use cache */
+          let styleJSON;
+
+          try {
+            styleJSON = await getStyle(item.path, true);
+          } catch (error) {
+            if (
+              item.sourceURL !== undefined &&
+              error.message === "Style does not exist"
+            ) {
+              printLog(
+                "info",
+                `Forwarding style "${id}" - To "${item.sourceURL}"...`
+              );
+
+              styleJSON = await getStyleJSONFromURL(
+                item.sourceURL,
+                60000, // 1 mins
+                true
+              );
+
+              if (item.storeCache === true) {
+                printLog(
+                  "info",
+                  `Caching style "${id}" - File "${item.path}"...`
+                );
+
+                cacheStyleFile(item.path, JSON.stringify(styleJSON)).catch(
+                  (error) =>
+                    printLog(
+                      "error",
+                      `Failed to cache style "${id}" - File "${item.path}": ${error}`
+                    )
+                );
+              }
+            } else {
+              throw error;
+            }
+          }
+
+          if (req.query.raw !== "true") {
+            /* Fix sprite url */
+            if (styleJSON.sprite !== undefined) {
+              if (styleJSON.sprite.startsWith("sprites://") === true) {
+                styleJSON.sprite = styleJSON.sprite.replace(
+                  "sprites://",
+                  `${requestHost}/sprites/`
+                );
+              }
+            }
+
+            /* Fix fonts url */
+            if (styleJSON.glyphs !== undefined) {
+              if (styleJSON.glyphs.startsWith("fonts://") === true) {
+                styleJSON.glyphs = styleJSON.glyphs.replace(
+                  "fonts://",
+                  `${requestHost}/fonts/`
+                );
+              }
+            }
+
+            /* Fix source urls */
+            await Promise.all(
+              Object.keys(styleJSON.sources).map(async (id) => {
+                const source = styleJSON.sources[id];
+
+                // Fix tileJSON URL
+                if (source.url !== undefined) {
+                  if (isLocalTileURL(source.url) === true) {
+                    const sourceID = source.url.split("/")[2];
+
+                    source.url = `${requestHost}/datas/${sourceID}.json`;
+                  }
+                }
+
+                // Fix tileJSON URLs
+                if (source.urls !== undefined) {
+                  const urls = new Set(
+                    source.urls.map((url) => {
+                      if (isLocalTileURL(url) === true) {
+                        const sourceID = url.split("/")[2];
+
+                        url = `${requestHost}/datas/${sourceID}.json`;
+                      }
+
+                      return url;
+                    })
+                  );
+
+                  source.urls = Array.from(urls);
+                }
+
+                // Fix tile URL
+                if (source.tiles !== undefined) {
+                  const tiles = new Set(
+                    source.tiles.map((tile) => {
+                      if (isLocalTileURL(tile) === true) {
+                        const sourceID = tile.split("/")[2];
+                        const sourceData = config.repo.datas[sourceID];
+
+                        tile = `${requestHost}/datas/${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+                      }
+
+                      return tile;
+                    })
+                  );
+
+                  source.tiles = Array.from(tiles);
+                }
+              })
+            );
+          }
+
+          return styleJSON;
+        })
+      );
+
+      return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+      printLog("error", `Failed to get styleJSONs": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get rendered tileJSON list handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getRenderedTileJSONsListHandler() {
+  return async (req, res, next) => {
+    try {
+      const requestHost = getRequestHost(req);
+
+      const result = [];
+
+      Object.keys(config.repo.styles).map((id) => {
+        const item = config.repo.styles[id].rendered;
+
+        if (item !== undefined) {
+          result.push({
+            ...item.tileJSON,
+            id: id,
+            tilejson: "2.2.0",
+            scheme: "xyz",
+            tiles: [`${requestHost}/styles/${id}/{z}/{x}/{y}.png`],
+          });
+        }
+      });
+
+      return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+      printLog("error", `Failed to get rendered tileJSONs": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
 
 export const serve_style = {
-  /**
-   * Initializes the serve_style module.
-   * @param {object} options Configuration options.
-   * @param {object} repo Repository object.
-   * @param {object} programOpts - An object containing the program options.
-   * @returns {express.Application} The initialized Express application.
-   */
-  init: function (options, repo, programOpts) {
-    const { verbose } = programOpts;
-    const app = express().disable('x-powered-by');
-    /**
-     * Handles requests for style.json files.
-     * @param {express.Request} req - Express request object.
-     * @param {express.Response} res - Express response object.
-     * @param {express.NextFunction} next - Express next function.
-     * @param {string} req.params.id - ID of the style.
-     * @returns {Promise<void>}
-     */
-    app.get('/:id/style.json', (req, res, next) => {
-      const { id } = req.params;
-      if (verbose) {
-        console.log(
-          'Handling style request for: /styles/%s/style.json',
-          String(id).replace(/\n|\r/g, ''),
-        );
-      }
-      try {
-        const item = repo[id];
-        if (!item) {
-          return res.sendStatus(404);
-        }
-        const styleJSON_ = clone(item.styleJSON);
-        for (const name of Object.keys(styleJSON_.sources)) {
-          const source = styleJSON_.sources[name];
-          source.url = fixUrl(req, source.url, item.publicUrl);
-          if (typeof source.data == 'string') {
-            source.data = fixUrl(req, source.data, item.publicUrl);
-          }
-        }
-        if (styleJSON_.sprite) {
-          if (Array.isArray(styleJSON_.sprite)) {
-            styleJSON_.sprite.forEach((spriteItem) => {
-              spriteItem.url = fixUrl(req, spriteItem.url, item.publicUrl);
-            });
-          } else {
-            styleJSON_.sprite = fixUrl(req, styleJSON_.sprite, item.publicUrl);
-          }
-        }
-        if (styleJSON_.glyphs) {
-          styleJSON_.glyphs = fixUrl(req, styleJSON_.glyphs, item.publicUrl);
-        }
-        return res.send(styleJSON_);
-      } catch (e) {
-        next(e);
-      }
-    });
+  init: () => {
+    const app = express().disable("x-powered-by");
+
+    if (process.env.SERVE_FRONT_PAGE !== "false") {
+      /**
+       * @swagger
+       * tags:
+       *   - name: Style
+       *     description: Style related endpoints
+       * /styles/{id}/:
+       *   get:
+       *     tags:
+       *       - Style
+       *     summary: Serve style page
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the style
+       *     responses:
+       *       200:
+       *         description: Style page
+       *         content:
+       *           text/html:
+       *             schema:
+       *               type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/:id/$", serveStyleHandler());
+    }
 
     /**
-     * Handles GET requests for sprite images and JSON files.
-     * @param {express.Request} req - Express request object.
-     * @param {express.Response} res - Express response object.
-     * @param {express.NextFunction} next - Express next function.
-     * @param {string} req.params.id - ID of the sprite.
-     * @param {string} [req.params.spriteID='default'] - ID of the specific sprite image, defaults to 'default'.
-     * @param {string} [req.params.scale] - Scale of the sprite image, defaults to ''.
-     * @param {string} req.params.format - Format of the sprite file, 'png' or 'json'.
-     * @returns {Promise<void>}
+     * @swagger
+     * tags:
+     *   - name: Style
+     *     description: Style related endpoints
+     * /styles/{id}/wmts.xml:
+     *   get:
+     *     tags:
+     *       - Style
+     *     summary: Get WMTS XML for style
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the style
+     *     responses:
+     *       200:
+     *         description: WMTS XML for the style
+     *         content:
+     *           text/xml:
+     *             schema:
+     *               type: string
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/:id/wmts.xml", serveWMTSHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Style
+     *     description: Style related endpoints
+     * /styles/styles.json:
+     *   get:
+     *     tags:
+     *       - Style
+     *     summary: Get all styles
+     *     responses:
+     *       200:
+     *         description: List of all styles
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
+     *                 properties:
+     *                   id:
+     *                     type: string
+     *                   name:
+     *                     type: string
+     *                   url:
+     *                     type: string
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/styles.json", getStylesListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Style
+     *     description: Style related endpoints
+     * /styles/stylejsons.json:
+     *   get:
+     *     tags:
+     *       - Style
+     *     summary: Get all styleJSONs
+     *     parameters:
+     *       - in: query
+     *         name: raw
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Use raw
+     *     responses:
+     *       200:
+     *         description: List of all styleJSONs
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/stylejsons.json", getStyleJSONsListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Style
+     *     description: Style related endpoints
+     * /styles/{id}/style.json:
+     *   get:
+     *     tags:
+     *       - Style
+     *     summary: Get styleJSON
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the style
+     *       - in: query
+     *         name: raw
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Use raw
+     *     responses:
+     *       200:
+     *         description: StyleJSON
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/:id/style.json", getStyleHandler());
+
+    if (process.env.ENABLE_EXPORT !== "false") {
+      /**
+       * @swagger
+       * tags:
+       *   - name: Style
+       *     description: Style related endpoints
+       * /styles/{id}/export/style.json:
+       *   get:
+       *     tags:
+       *       - Style
+       *     summary: Cancel render style
+       *     parameters:
+       *       - in: query
+       *         name: cancel
+       *         schema:
+       *           type: boolean
+       *         required: false
+       *         description: Cancel render
+       *     responses:
+       *       200:
+       *         description: Style render is canceled
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: OK
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       *   post:
+       *     tags:
+       *       - Style
+       *     summary: Render style
+       *     requestBody:
+       *       required: true
+       *       content:
+       *         application/json:
+       *             schema:
+       *               type: object
+       *               example: {}
+       *       description: Style render options
+       *     responses:
+       *       201:
+       *         description: Style render is started
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: OK
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/:id/export/style.json", renderStyleHandler());
+      app.post("/:id/export/style.json", renderStyleHandler());
+    }
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Rendered
+     *     description: Rendered related endpoints
+     * /styles/rendereds.json:
+     *   get:
+     *     tags:
+     *       - Rendered
+     *     summary: Get all style rendereds
+     *     parameters:
+     *       - in: path
+     *         name: tileSize
+     *         schema:
+     *           type: integer
+     *           enum: [256, 512]
+     *         required: false
+     *         description: Tile size (256 or 512)
+     *     responses:
+     *       200:
+     *         description: List of all style rendereds
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
+     *                 properties:
+     *                   id:
+     *                     type: string
+     *                     example: style1
+     *                   name:
+     *                     type: string
+     *                     example: Style 1
+     *                   url:
+     *                     type: array
+     *                     items:
+     *                       type: string
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/rendereds.json", getRenderedsListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Rendered
+     *     description: Rendered related endpoints
+     * /styles/tilejsons.json:
+     *   get:
+     *     tags:
+     *       - Rendered
+     *     summary: Get all rendered tileJSONs
+     *     responses:
+     *       200:
+     *         description: List of all rendered tileJSONs
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/tilejsons.json", getRenderedTileJSONsListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Rendered
+     *     description: Rendered related endpoints
+     * /styles/{tileSize}/{id}.json:
+     *   get:
+     *     tags:
+     *       - Rendered
+     *     summary: Get style rendered
+     *     parameters:
+     *       - in: path
+     *         name: tileSize
+     *         schema:
+     *           type: integer
+     *           enum: [256, 512]
+     *           example: 256
+     *         required: false
+     *         description: Tile size (256 or 512)
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the style rendered
+     *     responses:
+     *       200:
+     *         description: Style rendered
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 tileJSON:
+     *                   type: object
+     *                 tiles:
+     *                   type: array
+     *                   items:
+     *                     type: string
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/(:tileSize/)?:id.json", getRenderedHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Rendered
+     *     description: Rendered related endpoints
+     * /styles/{id}/{tileSize}/{z}/{x}/{y}{tileScale}.png:
+     *   get:
+     *     tags:
+     *       - Rendered
+     *     summary: Get style rendered tile
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the style
+     *       - in: path
+     *         name: tileSize
+     *         schema:
+     *           type: integer
+     *           enum: [256, 512]
+     *           example: 256
+     *         required: false
+     *         description: Tile size (256 or 512)
+     *       - in: path
+     *         name: z
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: Zoom level
+     *       - in: path
+     *         name: x
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: X coordinate
+     *       - in: path
+     *         name: y
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: Y coordinate
+     *       - in: path
+     *         name: tileScale
+     *         schema:
+     *           type: string
+     *         required: false
+     *         description: Scale of the tile (e.g., @2x)
+     *     responses:
+     *       200:
+     *         description: Style tile
+     *         content:
+     *           image/png:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
      */
     app.get(
-      `/:id/sprite{/:spriteID}{@:scale}{.:format}`,
-      async (req, res, next) => {
-        const { spriteID = 'default', id, format, scale } = req.params;
-        const sanitizedId = String(id).replace(/\n|\r/g, '');
-        const sanitizedScale = scale ? String(scale).replace(/\n|\r/g, '') : '';
-        const sanitizedSpriteID = String(spriteID).replace(/\n|\r/g, '');
-        const sanitizedFormat = format
-          ? '.' + String(format).replace(/\n|\r/g, '')
-          : '';
-        if (verbose) {
-          console.log(
-            `Handling sprite request for: /styles/%s/sprite/%s%s%s`,
-            sanitizedId,
-            sanitizedSpriteID,
-            sanitizedScale,
-            sanitizedFormat,
-          );
-        }
-        const item = repo[id];
-        const validatedFormat = allowedSpriteFormats(format);
-        if (!item || !validatedFormat) {
-          if (verbose)
-            console.error(
-              `Sprite item or format not found for: /styles/%s/sprite/%s%s%s`,
-              sanitizedId,
-              sanitizedSpriteID,
-              sanitizedScale,
-              sanitizedFormat,
-            );
-          return res.sendStatus(404);
-        }
-        const sprite = item.spritePaths.find(
-          (sprite) => sprite.id === spriteID,
-        );
-        const spriteScale = allowedSpriteScales(scale);
-        if (!sprite || spriteScale === null) {
-          if (verbose)
-            console.error(
-              `Bad Sprite ID or Scale for: /styles/%s/sprite/%s%s%s`,
-              sanitizedId,
-              sanitizedSpriteID,
-              sanitizedScale,
-              sanitizedFormat,
-            );
-          return res.status(400).send('Bad Sprite ID or Scale');
-        }
-
-        const modifiedSince = req.get('if-modified-since');
-        const cc = req.get('cache-control');
-        if (modifiedSince && (!cc || cc.indexOf('no-cache') === -1)) {
-          if (
-            new Date(item.lastModified).getTime() ===
-            new Date(modifiedSince).getTime()
-          ) {
-            return res.sendStatus(304);
-          }
-        }
-
-        const sanitizedSpritePath = sprite.path.replace(/^(\.\.\/)+/, '');
-        const filename = `${sanitizedSpritePath}${spriteScale}.${validatedFormat}`;
-        if (verbose) console.log(`Loading sprite from: %s`, filename);
-        try {
-          const data = await readFile(filename);
-
-          if (validatedFormat === 'json') {
-            res.header('Content-type', 'application/json');
-          } else if (validatedFormat === 'png') {
-            res.header('Content-type', 'image/png');
-          }
-          if (verbose)
-            console.log(
-              `Responding with sprite data for /styles/%s/sprite/%s%s%s`,
-              sanitizedId,
-              sanitizedSpriteID,
-              sanitizedScale,
-              sanitizedFormat,
-            );
-          res.set({ 'Last-Modified': item.lastModified });
-          return res.send(data);
-        } catch (err) {
-          if (verbose) {
-            console.error(
-              'Sprite load error: %s, Error: %s',
-              filename,
-              String(err),
-            );
-          }
-          return res.sendStatus(404);
-        }
-      },
+      `/:id/(:tileSize/)?:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}):tileScale(@\\d+x)?.png`,
+      getRenderedTileHandler()
     );
 
     return app;
   },
-  /**
-   * Removes an item from the repository.
-   * @param {object} repo Repository object.
-   * @param {string} id ID of the item to remove.
-   * @returns {void}
-   */
-  remove: function (repo, id) {
-    delete repo[id];
-  },
-  /**
-   * Adds a new style to the repository.
-   * @param {object} options Configuration options.
-   * @param {object} repo Repository object.
-   * @param {object} params Parameters object containing style path
-   * @param {string} id ID of the style.
-   * @param {object} programOpts - An object containing the program options
-   * @param {object} style pre-fetched/read StyleJSON object.
-   * @param {Function} reportTiles Function for reporting tile sources.
-   * @param {Function} reportFont Function for reporting font usage
-   * @returns {boolean} true if add is successful
-   */
-  add: function (
-    options,
-    repo,
-    params,
-    id,
-    programOpts,
-    style,
-    reportTiles,
-    reportFont,
-  ) {
-    const { publicUrl } = programOpts;
-    const styleFile = path.resolve(options.paths.styles, params.style);
-    const styleJSON = clone(style);
 
-    const validationErrors = validateStyleMin(styleJSON);
-    if (validationErrors.length > 0) {
-      console.log(`The file "${params.style}" is not a valid style file:`);
-      for (const err of validationErrors) {
-        console.log(`${err.line}: ${err.message}`);
-      }
-      return false;
-    }
+  add: async () => {
+    if (config.styles === undefined) {
+      printLog("info", "No styles in config. Skipping...");
+    } else {
+      const ids = Object.keys(config.styles);
 
-    for (const name of Object.keys(styleJSON.sources)) {
-      const source = styleJSON.sources[name];
-      let url = source.url;
-      if (
-        url &&
-        (url.startsWith('pmtiles://') || url.startsWith('mbtiles://'))
-      ) {
-        const protocol = url.split(':')[0];
+      printLog("info", `Loading ${ids.length} styles...`);
 
-        let dataId = url.replace('pmtiles://', '').replace('mbtiles://', '');
-        if (dataId.startsWith('{') && dataId.endsWith('}')) {
-          dataId = dataId.slice(1, -1);
-        }
+      await Promise.all(
+        ids.map(async (id) => {
+          const item = config.styles[id];
 
-        const mapsTo = (params.mapping || {})[dataId];
-        if (mapsTo) {
-          dataId = mapsTo;
-        }
+          let isCanServeRendered = false;
 
-        const identifier = reportTiles(dataId, protocol);
-        if (!identifier) {
-          return false;
-        }
-        source.url = `local://data/${identifier}.json`;
-      }
+          const styleInfo = {};
 
-      let data = source.data;
-      if (data && typeof data == 'string' && data.startsWith('file://')) {
-        source.data =
-          'local://files' +
-          path.resolve(
-            '/',
-            data.replace('file://', '').replace(options.paths.files, ''),
-          );
-      }
-    }
+          let styleJSON;
 
-    for (const obj of styleJSON.layers) {
-      if (obj['type'] === 'symbol') {
-        const fonts = (obj['layout'] || {})['text-font'];
-        if (fonts && fonts.length) {
-          fonts.forEach(reportFont);
-        } else {
-          reportFont('Open Sans Regular');
-          reportFont('Arial Unicode MS Regular');
-        }
-      }
-    }
+          /* Serve style */
+          try {
+            if (
+              item.style.startsWith("https://") === true ||
+              item.style.startsWith("http://") === true
+            ) {
+              styleInfo.path = `${process.env.DATA_DIR}/styles/${id}/style.json`;
 
-    let spritePaths = [];
-    if (styleJSON.sprite) {
-      if (!Array.isArray(styleJSON.sprite)) {
-        if (!httpTester.test(styleJSON.sprite)) {
-          let spritePath = path.join(
-            options.paths.sprites,
-            styleJSON.sprite
-              .replace('{style}', path.basename(styleFile, '.json'))
-              .replace(
-                '{styleJsonFolder}',
-                path.relative(options.paths.sprites, path.dirname(styleFile)),
-              ),
-          );
-          styleJSON.sprite = `local://styles/${id}/sprite`;
-          spritePaths.push({ id: 'default', path: spritePath });
-        }
-      } else {
-        for (let spriteItem of styleJSON.sprite) {
-          if (!httpTester.test(spriteItem.url)) {
-            let spritePath = path.join(
-              options.paths.sprites,
-              spriteItem.url
-                .replace('{style}', path.basename(styleFile, '.json'))
-                .replace(
-                  '{styleJsonFolder}',
-                  path.relative(options.paths.sprites, path.dirname(styleFile)),
-                ),
+              /* Download style.json file */
+              if ((await isExistFile(styleInfo.path)) === false) {
+                printLog(
+                  "info",
+                  `Downloading style file "${styleInfo.path}" - From "${item.style}"...`
+                );
+
+                await downloadStyleFile(
+                  item.style,
+                  styleInfo.path,
+                  5,
+                  300000 // 5 mins
+                );
+              }
+            } else {
+              if (item.cache !== undefined) {
+                styleInfo.path = `${process.env.DATA_DIR}/caches/styles/${item.style}/style.json`;
+
+                const cacheSource = seed.styles?.[item.style];
+
+                if (cacheSource === undefined) {
+                  throw new Error(`Cache style "${item.style}" is invalid`);
+                }
+
+                if (item.cache.forward === true) {
+                  styleInfo.sourceURL = cacheSource.url;
+                  styleInfo.storeCache = item.cache.store;
+                }
+              } else {
+                styleInfo.path = `${process.env.DATA_DIR}/styles/${item.style}`;
+              }
+            }
+
+            try {
+              /* Read style.json file */
+              styleJSON = await getStyle(styleInfo.path, true);
+
+              /* Validate style */
+              await validateStyle(styleJSON);
+
+              /* Store style info */
+              styleInfo.name = styleJSON.name || "Unknown";
+              styleInfo.zoom = styleJSON.zoom || 0;
+              styleInfo.center = styleJSON.center || [0, 0, 0];
+
+              /* Mark to serve rendered */
+              isCanServeRendered = true;
+            } catch (error) {
+              if (
+                item.cache !== undefined &&
+                error.message === "Style does not exist"
+              ) {
+                styleInfo.name =
+                  seed.styles[item.style].metadata.name || "Unknown";
+                styleInfo.zoom = seed.styles[item.style].metadata.zoom || 0;
+                styleInfo.center = seed.styles[item.style].metadata.center || [
+                  0, 0, 0,
+                ];
+
+                /* Mark to serve rendered */
+                isCanServeRendered = false;
+              } else {
+                throw error;
+              }
+            }
+
+            /* Add to repo */
+            config.repo.styles[id] = styleInfo;
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to load style "${id}": ${error}. Skipping...`
             );
-            spriteItem.url = `local://styles/${id}/sprite/` + spriteItem.id;
-            spritePaths.push({ id: spriteItem.id, path: spritePath });
           }
-        }
-      }
+
+          /* Serve rendered */
+          if (item.rendered !== undefined && isCanServeRendered === true) {
+            try {
+              /* Rendered info */
+              const rendered = {
+                tileJSON: createRenderedMetadata({
+                  name: styleInfo.name,
+                  description: styleInfo.name,
+                }),
+                styleJSON: {},
+                compressionLevel: item.rendered.compressionLevel || 6,
+              };
+
+              /* Fix center */
+              if (styleJSON.center?.length >= 2 && styleJSON.zoom) {
+                rendered.tileJSON.center = [
+                  styleJSON.center[0],
+                  styleJSON.center[1],
+                  Math.floor(styleJSON.zoom),
+                ];
+              }
+
+              /* Fix sources */
+              await Promise.all(
+                Object.keys(styleJSON.sources).map(async (id) => {
+                  const source = styleJSON.sources[id];
+
+                  if (source.tiles !== undefined) {
+                    const tiles = new Set(
+                      source.tiles.map((tile) => {
+                        if (isLocalTileURL(tile) === true) {
+                          const sourceID = tile.split("/")[2];
+                          const sourceData = config.repo.datas[sourceID];
+
+                          tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+                        }
+
+                        return tile;
+                      })
+                    );
+
+                    source.tiles = Array.from(tiles);
+                  }
+
+                  if (source.urls !== undefined) {
+                    const otherUrls = [];
+
+                    source.urls.forEach((url) => {
+                      if (isLocalTileURL(url) === true) {
+                        const sourceID = url.split("/")[2];
+                        const sourceData = config.repo.datas[sourceID];
+
+                        const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+
+                        if (source.tiles !== undefined) {
+                          if (source.tiles.includes(tile) === false) {
+                            source.tiles.push(tile);
+                          }
+                        } else {
+                          source.tiles = [tile];
+                        }
+                      } else {
+                        if (otherUrls.includes(url) === false) {
+                          otherUrls.push(url);
+                        }
+                      }
+                    });
+
+                    if (otherUrls.length === 0) {
+                      delete source.urls;
+                    } else {
+                      source.urls = otherUrls;
+                    }
+                  }
+
+                  if (source.url !== undefined) {
+                    if (isLocalTileURL(source.url) === true) {
+                      const sourceID = source.url.split("/")[2];
+                      const sourceData = config.repo.datas[sourceID];
+
+                      const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+
+                      if (source.tiles !== undefined) {
+                        if (source.tiles.includes(tile) === false) {
+                          source.tiles.push(tile);
+                        }
+                      } else {
+                        source.tiles = [tile];
+                      }
+
+                      delete source.url;
+                    }
+                  }
+
+                  if (
+                    source.url === undefined &&
+                    source.urls === undefined &&
+                    source.tiles !== undefined
+                  ) {
+                    if (source.tiles.length === 1) {
+                      if (isLocalTileURL(source.tiles[0]) === true) {
+                        const sourceID = source.tiles[0].split("/")[2];
+                        const sourceData = config.repo.datas[sourceID];
+
+                        styleJSON.sources[id] = {
+                          ...sourceData.tileJSON,
+                          ...source,
+                          tiles: [source.tiles[0]],
+                        };
+                      }
+                    }
+                  }
+
+                  // Add atribution
+                  if (
+                    source.attribution &&
+                    rendered.tileJSON.attribution.includes(
+                      source.attribution
+                    ) === false
+                  ) {
+                    rendered.tileJSON.attribution += ` | ${source.attribution}`;
+                  }
+                })
+              );
+
+              /* Add styleJSON */
+              rendered.styleJSON = styleJSON;
+
+              /* Add to repo */
+              config.repo.styles[id].rendered = rendered;
+            } catch (error) {
+              printLog(
+                "error",
+                `Failed to load rendered "${id}": ${error}. Skipping...`
+              );
+            }
+          }
+        })
+      );
     }
-
-    if (styleJSON.glyphs && !httpTester.test(styleJSON.glyphs)) {
-      styleJSON.glyphs = 'local://fonts/{fontstack}/{range}.pbf';
-    }
-
-    repo[id] = {
-      styleJSON,
-      spritePaths,
-      publicUrl,
-      name: styleJSON.name,
-      lastModified: new Date().toUTCString(),
-    };
-
-    return true;
   },
 };

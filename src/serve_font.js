@@ -1,101 +1,215 @@
-'use strict';
+"use strict";
 
-import express from 'express';
-
-import { getFontsPbf, listFonts } from './utils.js';
+import { detectFormatAndHeaders, getRequestHost, gzipAsync } from "./utils.js";
+import { getFonts, validateFont } from "./font.js";
+import { StatusCodes } from "http-status-codes";
+import { printLog } from "./logger.js";
+import { config } from "./config.js";
+import { seed } from "./seed.js";
+import express from "express";
 
 /**
- * Initializes and returns an Express app that serves font files.
- * @param {object} options - Configuration options for the server.
- * @param {object} allowedFonts - An object containing allowed fonts.
- * @param {object} programOpts - An object containing the program options.
- * @returns {Promise<express.Application>} - A promise that resolves to the Express app.
+ * Get font handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
-export async function serve_font(options, allowedFonts, programOpts) {
-  const { verbose } = programOpts;
-  const app = express().disable('x-powered-by');
-
-  const lastModified = new Date().toUTCString();
-
-  const fontPath = options.paths.fonts;
-
-  const existingFonts = {};
-
-  /**
-   * Handles requests for a font file.
-   * @param {object} req - Express request object.
-   * @param {object} res - Express response object.
-   * @param {string} req.params.fontstack - Name of the font stack.
-   * @param {string} req.params.range - The range of the font (e.g. 0-255).
-   * @returns {Promise<void>}
-   */
-  app.get('/fonts/:fontstack/:range.pbf', async (req, res) => {
-    const sRange = String(req.params.range).replace(/\n|\r/g, '');
-    const sFontStack = String(decodeURI(req.params.fontstack)).replace(
-      /\n|\r/g,
-      '',
-    );
-
-    if (verbose) {
-      console.log(
-        `Handling font request for: /fonts/%s/%s.pbf`,
-        sFontStack,
-        sRange,
-      );
-    }
-
-    const modifiedSince = req.get('if-modified-since');
-    const cc = req.get('cache-control');
-    if (modifiedSince && (!cc || cc.indexOf('no-cache') === -1)) {
-      if (
-        new Date(lastModified).getTime() === new Date(modifiedSince).getTime()
-      ) {
-        return res.sendStatus(304);
-      }
-    }
+function getFontHandler() {
+  return async (req, res, next) => {
+    const ids = req.params.id;
 
     try {
-      const concatenated = await getFontsPbf(
-        options.serveAllFonts ? null : allowedFonts,
-        fontPath,
-        sFontStack,
-        sRange,
-        existingFonts,
+      let data = await getFonts(
+        ids,
+        req.url.slice(req.url.lastIndexOf("/") + 1)
       );
-      res.header('Content-type', 'application/x-protobuf');
-      res.header('Last-Modified', lastModified);
-      return res.send(concatenated);
-    } catch (err) {
-      console.error(
-        `Error serving font: %s/%s.pbf, Error: %s`,
-        sFontStack,
-        sRange,
-        String(err),
-      );
+
+      /* Gzip pbf font */
+      const headers = detectFormatAndHeaders(data).headers;
+      if (headers["content-encoding"] === undefined) {
+        data = await gzipAsync(data);
+
+        res.header("content-encoding", "gzip");
+      }
+
+      res.set(headers);
+
+      return res.status(StatusCodes.OK).send(data);
+    } catch (error) {
+      printLog("error", `Failed to get font "${ids}": ${error}`);
+
       return res
-        .status(400)
-        .header('Content-Type', 'text/plain')
-        .send('Error serving font');
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
     }
-  });
-
-  /**
-   * Handles requests for a list of all available fonts.
-   * @param {object} req - Express request object.
-   * @param {object} res - Express response object.
-   * @returns {void}
-   */
-  app.get('/fonts.json', (req, res) => {
-    if (verbose) {
-      console.log('Handling list font request for /fonts.json');
-    }
-    res.header('Content-type', 'application/json');
-    return res.send(
-      Object.keys(options.serveAllFonts ? existingFonts : allowedFonts).sort(),
-    );
-  });
-
-  const fonts = await listFonts(options.paths.fonts);
-  Object.assign(existingFonts, fonts);
-  return app;
+  };
 }
+
+/**
+ * Get font list handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getFontsListHandler() {
+  return async (req, res, next) => {
+    try {
+      const requestHost = getRequestHost(req);
+
+      const result = await Promise.all(
+        Object.keys(config.repo.fonts).map(async (id) => {
+          return {
+            id: id,
+            name: id,
+            url: `${requestHost}/fonts/${id}/{range}.pbf`,
+          };
+        })
+      );
+
+      return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+      printLog("error", `Failed to get fonts": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+export const serve_font = {
+  init: () => {
+    const app = express().disable("x-powered-by");
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Font
+     *     description: Font related endpoints
+     * /fonts/fonts.json:
+     *   get:
+     *     tags:
+     *       - Font
+     *     summary: Get all fonts
+     *     responses:
+     *       200:
+     *         description: List of fonts
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
+     *                 properties:
+     *                   name:
+     *                     type: string
+     *                   url:
+     *                     type: string
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/fonts.json", getFontsListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Font
+     *     description: Font related endpoints
+     * /fonts/{id}/{range}.pbf:
+     *   get:
+     *     tags:
+     *       - Font
+     *     summary: Get font
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Font ID
+     *       - in: path
+     *         name: range
+     *         required: true
+     *         schema:
+     *           type: string
+     *           pattern: "\\d{1,5}-\\d{1,5}"
+     *           example: 0-255
+     *         description: Font range
+     *     responses:
+     *       200:
+     *         description: Font data
+     *         content:
+     *           application/octet-stream:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/:id/:range(\\d{1,5}-\\d{1,5}).pbf", getFontHandler());
+
+    return app;
+  },
+
+  add: async () => {
+    if (config.fonts === undefined) {
+      printLog("info", "No fonts in config. Skipping...");
+    } else {
+      const ids = Object.keys(config.fonts);
+
+      printLog("info", `Loading ${ids.length} fonts...`);
+
+      await Promise.all(
+        ids.map(async (id) => {
+          const item = config.fonts[id];
+          const fontInfo = {};
+
+          try {
+            if (item.cache !== undefined) {
+              fontInfo.path = `${process.env.DATA_DIR}/caches/fonts/${item.font}`;
+
+              const cacheSource = seed.fonts?.[item.font];
+
+              if (cacheSource === undefined) {
+                throw new Error(`Cache font "${item.font}" is invalid`);
+              }
+
+              if (item.cache.forward === true) {
+                fontInfo.sourceURL = cacheSource.url;
+                fontInfo.storeCache = item.cache.store;
+              }
+            } else {
+              fontInfo.path = `${process.env.DATA_DIR}/fonts/${item.font}`;
+
+              /* Validate font */
+              await validateFont(fontInfo.path);
+            }
+
+            /* Add to repo */
+            config.repo.fonts[id] = fontInfo;
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to load font "${id}": ${error}. Skipping...`
+            );
+          }
+        })
+      );
+    }
+  },
+};

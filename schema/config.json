@@ -1,0 +1,188 @@
+{
+  "type": "object",
+  "properties": {
+    "options": {
+      "type": "object",
+      "properties": {
+        "listenPort": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "serveFrontPage": {
+          "type": "boolean"
+        },
+        "serveSwagger": {
+          "type": "boolean"
+        },
+        "taskSchedule": {
+          "type": "string",
+          "pattern": "^([0-5]?\\d|\\*)\\s([0-5]?\\d|\\*)\\s([0-1]?\\d|2[0-3]|\\*)\\s([1-9]|[12]\\d|3[01]|\\*)\\s([1-9]|1[0-2]|\\*)\\s([0-7]|\\*)$|^([0-5]?\\d|\\*)\\s([0-5]?\\d|\\*)\\s([0-1]?\\d|2[0-3]|\\*)\\s([1-9]|[12]\\d|3[01]|\\*)\\s([1-9]|1[0-2]|\\*)$",
+          "minLength": 1
+        },
+        "postgreSQLBaseURI": {
+          "type": "string",
+          "pattern": "^postgres(?:ql)?://(?:(?:[a-zA-Z0-9._~!$&'()*+,;=%-]+)(?::[a-zA-Z0-9._~!$&'()*+,;=%-]+)?@)?(?:[a-zA-Z0-9.-]+|\\[[a-fA-F0-9:]+\\])(?::\\d+)?(?:/[a-zA-Z0-9._~!$&'()*+,;=%-]*)?(?:\\?[a-zA-Z0-9._~!$&'()*+,;=%-]+=[a-zA-Z0-9._~!$&'()*+,;=%-]+(?:&[a-zA-Z0-9._~!$&'()*+,;=%-]+=[a-zA-Z0-9._~!$&'()*+,;=%-]+)*)?$",
+          "minLength": 1
+        },
+        "process": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "thread": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "styles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cache": {
+            "type": "object",
+            "properties": {
+              "forward": {
+                "type": "boolean"
+              },
+              "store": {
+                "type": "boolean"
+              }
+            }
+          },
+          "rendered": {
+            "type": "object",
+            "properties": {
+              "compressionLevel": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9
+              }
+            }
+          }
+        },
+        "required": ["style"]
+      }
+    },
+    "geojsons": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "geojson": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cache": {
+              "type": "object",
+              "properties": {
+                "forward": {
+                  "type": "boolean"
+                },
+                "store": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "required": ["geojson"]
+        }
+      }
+    },
+    "datas": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "mbtiles": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pmtiles": {
+            "type": "string",
+            "minLength": 1
+          },
+          "xyz": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pg": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cache": {
+            "type": "object",
+            "properties": {
+              "forward": {
+                "type": "boolean"
+              },
+              "store": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "anyOf": [
+          { "required": ["mbtiles"] },
+          { "required": ["pmtiles"] },
+          { "required": ["xyz"] },
+          { "required": ["pg"] }
+        ]
+      }
+    },
+    "sprites": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "cache": {
+            "type": "object",
+            "properties": {
+              "sprite": {
+                "type": "string",
+                "minLength": 1
+              },
+              "forward": {
+                "type": "boolean"
+              },
+              "store": {
+                "type": "boolean"
+              }
+            },
+            "required": ["sprite"]
+          }
+        }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "cache": {
+            "type": "object",
+            "properties": {
+              "font": {
+                "type": "string",
+                "minLength": 1
+              },
+              "forward": {
+                "type": "boolean"
+              },
+              "store": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": ["font"]
+      }
+    }
+  }
+}

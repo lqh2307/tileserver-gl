@@ -1,300 +1,207 @@
-#!/usr/bin/env node
+"use strict";
 
-'use strict';
-import os from 'os';
+import { removeOldCacheLocks, runCommand } from "./utils.js";
+import { initLogger, printLog } from "./logger.js";
+import { readConfigFile } from "./config.js";
+import chokidar from "chokidar";
+import cluster from "cluster";
+import cron from "node-cron";
+import {
+  cancelTaskInWorker,
+  startTaskInWorker,
+  startServer,
+} from "./server.js";
+import os from "os";
 
-const envSize = parseInt(process.env.UV_THREADPOOL_SIZE, 10);
-process.env.UV_THREADPOOL_SIZE = Math.ceil(
-  Math.max(4, isNaN(envSize) ? os.cpus().length * 1.5 : envSize),
-);
+/**
+ * Start cluster server
+ * @returns {Promise<void>}
+ */
+async function startClusterServer() {
+  // Store ENVs
+  process.env.DATA_DIR = process.env.DATA_DIR || "data"; // Data dir
+  process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
+  process.env.RESTART_AFTER_CONFIG_CHANGE =
+    process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
 
-import fs from 'node:fs';
-import fsp from 'node:fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import axios from 'axios';
-import { server } from './server.js';
-import { isValidHttpUrl } from './utils.js';
-import { openPMtiles, getPMtilesInfo } from './pmtiles_adapter.js';
-import { program } from 'commander';
-import { existsP } from './promises.js';
-import { openMbTilesWrapper } from './mbtiles_wrapper.js';
+  // Init logger
+  initLogger();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const packageJson = JSON.parse(
-  fs.readFileSync(__dirname + '/../package.json', 'utf8'),
-);
+  if (cluster.isPrimary === true) {
+    printLog(
+      "info",
+      `Starting server with:\n\tData dir: ${process.env.DATA_DIR}\n\tService name: ${process.env.SERVICE_NAME}\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}`
+    );
 
-const args = process.argv;
-if (args.length >= 3 && args[2][0] !== '-') {
-  args.splice(2, 0, '--mbtiles');
-}
+    /* Read config.json file */
+    printLog("info", `Reading config.json file...`);
 
-program
-  .description('tileserver-gl startup options')
-  .usage('tileserver-gl [mbtiles] [options]')
-  .option(
-    '--file <file>',
-    'MBTiles or PMTiles file\n' +
-      '\t                  ignored if the configuration file is also specified',
-  )
-  .option(
-    '--mbtiles <file>',
-    '(DEPRECIATED) MBTiles file\n' +
-      '\t                  ignored if file is also specified' +
-      '\t                  ignored if the configuration file is also specified',
-  )
-  .option(
-    '-c, --config <file>',
-    'Configuration file [config.json]',
-    'config.json',
-  )
-  .option('-b, --bind <address>', 'Bind address')
-  .option('-p, --port <port>', 'Port [8080]', 8080, parseInt)
-  .option('-C|--no-cors', 'Disable Cross-origin resource sharing headers')
-  .option(
-    '-u|--public_url <url>',
-    'Enable exposing the server on subpaths, not necessarily the root of the domain',
-  )
-  .option('-V, --verbose', 'More verbose output')
-  .option('-s, --silent', 'Less verbose output')
-  .option('-l|--log_file <file>', 'output log file (defaults to standard out)')
-  .option(
-    '-f|--log_format <format>',
-    'define the log format:  https://github.com/expressjs/morgan#morganformat-options',
-  )
-  .version(packageJson.version, '-v, --version');
-program.parse(process.argv);
-const opts = program.opts();
+    const config = await readConfigFile(true);
 
-console.log(`Starting ${packageJson.name} v${packageJson.version}`);
+    const numOfProcess = config.options?.process || 1; // Number of process
+    const numOfThread = config.options?.thread || os.cpus().length; // Number of thread
 
-const startServer = (configPath, config) => {
-  let publicUrl = opts.public_url;
-  if (publicUrl && publicUrl.lastIndexOf('/') !== publicUrl.length - 1) {
-    publicUrl += '/';
-  }
-  return server({
-    configPath,
-    config,
-    bind: opts.bind,
-    port: opts.port,
-    cors: opts.cors,
-    verbose: opts.verbose,
-    silent: opts.silent,
-    logFile: opts.log_file,
-    logFormat: opts.log_format,
-    publicUrl,
-  });
-};
+    // Store ENVs
+    process.env.UV_THREADPOOL_SIZE = numOfThread; // For libuv
+    process.env.POSTGRESQL_BASE_URI = config.options?.postgreSQLBaseURI; // PostgreSQL base URI
+    process.env.SERVE_FRONT_PAGE = config.options?.serveFrontPage; // Serve front page
+    process.env.SERVE_SWAGGER = config.options?.serveSwagger; // Serve swagger
 
-const startWithInputFile = async (inputFile) => {
-  console.log(`[INFO] Automatically creating config file for ${inputFile}`);
-  console.log(`[INFO] Only a basic preview style will be used.`);
-  console.log(
-    `[INFO] See documentation to learn how to create config.json file.`,
-  );
-
-  let inputFilePath;
-  if (isValidHttpUrl(inputFile)) {
-    inputFilePath = process.cwd();
-  } else {
-    inputFile = path.resolve(process.cwd(), inputFile);
-    inputFilePath = path.dirname(inputFile);
-
-    const inputFileStats = await fsp.stat(inputFile);
-    if (!inputFileStats.isFile() || inputFileStats.size === 0) {
-      console.log(`ERROR: Not a valid input file: `);
-      process.exit(1);
-    }
-  }
-
-  const styleDir = path.resolve(
-    __dirname,
-    '../node_modules/tileserver-gl-styles/',
-  );
-
-  const config = {
-    options: {
-      paths: {
-        root: styleDir,
-        fonts: 'fonts',
-        styles: 'styles',
-        mbtiles: inputFilePath,
-        pmtiles: inputFilePath,
-      },
-    },
-    styles: {},
-    data: {},
-  };
-
-  const extension = inputFile.split('.').pop().toLowerCase();
-  if (extension === 'pmtiles') {
-    const fileOpenInfo = openPMtiles(inputFile);
-    const metadata = await getPMtilesInfo(fileOpenInfo);
-
-    if (
-      metadata.format === 'pbf' &&
-      metadata.name.toLowerCase().indexOf('openmaptiles') > -1
-    ) {
-      if (isValidHttpUrl(inputFile)) {
-        config['data'][`v3`] = {
-          pmtiles: inputFile,
-        };
-      } else {
-        config['data'][`v3`] = {
-          pmtiles: path.basename(inputFile),
-        };
-      }
-
-      const styles = await fsp.readdir(path.resolve(styleDir, 'styles'));
-      for (const styleName of styles) {
-        const styleFileRel = styleName + '/style.json';
-        const styleFile = path.resolve(styleDir, 'styles', styleFileRel);
-        if (await existsP(styleFile)) {
-          config['styles'][styleName] = {
-            style: styleFileRel,
-            tilejson: {
-              bounds: metadata.bounds,
-            },
-          };
-        }
-      }
-    } else {
-      console.log(
-        `WARN: PMTiles not in "openmaptiles" format. Serving raw data only...`,
-      );
-      if (isValidHttpUrl(inputFile)) {
-        config['data'][(metadata.id || 'pmtiles').replace(/[?/:]/g, '_')] = {
-          pmtiles: inputFile,
-        };
-      } else {
-        config['data'][(metadata.id || 'pmtiles').replace(/[?/:]/g, '_')] = {
-          pmtiles: path.basename(inputFile),
-        };
-      }
-    }
-
-    if (opts.verbose) {
-      console.log(JSON.stringify(config, undefined, 2));
-    } else {
-      console.log('Run with --verbose to see the config file here.');
-    }
-
-    return startServer(null, config);
-  } else {
-    if (isValidHttpUrl(inputFile)) {
-      console.log(
-        `ERROR: MBTiles does not support web based files. "${inputFile}" is not a valid data file.`,
-      );
-      process.exit(1);
-    }
-    let info;
+    // For gdal
     try {
-      const mbw = await openMbTilesWrapper(inputFile);
-      info = await mbw.getInfo();
-      if (!info) throw new Error('Metadata missing in the MBTiles.');
-    } catch (err) {
-      console.log('ERROR: Unable to open MBTiles or read metadata:', err);
-      console.log(`Make sure ${path.basename(inputFile)} is valid MBTiles.`);
-      process.exit(1);
-    }
-    const bounds = info.bounds;
+      const gdalVersion = await runCommand("gdalinfo --version");
 
-    if (
-      info.format === 'pbf' &&
-      info.name.toLowerCase().indexOf('openmaptiles') > -1
-    ) {
-      config['data'][`v3`] = {
-        mbtiles: path.basename(inputFile),
-      };
-
-      const styles = await fsp.readdir(path.resolve(styleDir, 'styles'));
-      for (const styleName of styles) {
-        const styleFileRel = styleName + '/style.json';
-        const styleFile = path.resolve(styleDir, 'styles', styleFileRel);
-        if (await existsP(styleFile)) {
-          config['styles'][styleName] = {
-            style: styleFileRel,
-            tilejson: {
-              bounds,
-            },
-          };
-        }
-      }
-    } else {
-      console.log(
-        `WARN: MBTiles not in "openmaptiles" format. Serving raw data only...`,
+      printLog(
+        "info",
+        `Found gdal version "${gdalVersion.trim()}". Enable export render`
       );
-      config['data'][(info.id || 'mbtiles').replace(/[?/:]/g, '_')] = {
-        mbtiles: path.basename(inputFile),
-      };
+
+      process.env.ENABLE_EXPORT = "true";
+      process.env.GDAL_NUM_THREADS = "ALL_CPUS";
+    } catch (error) {
+      printLog("info", `Not found gdal. Disable export render`);
     }
 
-    if (opts.verbose) {
-      console.log(JSON.stringify(config, undefined, 2));
-    } else {
-      console.log('Run with --verbose to see the config file here.');
+    /* Remove old cache locks */
+    printLog("info", `Removing old cache locks before start server...`);
+
+    await removeOldCacheLocks();
+
+    printLog(
+      "info",
+      `Starting server with ${numOfProcess} processes - ${numOfThread} threads...`
+    );
+
+    /* Setup watch config file change */
+    if (process.env.RESTART_AFTER_CONFIG_CHANGE === "true") {
+      printLog("info", "Auto restart server if config file has changed");
+
+      chokidar
+        .watch(`${process.env.DATA_DIR}/config.json`, {
+          usePolling: true,
+          awaitWriteFinish: true,
+          interval: 500,
+        })
+        .on("change", () => {
+          printLog("info", "Config file has changed. Restarting server...");
+
+          process.exit(1);
+        });
     }
 
-    return startServer(null, config);
-  }
-};
+    /* Setup cron */
+    if (config.options?.taskSchedule !== undefined) {
+      printLog(
+        "info",
+        `Schedule run seed and clean up tasks at: "${config.options.taskSchedule}"`
+      );
 
-fs.stat(path.resolve(opts.config), async (err, stats) => {
-  if (err || !stats.isFile() || stats.size === 0) {
-    let inputFile;
-    if (opts.file) {
-      inputFile = opts.file;
-    } else if (opts.mbtiles) {
-      inputFile = opts.mbtiles;
+      cron.schedule(config.options.taskSchedule, () => {
+        printLog(
+          "info",
+          "Seed and clean up tasks triggered by schedule. Starting task..."
+        );
+
+        startTaskInWorker({
+          restart: true,
+          cleanUpSprites: true,
+          cleanUpFonts: true,
+          cleanUpStyles: true,
+          cleanUpGeoJSONs: true,
+          cleanUpDatas: true,
+          seedSprites: true,
+          seedFonts: true,
+          seedStyles: true,
+          seedGeoJSONs: true,
+          seedDatas: true,
+        });
+      });
     }
 
-    if (inputFile) {
-      return startWithInputFile(inputFile);
-    } else {
-      // try to find in the cwd
-      const files = await fsp.readdir(process.cwd());
-      for (const filename of files) {
-        if (filename.endsWith('.mbtiles') || filename.endsWith('.pmtiles')) {
-          const inputFilesStats = await fsp.stat(filename);
-          if (inputFilesStats.isFile() && inputFilesStats.size > 0) {
-            inputFile = filename;
+    /* Fork servers */
+    printLog("info", "Creating workers...");
+
+    for (let i = 0; i < numOfProcess; i++) {
+      cluster.fork();
+    }
+
+    cluster
+      .on("exit", (worker, code, signal) => {
+        printLog(
+          "info",
+          `Worker with PID = ${worker.process.pid} is died - Code: ${code} - Signal: ${signal}. Creating new one...`
+        );
+
+        cluster.fork();
+      })
+      .on("message", (worker, message) => {
+        switch (message.action) {
+          case "killServer": {
+            printLog(
+              "info",
+              `Received "killServer" message from worker with PID = ${worker.process.pid}. Killing server...`
+            );
+
+            process.exit(0);
+          }
+
+          case "restartServer": {
+            printLog(
+              "info",
+              `Received "restartServer" message from worker with PID = ${worker.process.pid}. Restarting server...`
+            );
+
+            process.exit(1);
+          }
+
+          case "startTask": {
+            printLog(
+              "info",
+              `Received "startTask" message from worker with PID = ${worker.process.pid}. Starting task...`
+            );
+
+            startTaskInWorker({
+              restart: message.restart,
+              cleanUpSprites: message.cleanUpSprites,
+              cleanUpFonts: message.cleanUpFonts,
+              cleanUpStyles: message.cleanUpStyles,
+              cleanUpGeoJSONs: message.cleanUpGeoJSONs,
+              cleanUpDatas: message.cleanUpDatas,
+              seedSprites: message.seedSprites,
+              seedFonts: message.seedFonts,
+              seedStyles: message.seedStyles,
+              seedGeoJSONs: message.seedGeoJSONs,
+              seedDatas: message.seedDatas,
+            });
+
+            break;
+          }
+
+          case "cancelTask": {
+            printLog(
+              "info",
+              `Received "cancelTask" message from worker with PID = ${worker.process.pid}. Canceling task...`
+            );
+
+            cancelTaskInWorker();
+
+            break;
+          }
+
+          default: {
+            printLog(
+              "warn",
+              `Received unknown message "${message.action}" from worker with PID = ${worker.process.pid}. Skipping...`
+            );
+
             break;
           }
         }
-      }
-      if (inputFile) {
-        console.log(`No input file specified, using ${inputFile}`);
-        return startWithInputFile(inputFile);
-      } else {
-        const url =
-          'https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/zurich_switzerland.mbtiles';
-        const filename = 'zurich_switzerland.mbtiles';
-        const writer = fs.createWriteStream(filename);
-        console.log(`No input file found`);
-        console.log(`[DEMO] Downloading sample data (${filename}) from ${url}`);
-
-        try {
-          const response = await axios({
-            url,
-            method: 'GET',
-            responseType: 'stream',
-          });
-
-          response.data.pipe(writer);
-          writer.on('finish', () => startWithInputFile(filename));
-          writer.on('error', (err) =>
-            console.error(`Error writing file: ${err}`),
-          );
-        } catch (error) {
-          console.error(`Error downloading file: ${error}`);
-        }
-      }
-    }
+      });
   } else {
-    console.log(`Using specified config file from ${opts.config}`);
-    return startServer(opts.config, null);
+    startServer();
   }
-});
+}
+
+/* Run start cluster server */
+startClusterServer();

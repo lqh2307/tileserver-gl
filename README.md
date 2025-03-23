@@ -1,88 +1,766 @@
-![tileserver-gl](https://cloud.githubusercontent.com/assets/59284/18173467/fa3aa2ca-7069-11e6-86b1-0f1266befeb6.jpeg)
+# Tile server
 
-# TileServer GL
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/maptiler/tileserver-gl/pipeline.yml)](https://github.com/maptiler/tileserver-gl/actions/workflows/pipeline.yml)
-[![Docker Hub](https://img.shields.io/badge/docker-hub-blue.svg)](https://hub.docker.com/r/maptiler/tileserver-gl/)
+## Build & Run
 
-Vector and raster maps with GL styles. Server-side rendering by MapLibre GL Native. Map tile server for MapLibre GL JS, Android, iOS, Leaflet, OpenLayers, GIS via WMTS, etc.
+### Prepare
 
-Download vector tiles from [OpenMapTiles](https://data.maptiler.com/downloads/planet/).
-## Getting Started with Node
-
-Make sure you have Node.js version **18.17.0** or above installed. Node 22 is recommended. (running `node -v` it should output something like `v22.x.x`). Running without docker requires [Native dependencies](https://maptiler-tileserver.readthedocs.io/en/latest/installation.html#npm) to be installed first.
-
-Install `tileserver-gl` with server-side raster rendering of vector tiles with npm. 
+Clone source:
 
 ```bash
-npm install -g tileserver-gl
+git clone --single-branch -b 0.0.18 https://github.com/lqh2307/tile-server.git
 ```
 
-Once installed, you can use it like the following examples.
+Jump to folder:
 
-using a mbtiles file
 ```bash
-wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/zurich_switzerland.mbtiles
-tileserver-gl --file zurich_switzerland.mbtiles
-[in your browser, visit http://[server ip]:8080]
+cd tile-server
 ```
 
-using a config.json + style + mbtiles file
+Switch to 0.0.18 branch:
+
 ```bash
-wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
-unzip test_data.zip
-tileserver-gl
-[in your browser, visit http://[server ip]:8080]
+git checkout 0.0.18
 ```
 
-Alternatively, you can use the `tileserver-gl-light` npm package instead, which is pure javascript, does not have any native dependencies, and can run anywhere, but does not contain rasterization on the server side made with Maplibre GL Native.
+### Run with nodejs - native (on ubuntu 22.04 x86_64 amd)
 
-## Getting Started with Docker
+Install dependencies:
 
-An alternative to npm to start the packed software easier is to install [Docker](https://www.docker.com/) on your computer and then run from the tileserver-gl directory
-
-Example using a mbtiles file
 ```bash
-wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/zurich_switzerland.mbtiles
-docker run --rm -it -v $(pwd):/data -p 8080:8080 maptiler/tileserver-gl:latest --file zurich_switzerland.mbtiles
-[in your browser, visit http://[server ip]:8080]
+apt-get -y update; \
+apt-get -y upgrade; \
+apt-get -y install \
+  ca-certificates \
+  wget \
+  xvfb \
+  libglfw3 \
+  libuv1 \
+  libjpeg-turbo8 \
+  libicu70 \
+  libgif7 \
+  libopengl0 \
+  libpng16-16 \
+  libwebp7 \
+  libsqlite3-0 \
+  libcurl4;
 ```
 
-Example using a config.json + style + mbtiles file
+If use export (Install gdal):
+
 ```bash
-wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
-unzip test_data.zip
-docker run --rm -it -v $(pwd):/data -p 8080:8080 maptiler/tileserver-gl:latest
-[in your browser, visit http://[server ip]:8080]
+export GDAL_VERSION=3.10.2
+
+wget -q http://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz; \
+tar -xzf ./gdal-${GDAL_VERSION}.tar.gz; \
+cd ./gdal-${GDAL_VERSION}; \
+mkdir -p build; \
+cd build; \
+cmake .. -DCMAKE_BUILD_TYPE=Release; \
+cmake --build .; \
+cmake --build . --target install; \
+cd ../..; \
+rm -rf ./gdal-${GDAL_VERSION}*; \
+ldconfig;
 ```
 
-Example using a different path
+Install nodejs:
+
 ```bash
-docker run --rm -it -v /your/local/config/path:/data -p 8080:8080 maptiler/tileserver-gl:latest
+export NODEJS_VERSION=22.14.0
+
+wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
+mkdir -p /usr/local/lib/nodejs; \
+tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz --strip-components=1 -C /usr/local/lib/nodejs; \
+rm -rf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
+echo 'export PATH=/usr/local/lib/nodejs/bin:$PATH' >> ~/.bashrc; \
+source ~/.bashrc;
 ```
-replace '/your/local/config/path' with the path to your config file
 
+Clean:
 
-Alternatively, you can use the `maptiler/tileserver-gl-light:latest` docker image instead, which is pure javascript, does not have any native dependencies, and can run anywhere, but does not contain rasterization on the server side made with Maplibre GL Native.
-
-## Getting Started with Linux cli
-
-Test from command line
 ```bash
-wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
-unzip -q test_data.zip -d test_data
-xvfb-run --server-args="-screen 0 1024x768x24" npm test
+apt-get -y remove \
+  ca-certificates \
+  wget;
+apt-get -y --purge autoremove; \
+apt-get clean; \
+rm -rf /var/lib/apt/lists/*;
 ```
 
-Run from command line
+Install nodejs packages:
+
 ```bash
-xvfb-run --server-args="-screen 0 1024x768x24" node .
+npm install --omit=dev
 ```
 
-## Documentation
+Run:
 
-You can read the full documentation of this project at https://tileserver.readthedocs.io/en/latest/.
+```bash
+npm run server --
+```
 
-## Alternative
+ENVs:
 
-Discover MapTiler Server if you need a [map server with easy setup and user-friendly interface](https://www.maptiler.com/server/).
+```bash
+DATA_DIR: path_to_data_folder (default: data)
+SERVICE_NAME: service_name (default: tile-server)
+RESTART_AFTER_CONFIG_CHANGE: true/false (default: true)
+```
 
+### Run with docker
+
+Build image:
+
+```bash
+docker build -t tile-server:0.0.18 .
+```
+
+Run container:
+
+```bash
+docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.18
+```
+
+## Example config.json
+
+```json
+{
+  "options": {
+    "listenPort": 8080,
+    "serveFrontPage": true,
+    "serveSwagger": true,
+    "taskSchedule": "0 0 0 * * *",
+    "postgreSQLBaseURI": "postgresql://localhost:5432",
+    "process": 1,
+    "thread": 8
+  },
+  "styles": {
+    "osm": {
+      "style": "osm/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "3d": {
+      "style": "3d/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "backdrop": {
+      "style": "backdrop/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "basic": {
+      "style": "basic/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "basic-v2": {
+      "style": "basic-v2/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "bright": {
+      "style": "bright/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "dark-matter": {
+      "style": "dark-matter/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "dataviz": {
+      "style": "dataviz/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "dataviz-dark": {
+      "style": "dataviz-dark/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "dataviz-light": {
+      "style": "dataviz-light/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "fiord": {
+      "style": "fiord/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "hybrid": {
+      "style": "hybrid/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "landscape": {
+      "style": "landscape/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "liberty": {
+      "style": "liberty/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "openstreetmap": {
+      "style": "openstreetmap/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "outdoor-v2": {
+      "style": "outdoor-v2/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "positron": {
+      "style": "positron/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "protomap": {
+      "style": "protomap/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "streets-v2": {
+      "style": "streets-v2/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "terrain": {
+      "style": "terrain/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "toner": {
+      "style": "toner/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "topo": {
+      "style": "topo/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "winter-v2": {
+      "style": "winter-v2/style.json",
+      "rendered": {
+        "compressionLevel": 9
+      }
+    },
+    "demotiles": {
+      "style": "demotiles_cache",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    }
+  },
+  "geojsons": {
+    "test": {
+      "test": {
+        "geojson": "test/geojson.geojson"
+      }
+    },
+    "U37AG001": {
+      "bridge": {
+        "geojson": "U37AG001/bridge.geojson"
+      },
+      "cblohd": {
+        "geojson": "U37AG001/cblohd.geojson"
+      },
+      "lokbsn": {
+        "geojson": "U37AG001/lokbsn.geojson"
+      },
+      "m_nsys": {
+        "geojson": "U37AG001/m_nsys.geojson"
+      },
+      "notmrk": {
+        "geojson": "U37AG001/notmrk.geojson"
+      }
+    }
+  },
+  "datas": {
+    "asia_vietnam": {
+      "mbtiles": "asia_vietnam/asia_vietnam.mbtiles"
+    },
+    "satellite": {
+      "mbtiles": "satellite",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "asia_cambodia": {
+      "mbtiles": "asia_cambodia/asia_cambodia.mbtiles"
+    },
+    "openstreetmap": {
+      "pmtiles": "https://data.source.coop/protomaps/openstreetmap/tiles/v3.pmtiles"
+    },
+    "building_footprints": {
+      "pmtiles": "https://data.source.coop/vida/google-microsoft-open-buildings/pmtiles/go_ms_building_footprints.pmtiles"
+    },
+    "ODbL_firenze": {
+      "pmtiles": "ODbL_firenze/ODbL_firenze.pmtiles"
+    },
+    "zurich_switzerland": {
+      "mbtiles": "https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zurich_switzerland.mbtiles"
+    },
+    "osm": {
+      "mbtiles": "osm_cache",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "planet": {
+      "mbtiles": "planet_cache",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "osm_pg": {
+      "pg": "osm_pg_cache",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "osm_pg_2": {
+      "pg": "osm_pg_2_cache",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    }
+  },
+  "sprites": {
+    "basic-v2": {
+      "sprite": "basic-v2"
+    },
+    "bright": {
+      "sprite": "bright"
+    },
+    "dark-matter": {
+      "sprite": "dark-matter"
+    },
+    "dataviz": {
+      "sprite": "dataviz"
+    },
+    "dataviz-dark": {
+      "sprite": "dataviz-dark"
+    },
+    "dataviz-light": {
+      "sprite": "dataviz-light"
+    },
+    "fiord": {
+      "sprite": "fiord"
+    },
+    "hybrid": {
+      "sprite": "hybrid"
+    },
+    "landscape": {
+      "sprite": "landscape"
+    },
+    "liberty": {
+      "sprite": "liberty"
+    },
+    "openstreetmap": {
+      "sprite": "openstreetmap"
+    },
+    "outdoor-v2": {
+      "sprite": "outdoor-v2"
+    },
+    "positron": {
+      "sprite": "positron"
+    },
+    "protomap": {
+      "sprite": "protomap"
+    },
+    "streets-v2": {
+      "sprite": "streets-v2"
+    },
+    "toner": {
+      "sprite": "toner"
+    },
+    "topo": {
+      "sprite": "topo"
+    },
+    "winter-v2": {
+      "sprite": "winter-v2"
+    }
+  },
+  "fonts": {
+    "Open Sans Regular": {
+      "font": "Open Sans Regular"
+    },
+    "Times New Roman": {
+      "font": "Times New Roman"
+    },
+    "Roboto Medium": {
+      "font": "Roboto Medium",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Noto Sans Regular": {
+      "font": "Noto Sans Regular",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    }
+  }
+}
+```
+
+## Example seed.json
+
+```json
+{
+  "styles": {
+    "demotiles_cache": {
+      "metadata": {
+        "name": "demotiles"
+      },
+      "url": "https://demotiles.maplibre.org/style.json",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      }
+    }
+  },
+  "geojsons": {},
+  "datas": {
+    "osm_cache": {
+      "metadata": {
+        "name": "osm",
+        "description": "osm",
+        "format": "png",
+        "bounds": [
+          96,
+          4,
+          120,
+          28
+        ],
+        "center": [
+          108,
+          16,
+          10
+        ],
+        "minzoom": 0,
+        "maxzoom": 18
+      },
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "coverages": [
+        {
+          "bboxs": [
+            [
+              96,
+              4,
+              120,
+              28
+            ]
+          ],
+          "zooms": [
+            0,
+            5,
+            9
+          ]
+        }
+      ],
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5,
+      "storeType": "mbtiles",
+      "storeTransparent": false,
+      "storeMD5": true
+    },
+    "planet_cache": {
+      "metadata": {
+        "name": "planet",
+        "description": "planet",
+        "format": "pbf",
+        "bounds": [
+          96,
+          4,
+          120,
+          28
+        ],
+        "center": [
+          108,
+          16,
+          10
+        ],
+        "vector_layers": [
+          {
+            "id": "aerodrome_label"
+          },
+          {
+            "id": "aeroway"
+          },
+          {
+            "id": "boundary"
+          },
+          {
+            "id": "building"
+          },
+          {
+            "id": "housenumber"
+          },
+          {
+            "id": "landcover"
+          },
+          {
+            "id": "landuse"
+          },
+          {
+            "id": "mountain_peak"
+          },
+          {
+            "id": "park"
+          },
+          {
+            "id": "place"
+          },
+          {
+            "id": "poi"
+          },
+          {
+            "id": "transportation"
+          },
+          {
+            "id": "transportation_name"
+          },
+          {
+            "id": "water"
+          },
+          {
+            "id": "water_name"
+          },
+          {
+            "id": "waterway"
+          }
+        ],
+        "minzoom": 0,
+        "maxzoom": 18
+      },
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "url": "https://dwuxtsziek7cf.cloudfront.net/planet/{z}/{x}/{y}.pbf",
+      "coverages": [
+        {
+          "bboxs": [
+            [
+              96,
+              8,
+              102,
+              16
+            ],
+            [
+              108,
+              20,
+              114,
+              28
+            ]
+          ],
+          "zooms": [
+            0,
+            5,
+            10
+          ]
+        },
+        {
+          "bboxs": [
+            [
+              96,
+              4,
+              120,
+              28
+            ]
+          ],
+          "zooms": [
+            10
+          ]
+        }
+      ],
+      "timeout": 60000,
+      "concurrency": 100,
+      "maxTry": 5,
+      "storeType": "mbtiles",
+      "storeTransparent": false,
+      "storeMD5": true,
+      "skip": true
+    },
+    "satellite": {
+      "metadata": {
+        "name": "satellite",
+        "description": "satellite",
+        "format": "jpeg",
+        "bounds": [
+          -180,
+          -90,
+          180,
+          90
+        ],
+        "center": [
+          108,
+          16,
+          10
+        ],
+        "minzoom": 0,
+        "maxzoom": 18
+      },
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      "coverages": [
+        {
+          "bboxs": [
+            [
+              104.4,
+              8.55,
+              106.8,
+              10.42
+            ],
+            [
+              102.5,
+              20.5,
+              108,
+              21.5
+            ],
+            [
+              103.8,
+              20.15,
+              106.65,
+              20.5
+            ],
+            [
+              103.8,
+              19,
+              106.39,
+              20.15
+            ]
+          ],
+          "zooms": [
+            17,
+            18
+          ]
+        }
+      ],
+      "timeout": 180000,
+      "concurrency": 30,
+      "maxTry": 5,
+      "storeType": "mbtiles",
+      "storeTransparent": true,
+      "storeMD5": true,
+      "skip": true
+    }
+  },
+  "sprites": {},
+  "fonts": {
+    "Roboto Medium": {
+      "url": "https://api.maptiler.com/fonts/Roboto Medium/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Noto Sans Regular": {
+      "url": "https://api.maptiler.com/fonts/Noto Sans Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    }
+  }
+}
+```
+
+## Example cleanup.json
+
+```json
+{
+  "styles": {
+    "demotiles_cache": {
+      "cleanUpBefore": {
+        "time": "2024-10-10T00:00:00"
+      }
+    }
+  },
+  "geojsons": {},
+  "datas": {
+    "osm_cache": {
+      "coverages": [
+        {
+          "bboxs": [
+            [
+              96,
+              8,
+              102,
+              16
+            ],
+            [
+              108,
+              20,
+              114,
+              28
+            ]
+          ],
+          "zooms": [
+            0,
+            5,
+            10
+          ]
+        }
+      ],
+      "cleanUpBefore": {
+        "time": "2025-12-10T00:00:00"
+      }
+    }
+  },
+  "sprites": {},
+  "fonts": {
+    "Roboto Medium": {
+      "cleanUpBefore": {
+        "time": "2024-10-10T00:00:00"
+      }
+    }
+  }
+}
+```

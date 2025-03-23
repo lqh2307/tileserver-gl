@@ -1,144 +1,1275 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TileServer GL - Server for vector and raster maps with GL styles</title>
-  <link rel="stylesheet" type="text/css" href="{{public_url}}index.css{{&key_query}}" />
-  <script>
-    function toggle_link(id, link) {
-      var el = document.getElementById(id);
-      var s = el.style;
-      if (s.display == 'none') {
-        s.display = 'inline-block';
-      } else if (el.value == link) {
-        s.display = 'none';
-      }
-      el.value = link;
-      el.setSelectionRange(0, el.value.length);
-      return false;
+
+  <title>Preview - Tile Server</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial,Helvetica,sans-serif;
     }
 
-    function filter() {
-      var filter = document.getElementById('filter').value.toLowerCase();
-      var items = document.getElementsByClassName('item');
-      for (var i = 0; i < items.length; i++) {
-          var item = items[i];
-          var dataName = item.getAttribute('data-name')?.toLowerCase() ?? '';
-          var dataIdentifier = item.getAttribute('data-id')?.toLowerCase() ?? '';
-          item.hidden = !(dataName.indexOf(filter) > -1 || dataIdentifier.indexOf(filter) > -1);
+    p {
+      padding: 0;
+      margin: 0;
+    }
+
+    a {
+      color: #499dce;
+      text-decoration: none;
+    }
+
+    a:hover {
+      color: #395d73;
+    }
+
+    section {
+      margin: 15px auto;
+      width: 930px;
+      padding: 30px 0;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #ff6347;
+      text-align: center;
+      margin: 10px 0 55px 0;
+    }
+
+    .item {
+      height: 190px;
+      border-top: 1px dashed #cccccc;
+    }
+
+    .item:nth-child(odd) {
+      background: #efefef;
+    }
+
+    .item img {
+      position: absolute;
+      display: block;
+      margin: 30px;
+      width: 128px;
+      height: 128px;
+      border: 1px solid #cccccc;
+    }
+
+    .item .name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .details {
+      float: left;
+      height: 128px;
+      padding: 20px 30px 20px 188px;
+    }
+
+    .details h3 {
+      font-size: 15px;
+      margin-top: 15px;
+      max-width: 550px;
+      word-break: break-all;
+    }
+
+    .services {
+      margin-top: 15px;
+    }
+
+    .viewers {
+      float: right;
+      text-align: center;
+      width: 130px;
+      margin-top: 25px;
+      padding-right: 30px;
+    }
+
+    .btn {
+      display: block;
+      line-height: 25px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 4px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+      background: #499dce;
+      color: #ffffff;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: #395d73;
+    }
+
+    .tabs {
+      display: flex;
+      cursor: pointer;
+    }
+
+    .tab {
+      border: 2px solid #cccccc;
+      background: #fefefe;
+      user-select: none;
+      padding: 10px 10px;
+      font-size: 14px;
+      z-index: 999;
+    }
+
+    .tab:hover {
+      background: #ffffff;
+    }
+
+    .tab.active {
+      font-weight: 700;
+    }
+
+    .tab-content {
+      display: none;
+      border: 2px solid #cccccc;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .back-to-top {
+      position: fixed;
+      bottom: 15px;
+      right: 20px;
+      border: 1px solid #dddddd;
+      padding: 10px 20px;
+      border-radius: 25px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      font-size: 13px;
+      text-decoration: none;
+      display: none;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .back-to-top:hover {
+      background: #f0f0f0;
+    }
+
+    /* Dialog Styling */
+    dialog {
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    textarea {
+      width: 100%;
+      border: 1px solid #cccccc;
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 1em;
+      resize: vertical;
+    }
+
+    .dialog {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn-primary {
+      background: #0056b3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+
+    .btn-primary:hover {
+      background: #007bff;
+    }
+
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #212529;
+      border: 1px solid #cccccc;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e6ea;
+    }
+
+    /* Responsive */
+    @media (max-width: 950px) {
+      section {
+        margin: 0;
+        width: 96%;
+        padding: 2%;
       }
     }
-  </script>
+
+    @media (max-width: 600px) {
+      .title {
+        font-weight: bold;
+        color: #ff6347;
+        text-align: center;
+        font-size: 20px;
+        margin: 10px 0 -5px 0;
+      }
+
+      .item {
+        height: 245px;
+      }
+
+      .viewers {
+        float: left;
+        text-align: left;
+        width: 100%;
+        margin-left: 30px;
+        margin-top: 15px;
+      }
+
+      .viewers a {
+        display: inline-block;
+        vertical-align: middle;
+      }
+
+      .btn {
+        margin: 0 20px 0 0;
+      }
+
+      .btn:first-child {
+        padding: 0 20px;
+      }
+    }
+  </style>
 </head>
+
 <body>
   <section>
-    <h1 class="title {{#if is_light}}light{{/if}}"><img src="{{public_url}}images/logo.png{{&key_query}}" alt="TileServer GL" /></h1>
-    <h2 class="subtitle">Vector {{#if is_light}}<s>and raster</s>{{else}}and raster{{/if}} maps with GL styles</h2>
-    <h2 class="box-header">Filter</h2>
-    <!-- filter box -->
-    <div class="box">
-      <div class="filter-item">
-        <div class="filter-details">
-          <h3>Filter styles and data by name or identifier</h3>
-          <!-- filter input , needs to call filter() when content changes...-->
-          <input id="filter" type="text" oninput="filter()" placeholder="Start typing name or identifier" autofocus />
-        </div>
-      </div>
+    <h1 class="title">Tile server preview</h1>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(event, 'styles-tab')">STYLES ({{style_count}})</div>
+      <div class="tab" onclick="switchTab(event, 'geojsons-tab')">GEOJSONS ({{geojson_count}})</div>
+      <div class="tab" onclick="switchTab(event, 'geojson_groups-tab')">GEOJSON GROUPS ({{geojson_group_count}})</div>
+      <div class="tab" onclick="switchTab(event, 'datas-tab')">DATAS ({{data_count}})</div>
+      <div class="tab" onclick="switchTab(event, 'fonts-tab')">FONTS ({{font_count}})</div>
+      <div class="tab" onclick="switchTab(event, 'sprites-tab')">SPRITES ({{sprite_count}})</div>
+      <div class="tab" onclick="switchTab(event, 'actions-tab')">ACTIONS</div>
+      <div class="tab" onclick="switchTab(event, 'configs-tab')">CONFIGS</div>
     </div>
-    {{#if styles}}
-      <h2 class="box-header">Styles</h2>
-      <div class="box">
-      {{#each styles}}
-        <div class="item" data-id="{{@key}}" data-name="{{name}}">
-          {{#if thumbnail}}
-            <img src="{{public_url}}styles/{{@key}}/{{thumbnail}}{{&../key_query}}" alt="{{name}} preview" />
-          {{else}}
-            <img src="{{public_url}}images/placeholder.png{{&key_query}}" alt="{{name}} preview" />
-          {{/if}}
-          <div class="details">
-            <h3>{{name}}</h3>
-            <p class="identifier">identifier: {{@key}}</p>
-            <p class="services">
-              services:
-              {{#if serving_data}}
-                <a href="{{public_url}}styles/{{@key}}/style.json{{&../key_query}}">GL Style</a>
-              {{/if}}
-              {{#if serving_rendered}}
-                {{#if serving_data}}| {{/if}}<a href="{{public_url}}styles/512/{{@key}}.json{{&../key_query}}">TileJSON</a>
-              {{/if}}
-              {{#if serving_rendered}}
-                | <a href="{{public_url}}styles/{{@key}}/wmts.xml{{&../key_query}}">WMTS</a>
-              {{/if}}
-              {{#if xyz_link}}
-                | <a href="#" onclick="return toggle_link('xyz_style_{{@key}}', '{{&xyz_link}}');">XYZ</a>
-                  <input id="xyz_style_{{@key}}" type="text" value="" style="display:none;" />
-              {{/if}}
-            </p>
-          </div>
-          <div class="viewers">
-            {{#if serving_data}}
-              {{#if serving_rendered}}
-                <a class="btn" href="{{public_url}}styles/{{@key}}/{{&../key_query}}{{viewer_hash}}">Viewer</a>
-              {{/if}}
-            {{/if}}
-            {{#if serving_rendered}}
-              <a class="btn" href="{{public_url}}styles/{{@key}}/?{{&../key_query_part}}raster{{viewer_hash}}">Raster</a>
-            {{/if}}
-            {{#if serving_data}}
-              <a class="btn" href="{{public_url}}styles/{{@key}}/?{{&../key_query_part}}vector{{viewer_hash}}">Vector</a>
-            {{/if}}
-          </div>
-        </div>
-      {{/each}}
-      </div>
-    {{/if}}
-    {{#if data}}
-      <h2 class="box-header">Data</h2>
-      <div class="box">
-      {{#each data}}
-        <div class="item" data-id="{{@key}}" data-name="{{tileJSON.name}}">
-          {{#if thumbnail}}
-            <img src="{{public_url}}data/{{@key}}/{{thumbnail}}{{&../key_query}}" alt="{{name}} preview" />
-          {{else}}
-            <img src="{{public_url}}images/placeholder.png{{&key_query}}" alt="{{name}} preview" />
-          {{/if}}
-          <div class="details">
-            <h3>{{tileJSON.name}}</h3>
-            <div class="identifier">identifier: {{@key}}{{#if formatted_filesize}} | size: {{formatted_filesize}}{{/if}}</div>
-            <div class="identifier">type: {{#is_vector}}vector{{/is_vector}}{{^is_vector}}raster{{/is_vector}} data {{#if sourceType}} | ext: {{sourceType}}{{/if}}</div>
-            <p class="services">
-              services: <a href="{{public_url}}data/{{@key}}.json{{&../key_query}}">TileJSON</a>
-              {{#if xyz_link}}
-                | <a href="#" onclick="return toggle_link('link_data_{{@key}}', '{{&xyz_link}}');">XYZ</a>
-              {{/if}}
-              {{#if elevation_link}}
-                | <a href="#" onclick="return toggle_link('link_data_{{@key}}', '{{&elevation_link}}');">Elevation</a>
-              {{/if}}
-                <input id="link_data_{{@key}}" type="text" value="" style="display:none;" />
-            </p>
-          </div>
-          <div class="viewers">
-            {{#is_vector}}
-            <a class="btn" href="{{public_url}}data/{{@key}}/{{&../key_query}}{{viewer_hash}}">Inspect</a>
-            {{/is_vector}}
-            {{^is_vector}}
-            <a class="btn" href="{{public_url}}data/{{@key}}/{{&../key_query}}{{viewer_hash}}">View</a>
-              {{#is_terrain}}
-            <a class="btn" href="{{public_url}}data/preview/{{@key}}/{{&../key_query}}{{viewer_hash}}">Preview Terrain</a>
-              {{/is_terrain}}
-            {{/is_vector}}
-          </div>
-        </div>
-      {{/each}}
-      </div>
-    {{/if}}
+    <div id="styles-tab" class="tab-content active"></div>
+    <div id="geojsons-tab" class="tab-content"></div>
+    <div id="geojson_groups-tab" class="tab-content"></div>
+    <div id="datas-tab" class="tab-content"></div>
+    <div id="fonts-tab" class="tab-content"></div>
+    <div id="sprites-tab" class="tab-content"></div>
+    <div id="actions-tab" class="tab-content"></div>
+    <div id="configs-tab" class="tab-content"></div>
   </section>
-  <footer>
-    <a href="https://www.maptiler.com/" target="_blank"><img src="{{public_url}}images/maptiler-logo.svg{{&key_query}}" /></a>
-    <p>
-      <a href="https://github.com/maptiler/tileserver-gl" target="_blank">Powered by TileServer GL ({{server_version}})</a> – <a href="https://www.maptiler.com/" target="_blank">an open-source project from MapTiler.</a>
-    </p>
-  </footer>
+
+  <dialog id="updateConfigDialog">
+    <form id="updateConfigForm" method="dialog">
+      <label for="updateConfigInput">Enter JSON:</label>
+      <textarea id="updateConfigInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">OK</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('updateConfigDialog')">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="updateSeedDialog">
+    <form id="updateSeedForm" method="dialog">
+      <label for="updateSeedInput">Enter JSON:</label>
+      <textarea id="updateSeedInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">OK</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('updateSeedDialog')">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="updateCleanUpDialog">
+    <form id="updateCleanUpForm" method="dialog">
+      <label for="updateCleanUpInput">Enter JSON:</label>
+      <textarea id="updateCleanUpInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">OK</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('updateCleanUpDialog')">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteConfigDialog">
+    <form id="deleteConfigForm" method="dialog">
+      <label for="deleteConfigInput">Enter JSON:</label>
+      <textarea id="deleteConfigInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">OK</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('deleteConfigDialog')">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteSeedDialog">
+    <form id="deleteSeedForm" method="dialog">
+      <label for="deleteSeedInput">Enter JSON:</label>
+      <textarea id="deleteSeedInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">OK</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('deleteSeedDialog')">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteCleanUpDialog">
+    <form id="deleteCleanUpForm" method="dialog">
+      <label for="deleteCleanUpInput">Enter JSON:</label>
+      <textarea id="deleteCleanUpInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">OK</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('deleteCleanUpDialog')">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="exportRenderDialog">
+    <form id="exportRenderForm" method="dialog">
+      <label for="exportRenderInput">Enter JSON:</label>
+      <textarea id="exportRenderInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">Export</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('exportRenderDialog');">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <a href="#" class="back-to-top" onclick="scrollToTop(event)">Back to top</a>
+
+  <script>
+    const baseURL = "{{base_url}}";
+    const emptyImageURL = `${baseURL}/images/placeholder.png`;
+
+    function toggleURL(id, event) {
+      event.preventDefault();
+
+      const el = document.getElementById(id);
+
+      if (el.style.display === "none") {
+        el.style.display = "inline-block";
+      } else {
+        el.style.display = "none";
+      }
+    }
+
+    function copyToClipboard(el) {
+      el.select();
+
+      document.execCommand("copy");
+
+      setTimeout(() => {
+        el.style.display = "none";
+      }, 200);
+    }
+
+    function scrollToTop(event) {
+      event.preventDefault();
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+
+    function switchTab(event, tabId) {
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.classList.remove("active");
+      });
+
+      document.querySelectorAll(".tab-content").forEach(content => {
+        content.classList.remove("active");
+      });
+
+      event.currentTarget.classList.add("active");
+
+      document.getElementById(tabId).classList.add("active");
+
+      if (tabId === "styles-tab" && !document.querySelector("#styles-tab").innerHTML.trim()) {
+        renderContents("styles-tab");
+      } else if (tabId === "geojsons-tab" && !document.querySelector("#geojsons-tab").innerHTML.trim()) {
+        renderContents("geojsons-tab");
+      } else if (tabId === "geojson_groups-tab" && !document.querySelector("#geojson_groups-tab").innerHTML.trim()) {
+        renderContents("geojson_groups-tab");
+      } else if (tabId === "datas-tab" && !document.querySelector("#datas-tab").innerHTML.trim()) {
+        renderContents("datas-tab");
+      } else if (tabId === "fonts-tab" && !document.querySelector("#fonts-tab").innerHTML.trim()) {
+        renderContents("fonts-tab");
+      } else if (tabId === "sprites-tab" && !document.querySelector("#sprites-tab").innerHTML.trim()) {
+        renderContents("sprites-tab");
+      } else if (tabId === "actions-tab" && !document.querySelector("#actions-tab").innerHTML.trim()) {
+        renderContents("actions-tab");
+      } else if (tabId === "configs-tab" && !document.querySelector("#configs-tab").innerHTML.trim()) {
+        renderContents("configs-tab");
+      }
+    }
+
+    function renderContents(tabId) {
+      if (tabId === "styles-tab") {
+        document.querySelector("#styles-tab").innerHTML = `
+          <div class="box">
+            {{#each styles}}
+              <div class="item">
+                {{#if thumbnail}}<img src="{{thumbnail}}" alt="{{name}} preview" />{{else}}<img src="${emptyImageURL}" alt="{{name}} preview" />{{/if}}
+                <div class="details">
+                  <h3 class="name">{{name}}</h3>
+                  <p>identifier: {{@key}}</p>
+                  <p>cache: {{cache}}</p>
+                  <p class="services">
+                    services: <a href="${baseURL}/styles/{{@key}}/style.json">StyleJSON</a>
+                    {{#if thumbnail}}
+                      | <a href="${baseURL}/styles/{{@key}}.json">TileJSON</a>
+                      | <a href="${baseURL}/styles/{{@key}}/wmts.xml">WMTS</a>
+                      | <a href="#" onclick="toggleURL('xyz_style_{{@key}}', event)">XYZ</a>
+                      <input id="xyz_style_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/styles/{{@key}}/{z}/{x}/{y}.png" onclick="copyToClipboard(this)" />
+                    {{/if}}
+                  </p>
+                </div>
+                <div class="viewers">
+                    <a class="btn" href="${baseURL}/styles/{{@key}}/?vector{{viewer_hash}}">Client Render</a>
+                    {{#if thumbnail}}
+                      <a class="btn" href="${baseURL}/styles/{{@key}}/?raster{{viewer_hash}}">Backend Render</a>
+                      {{#if export_render}}
+                      <a class="btn" href="#" onclick="showExportRenderDialog(event, '{{@key}}', 'export')">Export Render</a>
+                      {{else if cancel_render}}
+                      <a class="btn" href="#" onclick="showExportRenderDialog(event, '{{@key}}', 'cancel')">Cancel Render</a>
+                      {{/if}}
+                    {{/if}}
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        `;
+      } if (tabId === "geojsons-tab") {
+        document.querySelector("#geojsons-tab").innerHTML = `
+          <div class="box">
+            {{#each geojsons}}
+              <div class="item">
+                <img src="${emptyImageURL}" alt="Empty image" />
+                <div class="details">
+                  <h3 class="name">{{layer}}</h3>
+                  <p>identifier: {{layer}}</p>
+                  <p>group: {{group}}</p>
+                  <p>layer: {{layer}}</p>
+                  <p>cache: {{cache}}</p>
+                  <p class="services">
+                    services: <a href="${baseURL}/geojsons/{{group}}/{{layer}}.geojson">GeoJSON</a>
+                    | <a href="${baseURL}/geojsons/{{group}}/{{layer}}.json">INFO</a>
+                  </p>
+                </div>
+                <div class="viewers">
+                  <a class="btn" href="${baseURL}/geojsons/{{group}}/{{layer}}/">Inspect</a>
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        `;
+      } if (tabId === "geojson_groups-tab") {
+        document.querySelector("#geojson_groups-tab").innerHTML = `
+          <div class="box">
+            {{#each geojson_groups}}
+              <div class="item">
+                <img src="${emptyImageURL}" alt="Empty image" />
+                <div class="details">
+                  <h3 class="name">{{@key}}</h3>
+                  <p>identifier: {{@key}}</p>
+                  <p class="services">
+                    services: <a href="${baseURL}/geojsons/{{@key}}.json">INFO</a>
+                  </p>
+                </div>
+                <div class="viewers">
+                  <a class="btn" href="${baseURL}/geojsons/{{@key}}/">Inspect</a>
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        `;
+      } else if (tabId === "datas-tab") {
+        document.querySelector("#datas-tab").innerHTML = `
+          <div class="box">
+            {{#each datas}}
+              <div class="item">
+                {{#if thumbnail}}<img src="{{thumbnail}}" alt="{{name}} preview" />{{else}}<img src="${emptyImageURL}" alt="{{name}} preview" />{{/if}}
+                <div class="details">
+                  <h3 class="name">{{name}}</h3>
+                  <p>identifier: {{@key}}</p>
+                  <p>type: {{#if thumbnail}}raster{{else}}vector{{/if}} | ext: {{source_type}}</p>
+                  <p>cache: {{cache}}</p>
+                  <p class="services">
+                    services: <a href="${baseURL}/datas/{{@key}}.json">TileJSON</a>
+                      | <a href="#" onclick="toggleURL('xyz_data_{{@key}}', event)">XYZ</a>
+                      <input id="xyz_data_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/datas/{{@key}}/{z}/{x}/{y}.{{format}}" onclick="copyToClipboard(this)" />
+                  </p>
+                </div>
+                <div class="viewers">
+                  {{#if thumbnail}}
+                      <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">View</a>
+                  {{else}}
+                      <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">Inspect</a>
+                  {{/if}}
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        `;
+      } else if (tabId === "fonts-tab") {
+        document.querySelector("#fonts-tab").innerHTML = `
+          <div class="box">
+            {{#each fonts}}
+              <div class="item">
+                <img src="${emptyImageURL}" alt="Empty image" />
+                <div class="details">
+                  <h3 class="name">{{@key}}</h3>
+                  <p>identifier: {{@key}}</p>
+                  <p class="services">
+                    services: <a href="#" onclick="toggleURL('font_{{@key}}', event)">URL</a>
+                    <input id="font_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/fonts/{{@key}}/{range}.pbf" onclick="copyToClipboard(this)" />
+                  </p>
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        `;
+      } else if (tabId === "sprites-tab") {
+        document.querySelector("#sprites-tab").innerHTML = `
+          <div class="box">
+            {{#each sprites}}
+              <div class="item">
+                <img src="${baseURL}/sprites/{{@key}}/sprite.png" alt="{{@key}} preview" />
+                <div class="details">
+                  <h3 class="name">{{@key}}</h3>
+                  <p>identifier: {{@key}}</p>
+                  <p class="services">
+                    services: <a href="${baseURL}/sprites/{{@key}}/sprite.json">JSON</a>
+                    | <a href="${baseURL}/sprites/{{@key}}/sprite.png">PNG</a>
+                    | <a href="#" onclick="toggleURL('sprite_{{@key}}', event)">URL</a>
+                    <input id="sprite_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/sprites/{{@key}}/sprite" onclick="copyToClipboard(this)" />
+                  </p>
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        `;
+      } else if (tabId === "actions-tab") {
+        document.querySelector("#actions-tab").innerHTML = `
+          <div class="box">
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Cancel sync</h3>
+                <p>description: Cancel clean up/seed tasks</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'cancel')">Cancel sync</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Sync all</h3>
+                <p>description: Start clean up/seed tasks</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'all')">Sync all</a>
+              </div>
+            </div>  
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Clean styles</h3>
+                <p>description: Start clean up styles</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpStyles')">Clean styles</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Clean geojsons</h3>
+                <p>description: Start clean up geojsons</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpGeoJSONs')">Clean geojsons</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Clean datas</h3>
+                <p>description: Start clean up datas</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpDatas')">Clean datas</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Clean sprites</h3>
+                <p>description: Start clean up sprites</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpSprites')">Clean sprites</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Clean fonts</h3>
+                <p>description: Start clean up fonts</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'cleanUpFonts')">Clean fonts</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Seed styles</h3>
+                <p>description: Start seed styles</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'seedStyles')">Seed styles</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Seed geojsons</h3>
+                <p>description: Start seed geojsons</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'seedGeoJSONs')">Seed geojsons</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Seed datas</h3>
+                <p>description: Start seed datas</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'seedDatas')">Seed datas</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Seed sprites</h3>
+                <p>description: Start seed sprites</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'seedSprites')">Seed sprites</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Seed fonts</h3>
+                <p>description: Start seed fonts</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="actionManager(event, 'seedFonts')">Seed fonts</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Summary service</h3>
+                <p>description: Summary service</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="${baseURL}/summary?type=service">View</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Summary seed</h3>
+                <p>description: Summary seed</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="${baseURL}/summary?type=seed">View</a>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (tabId === "configs-tab") {
+        document.querySelector("#configs-tab").innerHTML = `
+          <div class="box">
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">View config JSON</h3>
+                <p>description: View config.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="${baseURL}/config?type=config">View</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">View seed JSON</h3>
+                <p>description: View seed.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="${baseURL}/config?type=seed">View</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">View clean up JSON</h3>
+                <p>description: View cleanup.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="${baseURL}/config?type=cleanUp">View</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Update config JSON</h3>
+                <p>description: Update config.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="showUpdateConfigDialog(event)">Update</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Update seed JSON</h3>
+                <p>description: Update seed.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="showUpdateSeedDialog(event)">Update</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Update clean up JSON</h3>
+                <p>description: Update cleanup.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="showUpdateCleanUpDialog(event)">Update</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Delete config JSON</h3>
+                <p>description: Delete config.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="showDeleteConfigDialog(event)">Delete</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Delete seed JSON</h3>
+                <p>description: Delete seed.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="showDeleteSeedDialog(event)">Delete</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Delete clean up JSON</h3>
+                <p>description: Delete cleanup.json content</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="showDeleteCleanUpDialog(event)">Delete</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Kill</h3>
+                <p>description: Kill server</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="configManager(event, 'kill')">Kill server</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Restart</h3>
+                <p>description: Restart server</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="configManager(event, 'restart')">Restart server</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function actionManager(event, action) {
+      event.preventDefault();
+
+      if (action === "all") {
+        fetch(`${baseURL}/tasks/start?seedStyles=true&cleanUpStyles=true&cleanUpDatas=true&seedDatas=true&seedGeoJSONs=true&cleanUpGeoJSONs=true&seedSprites=true&cleanUpSprites=true&seedFonts=true&cleanUpFonts=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting clean up/seed tasks...");
+            } else {
+              alert(`Failed to start clean up/seed tasks: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start clean up/seed tasks: ${error.message}`));
+      } else if (action === "cleanUpStyles") {
+        fetch(`${baseURL}/tasks/start?cleanUpStyles=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting start clean up styles...");
+            } else {
+              alert(`Failed to start clean up styles: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to clean up styles: ${error.message}`));
+      } else if (action === "cleanUpGeoJSONs") {
+        fetch(`${baseURL}/tasks/start?cleanUpGeoJSONs=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting start clean up geojsons...");
+            } else {
+              alert(`Failed to start clean up geojsons: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to clean up geojsons: ${error.message}`));
+      } else if (action === "cleanUpDatas") {
+        fetch(`${baseURL}/tasks/start?cleanUpDatas=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting clean up datas...");
+            } else {
+              alert(`Failed to start clean up datas: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start clean up datas: ${error.message}`));
+      } else if (action === "cleanUpSprites") {
+        fetch(`${baseURL}/tasks/start?cleanUpSprites=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting clean up sprites...");
+            } else {
+              alert(`Failed to start clean up sprites: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start clean up sprites: ${error.message}`));
+      } else if (action === "cleanUpFonts") {
+        fetch(`${baseURL}/tasks/start?cleanUpFonts=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting clean up fonts...");
+            } else {
+              alert(`Failed to start clean up fonts: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start clean up fonts: ${error.message}`));
+      } else if (action === "seedStyles") {
+        fetch(`${baseURL}/tasks/start?seedStyles=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting seed styles...");
+            } else {
+              alert(`Failed to start seed styles: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start seed styles: ${error.message}`));
+      } else if (action === "seedGeoJSONs") {
+        fetch(`${baseURL}/tasks/start?seedGeoJSONs=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting seed geojsons...");
+            } else {
+              alert(`Failed to start seed geojsons: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start seed geojsons: ${error.message}`));
+      } else if (action === "seedDatas") {
+        fetch(`${baseURL}/tasks/start?seedDatas=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting seed datas...");
+            } else {
+              alert(`Failed to start seed datas: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start seed datas: ${error.message}`));
+      } else if (action === "seedSprites") {
+        fetch(`${baseURL}/tasks/start?seedSprites=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting seed sprites...");
+            } else {
+              alert(`Failed to start seed sprites: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start seed sprites: ${error.message}`));
+      } else if (action === "seedFonts") {
+        fetch(`${baseURL}/tasks/start?seedFonts=true&restart=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Starting seed fonts...");
+            } else {
+              alert(`Failed to start seed fonts: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to start seed fonts: ${error.message}`));
+      } else if (action === "cancel") {
+        fetch(`${baseURL}/tasks/cancel`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Canceling clean up/seed tasks...");
+            } else {
+              alert(`Failed to cancel clean up/seed tasks: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to cancel clean up/seed tasks: ${error.message}`));
+      }
+    }
+
+    function configManager(event, action) {
+      event.preventDefault();
+
+      if (action === "restart") {
+        fetch(`${baseURL}/restart?type=restart`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Server restarted successfully!");
+            } else {
+              alert(`Failed to restart server: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to restart server: ${error.message}`));
+      } else if (action === "kill") {
+        fetch(`${baseURL}/restart?type=kill`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Server killed successfully!");
+            } else {
+              alert(`Failed to kill server: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => alert(`Failed to kill server: ${error.message}`));
+      }
+    }
+
+    function showUpdateConfigDialog(event) {
+      event.preventDefault();
+
+      document.getElementById("updateConfigDialog").showModal();
+
+      document.getElementById("updateConfigForm").onsubmit = (event) => {
+        event.preventDefault();
+
+        fetch(`${baseURL}/config?type=config&restart=true`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: document.getElementById("updateConfigInput").value
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Updating config...");
+
+              closeDialog("updateConfigDialog");
+            } else {
+              alert(`Failed to update config: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => {
+            alert(`Failed to update config: ${error.message}`);
+          });
+      };
+    }
+
+    function showUpdateSeedDialog(event) {
+      event.preventDefault();
+
+      document.getElementById("updateSeedDialog").showModal();
+
+      document.getElementById("updateSeedForm").onsubmit = (event) => {
+        event.preventDefault();
+
+        fetch(`${baseURL}/config?type=seed&restart=true`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: document.getElementById("updateSeedInput").value
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Updating seed...");
+
+              closeDialog("updateSeedDialog");
+            } else {
+              alert(`Failed to update seed: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => {
+            alert(`Failed to update seed: ${error.message}`);
+          });
+      };
+    }
+
+    function showUpdateCleanUpDialog(event) {
+      event.preventDefault();
+
+      document.getElementById("updateCleanUpDialog").showModal();
+
+      document.getElementById("updateCleanUpForm").onsubmit = (event) => {
+        event.preventDefault();
+
+        fetch(`${baseURL}/config?type=cleanUp&restart=true`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: document.getElementById("updateCleanUpInput").value
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Updating clean up...");
+
+              closeDialog("updateCleanUpDialog");
+            } else {
+              alert(`Failed to update clean up: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => {
+            alert(`Failed to update clean up: ${error.message}`);
+          });
+      };
+    }
+
+    function showDeleteConfigDialog(event) {
+      event.preventDefault();
+
+      document.getElementById("deleteConfigDialog").showModal();
+
+      document.getElementById("deleteConfigForm").onsubmit = (event) => {
+        event.preventDefault();
+
+        fetch(`${baseURL}/config?type=config&restart=true`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: document.getElementById("deleteConfigInput").value
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Deleting config...");
+
+              closeDialog("deleteConfigDialog");
+            } else {
+              alert(`Failed to delete config: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => {
+            alert(`Failed to delete config: ${error.message}`);
+          });
+      };
+    }
+
+    function showDeleteSeedDialog(event) {
+      event.preventDefault();
+
+      document.getElementById("deleteSeedDialog").showModal();
+
+      document.getElementById("deleteSeedForm").onsubmit = (event) => {
+        event.preventDefault();
+
+        fetch(`${baseURL}/config?type=seed&restart=true`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: document.getElementById("deleteSeedInput").value
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Deleting seed...");
+
+              closeDialog("deleteSeedDialog");
+            } else {
+              alert(`Failed to delete seed: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => {
+            alert(`Failed to delete seed: ${error.message}`);
+          });
+      };
+    }
+
+    function showDeleteCleanUpDialog(event) {
+      event.preventDefault();
+
+      document.getElementById("deleteCleanUpDialog").showModal();
+
+      document.getElementById("deleteCleanUpForm").onsubmit = (event) => {
+        event.preventDefault();
+
+        fetch(`${baseURL}/config?type=cleanUp&restart=true`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: document.getElementById("deleteCleanUpInput").value
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Deleting clean up...");
+
+              closeDialog("deleteCleanUpDialog");
+            } else {
+              alert(`Failed to delete clean up: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => {
+            alert(`Failed to delete clean up: ${error.message}`);
+          });
+      };
+    }
+
+    function showExportRenderDialog(event, styleID, action) {
+      event.preventDefault();
+
+      if (action === "export") {
+        document.getElementById("exportRenderDialog").showModal();
+
+        document.getElementById("exportRenderForm").onsubmit = (event) => {
+          event.preventDefault();
+
+          fetch(`${baseURL}/styles/${styleID}/export/style.json`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: document.getElementById("exportRenderInput").value
+          })
+            .then((response) => {
+              if (response.status === 201) {
+                alert("Exporting render style...");
+
+                closeDialog("exportRenderDialog");
+              } else {
+                alert(`Failed to export render style: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to export render style: ${error.message}`);
+            });
+        }
+      } else if (action === "cancel") {
+        fetch(`${baseURL}/styles/${styleID}/export/style.json?cancel=true`, {
+          method: "GET",
+        })
+          .then((response) => {
+            if (response.status === 200) {
+              alert("Canceling render style...");
+            } else {
+              alert(`Failed to cancel render style: Status code: ${response.status} - ${response.statusText}`);
+            }
+          })
+          .catch((error) => {
+            alert(`Failed to cancel render style: ${error.message}`);
+          });
+      }
+    }
+
+    function closeDialog(dialog) {
+      document.getElementById(dialog).close();
+    }
+
+    window.onload = function () {
+      renderContents("styles-tab");
+    };
+
+    window.addEventListener("scroll", () => {
+      const backToTopButton = document.querySelector(".back-to-top");
+
+      if (window.scrollY > 200) {
+        backToTopButton.style.display = "flex";
+      } else {
+        backToTopButton.style.display = "none";
+      }
+    });
+  </script>
 </body>
+
 </html>
