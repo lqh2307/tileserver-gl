@@ -816,10 +816,10 @@ export function deepClone(obj) {
 
 /**
  * Get version of server
- * @returns {string}
+ * @returns {Promise<string>}
  */
-export function getVersion() {
-  return JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+export async function getVersion() {
+  return JSON.parse(await fsPromise.readFile("package.json", "utf8")).version;
 }
 
 /**
@@ -829,6 +829,23 @@ export function getVersion() {
  */
 export async function getJSONSchema(schema) {
   return JSON.parse(await fsPromise.readFile(`schema/${schema}.json`, "utf8"));
+}
+
+/**
+ * Create random RGB
+ * @param {number} r Red
+ * @param {number} g Green
+ * @param {number} b Blue
+ * @param {number} a Alpha
+ * @returns {string}
+ */
+export function createRandomRGBA(r, g, b, a) {
+  const red = r || Math.floor(Math.random() * 256);
+  const greed = g || Math.floor(Math.random() * 256);
+  const blue = b || Math.floor(Math.random() * 256);
+  const alpha = a || Math.random();
+
+  return `rgba(${red}, ${greed}, ${blue}, ${alpha})`;
 }
 
 /**

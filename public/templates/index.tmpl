@@ -449,9 +449,9 @@
                     {{#if thumbnail}}
                       <a class="btn" href="${baseURL}/styles/{{@key}}/?raster{{viewer_hash}}">Backend Render</a>
                       {{#if export_render}}
-                      <a class="btn" href="#" onclick="showExportRenderDialog(event, '{{@key}}', 'export')">Export Render</a>
+                      <a class="btn" href="#" onclick="handleExportRender(event, '{{@key}}', 'export')">Export Render</a>
                       {{else if cancel_render}}
-                      <a class="btn" href="#" onclick="showExportRenderDialog(event, '{{@key}}', 'cancel')">Cancel Render</a>
+                      <a class="btn" href="#" onclick="handleExportRender(event, '{{@key}}', 'cancel')">Cancel Render</a>
                       {{/if}}
                     {{/if}}
                 </div>
@@ -754,7 +754,7 @@
                 <p>description: Update config.json content</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="showUpdateConfigDialog(event)">Update</a>
+                <a class="btn" href="#" onclick="handleConfig(event, 'showUpdateConfig')">Update</a>
               </div>
             </div>
             <div class="item">
@@ -764,7 +764,7 @@
                 <p>description: Update seed.json content</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="showUpdateSeedDialog(event)">Update</a>
+                <a class="btn" href="#" onclick="handleConfig(event, 'showUpdateSeed')">Update</a>
               </div>
             </div>
             <div class="item">
@@ -774,7 +774,7 @@
                 <p>description: Update cleanup.json content</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="showUpdateCleanUpDialog(event)">Update</a>
+                <a class="btn" href="#" onclick="handleConfig(event, 'showUpdateCleanUp')">Update</a>
               </div>
             </div>
             <div class="item">
@@ -784,7 +784,7 @@
                 <p>description: Delete config.json content</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="showDeleteConfigDialog(event)">Delete</a>
+                <a class="btn" href="#" onclick="handleConfig(event, 'showDeleteConfig')">Delete</a>
               </div>
             </div>
             <div class="item">
@@ -794,7 +794,7 @@
                 <p>description: Delete seed.json content</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="showDeleteSeedDialog(event)">Delete</a>
+                <a class="btn" href="#" onclick="handleConfig(event, 'showDeleteSeed')">Delete</a>
               </div>
             </div>
             <div class="item">
@@ -804,7 +804,7 @@
                 <p>description: Delete cleanup.json content</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="#" onclick="showDeleteCleanUpDialog(event)">Delete</a>
+                <a class="btn" href="#" onclick="handleConfig(event, 'showDeleteCleanUp')">Delete</a>
               </div>
             </div>
             <div class="item">
@@ -1009,190 +1009,166 @@
             }
           })
           .catch((error) => alert(`Failed to kill server: ${error.message}`));
+      } else if (action === "showUpdateConfig") {
+        document.getElementById("updateConfigDialog").showModal();
+
+        document.getElementById("updateConfigForm").onsubmit = (event) => {
+          event.preventDefault();
+
+          fetch(`${baseURL}/config?type=config&restart=true`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: document.getElementById("updateConfigInput").value
+          })
+            .then((response) => {
+              if (response.status === 200) {
+                alert("Updating config...");
+
+                closeDialog("updateConfigDialog");
+              } else {
+                alert(`Failed to update config: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to update config: ${error.message}`);
+            });
+        };
+      } else if (action === "showUpdateSeed") {
+        document.getElementById("updateSeedDialog").showModal();
+
+        document.getElementById("updateSeedForm").onsubmit = (event) => {
+          event.preventDefault();
+
+          fetch(`${baseURL}/config?type=seed&restart=true`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: document.getElementById("updateSeedInput").value
+          })
+            .then((response) => {
+              if (response.status === 200) {
+                alert("Updating seed...");
+
+                closeDialog("updateSeedDialog");
+              } else {
+                alert(`Failed to update seed: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to update seed: ${error.message}`);
+            });
+        };
+      } else if (action === "showUpdateCleanUp") {
+        document.getElementById("updateCleanUpDialog").showModal();
+
+        document.getElementById("updateCleanUpForm").onsubmit = (event) => {
+          event.preventDefault();
+
+          fetch(`${baseURL}/config?type=cleanUp&restart=true`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: document.getElementById("updateCleanUpInput").value
+          })
+            .then((response) => {
+              if (response.status === 200) {
+                alert("Updating clean up...");
+
+                closeDialog("updateCleanUpDialog");
+              } else {
+                alert(`Failed to update clean up: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to update clean up: ${error.message}`);
+            });
+        };
+      } else if (action === "showDeleteConfig") {
+        document.getElementById("deleteConfigDialog").showModal();
+
+        document.getElementById("deleteConfigForm").onsubmit = (event) => {
+          event.preventDefault();
+
+          fetch(`${baseURL}/config?type=config&restart=true`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: document.getElementById("deleteConfigInput").value
+          })
+            .then((response) => {
+              if (response.status === 200) {
+                alert("Deleting config...");
+
+                closeDialog("deleteConfigDialog");
+              } else {
+                alert(`Failed to delete config: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to delete config: ${error.message}`);
+            });
+        };
+      } else if (action === "showDeleteSeed") {
+        document.getElementById("deleteSeedDialog").showModal();
+
+        document.getElementById("deleteSeedForm").onsubmit = (event) => {
+          event.preventDefault();
+
+          fetch(`${baseURL}/config?type=seed&restart=true`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: document.getElementById("deleteSeedInput").value
+          })
+            .then((response) => {
+              if (response.status === 200) {
+                alert("Deleting seed...");
+
+                closeDialog("deleteSeedDialog");
+              } else {
+                alert(`Failed to delete seed: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to delete seed: ${error.message}`);
+            });
+        };
+      } else if (action === "showDeleteCleanUp") {
+        document.getElementById("deleteCleanUpDialog").showModal();
+
+        document.getElementById("deleteCleanUpForm").onsubmit = (event) => {
+          event.preventDefault();
+
+          fetch(`${baseURL}/config?type=cleanUp&restart=true`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: document.getElementById("deleteCleanUpInput").value
+          })
+            .then((response) => {
+              if (response.status === 200) {
+                alert("Deleting clean up...");
+
+                closeDialog("deleteCleanUpDialog");
+              } else {
+                alert(`Failed to delete clean up: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to delete clean up: ${error.message}`);
+            });
+        };
       }
     }
 
-    function showUpdateConfigDialog(event) {
-      event.preventDefault();
-
-      document.getElementById("updateConfigDialog").showModal();
-
-      document.getElementById("updateConfigForm").onsubmit = (event) => {
-        event.preventDefault();
-
-        fetch(`${baseURL}/config?type=config&restart=true`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: document.getElementById("updateConfigInput").value
-        })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Updating config...");
-
-              closeDialog("updateConfigDialog");
-            } else {
-              alert(`Failed to update config: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => {
-            alert(`Failed to update config: ${error.message}`);
-          });
-      };
-    }
-
-    function showUpdateSeedDialog(event) {
-      event.preventDefault();
-
-      document.getElementById("updateSeedDialog").showModal();
-
-      document.getElementById("updateSeedForm").onsubmit = (event) => {
-        event.preventDefault();
-
-        fetch(`${baseURL}/config?type=seed&restart=true`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: document.getElementById("updateSeedInput").value
-        })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Updating seed...");
-
-              closeDialog("updateSeedDialog");
-            } else {
-              alert(`Failed to update seed: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => {
-            alert(`Failed to update seed: ${error.message}`);
-          });
-      };
-    }
-
-    function showUpdateCleanUpDialog(event) {
-      event.preventDefault();
-
-      document.getElementById("updateCleanUpDialog").showModal();
-
-      document.getElementById("updateCleanUpForm").onsubmit = (event) => {
-        event.preventDefault();
-
-        fetch(`${baseURL}/config?type=cleanUp&restart=true`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: document.getElementById("updateCleanUpInput").value
-        })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Updating clean up...");
-
-              closeDialog("updateCleanUpDialog");
-            } else {
-              alert(`Failed to update clean up: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => {
-            alert(`Failed to update clean up: ${error.message}`);
-          });
-      };
-    }
-
-    function showDeleteConfigDialog(event) {
-      event.preventDefault();
-
-      document.getElementById("deleteConfigDialog").showModal();
-
-      document.getElementById("deleteConfigForm").onsubmit = (event) => {
-        event.preventDefault();
-
-        fetch(`${baseURL}/config?type=config&restart=true`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: document.getElementById("deleteConfigInput").value
-        })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Deleting config...");
-
-              closeDialog("deleteConfigDialog");
-            } else {
-              alert(`Failed to delete config: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => {
-            alert(`Failed to delete config: ${error.message}`);
-          });
-      };
-    }
-
-    function showDeleteSeedDialog(event) {
-      event.preventDefault();
-
-      document.getElementById("deleteSeedDialog").showModal();
-
-      document.getElementById("deleteSeedForm").onsubmit = (event) => {
-        event.preventDefault();
-
-        fetch(`${baseURL}/config?type=seed&restart=true`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: document.getElementById("deleteSeedInput").value
-        })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Deleting seed...");
-
-              closeDialog("deleteSeedDialog");
-            } else {
-              alert(`Failed to delete seed: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => {
-            alert(`Failed to delete seed: ${error.message}`);
-          });
-      };
-    }
-
-    function showDeleteCleanUpDialog(event) {
-      event.preventDefault();
-
-      document.getElementById("deleteCleanUpDialog").showModal();
-
-      document.getElementById("deleteCleanUpForm").onsubmit = (event) => {
-        event.preventDefault();
-
-        fetch(`${baseURL}/config?type=cleanUp&restart=true`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: document.getElementById("deleteCleanUpInput").value
-        })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Deleting clean up...");
-
-              closeDialog("deleteCleanUpDialog");
-            } else {
-              alert(`Failed to delete clean up: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => {
-            alert(`Failed to delete clean up: ${error.message}`);
-          });
-      };
-    }
-
-    function showExportRenderDialog(event, styleID, action) {
+    function handleExportRender(event, styleID, action) {
       event.preventDefault();
 
       if (action === "export") {
