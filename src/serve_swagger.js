@@ -7,9 +7,9 @@ import express from "express";
 
 /**
  * Serve swagger handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: any, res: any, next: any) => any}
  */
-async function serveSwagger() {
+function serveSwagger() {
   return async (req, res, next) => {
     const version = await getVersion();
 
@@ -31,8 +31,8 @@ async function serveSwagger() {
         ],
         apis: ["src/*.js"],
       })
-    );
-  }
+    )(req, res, next);
+  };
 }
 
 export const serve_swagger = {

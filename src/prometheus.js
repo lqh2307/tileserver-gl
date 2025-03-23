@@ -57,9 +57,9 @@ export function setMetrics(
  * Get metrics
  * @returns {Promise<object>}
  */
-export function getMetrics() {
+export async function getMetrics() {
   return {
     contentType: register.contentType,
-    metrics: register.metrics(),
+    metrics: await register.metrics(),
   };
 }

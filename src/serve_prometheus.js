@@ -12,7 +12,7 @@ import express from "express";
 function serveMetricsHandler() {
   return async (req, res, next) => {
     try {
-      const data = getMetrics();
+      const data = await getMetrics();
 
       res.header("content-type", data.contentType);
 
