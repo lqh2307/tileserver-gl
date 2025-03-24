@@ -1,11 +1,21 @@
 {
   "name": "tile-server",
   "description": "Vector/Raster tile server for serving/caching xyz/wmts tiles",
-  "main": "src/main.js",
   "version": "0.0.18",
   "license": "MIT",
   "author": "Huy Le <lqh23072000@gmail.com>",
+  "keywords": [
+    "tile-server"
+  ],
+  "repository": {
+    "url": "git+https://github.com/lqh2307/tileserver-gl.git",
+    "type": "git"
+  },
   "type": "module",
+  "main": "src/main.js",
+  "bin": {
+    "tile-server": "./entrypoint.sh"
+  },
   "scripts": {
     "server": "./entrypoint.sh",
     "lint": "eslint ."
