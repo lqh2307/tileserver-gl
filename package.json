@@ -1,5 +1,5 @@
 {
-  "name": "tile-server",
+  "name": "@huylq2307/tile-server",
   "description": "Vector/Raster tile server for serving/caching xyz/wmts tiles",
   "version": "0.0.18",
   "license": "MIT",
