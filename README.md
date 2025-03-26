@@ -29,6 +29,7 @@ Install dependencies:
 ```bash
 apt-get -y update; \
 apt-get -y upgrade; \
+apt-get -y update; \
 apt-get -y install \
   ca-certificates \
   wget \

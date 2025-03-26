@@ -9,6 +9,7 @@ ARG NODEJS_VERSION=22.14.0
 RUN \
   apt-get -y update; \
   apt-get -y upgrade; \
+  apt-get -y update; \
   apt-get -y install \
     ca-certificates \
     wget \
@@ -54,6 +55,7 @@ FROM ${TARGET_IMAGE} AS final
 RUN \
   apt-get -y update; \
   apt-get -y upgrade; \
+  apt-get -y update; \
   apt-get -y install \
     xvfb \
     libglfw3 \
