@@ -30,11 +30,9 @@ RUN \
 
 RUN \
   wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
-  mkdir -p /usr/local/lib/nodejs; \
-  tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz --strip-components=1 -C /usr/local/lib/nodejs; \
-  rm -rf node-v${NODEJS_VERSION}-linux-x64.tar.gz;
-
-ENV PATH=/usr/local/lib/nodejs/bin:$PATH
+  tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
+  cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/; \
+  rm -rf node-v${NODEJS_VERSION}-linux-x64*;
 
 WORKDIR /tile-server
 
@@ -72,8 +70,6 @@ WORKDIR /tile-server
 
 COPY --from=builder /tile-server .
 COPY --from=builder /usr/local /usr/local
-
-ENV PATH=/usr/local/lib/nodejs/bin:$PATH
 
 RUN \
   apt-get -y --purge autoremove; \

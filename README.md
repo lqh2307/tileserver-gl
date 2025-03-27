@@ -69,11 +69,10 @@ Install nodejs:
 export NODEJS_VERSION=22.14.0
 
 wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
-mkdir -p /usr/local/lib/nodejs; \
-tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz --strip-components=1 -C /usr/local/lib/nodejs; \
-rm -rf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
-echo 'export PATH=/usr/local/lib/nodejs/bin:$PATH' >> ~/.bashrc; \
-source ~/.bashrc;
+tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
+cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/; \
+rm -rf node-v${NODEJS_VERSION}-linux-x64*; \
+ldconfig;
 ```
 
 Clean:
