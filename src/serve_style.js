@@ -796,45 +796,6 @@ export const serve_style = {
      * tags:
      *   - name: Style
      *     description: Style related endpoints
-     * /styles/{id}/wmts.xml:
-     *   get:
-     *     tags:
-     *       - Style
-     *     summary: Get WMTS XML for style
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         schema:
-     *           type: string
-     *           example: id
-     *         required: true
-     *         description: ID of the style
-     *     responses:
-     *       200:
-     *         description: WMTS XML for the style
-     *         content:
-     *           text/xml:
-     *             schema:
-     *               type: string
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/:id/wmts.xml", serveWMTSHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Style
-     *     description: Style related endpoints
      * /styles/styles.json:
      *   get:
      *     tags:
@@ -953,63 +914,105 @@ export const serve_style = {
      */
     app.get("/:id/style.json", getStyleHandler());
 
-    if (process.env.ENABLE_EXPORT !== "false") {
+    if (process.env.BACKEND_RENDER !== "false") {
+      if (process.env.ENABLE_EXPORT !== "false") {
+        /**
+         * @swagger
+         * tags:
+         *   - name: Style
+         *     description: Style related endpoints
+         * /styles/{id}/export/style.json:
+         *   get:
+         *     tags:
+         *       - Style
+         *     summary: Cancel render style
+         *     parameters:
+         *       - in: query
+         *         name: cancel
+         *         schema:
+         *           type: boolean
+         *         required: false
+         *         description: Cancel render
+         *     responses:
+         *       200:
+         *         description: Style render is canceled
+         *         content:
+         *           text/plain:
+         *             schema:
+         *               type: string
+         *               example: OK
+         *       404:
+         *         description: Not found
+         *       503:
+         *         description: Server is starting up
+         *         content:
+         *           text/plain:
+         *             schema:
+         *               type: string
+         *               example: Starting...
+         *       500:
+         *         description: Internal server error
+         *   post:
+         *     tags:
+         *       - Style
+         *     summary: Render style
+         *     requestBody:
+         *       required: true
+         *       content:
+         *         application/json:
+         *             schema:
+         *               type: object
+         *               example: {}
+         *       description: Style render options
+         *     responses:
+         *       201:
+         *         description: Style render is started
+         *         content:
+         *           text/plain:
+         *             schema:
+         *               type: string
+         *               example: OK
+         *       404:
+         *         description: Not found
+         *       503:
+         *         description: Server is starting up
+         *         content:
+         *           text/plain:
+         *             schema:
+         *               type: string
+         *               example: Starting...
+         *       500:
+         *         description: Internal server error
+         */
+        app.get("/:id/export/style.json", renderStyleHandler());
+        app.post("/:id/export/style.json", renderStyleHandler());
+      }
+
       /**
        * @swagger
        * tags:
        *   - name: Style
        *     description: Style related endpoints
-       * /styles/{id}/export/style.json:
+       * /styles/{id}/wmts.xml:
        *   get:
        *     tags:
        *       - Style
-       *     summary: Cancel render style
+       *     summary: Get WMTS XML for style
        *     parameters:
-       *       - in: query
-       *         name: cancel
+       *       - in: path
+       *         name: id
        *         schema:
-       *           type: boolean
-       *         required: false
-       *         description: Cancel render
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the style
        *     responses:
        *       200:
-       *         description: Style render is canceled
+       *         description: WMTS XML for the style
        *         content:
-       *           text/plain:
+       *           text/xml:
        *             schema:
        *               type: string
-       *               example: OK
-       *       404:
-       *         description: Not found
-       *       503:
-       *         description: Server is starting up
-       *         content:
-       *           text/plain:
-       *             schema:
-       *               type: string
-       *               example: Starting...
-       *       500:
-       *         description: Internal server error
-       *   post:
-       *     tags:
-       *       - Style
-       *     summary: Render style
-       *     requestBody:
-       *       required: true
-       *       content:
-       *         application/json:
-       *             schema:
-       *               type: object
-       *               example: {}
-       *       description: Style render options
-       *     responses:
-       *       201:
-       *         description: Style render is started
-       *         content:
-       *           text/plain:
-       *             schema:
-       *               type: string
-       *               example: OK
        *       404:
        *         description: Not found
        *       503:
@@ -1022,223 +1025,222 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/:id/export/style.json", renderStyleHandler());
-      app.post("/:id/export/style.json", renderStyleHandler());
+      app.get("/:id/wmts.xml", serveWMTSHandler());
+
+      /**
+       * @swagger
+       * tags:
+       *   - name: Rendered
+       *     description: Rendered related endpoints
+       * /styles/rendereds.json:
+       *   get:
+       *     tags:
+       *       - Rendered
+       *     summary: Get all style rendereds
+       *     parameters:
+       *       - in: path
+       *         name: tileSize
+       *         schema:
+       *           type: integer
+       *           enum: [256, 512]
+       *         required: false
+       *         description: Tile size (256 or 512)
+       *     responses:
+       *       200:
+       *         description: List of all style rendereds
+       *         content:
+       *           application/json:
+       *             schema:
+       *               type: array
+       *               items:
+       *                 type: object
+       *                 properties:
+       *                   id:
+       *                     type: string
+       *                     example: style1
+       *                   name:
+       *                     type: string
+       *                     example: Style 1
+       *                   url:
+       *                     type: array
+       *                     items:
+       *                       type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/rendereds.json", getRenderedsListHandler());
+
+      /**
+       * @swagger
+       * tags:
+       *   - name: Rendered
+       *     description: Rendered related endpoints
+       * /styles/tilejsons.json:
+       *   get:
+       *     tags:
+       *       - Rendered
+       *     summary: Get all rendered tileJSONs
+       *     responses:
+       *       200:
+       *         description: List of all rendered tileJSONs
+       *         content:
+       *           application/json:
+       *             schema:
+       *               type: object
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/tilejsons.json", getRenderedTileJSONsListHandler());
+
+      /**
+       * @swagger
+       * tags:
+       *   - name: Rendered
+       *     description: Rendered related endpoints
+       * /styles/{tileSize}/{id}.json:
+       *   get:
+       *     tags:
+       *       - Rendered
+       *     summary: Get style rendered
+       *     parameters:
+       *       - in: path
+       *         name: tileSize
+       *         schema:
+       *           type: integer
+       *           enum: [256, 512]
+       *           example: 256
+       *         required: false
+       *         description: Tile size (256 or 512)
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the style rendered
+       *     responses:
+       *       200:
+       *         description: Style rendered
+       *         content:
+       *           application/json:
+       *             schema:
+       *               type: object
+       *               properties:
+       *                 tileJSON:
+       *                   type: object
+       *                 tiles:
+       *                   type: array
+       *                   items:
+       *                     type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/(:tileSize/)?:id.json", getRenderedHandler());
+
+      /**
+       * @swagger
+       * tags:
+       *   - name: Rendered
+       *     description: Rendered related endpoints
+       * /styles/{id}/{tileSize}/{z}/{x}/{y}{tileScale}.png:
+       *   get:
+       *     tags:
+       *       - Rendered
+       *     summary: Get style rendered tile
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the style
+       *       - in: path
+       *         name: tileSize
+       *         schema:
+       *           type: integer
+       *           enum: [256, 512]
+       *           example: 256
+       *         required: false
+       *         description: Tile size (256 or 512)
+       *       - in: path
+       *         name: z
+       *         schema:
+       *           type: integer
+       *         required: true
+       *         description: Zoom level
+       *       - in: path
+       *         name: x
+       *         schema:
+       *           type: integer
+       *         required: true
+       *         description: X coordinate
+       *       - in: path
+       *         name: y
+       *         schema:
+       *           type: integer
+       *         required: true
+       *         description: Y coordinate
+       *       - in: path
+       *         name: tileScale
+       *         schema:
+       *           type: string
+       *         required: false
+       *         description: Scale of the tile (e.g., @2x)
+       *     responses:
+       *       200:
+       *         description: Style tile
+       *         content:
+       *           image/png:
+       *             schema:
+       *               type: string
+       *               format: binary
+       *       400:
+       *         description: Invalid params
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get(
+        `/:id/(:tileSize/)?:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}):tileScale(@\\d+x)?.png`,
+        getRenderedTileHandler()
+      );
     }
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Rendered
-     *     description: Rendered related endpoints
-     * /styles/rendereds.json:
-     *   get:
-     *     tags:
-     *       - Rendered
-     *     summary: Get all style rendereds
-     *     parameters:
-     *       - in: path
-     *         name: tileSize
-     *         schema:
-     *           type: integer
-     *           enum: [256, 512]
-     *         required: false
-     *         description: Tile size (256 or 512)
-     *     responses:
-     *       200:
-     *         description: List of all style rendereds
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: array
-     *               items:
-     *                 type: object
-     *                 properties:
-     *                   id:
-     *                     type: string
-     *                     example: style1
-     *                   name:
-     *                     type: string
-     *                     example: Style 1
-     *                   url:
-     *                     type: array
-     *                     items:
-     *                       type: string
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/rendereds.json", getRenderedsListHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Rendered
-     *     description: Rendered related endpoints
-     * /styles/tilejsons.json:
-     *   get:
-     *     tags:
-     *       - Rendered
-     *     summary: Get all rendered tileJSONs
-     *     responses:
-     *       200:
-     *         description: List of all rendered tileJSONs
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/tilejsons.json", getRenderedTileJSONsListHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Rendered
-     *     description: Rendered related endpoints
-     * /styles/{tileSize}/{id}.json:
-     *   get:
-     *     tags:
-     *       - Rendered
-     *     summary: Get style rendered
-     *     parameters:
-     *       - in: path
-     *         name: tileSize
-     *         schema:
-     *           type: integer
-     *           enum: [256, 512]
-     *           example: 256
-     *         required: false
-     *         description: Tile size (256 or 512)
-     *       - in: path
-     *         name: id
-     *         schema:
-     *           type: string
-     *           example: id
-     *         required: true
-     *         description: ID of the style rendered
-     *     responses:
-     *       200:
-     *         description: Style rendered
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 tileJSON:
-     *                   type: object
-     *                 tiles:
-     *                   type: array
-     *                   items:
-     *                     type: string
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/(:tileSize/)?:id.json", getRenderedHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Rendered
-     *     description: Rendered related endpoints
-     * /styles/{id}/{tileSize}/{z}/{x}/{y}{tileScale}.png:
-     *   get:
-     *     tags:
-     *       - Rendered
-     *     summary: Get style rendered tile
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         schema:
-     *           type: string
-     *           example: id
-     *         required: true
-     *         description: ID of the style
-     *       - in: path
-     *         name: tileSize
-     *         schema:
-     *           type: integer
-     *           enum: [256, 512]
-     *           example: 256
-     *         required: false
-     *         description: Tile size (256 or 512)
-     *       - in: path
-     *         name: z
-     *         schema:
-     *           type: integer
-     *         required: true
-     *         description: Zoom level
-     *       - in: path
-     *         name: x
-     *         schema:
-     *           type: integer
-     *         required: true
-     *         description: X coordinate
-     *       - in: path
-     *         name: y
-     *         schema:
-     *           type: integer
-     *         required: true
-     *         description: Y coordinate
-     *       - in: path
-     *         name: tileScale
-     *         schema:
-     *           type: string
-     *         required: false
-     *         description: Scale of the tile (e.g., @2x)
-     *     responses:
-     *       200:
-     *         description: Style tile
-     *         content:
-     *           image/png:
-     *             schema:
-     *               type: string
-     *               format: binary
-     *       400:
-     *         description: Invalid params
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get(
-      `/:id/(:tileSize/)?:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}):tileScale(@\\d+x)?.png`,
-      getRenderedTileHandler()
-    );
 
     return app;
   },
@@ -1345,7 +1347,11 @@ export const serve_style = {
           }
 
           /* Serve rendered */
-          if (item.rendered !== undefined && isCanServeRendered === true) {
+          if (
+            process.env.BACKEND_RENDER !== "false" &&
+            item.rendered !== undefined &&
+            isCanServeRendered === true
+          ) {
             try {
               /* Rendered info */
               const rendered = {

@@ -1,7 +1,6 @@
 "use strict";
 
 import { getPMTilesTile } from "./tile_pmtiles.js";
-import mlgl from "@maplibre/maplibre-gl-native";
 import { getSprite } from "./sprite.js";
 import { printLog } from "./logger.js";
 import { getFonts } from "./font.js";
@@ -51,6 +50,28 @@ import {
   openXYZMD5DB,
   getXYZTile,
 } from "./tile_xyz.js";
+
+let mlgl;
+
+import("@maplibre/maplibre-gl-native")
+  .then((module) => {
+    printLog(
+      "info",
+      `Success to import "@maplibre/maplibre-gl-native". Enable backend render`
+    );
+
+    mlgl = module;
+
+    process.env.BACKEND_RENDER = "true";
+  })
+  .catch((error) => {
+    printLog(
+      "error",
+      `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render`
+    );
+
+    process.env.BACKEND_RENDER = "false";
+  });
 
 sharp.cache(false);
 
