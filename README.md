@@ -7,7 +7,7 @@
 Clone source:
 
 ```bash
-git clone --single-branch -b 0.0.18 https://github.com/lqh2307/tileserver-gl.git
+git clone --single-branch -b 0.0.19 https://github.com/lqh2307/tileserver-gl.git
 ```
 
 Jump to folder:
@@ -16,10 +16,10 @@ Jump to folder:
 cd tile-server
 ```
 
-Switch to 0.0.18 branch:
+Switch to 0.0.19 branch:
 
 ```bash
-git checkout 0.0.18
+git checkout 0.0.19
 ```
 
 ### Run with nodejs - native (on ubuntu 22.04 x86_64 amd)
@@ -111,13 +111,13 @@ RESTART_AFTER_CONFIG_CHANGE: true/false (default: true)
 Build image:
 
 ```bash
-docker build -t tile-server:0.0.18 .
+docker build -t tile-server:0.0.19 .
 ```
 
 Run container:
 
 ```bash
-docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.18
+docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.19
 ```
 
 ## Example config.json
