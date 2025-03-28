@@ -914,7 +914,7 @@ export const serve_style = {
      */
     app.get("/:id/style.json", getStyleHandler());
 
-    if (process.env.BACKEND_RENDER !== "false") {
+    if (process.env.ENABLE_BACKEND_RENDER !== "false") {
       if (process.env.ENABLE_EXPORT !== "false") {
         /**
          * @swagger
@@ -1348,7 +1348,7 @@ export const serve_style = {
 
           /* Serve rendered */
           if (
-            process.env.BACKEND_RENDER !== "false" &&
+            process.env.ENABLE_BACKEND_RENDER !== "false" &&
             item.rendered !== undefined &&
             isCanServeRendered === true
           ) {

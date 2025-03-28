@@ -12,6 +12,7 @@ import {
   getRequestHost,
   getJSONSchema,
   validateJSON,
+  getVersion,
 } from "./utils.js";
 
 /**
@@ -52,8 +53,12 @@ function serveFrontPageHandler() {
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
               cache: style.storeCache === true,
-              export_render: process.env.ENABLE_EXPORT === "true" && style.rendered.export !== false,
-              cancel_render: process.env.ENABLE_EXPORT === "true" && style.rendered.export === false,
+              export_render:
+                process.env.ENABLE_EXPORT === "true" &&
+                style.rendered.export !== false,
+              cancel_render:
+                process.env.ENABLE_EXPORT === "true" &&
+                style.rendered.export === false,
             };
           } else {
             const { name, zoom, center } = style;
@@ -670,6 +675,44 @@ function serveConfigDeleteHandler() {
 }
 
 /**
+ * Get version of server handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function serveVersionHandler() {
+  return async (req, res, next) => {
+    try {
+      const version = await getVersion();
+
+      return res.status(StatusCodes.OK).send(version);
+    } catch (error) {
+      printLog("error", `Failed to check version server: ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get ready of server handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function serveReadyHandler() {
+  return async (req, res, next) => {
+    try {
+      return res.status(StatusCodes.OK).send("OK");
+    } catch (error) {
+      printLog("error", `Failed to check ready server: ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
  * Get health of server handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
@@ -762,6 +805,70 @@ export const serve_common = {
      *         description: Internal server error
      */
     app.get("/health", serveHealthHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Common
+     *     description: Common related endpoints
+     * /ready:
+     *   get:
+     *     tags:
+     *       - Common
+     *     summary: Check ready of the server
+     *     responses:
+     *       200:
+     *         description: Server is ready
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: OK
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/ready", serveReadyHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Common
+     *     description: Common related endpoints
+     * /version:
+     *   get:
+     *     tags:
+     *       - Common
+     *     summary: Check version of the server
+     *     responses:
+     *       200:
+     *         description: Version of server
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: OK
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/version", serveVersionHandler());
 
     /**
      * @swagger

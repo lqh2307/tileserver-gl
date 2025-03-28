@@ -57,21 +57,21 @@ let mlgl;
   try {
     const module = await import("@maplibre/maplibre-gl-native");
 
+    mlgl = module.default;
+
     printLog(
       "info",
       `Success to import "@maplibre/maplibre-gl-native". Enable backend render`
     );
 
-    mlgl = module.default;
-
-    process.env.BACKEND_RENDER = "true";
+    process.env.ENABLE_BACKEND_RENDER = "true";
   } catch (error) {
     printLog(
       "error",
       `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render`
     );
 
-    process.env.BACKEND_RENDER = "false";
+    process.env.ENABLE_BACKEND_RENDER = "false";
   }
 })();
 
