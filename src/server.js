@@ -93,12 +93,10 @@ async function loadData() {
   ])
     .then(() => serve_style.add())
     .then(() => {
-      /* Update STARTING_UP ENV */
-      process.env.STARTING_UP = "false";
-
       printLog("info", "Completed startup!");
 
-      /* Clean */
+      /* Update config */
+      config.isStarted = true;
       delete config.styles;
       delete config.geojsons;
       delete config.datas;
@@ -116,16 +114,11 @@ async function loadData() {
  */
 async function loadConfigs() {
   try {
-    printLog(
-      "info",
-      `Loading config.json and seed.json files at "${process.env.DATA_DIR}"...`
-    );
+    printLog("info", "Loading config.json and seed.json files...");
 
     await Promise.all([loadConfigFile(), loadSeedFile()]);
   } catch (error) {
-    throw new Error(
-      `Failed to load config.json and seed.json files at "${process.env.DATA_DIR}": ${error}`
-    );
+    throw new Error(`Failed to load config.json and seed.json files: ${error}`);
   }
 }
 

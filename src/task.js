@@ -42,10 +42,7 @@ export async function runTasks(opts) {
     opts.seedDatas === true
   ) {
     /* Read cleanup.json and seed.json files */
-    printLog(
-      "info",
-      `Loading "seed.json" and "cleanup.json" files at "${process.env.DATA_DIR}"...`
-    );
+    printLog("info", "Loading seed.json and cleanup.json files...");
 
     const [cleanUpData, seedData] = await Promise.all([
       readCleanUpFile(true),

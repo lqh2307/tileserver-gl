@@ -43,9 +43,10 @@ async function startClusterServer() {
 
     // Store ENVs
     process.env.UV_THREADPOOL_SIZE = numOfThread; // For libuv
-    process.env.POSTGRESQL_BASE_URI = config.options?.postgreSQLBaseURI; // PostgreSQL base URI
-    process.env.SERVE_FRONT_PAGE = config.options?.serveFrontPage; // Serve front page
-    process.env.SERVE_SWAGGER = config.options?.serveSwagger; // Serve swagger
+    process.env.POSTGRESQL_BASE_URI =
+      config.options?.postgreSQLBaseURI || "postgresql://localhost:5432"; // PostgreSQL base URI
+    process.env.SERVE_FRONT_PAGE = config.options?.serveFrontPage || "true"; // Serve front page
+    process.env.SERVE_SWAGGER = config.options?.serveSwagger || "true"; // Serve swagger
 
     // For gdal
     try {
@@ -74,8 +75,6 @@ async function startClusterServer() {
 
     /* Setup watch config file change */
     if (process.env.RESTART_AFTER_CONFIG_CHANGE === "true") {
-      printLog("info", "Auto restart server if config file has changed");
-
       chokidar
         .watch(`${process.env.DATA_DIR}/config.json`, {
           usePolling: true,

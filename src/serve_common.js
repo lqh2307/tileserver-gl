@@ -22,7 +22,7 @@ import {
 function serveFrontPageHandler() {
   return async (req, res, next) => {
     try {
-      if (process.env.STARTING_UP === undefined) {
+      if (config.isStarted !== true) {
         return res.status(StatusCodes.SERVICE_UNAVAILABLE).send("Starting...");
       }
 
@@ -719,7 +719,7 @@ function serveReadyHandler() {
 function serveHealthHandler() {
   return async (req, res, next) => {
     try {
-      if (process.env.STARTING_UP === undefined) {
+      if (config.isStarted !== true) {
         return res.status(StatusCodes.SERVICE_UNAVAILABLE).send("Starting...");
       }
 

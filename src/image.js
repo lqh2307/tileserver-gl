@@ -64,14 +64,12 @@ let mlgl;
       `Success to import "@maplibre/maplibre-gl-native". Enable backend render`
     );
 
-    process.env.ENABLE_BACKEND_RENDER = "true";
+    config.enableBackendRender = true;
   } catch (error) {
     printLog(
       "error",
       `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render`
     );
-
-    process.env.ENABLE_BACKEND_RENDER = "false";
   }
 })();
 
