@@ -53,10 +53,8 @@ import {
 
 let mlgl;
 
-(async () => {
-  try {
-    const module = await import("@maplibre/maplibre-gl-native");
-
+import("@maplibre/maplibre-gl-native")
+  .then((module) => {
     mlgl = module.default;
 
     printLog(
@@ -64,16 +62,14 @@ let mlgl;
       `Success to import "@maplibre/maplibre-gl-native". Enable backend render`
     );
 
-    process.env.ENABLE_BACKEND_RENDER = "true";
-  } catch (error) {
+    config.enableBackendRender = true;
+  })
+  .catch((error) => {
     printLog(
       "error",
       `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render`
     );
-
-    process.env.ENABLE_BACKEND_RENDER = "false";
-  }
-})();
+  });
 
 sharp.cache(false);
 
