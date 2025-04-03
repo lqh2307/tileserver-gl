@@ -6,6 +6,7 @@ import { printLog } from "./logger.js";
 import { getFonts } from "./font.js";
 import { config } from "./config.js";
 import { Mutex } from "async-mutex";
+import cluster from "cluster";
 import sqlite3 from "sqlite3";
 import sharp from "sharp";
 import {
@@ -53,23 +54,25 @@ import {
 
 let mlgl;
 
-import("@maplibre/maplibre-gl-native")
-  .then((module) => {
-    mlgl = module.default;
+if (cluster.isPrimary !== true) {
+  import("@maplibre/maplibre-gl-native")
+    .then((module) => {
+      mlgl = module.default;
 
-    printLog(
-      "info",
-      `Success to import "@maplibre/maplibre-gl-native". Enable backend render`
-    );
+      printLog(
+        "info",
+        `Success to import "@maplibre/maplibre-gl-native". Enable backend render`
+      );
 
-    config.enableBackendRender = true;
-  })
-  .catch((error) => {
-    printLog(
-      "error",
-      `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render`
-    );
-  });
+      config.enableBackendRender = true;
+    })
+    .catch((error) => {
+      printLog(
+        "error",
+        `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render`
+      );
+    });
+}
 
 sharp.cache(false);
 

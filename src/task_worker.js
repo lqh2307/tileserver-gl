@@ -4,30 +4,30 @@ import { parentPort, workerData } from "node:worker_threads";
 import { initLogger, printLog } from "./logger.js";
 import { runTasks } from "./task.js";
 
-(async () => {
-  try {
-    /* Init logger */
-    initLogger();
+(() => {
+  /* Init logger */
+  initLogger();
 
-    printLog("info", "Starting seed and clean up task...");
+  printLog("info", "Starting seed and clean up task...");
 
-    /* Run task */
-    await runTasks(workerData);
+  /* Run task */
+  runTasks(workerData)
+    .then(() => {
+      /* Restart server */
+      if (workerData.restart !== "false") {
+        printLog(
+          "info",
+          "Completed seed and clean up tasks. Restarting server..."
+        );
 
-    /* Restart server */
-    if (workerData.restart !== "false") {
-      printLog(
-        "info",
-        "Completed seed and clean up tasks. Restarting server..."
-      );
-
+        parentPort.postMessage({
+          action: "restartServer",
+        });
+      }
+    })
+    .catch((error) => {
       parentPort.postMessage({
-        action: "restartServer",
+        error: error,
       });
-    }
-  } catch (error) {
-    parentPort.postMessage({
-      error: error,
     });
-  }
 })();
