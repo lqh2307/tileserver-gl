@@ -28,7 +28,7 @@ function serveGeoJSONGroupHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.geojsons[id];
+      const item = config.geojsons[id];
 
       if (item === undefined) {
         return res
@@ -61,7 +61,7 @@ function serveGeoJSONHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.geojsons[id];
+      const item = config.geojsons[id];
 
       if (item === undefined) {
         return res
@@ -104,7 +104,7 @@ function getGeoJSONGroupInfoHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.geojsons[id];
+      const item = config.geojsons[id];
 
       /* Check GeoJSON group is used? */
       if (item === undefined) {
@@ -150,7 +150,7 @@ function getGeoJSONInfoHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.geojsons[id];
+      const item = config.geojsons[id];
 
       /* Check GeoJSON is used? */
       if (item === undefined) {
@@ -191,7 +191,7 @@ function getGeoJSONHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.geojsons[id];
+      const item = config.geojsons[id];
 
       /* Check GeoJSON is used? */
       if (item === undefined) {
@@ -277,7 +277,7 @@ function getGeoJSONMD5Handler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.geojsons[id];
+      const item = config.geojsons[id];
 
       /* Check GeoJSON is used? */
       if (item === undefined) {
@@ -330,7 +330,7 @@ function getGeoJSONGroupsListHandler() {
       const requestHost = getRequestHost(req);
 
       const result = await Promise.all(
-        Object.keys(config.repo.geojsons).map(async (id) => {
+        Object.keys(config.geojsons).map(async (id) => {
           return {
             id: id,
             name: id,
@@ -353,93 +353,6 @@ function getGeoJSONGroupsListHandler() {
 export const serve_geojson = {
   init: () => {
     const app = express().disable("x-powered-by");
-
-    if (process.env.SERVE_FRONT_PAGE !== "false") {
-      /**
-       * @swagger
-       * tags:
-       *   - name: GeoJSON
-       *     description: GeoJSON related endpoints
-       * /geojsons/{id}/:
-       *   get:
-       *     tags:
-       *       - GeoJSON
-       *     summary: Serve GeoJSON group page
-       *     parameters:
-       *       - in: path
-       *         name: id
-       *         schema:
-       *           type: string
-       *           example: id
-       *         required: true
-       *         description: ID of the GeoJSON group
-       *     responses:
-       *       200:
-       *         description: GeoJSON group page
-       *         content:
-       *           text/html:
-       *             schema:
-       *               type: string
-       *       404:
-       *         description: Not found
-       *       503:
-       *         description: Server is starting up
-       *         content:
-       *           text/plain:
-       *             schema:
-       *               type: string
-       *               example: Starting...
-       *       500:
-       *         description: Internal server error
-       */
-      app.get("/:id/$", serveGeoJSONGroupHandler());
-
-      /**
-       * @swagger
-       * tags:
-       *   - name: GeoJSON
-       *     description: GeoJSON related endpoints
-       * /geojsons/{id}/{layer}:
-       *   get:
-       *     tags:
-       *       - GeoJSON
-       *     summary: Serve GeoJSON page
-       *     parameters:
-       *       - in: path
-       *         name: id
-       *         schema:
-       *           type: string
-       *           example: id
-       *         required: true
-       *         description: ID of the geojson
-       *       - in: path
-       *         name: layer
-       *         schema:
-       *           type: string
-       *           example: layer
-       *         required: true
-       *         description: Layer of the GeoJSON
-       *     responses:
-       *       200:
-       *         description: GeoJSON page
-       *         content:
-       *           text/html:
-       *             schema:
-       *               type: string
-       *       404:
-       *         description: Not found
-       *       503:
-       *         description: Server is starting up
-       *         content:
-       *           text/plain:
-       *             schema:
-       *               type: string
-       *               example: Starting...
-       *       500:
-       *         description: Internal server error
-       */
-      app.get("/:id/:layer/$", serveGeoJSONHandler());
-    }
 
     /**
      * @swagger
@@ -658,6 +571,93 @@ export const serve_geojson = {
      */
     app.get("/:id:/:layer/md5", getGeoJSONMD5Handler());
 
+    if (process.env.SERVE_FRONT_PAGE !== "false") {
+      /**
+       * @swagger
+       * tags:
+       *   - name: GeoJSON
+       *     description: GeoJSON related endpoints
+       * /geojsons/{id}/{layer}:
+       *   get:
+       *     tags:
+       *       - GeoJSON
+       *     summary: Serve GeoJSON page
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the geojson
+       *       - in: path
+       *         name: layer
+       *         schema:
+       *           type: string
+       *           example: layer
+       *         required: true
+       *         description: Layer of the GeoJSON
+       *     responses:
+       *       200:
+       *         description: GeoJSON page
+       *         content:
+       *           text/html:
+       *             schema:
+       *               type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/:id/:layer", serveGeoJSONHandler());
+
+      /**
+       * @swagger
+       * tags:
+       *   - name: GeoJSON
+       *     description: GeoJSON related endpoints
+       * /geojsons/{id}/:
+       *   get:
+       *     tags:
+       *       - GeoJSON
+       *     summary: Serve GeoJSON group page
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the GeoJSON group
+       *     responses:
+       *       200:
+       *         description: GeoJSON group page
+       *         content:
+       *           text/html:
+       *             schema:
+       *               type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/:id", serveGeoJSONGroupHandler());
+    }
+
     return app;
   },
 
@@ -668,6 +668,8 @@ export const serve_geojson = {
       const ids = Object.keys(config.geojsons);
 
       printLog("info", `Loading ${ids.length} GeoJSON groups...`);
+
+      const repos = {};
 
       await Promise.all(
         ids.map(async (id) => {
@@ -762,7 +764,7 @@ export const serve_geojson = {
               );
 
               /* Add to repo */
-              config.repo.geojsons[id] = geojsonsInfo;
+              repos[id] = geojsonsInfo;
             }
           } catch (error) {
             printLog(
@@ -772,6 +774,8 @@ export const serve_geojson = {
           }
         })
       );
+
+      config.geojsons = repos;
     }
   },
 };

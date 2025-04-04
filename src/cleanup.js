@@ -36,7 +36,7 @@ import {
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 
-let cleanUp;
+let cleanUp = {};
 
 /**
  * Read cleanup.json file
@@ -50,7 +50,7 @@ async function readCleanUpFile(isValidate) {
     "utf8"
   );
 
-  const cleanUp = JSON.parse(data);
+  Object.assign(cleanUp, JSON.parse(data));
 
   /* Validate cleanup.json file */
   if (isValidate === true) {

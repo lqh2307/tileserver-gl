@@ -23,7 +23,7 @@ function getSpriteHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.sprites[id];
+      const item = config.sprites[id];
 
       if (item === undefined) {
         return res.status(StatusCodes.NOT_FOUND).send("Sprite does not exist");
@@ -61,7 +61,7 @@ function getSpritesListHandler() {
       const requestHost = getRequestHost(req);
 
       const result = await Promise.all(
-        Object.keys(config.repo.sprites).map(async (id) => {
+        Object.keys(config.sprites).map(async (id) => {
           return {
             id: id,
             name: id,
@@ -196,6 +196,8 @@ export const serve_sprite = {
 
       printLog("info", `Loading ${ids.length} sprites...`);
 
+      const repos = {};
+
       await Promise.all(
         ids.map(async (id) => {
           const item = config.sprites[id];
@@ -223,7 +225,7 @@ export const serve_sprite = {
             }
 
             /* Add to repo */
-            config.repo.sprites[id] = spriteInfo;
+            repos[id] = spriteInfo;
           } catch (error) {
             printLog(
               "error",
@@ -232,6 +234,8 @@ export const serve_sprite = {
           }
         })
       );
+
+      config.sprites = repos;
     }
   },
 };

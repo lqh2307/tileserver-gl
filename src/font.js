@@ -133,7 +133,7 @@ export async function getFonts(ids, fileName) {
     ids.split(",").map(async (font) => {
       try {
         /* Check font is exist? */
-        if (config.repo.fonts[font] === undefined) {
+        if (config.fonts[font] === undefined) {
           throw new Error("Font does not exist");
         }
 

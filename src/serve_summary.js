@@ -225,8 +225,8 @@ function serveSummaryHandler() {
         };
 
         await Promise.all([
-          ...Object.keys(config.repo.styles).map(async (id) => {
-            const item = config.repo.styles[id];
+          ...Object.keys(config.styles).map(async (id) => {
+            const item = config.styles[id];
 
             try {
               result.styles.size += await getStyleSize(item.path);
@@ -243,9 +243,9 @@ function serveSummaryHandler() {
               result.styles.rendereds.count += 1;
             }
           }),
-          ...Object.keys(config.repo.geojsons).map(async (id) => {
-            for (const layer in config.repo.geojsons[id]) {
-              const item = config.repo.geojsons[id][layer];
+          ...Object.keys(config.geojsons).map(async (id) => {
+            for (const layer in config.geojsons[id]) {
+              const item = config.geojsons[id][layer];
 
               try {
                 result.geojsonGroups.geojsons.size += await getGeoJSONSize(
@@ -262,8 +262,8 @@ function serveSummaryHandler() {
 
             result.geojsonGroups.count += 1;
           }),
-          ...Object.keys(config.repo.datas).map(async (id) => {
-            const item = config.repo.datas[id];
+          ...Object.keys(config.datas).map(async (id) => {
+            const item = config.datas[id];
 
             switch (item.sourceType) {
               case "mbtiles": {
@@ -318,8 +318,8 @@ function serveSummaryHandler() {
               }
             }
           }),
-          ...Object.keys(config.repo.sprites).map(async (id) => {
-            const item = config.repo.sprites[id];
+          ...Object.keys(config.sprites).map(async (id) => {
+            const item = config.sprites[id];
 
             try {
               result.sprites.size += await getSpriteSize(item.path);
@@ -331,8 +331,8 @@ function serveSummaryHandler() {
 
             result.sprites.count += 1;
           }),
-          ...Object.keys(config.repo.fonts).map(async (id) => {
-            const item = config.repo.fonts[id];
+          ...Object.keys(config.fonts).map(async (id) => {
+            const item = config.fonts[id];
 
             try {
               result.fonts.size += await getFontSize(item.path);

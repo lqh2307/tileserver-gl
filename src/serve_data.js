@@ -60,7 +60,7 @@ function serveDataHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.datas[id];
+      const item = config.datas[id];
 
       if (item === undefined) {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
@@ -93,7 +93,7 @@ function serveDataHandler() {
 function getDataTileHandler() {
   return async (req, res, next) => {
     const id = req.params.id;
-    const item = config.repo.datas[id];
+    const item = config.datas[id];
 
     /* Check data is exist? */
     if (item === undefined) {
@@ -320,7 +320,7 @@ function getDataHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.datas[id];
+      const item = config.datas[id];
 
       if (item === undefined) {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
@@ -356,7 +356,7 @@ function getDataHandler() {
 function getDataTileMD5Handler() {
   return async (req, res, next) => {
     const id = req.params.id;
-    const item = config.repo.datas[id];
+    const item = config.datas[id];
 
     /* Check data is exist? */
     if (item === undefined) {
@@ -457,10 +457,10 @@ function getDatasListHandler() {
       const requestHost = getRequestHost(req);
 
       const result = await Promise.all(
-        Object.keys(config.repo.datas).map(async (id) => {
+        Object.keys(config.datas).map(async (id) => {
           return {
             id: id,
-            name: config.repo.datas[id].tileJSON.name,
+            name: config.datas[id].tileJSON.name,
             url: `${requestHost}/datas/${id}.json`,
           };
         })
@@ -487,8 +487,8 @@ function getDataTileJSONsListHandler() {
       const requestHost = getRequestHost(req);
 
       const result = await Promise.all(
-        Object.keys(config.repo.datas).map(async (id) => {
-          const item = config.repo.datas[id];
+        Object.keys(config.datas).map(async (id) => {
+          const item = config.datas[id];
 
           return {
             ...item.tileJSON,
@@ -516,48 +516,6 @@ function getDataTileJSONsListHandler() {
 export const serve_data = {
   init: () => {
     const app = express().disable("x-powered-by");
-
-    if (process.env.SERVE_FRONT_PAGE !== "false") {
-      /* Serve data */
-      /**
-       * @swagger
-       * tags:
-       *   - name: Data
-       *     description: Data related endpoints
-       * /datas/{id}/:
-       *   get:
-       *     tags:
-       *       - Data
-       *     summary: Serve data page
-       *     parameters:
-       *       - in: path
-       *         name: id
-       *         schema:
-       *           type: string
-       *           example: id
-       *         required: true
-       *         description: ID of the data
-       *     responses:
-       *       200:
-       *         description: Data page
-       *         content:
-       *           text/html:
-       *             schema:
-       *               type: string
-       *       404:
-       *         description: Not found
-       *       503:
-       *         description: Server is starting up
-       *         content:
-       *           text/plain:
-       *             schema:
-       *               type: string
-       *               example: Starting...
-       *       500:
-       *         description: Internal server error
-       */
-      app.use("/:id/$", serveDataHandler());
-    }
 
     /**
      * @swagger
@@ -821,6 +779,48 @@ export const serve_data = {
       getDataTileMD5Handler()
     );
 
+    if (process.env.SERVE_FRONT_PAGE !== "false") {
+      /* Serve data */
+      /**
+       * @swagger
+       * tags:
+       *   - name: Data
+       *     description: Data related endpoints
+       * /datas/{id}/:
+       *   get:
+       *     tags:
+       *       - Data
+       *     summary: Serve data page
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the data
+       *     responses:
+       *       200:
+       *         description: Data page
+       *         content:
+       *           text/html:
+       *             schema:
+       *               type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.use("/:id", serveDataHandler());
+    }
+
     return app;
   },
 
@@ -831,6 +831,8 @@ export const serve_data = {
       const ids = Object.keys(config.datas);
 
       printLog("info", `Loading ${ids.length} datas...`);
+
+      const repos = {};
 
       await Promise.all(
         ids.map(async (id) => {
@@ -1063,7 +1065,7 @@ export const serve_data = {
             }
 
             /* Add to repo */
-            config.repo.datas[id] = dataInfo;
+            repos[id] = dataInfo;
           } catch (error) {
             printLog(
               "error",
@@ -1072,6 +1074,8 @@ export const serve_data = {
           }
         })
       );
+
+      config.datas = repos;
     }
   },
 };

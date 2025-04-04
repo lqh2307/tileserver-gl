@@ -142,7 +142,7 @@ export async function validateStyle(styleJSON) {
         styleJSON.sprite.lastIndexOf("/")
       );
 
-      if (config.repo.sprites[spriteID] === undefined) {
+      if (config.sprites[spriteID] === undefined) {
         throw new Error(`Sprite "${spriteID}" is not found`);
       }
     } else if (
@@ -162,7 +162,7 @@ export async function validateStyle(styleJSON) {
         if (isLocalTileURL(source.url) === true) {
           const sourceID = source.url.split("/")[2];
 
-          if (config.repo.datas[sourceID] === undefined) {
+          if (config.datas[sourceID] === undefined) {
             throw new Error(
               `Source "${id}" is not found data source "${sourceID}"`
             );
@@ -184,7 +184,7 @@ export async function validateStyle(styleJSON) {
           if (isLocalTileURL(url) === true) {
             const sourceID = url.split("/")[2];
 
-            if (config.repo.datas[sourceID] === undefined) {
+            if (config.datas[sourceID] === undefined) {
               throw new Error(
                 `Source "${id}" is not found data source "${sourceID}"`
               );
@@ -207,7 +207,7 @@ export async function validateStyle(styleJSON) {
           if (isLocalTileURL(tile) === true) {
             const sourceID = tile.split("/")[2];
 
-            if (config.repo.datas[sourceID] === undefined) {
+            if (config.datas[sourceID] === undefined) {
               throw new Error(
                 `Source "${id}" is not found data source "${sourceID}"`
               );
