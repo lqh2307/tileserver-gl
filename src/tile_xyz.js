@@ -77,37 +77,6 @@ async function getXYZLayersFromTiles(sourcePath) {
 }
 
 /**
- * Get XYZ tile format from tiles
- * @param {string} sourcePath XYZ folder path
- * @returns {Promise<string>}
- */
-async function getXYZFormatFromTiles(sourcePath) {
-  const zFolders = await findFolders(sourcePath, /^\d+$/, false, false);
-
-  for (const zFolder of zFolders) {
-    const xFolders = await findFolders(
-      `${sourcePath}/${zFolder}`,
-      /^\d+$/,
-      false,
-      false
-    );
-
-    for (const xFolder of xFolders) {
-      const yFiles = await findFiles(
-        `${sourcePath}/${zFolder}/${xFolder}`,
-        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
-        false,
-        false
-      );
-
-      if (yFiles.length > 0) {
-        return yFiles[0].split(".")[1];
-      }
-    }
-  }
-}
-
-/**
  * Get XYZ bounding box from tiles
  * @param {string} sourcePath XYZ folder path
  * @returns {Promise<[number, number, number, number]>} Bounding box in format [minLon, minLat, maxLon, maxLat]
@@ -175,82 +144,66 @@ async function getXYZZoomLevelFromTiles(sourcePath, zoomType) {
 }
 
 /**
- * Remove XYZ tile data file with lock
- * @param {string} filePath File path to remove tile data file
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<void>}
+ * Get XYZ tile format from tiles
+ * @param {string} sourcePath XYZ folder path
+ * @returns {Promise<string>}
  */
-async function removeXYZTileFile(filePath, timeout) {
-  await removeFileWithLock(filePath, timeout);
-}
+async function getXYZFormatFromTiles(sourcePath) {
+  const zFolders = await findFolders(sourcePath, /^\d+$/, false, false);
 
-/**
- * Upsert MD5 hash of XYZ tile
- * @param {sqlite3.Database} source SQLite database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @param {string} hash MD5 hash value
- * @returns {Promise<void>}
- */
-async function upsertXYZTileMD5(source, z, x, y, hash) {
-  await runSQL(
-    source,
-    `
-    INSERT INTO
-      md5s (zoom_level, tile_column, tile_row, hash)
-    VALUES
-      (?, ?, ?, ?)
-    ON CONFLICT
-      (zoom_level, tile_column, tile_row)
-    DO UPDATE
-      SET
-        hash = excluded.hash;
-    `,
-    [z, x, y, hash]
-  );
-}
+  for (const zFolder of zFolders) {
+    const xFolders = await findFolders(
+      `${sourcePath}/${zFolder}`,
+      /^\d+$/,
+      false,
+      false
+    );
 
-/**
- * Create MD5 hash of XYZ tile
- * @param {sqlite3.Database} source SQLite database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @param {Buffer} buffer The data buffer
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<void>}
- */
-async function createXYZTileMD5(source, z, x, y, buffer, timeout) {
-  const startTime = Date.now();
+    for (const xFolder of xFolders) {
+      const yFiles = await findFiles(
+        `${sourcePath}/${zFolder}/${xFolder}`,
+        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
+        false,
+        false
+      );
 
-  while (Date.now() - startTime <= timeout) {
-    try {
-      await upsertXYZTileMD5(source, z, x, y, calculateMD5(buffer));
-
-      return;
-    } catch (error) {
-      if (error.code === "SQLITE_BUSY") {
-        await delay(50);
-      } else {
-        throw error;
+      if (yFiles.length > 0) {
+        return yFiles[0].split(".")[1];
       }
     }
   }
-
-  throw new Error(`Timeout to access XYZ MD5 DB`);
 }
 
 /**
- * Remove MD5 hash of XYZ tile
+ * Create XYZ tile
+ * @param {string} sourcePath XYZ folder path
  * @param {sqlite3.Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * @param {boolean} storeMD5 Is store MD5 hashed?
+ * @param {Buffer} data Tile data buffer
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-async function removeXYZTileMD5(source, z, x, y, timeout) {
+async function createXYZTile(
+  sourcePath,
+  source,
+  z,
+  x,
+  y,
+  format,
+  storeMD5,
+  data,
+  timeout
+) {
+  await createFileWithLock(
+    `${sourcePath}/${z}/${x}/${y}.${format}`,
+    data,
+    300000 // 5 mins
+  );
+
   const startTime = Date.now();
 
   while (Date.now() - startTime <= timeout) {
@@ -258,19 +211,29 @@ async function removeXYZTileMD5(source, z, x, y, timeout) {
       await runSQL(
         source,
         `
-        DELETE FROM
-          md5s
-        WHERE
-          zoom_level = ? AND tile_column = ? AND tile_row = ?;
+        INSERT INTO
+          md5s (zoom_level, tile_column, tile_row, hash, created)
+        VALUES
+          (?, ?, ?, ?, ?)
+        ON CONFLICT
+          (zoom_level, tile_column, tile_row)
+        DO UPDATE
+          SET
+            hash = excluded.hash,
+            created = excluded.created;
         `,
-        [z, x, y]
+        [
+          z,
+          x,
+          y,
+          storeMD5 === true ? calculateMD5(data) : undefined,
+          Date.now(),
+        ]
       );
 
       return;
     } catch (error) {
-      if (error.code === "SQLITE_CANTOPEN") {
-        return;
-      } else if (error.code === "SQLITE_BUSY") {
+      if (error.code === "SQLITE_BUSY") {
         await delay(50);
       } else {
         throw error;
@@ -318,6 +281,83 @@ export async function getXYZTileHashFromCoverages(source, coverages) {
 }
 
 /**
+ * Remove XYZ tile data file
+ * @param {string} id XYZ ID
+ * @param {sqlite3.Database} source SQLite database instance
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<void>}
+ */
+export async function removeXYZTile(id, source, z, x, y, format, timeout) {
+  await removeFileWithLock(
+    `${process.env.DATA_DIR}/caches/xyzs/${id}/${z}/${x}/${y}.${format}`,
+    timeout
+  );
+
+  const startTime = Date.now();
+
+  while (Date.now() - startTime <= timeout) {
+    try {
+      await runSQL(
+        source,
+        `
+        DELETE FROM
+          md5s
+        WHERE
+          zoom_level = ? AND tile_column = ? AND tile_row = ?;
+        `,
+        [z, x, y]
+      );
+
+      return;
+    } catch (error) {
+      if (error.code === "SQLITE_CANTOPEN") {
+        return;
+      } else if (error.code === "SQLITE_BUSY") {
+        await delay(50);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(`Timeout to access XYZ MD5 DB`);
+}
+
+/**
+ * Open XYZ MD5 SQLite database
+ * @param {string} filePath MD5 filepath
+ * @param {number} mode SQLite mode (e.g: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_READONLY)
+ * @param {boolean} wal Use WAL
+ * @returns {Promise<sqlite3.Database>}
+ */
+export async function openXYZMD5DB(filePath, mode, wal = false) {
+  const source = await openSQLite(filePath, mode, wal);
+
+  if (mode & sqlite3.OPEN_CREATE) {
+    await runSQL(
+      source,
+      `
+      CREATE TABLE IF NOT EXISTS
+        md5s (
+          zoom_level INTEGER NOT NULL,
+          tile_column INTEGER NOT NULL,
+          tile_row INTEGER NOT NULL,
+          hash TEXT,
+          created BIGINT,
+          PRIMARY KEY (zoom_level, tile_column, tile_row)
+        );
+      `
+    );
+  }
+
+  return source;
+}
+
+/**
  * Get XYZ tile
  * @param {string} sourcePath XYZ folder path
  * @param {number} z Zoom level
@@ -348,121 +388,6 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
       throw error;
     }
   }
-}
-
-/**
- * Get XYZ tile from a URL
- * @param {string} url The URL to fetch data from
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<Object>}
- */
-export async function getXYZTileFromURL(url, timeout) {
-  try {
-    const response = await getDataFromURL(url, timeout, "arraybuffer");
-
-    return {
-      data: response.data,
-      headers: detectFormatAndHeaders(response.data).headers,
-    };
-  } catch (error) {
-    if (error.statusCode !== undefined) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("Tile does not exist");
-      } else {
-        throw new Error(`Failed to get data tile from "${url}": ${error}`);
-      }
-    } else {
-      throw new Error(`Failed to get data tile from "${url}": ${error}`);
-    }
-  }
-}
-
-/**
- * Create XYZ metadata
- * @param {Object} metadata Metadata object
- * @returns {Object}
- */
-export function createXYZMetadata(metadata) {
-  const data = {};
-
-  if (metadata.name !== undefined) {
-    data.name = metadata.name;
-  } else {
-    data.name = "Unknown";
-  }
-
-  if (metadata.description !== undefined) {
-    data.description = metadata.description;
-  } else {
-    data.description = "Unknown";
-  }
-
-  if (metadata.attribution !== undefined) {
-    data.attribution = metadata.attribution;
-  } else {
-    data.attribution = "<b>Viettel HighTech</b>";
-  }
-
-  if (metadata.version !== undefined) {
-    data.version = metadata.version;
-  } else {
-    data.version = "1.0.0";
-  }
-
-  if (metadata.type !== undefined) {
-    data.type = metadata.type;
-  } else {
-    data.type = "overlay";
-  }
-
-  if (metadata.format !== undefined) {
-    data.format = metadata.format;
-  } else {
-    data.format = "png";
-  }
-
-  if (metadata.minzoom !== undefined) {
-    data.minzoom = metadata.minzoom;
-  } else {
-    data.minzoom = 0;
-  }
-
-  if (metadata.maxzoom !== undefined) {
-    data.maxzoom = metadata.maxzoom;
-  } else {
-    data.maxzoom = 22;
-  }
-
-  if (metadata.bounds !== undefined) {
-    data.bounds = deepClone(metadata.bounds);
-  } else {
-    data.bounds = [-180, -85.051129, 180, 85.051129];
-  }
-
-  if (metadata.center !== undefined) {
-    data.center = [
-      (data.bounds[0] + data.bounds[2]) / 2,
-      (data.bounds[1] + data.bounds[3]) / 2,
-      Math.floor((data.minzoom + data.maxzoom) / 2),
-    ];
-  }
-
-  if (metadata.vector_layers !== undefined) {
-    data.vector_layers = deepClone(metadata.vector_layers);
-  } else {
-    if (data.format === "pbf") {
-      data.vector_layers = [];
-    }
-  }
-
-  if (metadata.cacheCoverages !== undefined) {
-    data.cacheCoverages = deepClone(metadata.cacheCoverages);
-  }
-
-  return data;
 }
 
 /**
@@ -554,24 +479,97 @@ export async function getXYZMetadata(sourcePath) {
 }
 
 /**
- * Update XYZ metadata.json file with lock
- * @param {string} filePath File path to store metadata.json file
- * @param {Object<string,string>} metadataAdds Metadata object
- * @param {number} timeout Timeout in milliseconds
+ * Create XYZ metadata
+ * @param {Object} metadata Metadata object
+ * @returns {Object}
+ */
+export function createXYZMetadata(metadata) {
+  const data = {};
+
+  if (metadata.name !== undefined) {
+    data.name = metadata.name;
+  } else {
+    data.name = "Unknown";
+  }
+
+  if (metadata.description !== undefined) {
+    data.description = metadata.description;
+  } else {
+    data.description = "Unknown";
+  }
+
+  if (metadata.attribution !== undefined) {
+    data.attribution = metadata.attribution;
+  } else {
+    data.attribution = "<b>Viettel HighTech</b>";
+  }
+
+  if (metadata.version !== undefined) {
+    data.version = metadata.version;
+  } else {
+    data.version = "1.0.0";
+  }
+
+  if (metadata.type !== undefined) {
+    data.type = metadata.type;
+  } else {
+    data.type = "overlay";
+  }
+
+  if (metadata.format !== undefined) {
+    data.format = metadata.format;
+  } else {
+    data.format = "png";
+  }
+
+  if (metadata.minzoom !== undefined) {
+    data.minzoom = metadata.minzoom;
+  } else {
+    data.minzoom = 0;
+  }
+
+  if (metadata.maxzoom !== undefined) {
+    data.maxzoom = metadata.maxzoom;
+  } else {
+    data.maxzoom = 22;
+  }
+
+  if (metadata.bounds !== undefined) {
+    data.bounds = deepClone(metadata.bounds);
+  } else {
+    data.bounds = [-180, -85.051129, 180, 85.051129];
+  }
+
+  if (metadata.center !== undefined) {
+    data.center = [
+      (data.bounds[0] + data.bounds[2]) / 2,
+      (data.bounds[1] + data.bounds[3]) / 2,
+      Math.floor((data.minzoom + data.maxzoom) / 2),
+    ];
+  }
+
+  if (metadata.vector_layers !== undefined) {
+    data.vector_layers = deepClone(metadata.vector_layers);
+  } else {
+    if (data.format === "pbf") {
+      data.vector_layers = [];
+    }
+  }
+
+  if (metadata.cacheCoverages !== undefined) {
+    data.cacheCoverages = deepClone(metadata.cacheCoverages);
+  }
+
+  return data;
+}
+
+/**
+ * Close the XYZ MD5 SQLite database
+ * @param {sqlite3.Database} source SQLite database instance
  * @returns {Promise<void>}
  */
-export async function updateXYZMetadataFile(filePath, metadataAdds, timeout) {
-  const data = await fsPromise.readFile(filePath, "utf8");
-
-  await createFileWithLock(
-    filePath,
-    JSON.stringify({
-      ...JSON.parse(data),
-      ...metadataAdds,
-      scheme: "xyz",
-    }),
-    timeout
-  );
+export async function closeXYZMD5DB(source) {
+  await closeSQLite(source);
 }
 
 /**
@@ -642,30 +640,53 @@ export async function downloadXYZTileFile(
 }
 
 /**
- * Remove XYZ tile data file
- * @param {string} id XYZ ID
- * @param {sqlite3.Database} source SQLite database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * Update XYZ metadata.json file with lock
+ * @param {string} filePath File path to store metadata.json file
+ * @param {Object<string,string>} metadataAdds Metadata object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function removeXYZTile(id, source, z, x, y, format, timeout) {
-  await removeXYZTileFile(
-    `${process.env.DATA_DIR}/caches/xyzs/${id}/${z}/${x}/${y}.${format}`,
+export async function updateXYZMetadataFile(filePath, metadataAdds, timeout) {
+  const data = await fsPromise.readFile(filePath, "utf8");
+
+  await createFileWithLock(
+    filePath,
+    JSON.stringify({
+      ...JSON.parse(data),
+      ...metadataAdds,
+      scheme: "xyz",
+    }),
     timeout
   );
+}
 
-  if (source !== undefined) {
-    await removeXYZTileMD5(
-      source,
-      z,
-      x,
-      y,
-      300000 // 5 mins
-    );
+/**
+ * Get XYZ tile from a URL
+ * @param {string} url The URL to fetch data from
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<Object>}
+ */
+export async function getXYZTileFromURL(url, timeout) {
+  try {
+    const response = await getDataFromURL(url, timeout, "arraybuffer");
+
+    return {
+      data: response.data,
+      headers: detectFormatAndHeaders(response.data).headers,
+    };
+  } catch (error) {
+    if (error.statusCode !== undefined) {
+      if (
+        error.statusCode === StatusCodes.NO_CONTENT ||
+        error.statusCode === StatusCodes.NOT_FOUND
+      ) {
+        throw new Error("Tile does not exist");
+      } else {
+        throw new Error(`Failed to get data tile from "${url}": ${error}`);
+      }
+    } else {
+      throw new Error(`Failed to get data tile from "${url}": ${error}`);
+    }
   }
 }
 
@@ -699,61 +720,18 @@ export async function cacheXYZTileFile(
   ) {
     return;
   } else {
-    await createFileWithLock(
-      `${sourcePath}/${z}/${x}/${y}.${format}`,
+    await createXYZTile(
+      sourcePath,
+      source,
+      z,
+      x,
+      y,
+      format,
+      storeMD5,
       data,
       300000 // 5 mins
     );
-
-    if (storeMD5 === true) {
-      await createXYZTileMD5(
-        source,
-        z,
-        x,
-        y,
-        data,
-        300000 // 5 mins
-      );
-    }
   }
-}
-
-/**
- * Open XYZ MD5 SQLite database
- * @param {string} filePath MD5 filepath
- * @param {number} mode SQLite mode (e.g: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_READONLY)
- * @param {boolean} wal Use WAL
- * @returns {Promise<sqlite3.Database>}
- */
-export async function openXYZMD5DB(filePath, mode, wal = false) {
-  const source = await openSQLite(filePath, mode, wal);
-
-  if (mode & sqlite3.OPEN_CREATE) {
-    await runSQL(
-      source,
-      `
-      CREATE TABLE IF NOT EXISTS
-        md5s (
-          zoom_level INTEGER NOT NULL,
-          tile_column INTEGER NOT NULL,
-          tile_row INTEGER NOT NULL,
-          hash TEXT,
-          PRIMARY KEY (zoom_level, tile_column, tile_row)
-        );
-      `
-    );
-  }
-
-  return source;
-}
-
-/**
- * Close the XYZ MD5 SQLite database
- * @param {sqlite3.Database} source SQLite database instance
- * @returns {Promise<void>}
- */
-export async function closeXYZMD5DB(source) {
-  await closeSQLite(source);
 }
 
 /**
