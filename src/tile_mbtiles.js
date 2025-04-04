@@ -8,8 +8,8 @@ import sqlite3 from "sqlite3";
 import path from "node:path";
 import fs from "node:fs";
 import {
+  getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
-  getTilesBoundsFromCoverage,
   detectFormatAndHeaders,
   getBBoxFromTiles,
   getDataFromURL,
@@ -53,8 +53,7 @@ async function getMBTilesLayersFromTiles(source) {
       OFFSET
         ?;
       `,
-      batchSize,
-      offset
+      [batchSize, offset]
     );
 
     if (rows.length === 0) {
@@ -209,15 +208,22 @@ async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
           tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
         VALUES
           (?, ?, ?, ?, ?, ?)
-        ON CONFLICT (zoom_level, tile_column, tile_row)
-        DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;
+        ON CONFLICT
+          (zoom_level, tile_column, tile_row)
+        DO UPDATE
+          SET
+            tile_data = excluded.tile_data,
+            hash = excluded.hash,
+            created = excluded.created;
         `,
-        z,
-        x,
-        (1 << z) - 1 - y,
-        data,
-        storeMD5 === true ? calculateMD5(data) : undefined,
-        Date.now()
+        [
+          z,
+          x,
+          (1 << z) - 1 - y,
+          data,
+          storeMD5 === true ? calculateMD5(data) : undefined,
+          Date.now(),
+        ]
       );
 
       return;
@@ -234,37 +240,37 @@ async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
 }
 
 /**
- * Get MBTiles tile hashs from coverage
+ * Get MBTiles tile hash from coverages
  * @param {sqlite3.Database} source SQLite database instance
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverage Specific coverage
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @returns {Object<string, string>} Hash object
  */
-export async function getMBTilesTileHashFromCoverage(source, coverage) {
-  const tileBounds = getTilesBoundsFromCoverage(coverage, "tms");
-
-  const result = {};
+export async function getMBTilesTileHashFromCoverages(source, coverages) {
+  const { tileBounds } = getTileBoundsFromCoverages(coverages, "tms");
 
   let query = "";
   const params = [];
-
-  for (const idx in tileBounds) {
-    const { zoom, x, y } = tileBounds[idx];
+  tileBounds.forEach((tileBound, idx) => {
+    const { zoom, x, y } = tileBound;
 
     if (idx > 0) {
       query += " UNION ALL ";
     }
 
     query +=
-      "(SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND (tile_column BETWEEN ? AND ?) AND (tile_row BETWEEN ? AND ?))";
+      "(SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?)";
 
     params.push(zoom, ...x, ...y);
-  }
+  });
 
-  const rows = await fetchAll(source, query, ...params);
+  query += ";";
 
+  const rows = await fetchAll(source, query, params);
+
+  const result = {};
   rows.forEach((row) => {
     result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = hash;
-  }, {});
+  });
 
   return result;
 }
@@ -291,9 +297,7 @@ export async function removeMBTilesTile(source, z, x, y, timeout) {
         WHERE
           zoom_level = ? AND tile_column = ? AND tile_row = ?;
         `,
-        z,
-        x,
-        (1 << z) - 1 - y
+        [z, x, (1 << z) - 1 - y]
       );
 
       return;
@@ -372,9 +376,7 @@ export async function getMBTilesTile(source, z, x, y) {
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
-    z,
-    x,
-    (1 << z) - 1 - y
+    [z, x, (1 << z) - 1 - y]
   );
 
   if (!data?.tile_data) {
@@ -733,11 +735,13 @@ export async function updateMBTilesMetadata(source, metadataAdds, timeout) {
               metadata (name, value)
             VALUES
               (?, ?)
-            ON CONFLICT (name)
-            DO UPDATE SET value = excluded.value;
+            ON CONFLICT
+              (name)
+            DO UPDATE
+              SET
+                value = excluded.value;
             `,
-            name,
-            typeof value === "object" ? JSON.stringify(value) : value
+            [name, typeof value === "object" ? JSON.stringify(value) : value]
           )
         )
       );
@@ -903,9 +907,7 @@ export async function getMBTilesTileMD5(source, z, x, y) {
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
-    z,
-    x,
-    (1 << z) - 1 - y
+    [z, x, (1 << z) - 1 - y]
   );
 
   if (!data?.hash) {
@@ -934,9 +936,7 @@ export async function getMBTilesTileCreated(source, z, x, y) {
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
-    z,
-    x,
-    (1 << z) - 1 - y
+    [z, x, (1 << z) - 1 - y]
   );
 
   if (!data?.created) {

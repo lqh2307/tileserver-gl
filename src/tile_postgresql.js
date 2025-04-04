@@ -6,6 +6,7 @@ import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import {
+  getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
   getBBoxFromTiles,
@@ -191,8 +192,13 @@ async function createPostgreSQLTile(source, z, x, y, storeMD5, data, timeout) {
       tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
     VALUES
       ($1, $2, $3, $4, $5, $6)
-    ON CONFLICT (zoom_level, tile_column, tile_row)
-    DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;
+    ON CONFLICT
+      (zoom_level, tile_column, tile_row)
+    DO UPDATE
+      SET
+      tile_data = excluded.tile_data,
+      hash = excluded.hash,
+      created = excluded.created;
     `,
     values: [
       z,
@@ -204,6 +210,42 @@ async function createPostgreSQLTile(source, z, x, y, storeMD5, data, timeout) {
     ],
     statement_timeout: timeout,
   });
+}
+
+/**
+ * Get PostgreSQL tile hash from coverages
+ * @param {pg.Client} source PostgreSQL database instance
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
+ * @returns {Object<string, string>} Hash object
+ */
+export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
+  const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+
+  let query = "";
+  const params = [];
+  tileBounds.forEach((tileBound, idx) => {
+    const { zoom, x, y } = tileBound;
+
+    if (idx > 0) {
+      query += " UNION ALL ";
+    }
+
+    query +=
+      "(SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?)";
+
+    params.push(zoom, ...x, ...y);
+  });
+
+  query += ";";
+
+  const rows = await fetchAll(source, query, params);
+
+  const result = {};
+  rows.forEach((row) => {
+    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = hash;
+  });
+
+  return result;
 }
 
 /**
@@ -574,8 +616,11 @@ export async function updatePostgreSQLMetadata(source, metadataAdds, timeout) {
           metadata (name, value)
         VALUES
           ($1, $2)
-        ON CONFLICT (name)
-        DO UPDATE SET value = excluded.value;
+        ON CONFLICT
+          (name)
+        DO UPDATE
+          SET
+            value = excluded.value;
         `,
         values: [
           name,

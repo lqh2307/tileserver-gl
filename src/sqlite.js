@@ -54,10 +54,10 @@ export async function openSQLite(filePath, mode, wal) {
  * Run a SQL command in SQLite
  * @param {sqlite3.Database} source SQLite database instance
  * @param {string} sql SQL command to execute
- * @param {...any} params Parameters for the SQL command
+ * @param {any[]} params Parameters for the SQL command
  * @returns {Promise<void>}
  */
-export async function runSQL(source, sql, ...params) {
+export async function runSQL(source, sql, params) {
   await new Promise((resolve, reject) => {
     source.run(sql, params, (error) => {
       if (error) {
@@ -73,10 +73,10 @@ export async function runSQL(source, sql, ...params) {
  * Fetch one row from SQLite database
  * @param {sqlite3.Database} source SQLite database instance
  * @param {string} sql SQL query string
- * @param {...any} params Parameters for the SQL query
+ * @param {any[]} params Parameters for the SQL query
  * @returns {Promise<Object>} The first row of the query result
  */
-export async function fetchOne(source, sql, ...params) {
+export async function fetchOne(source, sql, params) {
   return await new Promise((resolve, reject) => {
     source.get(sql, params, (error, row) => {
       if (error) {
@@ -92,10 +92,10 @@ export async function fetchOne(source, sql, ...params) {
  * Fetch all rows from SQLite database
  * @param {sqlite3.Database} source SQLite database instance
  * @param {string} sql SQL query string
- * @param {...any} params Parameters for the SQL query
+ * @param {any[]} params Parameters for the SQL query
  * @returns {Promise<object[]>} An array of rows
  */
-export async function fetchAll(source, sql, ...params) {
+export async function fetchAll(source, sql, params) {
   return await new Promise((resolve, reject) => {
     source.all(sql, params, (error, rows) => {
       if (error) {

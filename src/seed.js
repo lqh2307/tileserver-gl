@@ -13,9 +13,9 @@ import {
   getGeoJSON,
 } from "./geojson.js";
 import {
-  updateXYZMetadataFile,
-  downloadXYZTileFile,
+  updateXYZMetadata,
   getXYZTileCreated,
+  downloadXYZTile,
   closeXYZMD5DB,
   getXYZTileMD5,
   openXYZMD5DB,
@@ -29,7 +29,7 @@ import {
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
-  getTilesBoundsFromCoverages,
+  getTileBoundsFromCoverages,
   createFileWithLock,
   removeEmptyFolders,
   getDataFromURL,
@@ -124,13 +124,10 @@ async function seedMBTilesTiles(
   const startTime = Date.now();
 
   /* Calculate summary */
-  const { grandTotal, summaries } = getTilesBoundsFromCoverages(
-    coverages,
-    "xyz"
-  );
+  const { total, summaries } = getTileBoundsFromCoverages(coverages, "xyz");
 
   /* Log */
-  let log = `Seeding ${grandTotal} tiles of mbtiles "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
+  let log = `Seeding ${total} tiles of mbtiles "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
@@ -233,7 +230,7 @@ async function seedMBTilesTiles(
 
         printLog(
           "info",
-          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${grandTotal}...`
+          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
         );
 
         await downloadMBTilesTile(
@@ -251,7 +248,7 @@ async function seedMBTilesTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${grandTotal}: ${error}`
+        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
       );
     }
   }
@@ -306,7 +303,7 @@ async function seedMBTilesTiles(
 
   printLog(
     "info",
-    `Completed seed ${grandTotal} tiles of mbtiles "${id}" after ${
+    `Completed seed ${total} tiles of mbtiles "${id}" after ${
       (doneTime - startTime) / 1000
     }s!`
   );
@@ -343,13 +340,10 @@ async function seedPostgreSQLTiles(
   const startTime = Date.now();
 
   /* Calculate summary */
-  const { grandTotal, summaries } = getTilesBoundsFromCoverages(
-    coverages,
-    "xyz"
-  );
+  const { total, summaries } = getTileBoundsFromCoverages(coverages, "xyz");
 
   /* Log */
-  let log = `Seeding ${grandTotal} tiles of postgresql "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
+  let log = `Seeding ${total} tiles of postgresql "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
@@ -451,7 +445,7 @@ async function seedPostgreSQLTiles(
 
         printLog(
           "info",
-          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${grandTotal}...`
+          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
         );
 
         await downloadPostgreSQLTile(
@@ -469,7 +463,7 @@ async function seedPostgreSQLTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${grandTotal}: ${error}`
+        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
       );
     }
   }
@@ -524,7 +518,7 @@ async function seedPostgreSQLTiles(
 
   printLog(
     "info",
-    `Completed seed ${grandTotal} tiles of postgresql "${id}" after ${
+    `Completed seed ${total} tiles of postgresql "${id}" after ${
       (doneTime - startTime) / 1000
     }s!`
   );
@@ -561,13 +555,10 @@ async function seedXYZTiles(
   const startTime = Date.now();
 
   /* Calculate summary */
-  const { grandTotal, summaries } = getTilesBoundsFromCoverages(
-    coverages,
-    "xyz"
-  );
+  const { total, summaries } = getTileBoundsFromCoverages(coverages, "xyz");
 
   /* Log */
-  let log = `Seeding ${grandTotal} tiles of xyz "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
+  let log = `Seeding ${total} tiles of xyz "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
@@ -600,7 +591,7 @@ async function seedXYZTiles(
   /* Update metadata */
   printLog("info", "Updating metadata...");
 
-  await updateXYZMetadataFile(
+  await updateXYZMetadata(
     `${process.env.DATA_DIR}/caches/xyzs/${id}/metadata.json`,
     metadata,
     300000 // 5 mins
@@ -672,10 +663,10 @@ async function seedXYZTiles(
 
         printLog(
           "info",
-          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${grandTotal}...`
+          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
         );
 
-        await downloadXYZTileFile(
+        await downloadXYZTile(
           targetURL,
           id,
           source,
@@ -692,7 +683,7 @@ async function seedXYZTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${grandTotal}: ${error}`
+        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
       );
     }
   }
@@ -753,7 +744,7 @@ async function seedXYZTiles(
 
   printLog(
     "info",
-    `Completed seed ${grandTotal} tiles of xyz "${id}" after ${
+    `Completed seed ${total} tiles of xyz "${id}" after ${
       (doneTime - startTime) / 1000
     }s!`
   );

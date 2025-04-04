@@ -42,7 +42,7 @@ import {
   delay,
 } from "./utils.js";
 import {
-  updateXYZMetadataFile,
+  updateXYZMetadata,
   getXYZTileCreated,
   getXYZTileFromURL,
   cacheXYZTileFile,
@@ -1032,7 +1032,7 @@ export async function renderXYZTiles(
   /* Update metadata */
   printLog("info", "Updating metadata...");
 
-  await updateXYZMetadataFile(
+  await updateXYZMetadata(
     `${process.env.DATA_DIR}/exports/xyzs/${id}/metadata.json`,
     {
       ...metadata,
