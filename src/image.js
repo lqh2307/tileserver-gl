@@ -1103,9 +1103,7 @@ export async function renderXYZTiles(
         }
       } else if (refreshTimestamp !== undefined) {
         try {
-          const created = await getXYZTileCreated(
-            `${process.env.DATA_DIR}/exports/xyzs/${id}/${tileName}.${metadata.format}`
-          );
+          const created = await getXYZTileCreated(source, z, x, y);
 
           if (!created || created < refreshTimestamp) {
             needRender = true;

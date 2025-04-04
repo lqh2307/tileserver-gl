@@ -764,22 +764,32 @@ export async function getXYZTileMD5(source, z, x, y) {
 }
 
 /**
- * Get created of XYZ tile
- * @param {string} filePath The path of the file
- * @returns {Promise<number>}
+ * Get created of MBTiles tile
+ * @param {sqlite3.Database} source SQLite database instance
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {Promise<number>} Returns the created as a number
  */
-export async function getXYZTileCreated(filePath) {
-  try {
-    const stats = await fsPromise.stat(filePath);
+export async function getXYZTileCreated(source, z, x, y) {
+  const data = await fetchOne(
+    source,
+    `
+    SELECT
+      created
+    FROM
+      md5s
+    WHERE
+      zoom_level = ? AND tile_column = ? AND tile_row = ?;
+    `,
+    [z, x, y]
+  );
 
-    return stats.ctimeMs;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("Tile created does not exist");
-    } else {
-      throw error;
-    }
+  if (!data?.created) {
+    throw new Error("Tile created does not exist");
   }
+
+  return data.created;
 }
 
 /**

@@ -635,9 +635,7 @@ async function seedXYZTiles(
         }
       } else if (refreshTimestamp !== undefined) {
         try {
-          const created = await getXYZTileCreated(
-            `${process.env.DATA_DIR}/caches/xyzs/${id}/${tileName}.${metadata.format}`
-          );
+          const created = await getXYZTileCreated(source, z, x, y);
 
           if (!created || created < refreshTimestamp) {
             needDownload = true;

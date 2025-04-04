@@ -424,9 +424,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
       if (cleanUpTimestamp !== undefined) {
         try {
-          const created = await getXYZTileCreated(
-            `${process.env.DATA_DIR}/caches/xyzs/${id}/${tileName}.${format}`
-          );
+          const created = await getXYZTileCreated(source, z, x, y);
 
           if (!created || created < cleanUpTimestamp) {
             needRemove = true;
