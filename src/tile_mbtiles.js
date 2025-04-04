@@ -53,8 +53,7 @@ async function getMBTilesLayersFromTiles(source) {
       OFFSET
         ?;
       `,
-      batchSize,
-      offset
+      [batchSize, offset]
     );
 
     if (rows.length === 0) {
@@ -209,15 +208,22 @@ async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
           tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
         VALUES
           (?, ?, ?, ?, ?, ?)
-        ON CONFLICT (zoom_level, tile_column, tile_row)
-        DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;
+        ON CONFLICT
+          (zoom_level, tile_column, tile_row)
+        DO UPDATE
+          SET
+            tile_data = excluded.tile_data,
+            hash = excluded.hash,
+            created = excluded.created;
         `,
-        z,
-        x,
-        (1 << z) - 1 - y,
-        data,
-        storeMD5 === true ? calculateMD5(data) : undefined,
-        Date.now()
+        [
+          z,
+          x,
+          (1 << z) - 1 - y,
+          data,
+          storeMD5 === true ? calculateMD5(data) : undefined,
+          Date.now(),
+        ]
       );
 
       return;
@@ -259,7 +265,7 @@ export async function getMBTilesTileHashFromCoverages(source, coverages) {
 
   query += ";";
 
-  const rows = await fetchAll(source, query, ...params);
+  const rows = await fetchAll(source, query, params);
 
   const result = {};
   rows.forEach((row) => {
@@ -291,9 +297,7 @@ export async function removeMBTilesTile(source, z, x, y, timeout) {
         WHERE
           zoom_level = ? AND tile_column = ? AND tile_row = ?;
         `,
-        z,
-        x,
-        (1 << z) - 1 - y
+        [z, x, (1 << z) - 1 - y]
       );
 
       return;
@@ -372,9 +376,7 @@ export async function getMBTilesTile(source, z, x, y) {
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
-    z,
-    x,
-    (1 << z) - 1 - y
+    [z, x, (1 << z) - 1 - y]
   );
 
   if (!data?.tile_data) {
@@ -733,11 +735,13 @@ export async function updateMBTilesMetadata(source, metadataAdds, timeout) {
               metadata (name, value)
             VALUES
               (?, ?)
-            ON CONFLICT (name)
-            DO UPDATE SET value = excluded.value;
+            ON CONFLICT
+              (name)
+            DO UPDATE
+              SET
+                value = excluded.value;
             `,
-            name,
-            typeof value === "object" ? JSON.stringify(value) : value
+            [name, typeof value === "object" ? JSON.stringify(value) : value]
           )
         )
       );
@@ -903,9 +907,7 @@ export async function getMBTilesTileMD5(source, z, x, y) {
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
-    z,
-    x,
-    (1 << z) - 1 - y
+    [z, x, (1 << z) - 1 - y]
   );
 
   if (!data?.hash) {
@@ -934,9 +936,7 @@ export async function getMBTilesTileCreated(source, z, x, y) {
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
-    z,
-    x,
-    (1 << z) - 1 - y
+    [z, x, (1 << z) - 1 - y]
   );
 
   if (!data?.created) {

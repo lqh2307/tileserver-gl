@@ -203,13 +203,11 @@ async function upsertXYZTileMD5(source, z, x, y, hash) {
       (?, ?, ?, ?)
     ON CONFLICT
       (zoom_level, tile_column, tile_row)
-    DO
-      UPDATE SET hash = excluded.hash;
+    DO UPDATE
+      SET
+        hash = excluded.hash;
     `,
-    z,
-    x,
-    y,
-    hash
+    [z, x, y, hash]
   );
 }
 
@@ -265,9 +263,7 @@ async function removeXYZTileMD5(source, z, x, y, timeout) {
         WHERE
           zoom_level = ? AND tile_column = ? AND tile_row = ?;
         `,
-        z,
-        x,
-        y
+        [z, x, y]
       );
 
       return;
@@ -311,7 +307,7 @@ export async function getXYZTileHashFromCoverages(source, coverages) {
 
   query += ";";
 
-  const rows = await fetchAll(source, query, ...params);
+  const rows = await fetchAll(source, query, params);
 
   const result = {};
   rows.forEach((row) => {
@@ -779,9 +775,7 @@ export async function getXYZTileMD5(source, z, x, y) {
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
-    z,
-    x,
-    y
+    [z, x, y]
   );
 
   if (!data?.hash) {

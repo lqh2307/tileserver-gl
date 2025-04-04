@@ -192,8 +192,13 @@ async function createPostgreSQLTile(source, z, x, y, storeMD5, data, timeout) {
       tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
     VALUES
       ($1, $2, $3, $4, $5, $6)
-    ON CONFLICT (zoom_level, tile_column, tile_row)
-    DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;
+    ON CONFLICT
+      (zoom_level, tile_column, tile_row)
+    DO UPDATE
+      SET
+      tile_data = excluded.tile_data,
+      hash = excluded.hash,
+      created = excluded.created;
     `,
     values: [
       z,
@@ -233,7 +238,7 @@ export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
 
   query += ";";
 
-  const rows = await fetchAll(source, query, ...params);
+  const rows = await fetchAll(source, query, params);
 
   const result = {};
   rows.forEach((row) => {
@@ -611,8 +616,11 @@ export async function updatePostgreSQLMetadata(source, metadataAdds, timeout) {
           metadata (name, value)
         VALUES
           ($1, $2)
-        ON CONFLICT (name)
-        DO UPDATE SET value = excluded.value;
+        ON CONFLICT
+          (name)
+        DO UPDATE
+          SET
+            value = excluded.value;
         `,
         values: [
           name,
