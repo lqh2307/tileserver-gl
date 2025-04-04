@@ -9,6 +9,7 @@ import path from "node:path";
 import fs from "node:fs";
 import {
   isFullTransparentPNGImage,
+  getTilesBoundsFromCoverage,
   detectFormatAndHeaders,
   getBBoxFromTiles,
   getDataFromURL,
@@ -230,6 +231,42 @@ async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
   }
 
   throw new Error(`Timeout to access MBTiles DB`);
+}
+
+/**
+ * Get MBTiles tile hashs from coverage
+ * @param {sqlite3.Database} source SQLite database instance
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverage Specific coverage
+ * @returns {Object<string, string>} Hash object
+ */
+export async function getMBTilesTileHashFromCoverage(source, coverage) {
+  const tileBounds = getTilesBoundsFromCoverage(coverage, "tms");
+
+  const result = {};
+
+  let query = "";
+  const params = [];
+
+  for (const idx in tileBounds) {
+    const { zoom, x, y } = tileBounds[idx];
+
+    if (idx > 0) {
+      query += " UNION ALL ";
+    }
+
+    query +=
+      "(SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND (tile_column BETWEEN ? AND ?) AND (tile_row BETWEEN ? AND ?))";
+
+    params.push(zoom, ...x, ...y);
+  }
+
+  const rows = await fetchAll(source, query, ...params);
+
+  rows.forEach((row) => {
+    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = hash;
+  }, {});
+
+  return result;
 }
 
 /**

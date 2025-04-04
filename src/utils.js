@@ -183,6 +183,46 @@ export function getLonLatFromXYZ(
 }
 
 /**
+ * Get tile bound for specific zoom level and bounding box
+ * @param {number} zoom Specific zoom levels
+ * @param {[number, number, number, number]} bbox Specific bounding box
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @returns {{ z: number x: [number, number], y: [number, number] }}
+ */
+export function getTilesBoundFromZoomAndBBox(zoom, bbox, scheme) {
+  const maxTileIndex = (1 << zoom) - 1;
+
+  let [xMin, yMin] = getXYZFromLonLatZ(bbox[0], bbox[3], zoom, scheme);
+  let [xMax, yMax] = getXYZFromLonLatZ(bbox[2], bbox[1], zoom, scheme);
+
+  if (scheme === "tms") {
+    [yMin, yMax] = [maxTileIndex - yMax, maxTileIndex - yMin];
+  }
+
+  if (yMin > yMax) {
+    [yMin, yMax] = [yMax, yMin];
+  }
+
+  return {
+    z: zoom,
+    x: [xMin, xMax],
+    y: [yMin, yMax],
+  };
+}
+
+/**
+ * Get tile bounds for specific coverage
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverage Specific coverage
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @returns {{ z: number x: [number, number], y: [number, number]}[]}
+ */
+export function getTilesBoundsFromCoverage(coverage, scheme) {
+  return coverage.map(({ zoom, bbox }) =>
+    getTilesBoundFromZoomAndBBox(zoom, bbox, scheme)
+  );
+}
+
+/**
  * Get tile bounds for specific zoom levels intersecting multiple bounding boxes
  * @param {[number, number, number, number][]} bboxs Array of bounding boxes [west, south, east, north] in EPSG:4326
  * @param {number[]} zooms Array of specific zoom levels
