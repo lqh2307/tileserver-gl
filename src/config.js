@@ -3,7 +3,7 @@
 import { createFileWithLock, getJSONSchema, validateJSON } from "./utils.js";
 import fsPromise from "node:fs/promises";
 
-let config;
+let config = {};
 
 /**
  * Read config.json file
@@ -17,7 +17,7 @@ async function readConfigFile(isValidate) {
     "utf8"
   );
 
-  const config = JSON.parse(data);
+  Object.assign(config, JSON.parse(data));
 
   /* Validate config.json file */
   if (isValidate === true) {

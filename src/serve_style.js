@@ -38,7 +38,7 @@ function serveStyleHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.styles[id];
+      const item = config.styles[id];
 
       if (item === undefined) {
         return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
@@ -70,7 +70,7 @@ function serveWMTSHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.styles[id].rendered;
+      const item = config.styles[id].rendered;
 
       if (item === undefined) {
         return res.status(StatusCodes.NOT_FOUND).send("WMTS does not exist");
@@ -104,7 +104,7 @@ function getStyleHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.styles[id];
+      const item = config.styles[id];
 
       /* Check style is used? */
       if (item === undefined) {
@@ -209,7 +209,7 @@ function getStyleHandler() {
                 source.tiles.map((tile) => {
                   if (isLocalTileURL(tile) === true) {
                     const sourceID = tile.split("/")[2];
-                    const sourceData = config.repo.datas[sourceID];
+                    const sourceData = config.datas[sourceID];
 
                     tile = `${requestHost}/datas/${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
                   }
@@ -250,7 +250,7 @@ function renderStyleHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.styles[id];
+      const item = config.styles[id];
 
       /* Check rendered is exist? */
       if (item === undefined || item.rendered === undefined) {
@@ -399,10 +399,10 @@ function getStylesListHandler() {
       const requestHost = getRequestHost(req);
 
       const result = await Promise.all(
-        Object.keys(config.repo.styles).map(async (id) => {
+        Object.keys(config.styles).map(async (id) => {
           return {
             id: id,
-            name: config.repo.styles[id].name,
+            name: config.styles[id].name,
             url: `${requestHost}/styles/${id}/style.json`,
           };
         })
@@ -435,7 +435,7 @@ function getRenderedTileHandler() {
     }
 
     const id = req.params.id;
-    const item = config.repo.styles[id];
+    const item = config.styles[id];
 
     /* Check rendered is exist? */
     if (item === undefined || item.rendered === undefined) {
@@ -497,7 +497,7 @@ function getRenderedHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.repo.styles[id];
+      const item = config.styles[id];
 
       /* Check rendered is exist? */
       if (item === undefined || item.rendered === undefined) {
@@ -543,8 +543,8 @@ function getRenderedsListHandler() {
 
       const result = [];
 
-      Object.keys(config.repo.styles).map((id) => {
-        const item = config.repo.styles[id].rendered;
+      Object.keys(config.styles).map((id) => {
+        const item = config.styles[id].rendered;
 
         if (item !== undefined) {
           result.push({
@@ -579,8 +579,8 @@ function getStyleJSONsListHandler() {
       const requestHost = getRequestHost(req);
 
       const result = await Promise.all(
-        Object.keys(config.repo.styles).map(async (id) => {
-          const item = config.repo.styles[id];
+        Object.keys(config.styles).map(async (id) => {
+          const item = config.styles[id];
 
           /* Get styleJSON and cache if not exist if use cache */
           let styleJSON;
@@ -680,7 +680,7 @@ function getStyleJSONsListHandler() {
                     source.tiles.map((tile) => {
                       if (isLocalTileURL(tile) === true) {
                         const sourceID = tile.split("/")[2];
-                        const sourceData = config.repo.datas[sourceID];
+                        const sourceData = config.datas[sourceID];
 
                         tile = `${requestHost}/datas/${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
                       }
@@ -721,8 +721,8 @@ function getRenderedTileJSONsListHandler() {
 
       const result = [];
 
-      Object.keys(config.repo.styles).map((id) => {
-        const item = config.repo.styles[id].rendered;
+      Object.keys(config.styles).map((id) => {
+        const item = config.styles[id].rendered;
 
         if (item !== undefined) {
           result.push({
@@ -749,47 +749,6 @@ function getRenderedTileJSONsListHandler() {
 export const serve_style = {
   init: () => {
     const app = express().disable("x-powered-by");
-
-    if (process.env.SERVE_FRONT_PAGE !== "false") {
-      /**
-       * @swagger
-       * tags:
-       *   - name: Style
-       *     description: Style related endpoints
-       * /styles/{id}/:
-       *   get:
-       *     tags:
-       *       - Style
-       *     summary: Serve style page
-       *     parameters:
-       *       - in: path
-       *         name: id
-       *         schema:
-       *           type: string
-       *           example: id
-       *         required: true
-       *         description: ID of the style
-       *     responses:
-       *       200:
-       *         description: Style page
-       *         content:
-       *           text/html:
-       *             schema:
-       *               type: string
-       *       404:
-       *         description: Not found
-       *       503:
-       *         description: Server is starting up
-       *         content:
-       *           text/plain:
-       *             schema:
-       *               type: string
-       *               example: Starting...
-       *       500:
-       *         description: Internal server error
-       */
-      app.get("/:id/$", serveStyleHandler());
-    }
 
     /**
      * @swagger
@@ -1242,6 +1201,47 @@ export const serve_style = {
       );
     }
 
+    if (process.env.SERVE_FRONT_PAGE !== "false") {
+      /**
+       * @swagger
+       * tags:
+       *   - name: Style
+       *     description: Style related endpoints
+       * /styles/{id}/:
+       *   get:
+       *     tags:
+       *       - Style
+       *     summary: Serve style page
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the style
+       *     responses:
+       *       200:
+       *         description: Style page
+       *         content:
+       *           text/html:
+       *             schema:
+       *               type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/:id", serveStyleHandler());
+    }
+
     return app;
   },
 
@@ -1252,6 +1252,8 @@ export const serve_style = {
       const ids = Object.keys(config.styles);
 
       printLog("info", `Loading ${ids.length} styles...`);
+
+      const repos = {};
 
       await Promise.all(
         ids.map(async (id) => {
@@ -1338,7 +1340,7 @@ export const serve_style = {
             }
 
             /* Add to repo */
-            config.repo.styles[id] = styleInfo;
+            repos[id] = styleInfo;
           } catch (error) {
             printLog(
               "error",
@@ -1382,7 +1384,7 @@ export const serve_style = {
                       source.tiles.map((tile) => {
                         if (isLocalTileURL(tile) === true) {
                           const sourceID = tile.split("/")[2];
-                          const sourceData = config.repo.datas[sourceID];
+                          const sourceData = config.datas[sourceID];
 
                           tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
                         }
@@ -1400,7 +1402,7 @@ export const serve_style = {
                     source.urls.forEach((url) => {
                       if (isLocalTileURL(url) === true) {
                         const sourceID = url.split("/")[2];
-                        const sourceData = config.repo.datas[sourceID];
+                        const sourceData = config.datas[sourceID];
 
                         const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
 
@@ -1428,7 +1430,7 @@ export const serve_style = {
                   if (source.url !== undefined) {
                     if (isLocalTileURL(source.url) === true) {
                       const sourceID = source.url.split("/")[2];
-                      const sourceData = config.repo.datas[sourceID];
+                      const sourceData = config.datas[sourceID];
 
                       const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
 
@@ -1452,7 +1454,7 @@ export const serve_style = {
                     if (source.tiles.length === 1) {
                       if (isLocalTileURL(source.tiles[0]) === true) {
                         const sourceID = source.tiles[0].split("/")[2];
-                        const sourceData = config.repo.datas[sourceID];
+                        const sourceData = config.datas[sourceID];
 
                         styleJSON.sources[id] = {
                           ...sourceData.tileJSON,
@@ -1479,7 +1481,7 @@ export const serve_style = {
               rendered.styleJSON = styleJSON;
 
               /* Add to repo */
-              config.repo.styles[id].rendered = rendered;
+              repos[id].rendered = rendered;
             } catch (error) {
               printLog(
                 "error",
@@ -1489,6 +1491,8 @@ export const serve_style = {
           }
         })
       );
+
+      config.styles = repos;
     }
   },
 };

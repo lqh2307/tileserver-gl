@@ -53,7 +53,7 @@ function getFontsListHandler() {
       const requestHost = getRequestHost(req);
 
       const result = await Promise.all(
-        Object.keys(config.repo.fonts).map(async (id) => {
+        Object.keys(config.fonts).map(async (id) => {
           return {
             id: id,
             name: id,
@@ -174,6 +174,8 @@ export const serve_font = {
 
       printLog("info", `Loading ${ids.length} fonts...`);
 
+      const repos = {};
+
       await Promise.all(
         ids.map(async (id) => {
           const item = config.fonts[id];
@@ -201,7 +203,7 @@ export const serve_font = {
             }
 
             /* Add to repo */
-            config.repo.fonts[id] = fontInfo;
+            repos[id] = fontInfo;
           } catch (error) {
             printLog(
               "error",
@@ -210,6 +212,8 @@ export const serve_font = {
           }
         })
       );
+
+      config.fonts = repos;
     }
   },
 };

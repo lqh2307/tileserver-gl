@@ -47,7 +47,7 @@ import {
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 
-let seed;
+let seed = {};
 
 /**
  * Read seed.json file
@@ -61,7 +61,7 @@ async function readSeedFile(isValidate) {
     "utf8"
   );
 
-  const seed = JSON.parse(data);
+  Object.assign(seed, JSON.parse(data));
 
   /* Validate seed.json file */
   if (isValidate === true) {

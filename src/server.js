@@ -95,13 +95,7 @@ async function loadData() {
     .then(() => {
       printLog("info", "Completed startup!");
 
-      /* Update config */
       config.isStarted = true;
-      delete config.styles;
-      delete config.geojsons;
-      delete config.datas;
-      delete config.sprites;
-      delete config.fonts;
     })
     .catch((error) => {
       throw new Error(`Failed to load data: ${error}`);

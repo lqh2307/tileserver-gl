@@ -164,7 +164,7 @@ export async function renderImage(
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
           const tileName = `${z}/${x}/${y}`;
-          const item = config.repo.datas[parts[2]];
+          const item = config.datas[parts[2]];
 
           try {
             /* Get rendered tile */
@@ -198,7 +198,7 @@ export async function renderImage(
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
           const tileName = `${z}/${x}/${y}`;
-          const item = config.repo.datas[parts[2]];
+          const item = config.datas[parts[2]];
 
           try {
             /* Get rendered tile */
@@ -284,7 +284,7 @@ export async function renderImage(
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
           const tileName = `${z}/${x}/${y}`;
-          const item = config.repo.datas[parts[2]];
+          const item = config.datas[parts[2]];
 
           try {
             /* Get rendered tile */
@@ -378,7 +378,7 @@ export async function renderImage(
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
           const tileName = `${z}/${x}/${y}`;
-          const item = config.repo.datas[parts[2]];
+          const item = config.datas[parts[2]];
 
           try {
             /* Get rendered tile */
@@ -790,7 +790,7 @@ export async function renderMBTilesTiles(
     completeTasks: 0,
   };
 
-  const rendered = config.repo.styles[id].rendered;
+  const rendered = config.styles[id].rendered;
 
   async function renderMBTilesTileData(z, x, y, tasks) {
     const tileName = `${z}/${x}/${y}`;
@@ -1049,7 +1049,7 @@ export async function renderXYZTiles(
     completeTasks: 0,
   };
 
-  const rendered = config.repo.styles[id].rendered;
+  const rendered = config.styles[id].rendered;
 
   async function renderXYZTileData(z, x, y, tasks) {
     const tileName = `${z}/${x}/${y}`;
@@ -1309,7 +1309,7 @@ export async function renderPostgreSQLTiles(
     completeTasks: 0,
   };
 
-  const rendered = config.repo.styles[id].rendered;
+  const rendered = config.styles[id].rendered;
 
   async function renderPostgreSQLTileData(z, x, y, tasks) {
     const tileName = `${z}/${x}/${y}`;
