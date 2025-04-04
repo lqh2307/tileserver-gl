@@ -587,7 +587,7 @@ export async function closeXYZMD5DB(source) {
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
-export async function downloadXYZTileFile(
+export async function downloadXYZTile(
   url,
   id,
   source,
@@ -646,7 +646,7 @@ export async function downloadXYZTileFile(
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function updateXYZMetadataFile(filePath, metadataAdds, timeout) {
+export async function updateXYZMetadata(filePath, metadataAdds, timeout) {
   const data = await fsPromise.readFile(filePath, "utf8");
 
   await createFileWithLock(

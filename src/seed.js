@@ -13,9 +13,9 @@ import {
   getGeoJSON,
 } from "./geojson.js";
 import {
-  updateXYZMetadataFile,
-  downloadXYZTileFile,
+  updateXYZMetadata,
   getXYZTileCreated,
+  downloadXYZTile,
   closeXYZMD5DB,
   getXYZTileMD5,
   openXYZMD5DB,
@@ -591,7 +591,7 @@ async function seedXYZTiles(
   /* Update metadata */
   printLog("info", "Updating metadata...");
 
-  await updateXYZMetadataFile(
+  await updateXYZMetadata(
     `${process.env.DATA_DIR}/caches/xyzs/${id}/metadata.json`,
     metadata,
     300000 // 5 mins
@@ -666,7 +666,7 @@ async function seedXYZTiles(
           `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
         );
 
-        await downloadXYZTileFile(
+        await downloadXYZTile(
           targetURL,
           id,
           source,
