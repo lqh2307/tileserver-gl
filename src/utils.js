@@ -12,7 +12,6 @@ import crypto from "crypto";
 import axios from "axios";
 import proj4 from "proj4";
 import sharp from "sharp";
-import fs from "node:fs";
 import zlib from "zlib";
 import util from "util";
 import Ajv from "ajv";
@@ -183,17 +182,26 @@ export function getLonLatFromXYZ(
 }
 
 /**
- * Get tile bound for specific zoom level and bounding box
- * @param {number} zoom Specific zoom levels
- * @param {[number, number, number, number]} bbox Specific bounding box
+ * Get tile bound for specific coverage
+ * @param {{ zoom: number, bbox: [number, number, number, number]}} coverage Specific coverage
  * @param {"xyz"|"tms"} scheme Tile scheme
  * @returns {{ z: number x: [number, number], y: [number, number] }}
  */
-export function getTilesBoundFromZoomAndBBox(zoom, bbox, scheme) {
-  const maxTileIndex = (1 << zoom) - 1;
+export function getTileBoundFromCoverage(coverage, scheme) {
+  const maxTileIndex = (1 << coverage.zoom) - 1;
 
-  let [xMin, yMin] = getXYZFromLonLatZ(bbox[0], bbox[3], zoom, scheme);
-  let [xMax, yMax] = getXYZFromLonLatZ(bbox[2], bbox[1], zoom, scheme);
+  let [xMin, yMin] = getXYZFromLonLatZ(
+    coverage.bbox[0],
+    coverage.bbox[3],
+    coverage.zoom,
+    scheme
+  );
+  let [xMax, yMax] = getXYZFromLonLatZ(
+    coverage.bbox[2],
+    coverage.bbox[1],
+    coverage.zoom,
+    scheme
+  );
 
   if (scheme === "tms") {
     [yMin, yMax] = [maxTileIndex - yMax, maxTileIndex - yMin];
@@ -204,90 +212,51 @@ export function getTilesBoundFromZoomAndBBox(zoom, bbox, scheme) {
   }
 
   return {
-    z: zoom,
+    z: coverage.zoom,
     x: [xMin, xMax],
     y: [yMin, yMax],
   };
 }
 
 /**
- * Get tile bounds for specific coverage
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverage Specific coverage
+ * Get tile bounds and total count for specific coverages
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {"xyz"|"tms"} scheme Tile scheme
- * @returns {{ z: number x: [number, number], y: [number, number]}[]}
+ * @returns {{ { z: number, x: [number, number], y: [number, number] }[] }}
  */
-export function getTilesBoundsFromCoverage(coverage, scheme) {
-  return coverage.map(({ zoom, bbox }) =>
-    getTilesBoundFromZoomAndBBox(zoom, bbox, scheme)
+export function getTileBoundsFromCoverages(coverages, scheme) {
+  return coverages.reduce(
+    (acc, coverage) => {
+      const tileBound = getTileBoundsFromCoverages(coverage, scheme);
+
+      acc.tileBounds.push(tileBound);
+
+      acc.total +=
+        (tileBound.x[1] - tileBound.x[0] + 1) *
+        (tileBound.y[1] - tileBound.y[0] + 1);
+
+      return acc;
+    },
+    { total: 0, tileBounds: [] }
   );
 }
 
 /**
- * Get tile bounds for specific zoom levels intersecting multiple bounding boxes
- * @param {[number, number, number, number][]} bboxs Array of bounding boxes [west, south, east, north] in EPSG:4326
- * @param {number[]} zooms Array of specific zoom levels
+ * Count total number of tiles for specific coverages
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {"xyz"|"tms"} scheme Tile scheme
- * @returns {{ total: number, tilesSummaries: {string, { x: [number, number], y: [number, number] } } }} Object containing total tiles and an array of tile summaries (one per bbox)
+ * @returns {number} Total tile count
  */
-export function getTilesBoundsFromBBoxs(bboxs, zooms, scheme) {
-  const tilesSummaries = [];
-  let total = 0;
+export function countTilesFromCoverages(coverages, scheme) {
+  return coverages.reduce((total, coverage) => {
+    const tileBound = getTileBoundsFromCoverages(coverage, scheme);
 
-  for (const bbox of bboxs) {
-    const tilesSummary = {};
-
-    for (const zoom of zooms) {
-      const maxTileIndex = (1 << zoom) - 1;
-
-      let [xMin, yMin] = getXYZFromLonLatZ(bbox[0], bbox[3], zoom, scheme);
-      let [xMax, yMax] = getXYZFromLonLatZ(bbox[2], bbox[1], zoom, scheme);
-
-      if (scheme === "tms") {
-        [yMin, yMax] = [maxTileIndex - yMax, maxTileIndex - yMin];
-      }
-
-      // Limit yMin <= yMax
-      if (yMin > yMax) {
-        [yMin, yMax] = [yMax, yMin];
-      }
-
-      tilesSummary[`${zoom}`] = {
-        x: [xMin, xMax],
-        y: [yMin, yMax],
-      };
-
-      total += (xMax - xMin + 1) * (yMax - yMin + 1);
-    }
-
-    tilesSummaries.push(tilesSummary);
-  }
-
-  return { total, tilesSummaries };
-}
-
-/**
- * Get tile bounds for specific zoom levels intersecting multiple bounding boxes
- * @param {{ bboxs: [number, number, number, number][], zooms: number[] }[]} coverages - Array of coverage objects, each containing bounding boxes [west, south, east, north] in EPSG:4326 and an array of specific zoom levels
- * @param {"xyz"|"tms"} scheme - Tile scheme
- * @returns {{ grandTotal: number, summaries: { total: number, tilesSummaries: {string, { x: [number, number], y: [number, number] } } }[] }} - Object containing total tile count and an array of tile summaries (one per coverage)
- */
-export function getTilesBoundsFromCoverages(coverages, scheme) {
-  const summaries = [];
-  let grandTotal = 0;
-
-  for (const coverage of coverages) {
-    const { total, tilesSummaries } = getTilesBoundsFromBBoxs(
-      coverage.bboxs,
-      coverage.zooms,
-      scheme
+    return (
+      total +
+      (tileBound.x[1] - tileBound.x[0] + 1) *
+        (tileBound.y[1] - tileBound.y[0] + 1)
     );
-
-    summaries.push({ total, tilesSummaries });
-
-    grandTotal += total;
-  }
-
-  return { grandTotal, summaries };
+  }, 0);
 }
 
 /**

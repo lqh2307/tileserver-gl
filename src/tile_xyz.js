@@ -8,6 +8,7 @@ import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
 import sqlite3 from "sqlite3";
 import {
+  getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
   removeFileWithLock,
@@ -282,6 +283,42 @@ async function removeXYZTileMD5(source, z, x, y, timeout) {
   }
 
   throw new Error(`Timeout to access XYZ MD5 DB`);
+}
+
+/**
+ * Get XYZ tile hash from coverages
+ * @param {sqlite3.Database} source SQLite database instance
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
+ * @returns {Object<string, string>} Hash object
+ */
+export async function getXYZTileHashFromCoverages(source, coverages) {
+  const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+
+  let query = "";
+  const params = [];
+  tileBounds.forEach((tileBound, idx) => {
+    const { zoom, x, y } = tileBound;
+
+    if (idx > 0) {
+      query += " UNION ALL ";
+    }
+
+    query +=
+      "(SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?)";
+
+    params.push(zoom, ...x, ...y);
+  });
+
+  query += ";";
+
+  const rows = await fetchAll(source, query, ...params);
+
+  const result = {};
+  rows.forEach((row) => {
+    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = hash;
+  });
+
+  return result;
 }
 
 /**
