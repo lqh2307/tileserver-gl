@@ -341,6 +341,42 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
     const tableInfos = await fetchAll(source, "PRAGMA table_info(md5s)");
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
+      try {
+        await runSQL(
+          source,
+          `ALTER TABLE
+            md5s
+          ADD COLUMN IF NOT EXISTS
+            hash TEXT;
+          `
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to create column "hash" for table "md5s" of XYZ MD5 DB ${filePath}: ${error}`
+        );
+      }
+    }
+
+    if (tableInfos.some((col) => col.name === "created") === false) {
+      try {
+        await runSQL(
+          source,
+          `ALTER TABLE
+            md5s
+          ADD COLUMN IF NOT EXISTS
+            created BIGINT;
+          `
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to create column "created" for table "md5s" of XYZ MD5 DB ${filePath}: ${error}`
+        );
+      }
+    }
+
+    if (tableInfos.some((col) => col.name === "hash") === false) {
       await runSQL(
         source,
         `ALTER TABLE

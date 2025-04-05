@@ -308,23 +308,37 @@ export async function openPostgreSQLDB(uri, isCreate) {
       `
     );
 
-    await source.query(
-      `
-      ALTER TABLE
-        tiles
-      ADD COLUMN IF NOT EXISTS
-        hash TEXT;
-      `
-    );
+    try {
+      await source.query(
+        `
+        ALTER TABLE
+          tiles
+        ADD COLUMN IF NOT EXISTS
+          hash TEXT;
+        `
+      );
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to create column "hash" for table "tiles" of PostgreSQL DB ${uri}: ${error}`
+      );
+    }
 
-    await source.query(
-      `
-      ALTER TABLE
-        tiles
-      ADD COLUMN IF NOT EXISTS
-        created BIGINT;
-      `
-    );
+    try {
+      await source.query(
+        `
+        ALTER TABLE
+          tiles
+        ADD COLUMN IF NOT EXISTS
+          created BIGINT;
+        `
+      );
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to create column "created" for table "tiles" of PostgreSQL DB ${uri}: ${error}`
+      );
+    }
   }
 
   return source;

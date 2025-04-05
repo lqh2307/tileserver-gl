@@ -327,25 +327,39 @@ export async function openMBTilesDB(filePath, mode, wal = false) {
     const tableInfos = await fetchAll(source, "PRAGMA table_info(tiles)");
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
-      await runSQL(
-        source,
-        `ALTER TABLE
-          tiles
-        ADD COLUMN IF NOT EXISTS
-          hash TEXT;
-        `
-      );
+      try {
+        await runSQL(
+          source,
+          `ALTER TABLE
+            tiles
+          ADD COLUMN IF NOT EXISTS
+            hash TEXT;
+          `
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to create column "hash" for table "tiles" of MBTiles DB ${filePath}: ${error}`
+        );
+      }
     }
 
     if (tableInfos.some((col) => col.name === "created") === false) {
-      await runSQL(
-        source,
-        `ALTER TABLE
-          tiles
-        ADD COLUMN IF NOT EXISTS
-          created BIGINT;
-        `
-      );
+      try {
+        await runSQL(
+          source,
+          `ALTER TABLE
+            tiles
+          ADD COLUMN IF NOT EXISTS
+            created BIGINT;
+          `
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to create column "created" for table "tiles" of MBTiles DB ${filePath}: ${error}`
+        );
+      }
     }
   }
 
