@@ -816,7 +816,7 @@ export async function getVersion() {
 
 /**
  * Get JSON schema
- * @param {"delete"|"cleanup"|"config"|"seed"} schema
+ * @param {"delete"|"cleanup"|"config"|"seed"|"render"|"coverages"|"sprite"} schema
  * @returns {Promise<Object>}
  */
 export async function getJSONSchema(schema) {

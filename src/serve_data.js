@@ -30,9 +30,10 @@ import {
 import {
   compileTemplate,
   getRequestHost,
+  getJSONSchema,
+  validateJSON,
   isExistFile,
   gzipAsync,
-  getJSONSchema,
 } from "./utils.js";
 import {
   getPMTilesMetadata,
@@ -586,7 +587,7 @@ export const serve_data = {
      *   - name: Data
      *     description: Data related endpoints
      * /datas/{id}/md5s:
-     *   get:
+     *   post:
      *     tags:
      *       - Data
      *     summary: Get data tile MD5s
@@ -629,7 +630,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get(`/:id/md5s`, getDataTileMD5sHandler());
+    app.post(`/:id/md5s`, getDataTileMD5sHandler());
 
     /**
      * @swagger
