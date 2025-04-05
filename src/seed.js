@@ -734,7 +734,7 @@ async function seedXYZTiles(
   /* Remove parent folders if empty */
   await removeEmptyFolders(
     `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-    /^.*\.(sqlite|json|gif|png|jpg|jpeg|webp|pbf)$/
+    /^.*\.(sqlite|gif|png|jpg|jpeg|webp|pbf)$/
   );
 
   /* Log */

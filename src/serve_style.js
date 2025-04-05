@@ -269,7 +269,7 @@ function renderStyleHandler() {
 
           return res.status(StatusCodes.NOT_FOUND).send("OK");
         } else {
-          printLog("info", `Canceling render...`);
+          printLog("info", "Canceling render...");
 
           item.rendered.export = true;
 
@@ -463,7 +463,7 @@ function getRenderedTileHandler() {
         y
       );
 
-      res.header("content-type", `image/png`);
+      res.header("content-type", "image/png");
 
       return res.status(StatusCodes.OK).send(image);
     } catch (error) {

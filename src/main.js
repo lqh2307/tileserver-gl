@@ -34,7 +34,7 @@ async function startClusterServer() {
     );
 
     /* Read config.json file */
-    printLog("info", `Reading config.json file...`);
+    printLog("info", "Reading config.json file...");
 
     const config = await readConfigFile(true);
 
@@ -60,11 +60,11 @@ async function startClusterServer() {
       process.env.ENABLE_EXPORT = "true";
       process.env.GDAL_NUM_THREADS = "ALL_CPUS";
     } catch (error) {
-      printLog("info", `Not found gdal. Disable export render`);
+      printLog("info", "Not found gdal. Disable export render");
     }
 
     /* Remove old cache locks */
-    printLog("info", `Removing old cache locks before start server...`);
+    printLog("info", "Removing old cache locks before start server...");
 
     await removeOldCacheLocks();
 

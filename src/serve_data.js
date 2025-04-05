@@ -377,13 +377,13 @@ function getDataTileMD5sHandler() {
       let md5s;
 
       if (item.sourceType === "mbtiles") {
-        md5s = getMBTilesTileHashFromCoverages(item.source, req.body);
+        md5s = await getMBTilesTileHashFromCoverages(item.source, req.body);
       } else if (item.sourceType === "pmtiles") {
         md5s = {};
       } else if (item.sourceType === "xyz") {
-        md5s = getXYZTileHashFromCoverages(item.md5Source, req.body);
+        md5s = await getXYZTileHashFromCoverages(item.md5Source, req.body);
       } else if (item.sourceType === "pg") {
-        md5s = getPostgreSQLTileHashFromCoverages(item.source, req.body);
+        md5s = await getPostgreSQLTileHashFromCoverages(item.source, req.body);
       }
 
       res.header("content-type", "application/json");

@@ -228,7 +228,7 @@ async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
  * Get MBTiles tile hash from coverages
  * @param {sqlite3.Database} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @returns {Object<string, string>} Hash object
+ * @returns {Promise<Object<string, string>>} Hash object
  */
 export async function getMBTilesTileHashFromCoverages(source, coverages) {
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "tms");
@@ -236,16 +236,16 @@ export async function getMBTilesTileHashFromCoverages(source, coverages) {
   let query = "";
   const params = [];
   tileBounds.forEach((tileBound, idx) => {
-    const { zoom, x, y } = tileBound;
+    const { z, x, y } = tileBound;
 
     if (idx > 0) {
       query += " UNION ALL ";
     }
 
     query +=
-      "(SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?)";
+      "SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?";
 
-    params.push(zoom, ...x, ...y);
+    params.push(z, ...x, ...y);
   });
 
   query += ";";
