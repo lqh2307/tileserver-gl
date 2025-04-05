@@ -294,9 +294,7 @@ async function seedMBTilesTiles(
   }
 
   // Close MBTiles SQLite database
-  if (source !== undefined) {
-    await closeMBTilesDB(source);
-  }
+  await closeMBTilesDB(source);
 
   /* Log */
   const doneTime = Date.now();
@@ -509,9 +507,7 @@ async function seedPostgreSQLTiles(
   }
 
   /* Close PostgreSQL database */
-  if (source !== undefined) {
-    await closePostgreSQLDB(source);
-  }
+  await closePostgreSQLDB(source);
 
   /* Log */
   const doneTime = Date.now();
@@ -727,9 +723,7 @@ async function seedXYZTiles(
   }
 
   /* Close MD5 SQLite database */
-  if (source !== undefined) {
-    await closeXYZMD5DB(source);
-  }
+  await closeXYZMD5DB(source);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(

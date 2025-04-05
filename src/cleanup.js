@@ -211,9 +211,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   await compactMBTiles(source);
 
   /* Close MBTiles SQLite database */
-  if (source !== undefined) {
-    await closeMBTilesDB(source);
-  }
+  await closeMBTilesDB(source);
 
   /* Log */
   const doneTime = Date.now();
@@ -351,9 +349,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
   }
 
   /* Close PostgreSQL database */
-  if (source !== undefined) {
-    await closePostgreSQLDB(source);
-  }
+  await closePostgreSQLDB(source);
 
   /* Log */
   const doneTime = Date.now();
@@ -495,9 +491,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
   }
 
   /* Close XYZ MD5 SQLite database */
-  if (source !== undefined) {
-    await closeXYZMD5DB(source);
-  }
+  await closeXYZMD5DB(source);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(

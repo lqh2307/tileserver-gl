@@ -939,9 +939,7 @@ export async function renderMBTilesTiles(
   }
 
   // Close MBTiles SQLite database
-  if (source !== undefined) {
-    await closeMBTilesDB(source);
-  }
+  await closeMBTilesDB(source);
 
   /* Create overviews */
   if (createOverview === true) {
@@ -1208,9 +1206,7 @@ export async function renderXYZTiles(
   }
 
   /* Close MD5 SQLite database */
-  if (source !== undefined) {
-    await closeXYZMD5DB(source);
-  }
+  await closeXYZMD5DB(source);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(
@@ -1466,9 +1462,7 @@ export async function renderPostgreSQLTiles(
   }
 
   /* Close PostgreSQL database */
-  if (source !== undefined) {
-    await closePostgreSQLDB(source);
-  }
+  await closePostgreSQLDB(source);
 
   /* Create overviews */
   if (createOverview === true) {
