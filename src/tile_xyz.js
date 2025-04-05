@@ -261,7 +261,9 @@ export async function getXYZTileHashFromCoverages(source, coverages) {
 
   const result = {};
   rows.forEach((row) => {
-    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
+    if (row.hash !== null) {
+      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
+    }
   });
 
   return result;

@@ -226,18 +226,20 @@ export function getTileBoundFromCoverage(coverage, scheme) {
  * @returns {{ { z: number, x: [number, number], y: [number, number] }[] }}
  */
 export function getTileBoundsFromCoverages(coverages, scheme) {
-  return coverages.reduce(
-    (acc, coverage) => {
-      const tileBound = getTileBoundFromCoverage(coverage, scheme);
+  const total = 0;
 
-      acc.tileBounds.push(tileBound);
+  const tileBounds = coverages.map((coverage) => {
+    const tileBound = getTileBoundFromCoverage(coverage, scheme);
 
-      acc.total += tileBound.total;
+    total += tileBound.total;
 
-      return acc;
-    },
-    { total: 0, tileBounds: [] }
-  );
+    return tileBound;
+  });
+
+  return {
+    total,
+    tileBounds,
+  };
 }
 
 /**

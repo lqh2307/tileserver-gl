@@ -238,11 +238,13 @@ export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
 
   query += ";";
 
-  const rows = await fetchAll(source, query, params);
+  const data = await source.query(query, params);
 
   const result = {};
-  rows.forEach((row) => {
-    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
+  data.rows.forEach((row) => {
+    if (row.hash !== null) {
+      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
+    }
   });
 
   return result;
