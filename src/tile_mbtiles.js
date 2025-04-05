@@ -324,7 +324,7 @@ export async function openMBTilesDB(filePath, mode, wal = false) {
       `
     );
 
-    const tableInfos = await source.fetchAll("PRAGMA table_info(tiles)");
+    const tableInfos = await fetchAll(source, "PRAGMA table_info(tiles)");
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       await runSQL(

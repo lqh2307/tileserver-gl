@@ -338,7 +338,7 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
       `
     );
 
-    const tableInfos = await source.fetchAll("PRAGMA table_info(md5s)");
+    const tableInfos = await fetchAll(source, "PRAGMA table_info(md5s)");
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       await runSQL(
