@@ -282,49 +282,49 @@ export async function openPostgreSQLDB(uri, isCreate) {
   const source = await openPostgreSQL(uri, isCreate);
 
   if (isCreate === true) {
-    await Promise.all([
-      source.query(
-        `
-        CREATE TABLE IF NOT EXISTS
-          metadata (
-            name TEXT NOT NULL,
-            value TEXT NOT NULL,
-            PRIMARY KEY (name)
-          );
-        `
-      ),
-      source.query(
-        `
-        CREATE TABLE IF NOT EXISTS
-          tiles (
-            zoom_level INTEGER NOT NULL,
-            tile_column INTEGER NOT NULL,
-            tile_row INTEGER NOT NULL,
-            tile_data BYTEA NOT NULL,
-            hash TEXT,
-            created BIGINT,
-            PRIMARY KEY (zoom_level, tile_column, tile_row)
-          );
-        `
-      ),
-    ]);
+    await source.query(
+      `
+      CREATE TABLE IF NOT EXISTS
+        metadata (
+          name TEXT NOT NULL,
+          value TEXT NOT NULL,
+          PRIMARY KEY (name)
+        );
+      `
+    );
 
-    await Promise.all([
-      source.query(
-        `ALTER TABLE
-          tiles
-        ADD COLUMN IF NOT EXISTS
-          hash TEXT;
-        `
-      ),
-      source.query(
-        `ALTER TABLE
-          tiles
-        ADD COLUMN IF NOT EXISTS
-          created BIGINT;
-        `
-      ),
-    ]);
+    await source.query(
+      `
+      CREATE TABLE IF NOT EXISTS
+        tiles (
+          zoom_level INTEGER NOT NULL,
+          tile_column INTEGER NOT NULL,
+          tile_row INTEGER NOT NULL,
+          tile_data BYTEA NOT NULL,
+          hash TEXT,
+          created BIGINT,
+          PRIMARY KEY (zoom_level, tile_column, tile_row)
+        );
+      `
+    );
+
+    await source.query(
+      `
+      ALTER TABLE
+        tiles
+      ADD COLUMN IF NOT EXISTS
+        hash TEXT;
+      `
+    );
+
+    await source.query(
+      `
+      ALTER TABLE
+        tiles
+      ADD COLUMN IF NOT EXISTS
+        created BIGINT;
+      `
+    );
   }
 
   return source;

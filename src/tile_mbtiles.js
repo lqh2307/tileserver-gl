@@ -296,53 +296,57 @@ export async function openMBTilesDB(filePath, mode, wal = false) {
   const source = await openSQLite(filePath, mode, wal);
 
   if (mode & sqlite3.OPEN_CREATE) {
-    await Promise.all([
-      runSQL(
-        source,
-        `
-        CREATE TABLE IF NOT EXISTS
-          metadata (
-            name TEXT NOT NULL,
-            value TEXT NOT NULL,
-            PRIMARY KEY (name)
-          );
-        `
-      ),
-      runSQL(
-        source,
-        `
-        CREATE TABLE IF NOT EXISTS
-          tiles (
-            zoom_level INTEGER NOT NULL,
-            tile_column INTEGER NOT NULL,
-            tile_row INTEGER NOT NULL,
-            tile_data BLOB NOT NULL,
-            hash TEXT,
-            created BIGINT,
-            PRIMARY KEY (zoom_level, tile_column, tile_row)
-          );
-        `
-      ),
-    ]);
+    await runSQL(
+      source,
+      `
+      CREATE TABLE IF NOT EXISTS
+        metadata (
+          name TEXT NOT NULL,
+          value TEXT NOT NULL,
+          PRIMARY KEY (name)
+        );
+      `
+    );
 
-    await Promise.all([
-      runSQL(
+    await runSQL(
+      source,
+      `
+      CREATE TABLE IF NOT EXISTS
+        tiles (
+          zoom_level INTEGER NOT NULL,
+          tile_column INTEGER NOT NULL,
+          tile_row INTEGER NOT NULL,
+          tile_data BLOB NOT NULL,
+          hash TEXT,
+          created BIGINT,
+          PRIMARY KEY (zoom_level, tile_column, tile_row)
+        );
+      `
+    );
+
+    const tableInfos = await source.fetchAll("PRAGMA table_info(tiles)");
+
+    if (tableInfos.some((col) => col.name === "hash") === false) {
+      await runSQL(
         source,
         `ALTER TABLE
           tiles
         ADD COLUMN IF NOT EXISTS
           hash TEXT;
         `
-      ),
-      runSQL(
+      );
+    }
+
+    if (tableInfos.some((col) => col.name === "created") === false) {
+      await runSQL(
         source,
         `ALTER TABLE
           tiles
         ADD COLUMN IF NOT EXISTS
           created BIGINT;
         `
-      ),
-    ]);
+      );
+    }
   }
 
   return source;
