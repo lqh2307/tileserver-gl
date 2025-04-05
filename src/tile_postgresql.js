@@ -308,6 +308,23 @@ export async function openPostgreSQLDB(uri, isCreate) {
         `
       ),
     ]);
+
+    await Promise.all([
+      source.query(
+        `ALTER TABLE
+          tiles
+        ADD COLUMN IF NOT EXISTS
+          hash TEXT;
+        `
+      ),
+      source.query(
+        `ALTER TABLE
+          tiles
+        ADD COLUMN IF NOT EXISTS
+          created BIGINT;
+        `
+      ),
+    ]);
   }
 
   return source;

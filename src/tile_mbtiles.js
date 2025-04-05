@@ -324,6 +324,25 @@ export async function openMBTilesDB(filePath, mode, wal = false) {
         `
       ),
     ]);
+
+    await Promise.all([
+      runSQL(
+        source,
+        `ALTER TABLE
+          tiles
+        ADD COLUMN IF NOT EXISTS
+          hash TEXT;
+        `
+      ),
+      runSQL(
+        source,
+        `ALTER TABLE
+          tiles
+        ADD COLUMN IF NOT EXISTS
+          created BIGINT;
+        `
+      ),
+    ]);
   }
 
   return source;

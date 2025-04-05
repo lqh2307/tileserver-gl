@@ -190,7 +190,7 @@ function serveConfigUpdateHandler() {
         } catch (error) {
           return res
             .status(StatusCodes.BAD_REQUEST)
-            .send(`Config element is invalid: ${error}`);
+            .send(`Seed is invalid: ${error}`);
         }
 
         const seedData = await readSeedFile(false);
@@ -262,7 +262,7 @@ function serveConfigUpdateHandler() {
         } catch (error) {
           return res
             .status(StatusCodes.BAD_REQUEST)
-            .send(`Config element is invalid: ${error}`);
+            .send(`Cleanup is invalid: ${error}`);
         }
 
         const cleanUpData = await readCleanUpFile(false);
@@ -334,7 +334,7 @@ function serveConfigUpdateHandler() {
         } catch (error) {
           return res
             .status(StatusCodes.BAD_REQUEST)
-            .send(`Config element is invalid: ${error}`);
+            .send(`Config is invalid: ${error}`);
         }
 
         const configData = await readConfigFile(false);
@@ -441,7 +441,7 @@ function serveConfigDeleteHandler() {
       } catch (error) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send(`Config element is invalid: ${error}`);
+          .send(`Delete is invalid: ${error}`);
       }
 
       if (req.query.type === "seed") {

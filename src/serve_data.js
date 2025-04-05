@@ -7,23 +7,22 @@ import { seed } from "./seed.js";
 import sqlite3 from "sqlite3";
 import express from "express";
 import {
+  getXYZTileHashFromCoverages,
   createXYZMetadata,
   getXYZTileFromURL,
   cacheXYZTileFile,
   getXYZMetadata,
-  getXYZTileMD5,
-  closeXYZMD5DB,
   openXYZMD5DB,
   validateXYZ,
   getXYZTile,
 } from "./tile_xyz.js";
 import {
+  getMBTilesTileHashFromCoverages,
   createMBTilesMetadata,
   getMBTilesTileFromURL,
   cacheMBtilesTileData,
   downloadMBTilesFile,
   getMBTilesMetadata,
-  getMBTilesTileMD5,
   validateMBTiles,
   getMBTilesTile,
   openMBTilesDB,
@@ -31,9 +30,9 @@ import {
 import {
   compileTemplate,
   getRequestHost,
-  calculateMD5,
   isExistFile,
   gzipAsync,
+  getJSONSchema,
 } from "./utils.js";
 import {
   getPMTilesMetadata,
@@ -42,11 +41,11 @@ import {
   openPMTiles,
 } from "./tile_pmtiles.js";
 import {
+  getPostgreSQLTileHashFromCoverages,
   createPostgreSQLMetadata,
   getPostgreSQLTileFromURL,
   cachePostgreSQLTileData,
   getPostgreSQLMetadata,
-  getPostgreSQLTileMD5,
   validatePostgreSQL,
   getPostgreSQLTile,
   openPostgreSQLDB,
@@ -351,10 +350,10 @@ function getDataHandler() {
 }
 
 /**
- * Get data tile MD5 handler
+ * Get data tile MD5s handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
-function getDataTileMD5Handler() {
+function getDataTileMD5sHandler() {
   return async (req, res, next) => {
     const id = req.params.id;
     const item = config.datas[id];
@@ -364,86 +363,37 @@ function getDataTileMD5Handler() {
       return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
     }
 
-    /* Check data tile format */
-    if (
-      req.params.format !== item.tileJSON.format ||
-      ["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(
-        req.params.format
-      ) === false
-    ) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .send("Data tile format is not support");
-    }
-
-    /* Get tile name */
-    const z = Number(req.params.z);
-    const x = Number(req.params.x);
-    const y = Number(req.params.y);
-    const tileName = `${z}/${x}/${y}`;
-
-    /* Get tile data MD5 */
+    /* Get data tile MD5s */
     try {
-      let md5;
+      try {
+        validateJSON(await getJSONSchema("coverages"), req.body);
+      } catch (error) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send(`Coverages is invalid: ${error}`);
+      }
+
+      let md5s;
 
       if (item.sourceType === "mbtiles") {
-        if (item.storeMD5 === true) {
-          md5 = await getMBTilesTileMD5(item.source, z, x, y);
-        } else {
-          const tile = await getMBTilesTile(item.source, z, x, y);
-
-          md5 = calculateMD5(tile.data);
-        }
+        md5s = getMBTilesTileHashFromCoverages(item.source, req.body);
       } else if (item.sourceType === "pmtiles") {
-        const tile = await getPMTilesTile(item.source, z, x, y);
-
-        md5 = calculateMD5(tile.data);
+        md5s = {};
       } else if (item.sourceType === "xyz") {
-        if (item.storeMD5 === true) {
-          md5 = await getXYZTileMD5(item.md5Source, z, x, y);
-        } else {
-          const tile = await getXYZTile(
-            item.source,
-            z,
-            x,
-            y,
-            item.tileJSON.format
-          );
-
-          md5 = calculateMD5(tile.data);
-        }
+        md5s = getXYZTileHashFromCoverages(item.md5Source, req.body);
       } else if (item.sourceType === "pg") {
-        if (item.storeMD5 === true) {
-          md5 = await getPostgreSQLTileMD5(item.source, z, x, y);
-        } else {
-          const tile = await getPostgreSQLTile(item.source, z, x, y);
-
-          md5 = calculateMD5(tile.data);
-        }
+        md5s = getPostgreSQLTileHashFromCoverages(item.source, req.body);
       }
 
-      /* Add MD5 to header */
-      res.set({
-        etag: md5,
-      });
+      res.header("content-type", "application/json");
 
-      return res.status(StatusCodes.OK).send();
+      return res.status(StatusCodes.OK).send(md5s);
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to get md5 data "${id}" - Tile "${tileName}": ${error}`
-      );
+      printLog("error", `Failed to get data tile md5s "${id}": ${error}`);
 
-      if (
-        error.message === "Tile MD5 does not exist" ||
-        error.message === "Tile does not exist"
-      ) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
-      } else {
-        return res
-          .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .send("Internal server error");
-      }
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
     }
   };
 }
@@ -635,6 +585,57 @@ export const serve_data = {
      * tags:
      *   - name: Data
      *     description: Data related endpoints
+     * /datas/{id}/md5s:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Get data tile MD5s
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *             schema:
+     *               type: object
+     *               example: {}
+     *       description: Coverages object
+     *     responses:
+     *       200:
+     *         description: Data tile MD5s
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       204:
+     *         description: No content
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get(`/:id/md5s`, getDataTileMD5sHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
      * /datas/{id}/{z}/{x}/{y}.{format}:
      *   get:
      *     tags:
@@ -702,82 +703,6 @@ export const serve_data = {
     app.get(
       `/:id/:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}).:format`,
       getDataTileHandler()
-    );
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Data
-     *     description: Data related endpoints
-     * /datas/{id}/md5/{z}/{x}/{y}.{format}:
-     *   get:
-     *     tags:
-     *       - Data
-     *     summary: Get data tile MD5
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         required: true
-     *         schema:
-     *           type: string
-     *           example: id
-     *         description: Data ID
-     *       - in: path
-     *         name: z
-     *         required: true
-     *         schema:
-     *           type: integer
-     *           example: 0
-     *         description: Zoom level
-     *       - in: path
-     *         name: x
-     *         required: true
-     *         schema:
-     *           type: integer
-     *           example: 0
-     *         description: Tile X coordinate
-     *       - in: path
-     *         name: y
-     *         required: true
-     *         schema:
-     *           type: integer
-     *           example: 0
-     *         description: Tile Y coordinate
-     *       - in: path
-     *         name: format
-     *         required: true
-     *         schema:
-     *           type: string
-     *           enum: [jpeg, jpg, pbf, png, webp, gif]
-     *           example: png
-     *         description: Tile format
-     *     responses:
-     *       200:
-     *         description: Data tile MD5
-     *         content:
-     *           application/octet-stream:
-     *             schema:
-     *               type: string
-     *               format: binary
-     *       204:
-     *         description: No content
-     *       400:
-     *         description: Invalid params
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get(
-      `/:id/md5/:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}).:format`,
-      getDataTileMD5Handler()
     );
 
     if (process.env.SERVE_FRONT_PAGE !== "false") {
@@ -849,6 +774,7 @@ export const serve_data = {
                 item.mbtiles.startsWith("https://") === true ||
                 item.mbtiles.startsWith("http://") === true
               ) {
+                /* Get MBTiles path */
                 dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${id}/${id}.mbtiles`;
 
                 /* Download MBTiles file if not exist */
@@ -866,19 +792,23 @@ export const serve_data = {
                   );
                 }
 
+                /* Open MBTiles */
                 dataInfo.source = await openMBTilesDB(
                   dataInfo.path,
-                  sqlite3.OPEN_READONLY,
+                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
                   false
                 );
 
+                /* Get MBTiles metadata */
                 dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
               } else {
                 if (item.cache !== undefined) {
+                  /* Get MBTiles path */
                   dataInfo.path = `${process.env.DATA_DIR}/caches/mbtiles/${item.mbtiles}/${item.mbtiles}.mbtiles`;
 
                   const cacheSource = seed.datas?.[item.mbtiles];
 
+                  /* Get other MBTiles options */
                   if (
                     cacheSource === undefined ||
                     cacheSource.storeType !== "mbtiles"
@@ -909,12 +839,13 @@ export const serve_data = {
                     cacheCoverages: cacheSource.coverages,
                   });
                 } else {
+                  /* Get MBTiles path */
                   dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
 
                   /* Open MBTiles */
                   dataInfo.source = await openMBTilesDB(
                     dataInfo.path,
-                    sqlite3.OPEN_READONLY,
+                    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
                     false
                   );
 
@@ -932,6 +863,7 @@ export const serve_data = {
                 item.pmtiles.startsWith("https://") === true ||
                 item.pmtiles.startsWith("http://") === true
               ) {
+                /* Get PMTiles path */
                 dataInfo.path = item.pmtiles;
 
                 /* Open PMTiles */
@@ -940,6 +872,7 @@ export const serve_data = {
                 /* Get PMTiles metadata */
                 dataInfo.tileJSON = await getPMTilesMetadata(dataInfo.source);
               } else {
+                /* Get PMTiles path */
                 dataInfo.path = `${process.env.DATA_DIR}/pmtiles/${item.pmtiles}`;
 
                 /* Open PMTiles */
@@ -949,15 +882,18 @@ export const serve_data = {
                 dataInfo.tileJSON = await getPMTilesMetadata(dataInfo.source);
               }
 
+              /* Validate PMTiles */
               validatePMTiles(dataInfo.tileJSON);
             } else if (item.xyz !== undefined) {
               dataInfo.sourceType = "xyz";
 
               if (item.cache !== undefined) {
+                /* Get XYZ path */
                 dataInfo.path = `${process.env.DATA_DIR}/caches/xyzs/${item.xyz}`;
 
                 const cacheSource = seed.datas?.[item.xyz];
 
+                /* Get other XYZ options */
                 if (
                   cacheSource === undefined ||
                   cacheSource.storeType !== "xyz"
@@ -973,13 +909,14 @@ export const serve_data = {
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
                 }
 
+                dataInfo.source = dataInfo.path;
+
+                /* Open XYZ MD5 */
                 dataInfo.md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
                   sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
                   false
                 );
-
-                dataInfo.source = dataInfo.path;
 
                 /* Get XYZ metadata */
                 dataInfo.tileJSON = createXYZMetadata({
@@ -987,10 +924,12 @@ export const serve_data = {
                   cacheCoverages: cacheSource.coverages,
                 });
               } else {
+                /* Get XYZ path */
                 dataInfo.path = `${process.env.DATA_DIR}/xyzs/${item.xyz}`;
 
                 dataInfo.source = dataInfo.path;
 
+                /* Open XYZ MD5 */
                 const md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
                   sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
@@ -1002,19 +941,20 @@ export const serve_data = {
                   dataInfo.source,
                   md5Source
                 );
-
-                await closeXYZMD5DB(md5Source);
               }
 
+              /* Validate XYZ */
               validateXYZ(dataInfo.tileJSON);
             } else if (item.pg !== undefined) {
               dataInfo.sourceType = "pg";
 
               if (item.cache !== undefined) {
+                /* Get XYZ path */
                 dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
 
                 const cacheSource = seed.datas?.[item.pg];
 
+                /* Get other PostgreSQL options */
                 if (
                   cacheSource === undefined ||
                   cacheSource.storeType !== "pg"
@@ -1039,6 +979,7 @@ export const serve_data = {
                   cacheCoverages: cacheSource.coverages,
                 });
               } else {
+                /* Get XYZ path */
                 dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
 
                 /* Open PostgreSQL */
@@ -1050,6 +991,7 @@ export const serve_data = {
                 );
               }
 
+              /* Validate PostgreSQL */
               validatePostgreSQL(dataInfo.tileJSON);
             }
 

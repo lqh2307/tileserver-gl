@@ -250,7 +250,7 @@ export async function getXYZTileHashFromCoverages(source, coverages) {
     }
 
     query +=
-      "(SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?)";
+      "(SELECT zoom_level, tile_column, tile_row, hash FROM md5s WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?)";
 
     params.push(zoom, ...x, ...y);
   });
@@ -335,6 +335,25 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
             created BIGINT,
             PRIMARY KEY (zoom_level, tile_column, tile_row)
           );
+        `
+      ),
+    ]);
+
+    await Promise.all([
+      runSQL(
+        source,
+        `ALTER TABLE
+          md5s
+        ADD COLUMN IF NOT EXISTS
+          hash TEXT;
+        `
+      ),
+      runSQL(
+        source,
+        `ALTER TABLE
+          md5s
+        ADD COLUMN IF NOT EXISTS
+          created BIGINT;
         `
       ),
     ]);
