@@ -99,7 +99,7 @@ async function updateSeedFile(seed, timeout) {
  * @param {Object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
- * @param {{ bboxs: [number, number, number, number][], zooms: number[] }[]} coverages - Array of coverage objects, each containing bounding boxes [west, south, east, north] in EPSG:4326 and an array of specific zoom levels
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
@@ -315,7 +315,7 @@ async function seedMBTilesTiles(
  * @param {Object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
- * @param {{ bboxs: [number, number, number, number][], zooms: number[] }[]} coverages - Array of coverage objects, each containing bounding boxes [west, south, east, north] in EPSG:4326 and an array of specific zoom levels
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
@@ -530,7 +530,7 @@ async function seedPostgreSQLTiles(
  * @param {Object} metadata Metadata object
  * @param {string} url Tile URL
  * @param {"tms"|"xyz"} scheme Tile scheme
- * @param {{ bboxs: [number, number, number, number][], zooms: number[] }[]} coverages - Array of coverage objects, each containing bounding boxes [west, south, east, north] in EPSG:4326 and an array of specific zoom levels
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency to download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds

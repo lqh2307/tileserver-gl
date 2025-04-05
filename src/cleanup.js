@@ -85,7 +85,7 @@ async function updateCleanUpFile(cleanUp, timeout) {
 /**
  * Clean up MBTiles tiles
  * @param {string} id Clean up MBTiles ID
- * @param {{ bboxs: [number, number, number, number][], zooms: number[] }[]} coverages - Array of coverage objects, each containing bounding boxes [west, south, east, north] in EPSG:4326 and an array of specific zoom levels
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
  * @returns {Promise<void>}
  */
@@ -229,7 +229,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 /**
  * Clean up PostgreSQL tiles
  * @param {string} id Clean up PostgreSQL ID
- * @param {{ bboxs: [number, number, number, number][], zooms: number[] }[]} coverages - Array of coverage objects, each containing bounding boxes [west, south, east, north] in EPSG:4326 and an array of specific zoom levels
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
  * @returns {Promise<void>}
  */
@@ -370,7 +370,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
  * Clean up XYZ tiles
  * @param {string} id Clean up XYZ ID
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
- * @param {{ bboxs: [number, number, number, number][], zooms: number[] }[]} coverages - Array of coverage objects, each containing bounding boxes [west, south, east, north] in EPSG:4326 and an array of specific zoom levels
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
  * @returns {Promise<void>}
  */
