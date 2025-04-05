@@ -205,7 +205,7 @@ async function seedMBTilesTiles(
         try {
           const md5 = await getMBTilesTileMD5(source, z, x, y);
 
-          if (md5 !== hashs[`${z}/${x}/${y}`]) {
+          if (md5 !== hashs[tileName]) {
             needDownload = true;
           }
         } catch (error) {
@@ -421,7 +421,7 @@ async function seedPostgreSQLTiles(
         try {
           const md5 = await getPostgreSQLTileMD5(source, z, x, y);
 
-          if (md5 !== hashs[`${z}/${x}/${y}`]) {
+          if (md5 !== hashs[tileName]) {
             needDownload = true;
           }
         } catch (error) {
@@ -638,7 +638,7 @@ async function seedXYZTiles(
         try {
           const md5 = await getXYZTileMD5(source, z, x, y);
 
-          if (md5 !== hashs[`${z}/${x}/${y}`]) {
+          if (md5 !== hashs[tileName]) {
             needDownload = true;
           }
         } catch (error) {
