@@ -592,7 +592,7 @@ async function seedXYZTiles(
   printLog("info", "Updating metadata...");
 
   await updateXYZMetadata(
-    `${process.env.DATA_DIR}/caches/xyzs/${id}/metadata.json`,
+    source,
     metadata,
     300000 // 5 mins
   );

@@ -1014,7 +1014,10 @@ export const serve_data = {
                 dataInfo.source = dataInfo.path;
 
                 /* Get XYZ metadata */
-                dataInfo.tileJSON = await getXYZMetadata(dataInfo.source);
+                dataInfo.tileJSON = await getXYZMetadata(
+                  dataInfo.source,
+                  dataInfo.md5Source
+                );
               }
 
               validateXYZ(dataInfo.tileJSON);

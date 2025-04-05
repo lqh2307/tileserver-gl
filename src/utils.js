@@ -241,20 +241,6 @@ export function getTileBoundsFromCoverages(coverages, scheme) {
 }
 
 /**
- * Count total number of tiles for specific coverages
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {"xyz"|"tms"} scheme Tile scheme
- * @returns {number} Total tile count
- */
-export function countTilesFromCoverages(coverages, scheme) {
-  return coverages.reduce((total, coverage) => {
-    const tileBound = getTileBoundFromCoverage(coverage, scheme);
-
-    return total + tileBound.total;
-  }, 0);
-}
-
-/**
  * Convert tile indices to a bounding box that intersects the outer tiles
  * @param {number} xMin Minimum x tile index
  * @param {number} yMin Minimum y tile index

@@ -19,6 +19,7 @@ import {
   delay,
 } from "./utils.js";
 import {
+  runSQLWithTimeout,
   closeSQLite,
   openSQLite,
   fetchAll,
@@ -197,13 +198,9 @@ async function getMBTilesFormatFromTiles(source) {
  * @returns {Promise<void>}
  */
 async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime <= timeout) {
-    try {
-      await runSQL(
-        source,
-        `
+  await runSQLWithTimeout(
+    source,
+    `
         INSERT INTO
           tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
         VALUES
@@ -216,27 +213,16 @@ async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
             hash = excluded.hash,
             created = excluded.created;
         `,
-        [
-          z,
-          x,
-          (1 << z) - 1 - y,
-          data,
-          storeMD5 === true ? calculateMD5(data) : undefined,
-          Date.now(),
-        ]
-      );
-
-      return;
-    } catch (error) {
-      if (error.code === "SQLITE_BUSY") {
-        await delay(50);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  throw new Error(`Timeout to access MBTiles DB`);
+    [
+      z,
+      x,
+      (1 << z) - 1 - y,
+      data,
+      storeMD5 === true ? calculateMD5(data) : undefined,
+      Date.now(),
+    ],
+    timeout
+  );
 }
 
 /**
@@ -285,32 +271,17 @@ export async function getMBTilesTileHashFromCoverages(source, coverages) {
  * @returns {Promise<void>}
  */
 export async function removeMBTilesTile(source, z, x, y, timeout) {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime <= timeout) {
-    try {
-      await runSQL(
-        source,
-        `
-        DELETE FROM
-          tiles
-        WHERE
-          zoom_level = ? AND tile_column = ? AND tile_row = ?;
-        `,
-        [z, x, (1 << z) - 1 - y]
-      );
-
-      return;
-    } catch (error) {
-      if (error.code === "SQLITE_BUSY") {
-        await delay(50);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  throw new Error(`Timeout to access MBTiles DB`);
+  await runSQLWithTimeout(
+    source,
+    `
+    DELETE FROM
+      tiles
+    WHERE
+      zoom_level = ? AND tile_column = ? AND tile_row = ?;
+    `,
+    [z, x, (1 << z) - 1 - y],
+    timeout
+  );
 }
 
 /**
@@ -334,7 +305,7 @@ export async function openMBTilesDB(filePath, mode, wal = false) {
             value TEXT NOT NULL,
             PRIMARY KEY (name)
           );
-      `
+        `
       ),
       runSQL(
         source,
@@ -717,46 +688,31 @@ export async function downloadMBTilesFile(url, filePath, maxTry, timeout) {
  * @returns {Promise<void>}
  */
 export async function updateMBTilesMetadata(source, metadataAdds, timeout) {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime <= timeout) {
-    try {
-      await Promise.all(
-        Object.entries({
-          ...metadataAdds,
-          center: metadataAdds.center.join(","),
-          bounds: metadataAdds.bounds.join(","),
-          scheme: "tms",
-        }).map(([name, value]) =>
-          runSQL(
-            source,
-            `
-            INSERT INTO
-              metadata (name, value)
-            VALUES
-              (?, ?)
-            ON CONFLICT
-              (name)
-            DO UPDATE
-              SET
-                value = excluded.value;
-            `,
-            [name, typeof value === "object" ? JSON.stringify(value) : value]
-          )
-        )
-      );
-
-      return;
-    } catch (error) {
-      if (error.code === "SQLITE_BUSY") {
-        await delay(50);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  throw new Error(`Timeout to access MBTiles DB`);
+  await Promise.all(
+    Object.entries({
+      ...metadataAdds,
+      center: metadataAdds.center.join(","),
+      bounds: metadataAdds.bounds.join(","),
+      scheme: "tms",
+    }).map(([name, value]) =>
+      runSQLWithTimeout(
+        source,
+        `
+        INSERT INTO
+          metadata (name, value)
+        VALUES
+          (?, ?)
+        ON CONFLICT
+          (name)
+        DO UPDATE
+          SET
+            value = excluded.value;
+        `,
+        [name, typeof value === "object" ? JSON.stringify(value) : value],
+        timeout
+      )
+    )
+  );
 }
 
 /**

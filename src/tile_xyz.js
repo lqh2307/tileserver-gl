@@ -1,12 +1,19 @@
 "use strict";
 
-import { closeSQLite, fetchOne, openSQLite, runSQL } from "./sqlite.js";
 import { StatusCodes } from "http-status-codes";
 import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
 import sqlite3 from "sqlite3";
+import {
+  runSQLWithTimeout,
+  closeSQLite,
+  openSQLite,
+  fetchOne,
+  fetchAll,
+  runSQL,
+} from "./sqlite.js";
 import {
   getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
@@ -198,50 +205,30 @@ async function createXYZTile(
   data,
   timeout
 ) {
-  await createFileWithLock(
-    `${sourcePath}/${z}/${x}/${y}.${format}`,
-    data,
-    300000 // 5 mins
-  );
-
-  const startTime = Date.now();
-
-  while (Date.now() - startTime <= timeout) {
-    try {
-      await runSQL(
-        source,
-        `
-        INSERT INTO
-          md5s (zoom_level, tile_column, tile_row, hash, created)
-        VALUES
-          (?, ?, ?, ?, ?)
-        ON CONFLICT
-          (zoom_level, tile_column, tile_row)
-        DO UPDATE
-          SET
-            hash = excluded.hash,
-            created = excluded.created;
-        `,
-        [
-          z,
-          x,
-          y,
-          storeMD5 === true ? calculateMD5(data) : undefined,
-          Date.now(),
-        ]
-      );
-
-      return;
-    } catch (error) {
-      if (error.code === "SQLITE_BUSY") {
-        await delay(50);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  throw new Error(`Timeout to access XYZ MD5 DB`);
+  await Promise.all([
+    createFileWithLock(
+      `${sourcePath}/${z}/${x}/${y}.${format}`,
+      data,
+      300000 // 5 mins
+    ),
+    runSQLWithTimeout(
+      source,
+      `
+      INSERT INTO
+        md5s (zoom_level, tile_column, tile_row, hash, created)
+      VALUES
+        (?, ?, ?, ?, ?)
+      ON CONFLICT
+        (zoom_level, tile_column, tile_row)
+      DO UPDATE
+        SET
+          hash = excluded.hash,
+          created = excluded.created;
+      `,
+      [z, x, y, storeMD5 === true ? calculateMD5(data) : undefined, Date.now()],
+      timeout
+    ),
+  ]);
 }
 
 /**
@@ -292,39 +279,23 @@ export async function getXYZTileHashFromCoverages(source, coverages) {
  * @returns {Promise<void>}
  */
 export async function removeXYZTile(id, source, z, x, y, format, timeout) {
-  await removeFileWithLock(
-    `${process.env.DATA_DIR}/caches/xyzs/${id}/${z}/${x}/${y}.${format}`,
-    timeout
-  );
-
-  const startTime = Date.now();
-
-  while (Date.now() - startTime <= timeout) {
-    try {
-      await runSQL(
-        source,
-        `
-        DELETE FROM
-          md5s
-        WHERE
-          zoom_level = ? AND tile_column = ? AND tile_row = ?;
-        `,
-        [z, x, y]
-      );
-
-      return;
-    } catch (error) {
-      if (error.code === "SQLITE_CANTOPEN") {
-        return;
-      } else if (error.code === "SQLITE_BUSY") {
-        await delay(50);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  throw new Error(`Timeout to access XYZ MD5 DB`);
+  await Promise.all([
+    removeFileWithLock(
+      `${process.env.DATA_DIR}/caches/xyzs/${id}/${z}/${x}/${y}.${format}`,
+      timeout
+    ),
+    runSQLWithTimeout(
+      source,
+      `
+      DELETE FROM
+        md5s
+      WHERE
+        zoom_level = ? AND tile_column = ? AND tile_row = ?;
+      `,
+      [z, x, y],
+      timeout
+    ),
+  ]);
 }
 
 /**
@@ -338,20 +309,33 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
   const source = await openSQLite(filePath, mode, wal);
 
   if (mode & sqlite3.OPEN_CREATE) {
-    await runSQL(
-      source,
-      `
-      CREATE TABLE IF NOT EXISTS
-        md5s (
-          zoom_level INTEGER NOT NULL,
-          tile_column INTEGER NOT NULL,
-          tile_row INTEGER NOT NULL,
-          hash TEXT,
-          created BIGINT,
-          PRIMARY KEY (zoom_level, tile_column, tile_row)
-        );
-      `
-    );
+    await Promise.all([
+      runSQL(
+        source,
+        `
+        CREATE TABLE IF NOT EXISTS
+          metadata (
+            name TEXT NOT NULL,
+            value TEXT NOT NULL,
+            PRIMARY KEY (name)
+          );
+        `
+      ),
+      runSQL(
+        source,
+        `
+        CREATE TABLE IF NOT EXISTS
+          md5s (
+            zoom_level INTEGER NOT NULL,
+            tile_column INTEGER NOT NULL,
+            tile_row INTEGER NOT NULL,
+            hash TEXT,
+            created BIGINT,
+            PRIMARY KEY (zoom_level, tile_column, tile_row)
+          );
+        `
+      ),
+    ]);
   }
 
   return source;
@@ -392,10 +376,11 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
 
 /**
  * Get XYZ metadata
+ * @param {sqlite3.Database} source SQLite database instance
  * @param {string} sourcePath XYZ folder path
  * @returns {Promise<Object>}
  */
-export async function getXYZMetadata(sourcePath) {
+export async function getXYZMetadata(source, sourcePath) {
   /* Default metadata */
   const metadata = {
     name: "Unknown",
@@ -406,14 +391,77 @@ export async function getXYZMetadata(sourcePath) {
   };
 
   /* Get metadatas */
-  try {
-    const data = await fsPromise.readFile(
-      `${sourcePath}/metadata.json`,
-      "utf8"
-    );
+  const rows = await fetchAll(source, "SELECT name, value FROM metadata;");
 
-    Object.assign(metadata, JSON.parse(data));
-  } catch (error) {}
+  rows.forEach((row) => {
+    switch (row.name) {
+      case "json": {
+        Object.assign(metadata, JSON.parse(row.value));
+
+        break;
+      }
+
+      case "minzoom": {
+        metadata.minzoom = Number(row.value);
+
+        break;
+      }
+
+      case "maxzoom": {
+        metadata.maxzoom = Number(row.value);
+
+        break;
+      }
+
+      case "center": {
+        metadata.center = row.value.split(",").map((elm) => Number(elm));
+
+        break;
+      }
+
+      case "format": {
+        metadata.format = row.value;
+
+        break;
+      }
+
+      case "bounds": {
+        metadata.bounds = row.value.split(",").map((elm) => Number(elm));
+
+        break;
+      }
+
+      case "name": {
+        metadata.name = row.value;
+
+        break;
+      }
+
+      case "description": {
+        metadata.description = row.value;
+
+        break;
+      }
+
+      case "attribution": {
+        metadata.attribution = row.value;
+
+        break;
+      }
+
+      case "version": {
+        metadata.version = row.value;
+
+        break;
+      }
+
+      case "type": {
+        metadata.type = row.value;
+
+        break;
+      }
+    }
+  });
 
   /* Try get tile format */
   if (metadata.format === undefined) {
@@ -640,23 +688,37 @@ export async function downloadXYZTile(
 }
 
 /**
- * Update XYZ metadata.json file with lock
- * @param {string} filePath File path to store metadata.json file
+ * Update MBTiles metadata table
+ * @param {sqlite3.Database} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function updateXYZMetadata(filePath, metadataAdds, timeout) {
-  const data = await fsPromise.readFile(filePath, "utf8");
-
-  await createFileWithLock(
-    filePath,
-    JSON.stringify({
-      ...JSON.parse(data),
+export async function updateXYZMetadata(source, metadataAdds, timeout) {
+  await Promise.all(
+    Object.entries({
       ...metadataAdds,
+      center: metadataAdds.center.join(","),
+      bounds: metadataAdds.bounds.join(","),
       scheme: "xyz",
-    }),
-    timeout
+    }).map(([name, value]) =>
+      runSQLWithTimeout(
+        source,
+        `
+        INSERT INTO
+          metadata (name, value)
+        VALUES
+          (?, ?)
+        ON CONFLICT
+          (name)
+        DO UPDATE
+          SET
+            value = excluded.value;
+        `,
+        [name, typeof value === "object" ? JSON.stringify(value) : value],
+        timeout
+      )
+    )
   );
 }
 

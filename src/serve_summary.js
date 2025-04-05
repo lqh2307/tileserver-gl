@@ -1,8 +1,8 @@
 "use strict";
 
 import { countPostgreSQLTiles, getPostgreSQLSize } from "./tile_postgresql.js";
+import { getTileBoundsFromCoverages, isExistFolder } from "./utils.js";
 import { countMBTilesTiles, getMBTilesSize } from "./tile_mbtiles.js";
-import { countTilesFromCoverages, isExistFolder } from "./utils.js";
 import { countXYZTiles, getXYZSize } from "./tile_xyz.js";
 import { getPMTilesSize } from "./tile_pmtiles.js";
 import { StatusCodes } from "http-status-codes";
@@ -78,7 +78,8 @@ function serveSummaryHandler() {
                     actual: await countMBTilesTiles(
                       `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`
                     ),
-                    expect: countTilesFromCoverages(item.coverages, "tms"),
+                    expect: getTileBoundsFromCoverages(item.coverages, "tms")
+                      .total,
                   };
                 } catch (error) {
                   if (error.code !== "ENOENT") {
@@ -86,7 +87,8 @@ function serveSummaryHandler() {
                   } else {
                     result.datas[id] = {
                       actual: 0,
-                      expect: countTilesFromCoverages(item.coverages, "tms"),
+                      expect: getTileBoundsFromCoverages(item.coverages, "tms")
+                        .total,
                     };
                   }
                 }
@@ -100,7 +102,8 @@ function serveSummaryHandler() {
                     actual: await countXYZTiles(
                       `${process.env.DATA_DIR}/caches/xyzs/${id}`
                     ),
-                    expect: countTilesFromCoverages(item.coverages, "xyz"),
+                    expect: getTileBoundsFromCoverages(item.coverages, "xyz")
+                      .total,
                   };
                 } catch (error) {
                   if (error.code !== "ENOENT") {
@@ -108,7 +111,8 @@ function serveSummaryHandler() {
                   } else {
                     result.datas[id] = {
                       actual: 0,
-                      expect: countTilesFromCoverages(item.coverages, "xyz"),
+                      expect: getTileBoundsFromCoverages(item.coverages, "xyz")
+                        .total,
                     };
                   }
                 }
@@ -121,7 +125,8 @@ function serveSummaryHandler() {
                   actual: await countPostgreSQLTiles(
                     `${process.env.POSTGRESQL_BASE_URI}/${id}`
                   ),
-                  expect: countTilesFromCoverages(item.coverages, "xyz"),
+                  expect: getTileBoundsFromCoverages(item.coverages, "xyz")
+                    .total,
                 };
 
                 break;

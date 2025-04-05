@@ -1,6 +1,7 @@
 "use strict";
 
 import fsPromise from "node:fs/promises";
+import { delay } from "./utils.js";
 import sqlite3 from "sqlite3";
 import path from "node:path";
 
@@ -67,6 +68,34 @@ export async function runSQL(source, sql, params) {
       resolve();
     });
   });
+}
+
+/**
+ * Run a SQL command in SQLite with timeout
+ * @param {sqlite3.Database} source SQLite database instance
+ * @param {string} sql SQL command to execute
+ * @param {any[]} params Parameters for the SQL command
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<void>}
+ */
+export async function runSQLWithTimeout(source, sql, params, timeout) {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime <= timeout) {
+    try {
+      await runSQL(source, sql, params);
+
+      return;
+    } catch (error) {
+      if (error.code === "SQLITE_BUSY") {
+        await delay(50);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error("Timeout to access SQLite DB");
 }
 
 /**

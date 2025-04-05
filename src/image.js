@@ -1043,7 +1043,7 @@ export async function renderXYZTiles(
   printLog("info", "Updating metadata...");
 
   await updateXYZMetadata(
-    `${process.env.DATA_DIR}/exports/xyzs/${id}/metadata.json`,
+    source,
     {
       ...metadata,
       maxzoom: maxzoom,
