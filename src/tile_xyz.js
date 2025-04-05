@@ -50,7 +50,7 @@ async function getXYZLayersFromTiles(sourcePath) {
 
   for (const pbfFilePath of pbfFilePaths) {
     /* Wait slot for a task */
-    while (tasks.activeTasks >= 200) {
+    while (tasks.activeTasks >= 256) {
       await delay(50);
     }
 

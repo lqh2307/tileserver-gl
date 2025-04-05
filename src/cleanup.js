@@ -183,7 +183,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     for (let xCount = x[0]; xCount <= x[1]; xCount++) {
       for (let yCount = y[0]; yCount <= y[1]; yCount++) {
         /* Wait slot for a task */
-        while (tasks.activeTasks >= 200) {
+        while (tasks.activeTasks >= 256) {
           await delay(50);
         }
 
@@ -324,7 +324,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     for (let xCount = x[0]; xCount <= x[1]; xCount++) {
       for (let yCount = y[0]; yCount <= y[1]; yCount++) {
         /* Wait slot for a task */
-        while (tasks.activeTasks >= 200) {
+        while (tasks.activeTasks >= 256) {
           await delay(50);
         }
 
@@ -466,7 +466,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     for (let xCount = x[0]; xCount <= x[1]; xCount++) {
       for (let yCount = y[0]; yCount <= y[1]; yCount++) {
         /* Wait slot for a task */
-        while (tasks.activeTasks >= 200) {
+        while (tasks.activeTasks >= 256) {
           await delay(50);
         }
 

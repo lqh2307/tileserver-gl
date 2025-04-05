@@ -23,7 +23,7 @@ import {
  */
 async function getPostgreSQLLayersFromTiles(source) {
   const layerNames = new Set();
-  const batchSize = 200;
+  const batchSize = 256;
   let offset = 0;
 
   const vectorTileProto = protobuf(

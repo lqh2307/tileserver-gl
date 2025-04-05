@@ -124,31 +124,51 @@ async function seedMBTilesTiles(
   const startTime = Date.now();
 
   /* Calculate summary */
-  const { total, summaries } = getTileBoundsFromCoverages(coverages, "xyz");
+  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   /* Log */
   let log = `Seeding ${total} tiles of mbtiles "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
+  let hashs;
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
+
+    printLog("info", log);
   } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
+
+    printLog("info", log);
   } else if (typeof refreshBefore === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
-  }
 
-  printLog("info", log);
+    printLog("info", log);
+
+    /* Get hashs */
+    printLog("info", "Get hashs...");
+
+    try {
+      hashs = await getDataFromURL(
+        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
+        300000, // 5 mins
+        "json"
+      );
+    } catch (error) {
+      printLog("error", `Failed to get hashs: ${error}`);
+
+      hashs = {};
+    }
+  }
 
   /* Open MBTiles SQLite database */
   const source = await openMBTilesDB(
@@ -183,16 +203,9 @@ async function seedMBTilesTiles(
 
       if (refreshTimestamp === true) {
         try {
-          const [response, md5] = await Promise.all([
-            getDataFromURL(
-              url.replace("{z}/{x}/{y}", `md5/${tileName}`),
-              timeout,
-              "arraybuffer"
-            ),
-            getMBTilesTileMD5(source, z, x, y),
-          ]);
+          const md5 = await getMBTilesTileMD5(source, z, x, y);
 
-          if (response.headers["etag"] !== md5) {
+          if (md5 !== hashs[`${z}/${x}/${y}`]) {
             needDownload = true;
           }
         } catch (error) {
@@ -255,35 +268,25 @@ async function seedMBTilesTiles(
 
   printLog("info", "Downloading datas...");
 
-  for (const idx1 in summaries) {
-    const tilesSummaries = summaries[idx1].tilesSummaries;
-
-    for (const idx2 in tilesSummaries) {
-      const tilesSummary = tilesSummaries[idx2];
-
-      for (const z in tilesSummary) {
-        const tilesSummaryZ = tilesSummary[z];
-
-        for (let x = tilesSummaryZ.x[0]; x <= tilesSummaryZ.x[1]; x++) {
-          for (let y = tilesSummaryZ.y[0]; y <= tilesSummaryZ.y[1]; y++) {
-            /* Wait slot for a task */
-            while (tasks.activeTasks >= concurrency) {
-              await delay(50);
-            }
-
-            await tasks.mutex.runExclusive(() => {
-              tasks.activeTasks++;
-              tasks.completeTasks++;
-            });
-
-            /* Run a task */
-            seedMBTilesTileData(z, x, y, tasks).finally(() =>
-              tasks.mutex.runExclusive(() => {
-                tasks.activeTasks--;
-              })
-            );
-          }
+  for (const { z, x, y } of tileBounds) {
+    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+        /* Wait slot for a task */
+        while (tasks.activeTasks >= concurrency) {
+          await delay(50);
         }
+
+        await tasks.mutex.runExclusive(() => {
+          tasks.activeTasks++;
+          tasks.completeTasks++;
+        });
+
+        /* Run a task */
+        seedMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
+          tasks.mutex.runExclusive(() => {
+            tasks.activeTasks--;
+          })
+        );
       }
     }
   }
@@ -338,31 +341,51 @@ async function seedPostgreSQLTiles(
   const startTime = Date.now();
 
   /* Calculate summary */
-  const { total, summaries } = getTileBoundsFromCoverages(coverages, "xyz");
+  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   /* Log */
   let log = `Seeding ${total} tiles of postgresql "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
+  let hashs;
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
+
+    printLog("info", log);
   } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
+
+    printLog("info", log);
   } else if (typeof refreshBefore === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
-  }
 
-  printLog("info", log);
+    printLog("info", log);
+
+    /* Get hashs */
+    printLog("info", "Get hashs...");
+
+    try {
+      hashs = await getDataFromURL(
+        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
+        300000, // 5 mins
+        "json"
+      );
+    } catch (error) {
+      printLog("error", `Failed to get hashs: ${error}`);
+
+      hashs = {};
+    }
+  }
 
   /* Open PostgreSQL database */
   const source = await openPostgreSQLDB(
@@ -396,16 +419,9 @@ async function seedPostgreSQLTiles(
 
       if (refreshTimestamp === true) {
         try {
-          const [response, md5] = await Promise.all([
-            getDataFromURL(
-              url.replace("{z}/{x}/{y}", `md5/${tileName}`),
-              timeout,
-              "arraybuffer"
-            ),
-            getPostgreSQLTileMD5(source, z, x, y),
-          ]);
+          const md5 = await getPostgreSQLTileMD5(source, z, x, y);
 
-          if (response.headers["etag"] !== md5) {
+          if (md5 !== hashs[`${z}/${x}/${y}`]) {
             needDownload = true;
           }
         } catch (error) {
@@ -468,35 +484,25 @@ async function seedPostgreSQLTiles(
 
   printLog("info", "Downloading datas...");
 
-  for (const idx1 in summaries) {
-    const tilesSummaries = summaries[idx1].tilesSummaries;
-
-    for (const idx2 in tilesSummaries) {
-      const tilesSummary = tilesSummaries[idx2];
-
-      for (const z in tilesSummary) {
-        const tilesSummaryZ = tilesSummary[z];
-
-        for (let x = tilesSummaryZ.x[0]; x <= tilesSummaryZ.x[1]; x++) {
-          for (let y = tilesSummaryZ.y[0]; y <= tilesSummaryZ.y[1]; y++) {
-            /* Wait slot for a task */
-            while (tasks.activeTasks >= concurrency) {
-              await delay(50);
-            }
-
-            await tasks.mutex.runExclusive(() => {
-              tasks.activeTasks++;
-              tasks.completeTasks++;
-            });
-
-            /* Run a task */
-            seedPostgreSQLTileData(z, x, y, tasks).finally(() =>
-              tasks.mutex.runExclusive(() => {
-                tasks.activeTasks--;
-              })
-            );
-          }
+  for (const { z, x, y } of tileBounds) {
+    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+        /* Wait slot for a task */
+        while (tasks.activeTasks >= concurrency) {
+          await delay(50);
         }
+
+        await tasks.mutex.runExclusive(() => {
+          tasks.activeTasks++;
+          tasks.completeTasks++;
+        });
+
+        /* Run a task */
+        seedPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
+          tasks.mutex.runExclusive(() => {
+            tasks.activeTasks--;
+          })
+        );
       }
     }
   }
@@ -551,31 +557,51 @@ async function seedXYZTiles(
   const startTime = Date.now();
 
   /* Calculate summary */
-  const { total, summaries } = getTileBoundsFromCoverages(coverages, "xyz");
+  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   /* Log */
   let log = `Seeding ${total} tiles of xyz "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
+  let hashs;
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
+
+    printLog("info", log);
   } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
+
+    printLog("info", log);
   } else if (typeof refreshBefore === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
-  }
 
-  printLog("info", log);
+    printLog("info", log);
+
+    /* Get hashs */
+    printLog("info", "Get hashs...");
+
+    try {
+      hashs = await getDataFromURL(
+        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
+        300000, // 5 mins
+        "json"
+      );
+    } catch (error) {
+      printLog("error", `Failed to get hashs: ${error}`);
+
+      hashs = {};
+    }
+  }
 
   /* Open MD5 SQLite database */
   const source = await openXYZMD5DB(
@@ -610,16 +636,9 @@ async function seedXYZTiles(
 
       if (refreshTimestamp === true) {
         try {
-          const [response, md5] = await Promise.all([
-            getDataFromURL(
-              url.replace("{z}/{x}/{y}", `md5/${tileName}`),
-              timeout,
-              "arraybuffer"
-            ),
-            getXYZTileMD5(source, z, x, y),
-          ]);
+          const md5 = await getXYZTileMD5(source, z, x, y);
 
-          if (response.headers["etag"] !== md5) {
+          if (md5 !== hashs[`${z}/${x}/${y}`]) {
             needDownload = true;
           }
         } catch (error) {
@@ -684,35 +703,25 @@ async function seedXYZTiles(
 
   printLog("info", "Downloading datas...");
 
-  for (const idx1 in summaries) {
-    const tilesSummaries = summaries[idx1].tilesSummaries;
-
-    for (const idx2 in tilesSummaries) {
-      const tilesSummary = tilesSummaries[idx2];
-
-      for (const z in tilesSummary) {
-        const tilesSummaryZ = tilesSummary[z];
-
-        for (let x = tilesSummaryZ.x[0]; x <= tilesSummaryZ.x[1]; x++) {
-          for (let y = tilesSummaryZ.y[0]; y <= tilesSummaryZ.y[1]; y++) {
-            /* Wait slot for a task */
-            while (tasks.activeTasks >= concurrency) {
-              await delay(50);
-            }
-
-            await tasks.mutex.runExclusive(() => {
-              tasks.activeTasks++;
-              tasks.completeTasks++;
-            });
-
-            /* Run a task */
-            seedXYZTileData(z, x, y, tasks).finally(() =>
-              tasks.mutex.runExclusive(() => {
-                tasks.activeTasks--;
-              })
-            );
-          }
+  for (const { z, x, y } of tileBounds) {
+    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+        /* Wait slot for a task */
+        while (tasks.activeTasks >= concurrency) {
+          await delay(50);
         }
+
+        await tasks.mutex.runExclusive(() => {
+          tasks.activeTasks++;
+          tasks.completeTasks++;
+        });
+
+        /* Run a task */
+        seedXYZTileData(z, xCount, yCount, tasks).finally(() =>
+          tasks.mutex.runExclusive(() => {
+            tasks.activeTasks--;
+          })
+        );
       }
     }
   }
