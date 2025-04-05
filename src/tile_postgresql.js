@@ -242,7 +242,7 @@ export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
 
   const result = {};
   rows.forEach((row) => {
-    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = hash;
+    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
   });
 
   return result;

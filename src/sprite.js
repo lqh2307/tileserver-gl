@@ -11,7 +11,6 @@ import {
   getJSONSchema,
   validateJSON,
   findFiles,
-  delay,
   retry,
 } from "./utils.js";
 

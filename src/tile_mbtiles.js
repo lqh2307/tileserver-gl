@@ -16,7 +16,6 @@ import {
   calculateMD5,
   deepClone,
   retry,
-  delay,
 } from "./utils.js";
 import {
   runSQLWithTimeout,
@@ -255,7 +254,7 @@ export async function getMBTilesTileHashFromCoverages(source, coverages) {
 
   const result = {};
   rows.forEach((row) => {
-    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = hash;
+    result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
   });
 
   return result;
