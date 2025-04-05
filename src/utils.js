@@ -226,7 +226,7 @@ export function getTileBoundFromCoverage(coverage, scheme) {
  * @returns {{ { z: number, x: [number, number], y: [number, number] }[] }}
  */
 export function getTileBoundsFromCoverages(coverages, scheme) {
-  const total = 0;
+  let total = 0;
 
   const tileBounds = coverages.map((coverage) => {
     const tileBound = getTileBoundFromCoverage(coverage, scheme);
