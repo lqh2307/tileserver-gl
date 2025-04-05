@@ -30,7 +30,7 @@ import {
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
-  getTilesBoundsFromBBoxs,
+  getTileBoundFromCoverage,
   detectFormatAndHeaders,
   removeEmptyFolders,
   getLonLatFromXYZ,
@@ -733,14 +733,18 @@ export async function renderMBTilesTiles(
   const startTime = Date.now();
 
   /* Calculate summary */
-  const { total, tilesSummaries } = getTilesBoundsFromBBoxs(
-    [bbox],
-    [maxzoom],
+  const tileBound = getTileBoundFromCoverage(
+    {
+      bbox: bbox,
+      zoom: maxzoom,
+    },
     "xyz"
   );
 
   /* Log */
-  let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  let log = `Rendering ${
+    tileBound.total
+  } tiles of style "${id}" to mbtiles with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -804,7 +808,7 @@ export async function renderMBTilesTiles(
         try {
           printLog(
             "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
           );
 
           // Rendered data
@@ -861,7 +865,7 @@ export async function renderMBTilesTiles(
       if (needRender === true) {
         printLog(
           "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
         );
 
         // Rendered data
@@ -889,15 +893,15 @@ export async function renderMBTilesTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}: ${error}`
       );
     }
   }
 
   printLog("info", "Rendering datas...");
 
-  for (const idx1 in tilesSummaries) {
-    const tilesSummary = tilesSummaries[idx1];
+  for (const idx1 in tileBound) {
+    const tilesSummary = tileBound[idx1];
 
     for (const z in tilesSummary) {
       const tilesSummaryZ = tilesSummary[z];
@@ -957,7 +961,9 @@ export async function renderMBTilesTiles(
 
   printLog(
     "info",
-    `Completed render ${total} tiles of style "${id}" to mbtiles after ${
+    `Completed render ${
+      tileBound.total
+    } tiles of style "${id}" to mbtiles after ${
       (doneTime - startTime) / 1000
     }s!`
   );
@@ -993,13 +999,17 @@ export async function renderXYZTiles(
 ) {
   const startTime = Date.now();
 
-  const { total, tilesSummaries } = getTilesBoundsFromBBoxs(
-    [bbox],
-    [maxzoom],
+  const tileBound = getTileBoundFromCoverage(
+    {
+      bbox: bbox,
+      zoom: maxzoom,
+    },
     "xyz"
   );
 
-  let log = `Rendering ${total} tiles of style "${id}" to xyz with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  let log = `Rendering ${
+    tileBound.total
+  } tiles of style "${id}" to xyz with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -1063,7 +1073,7 @@ export async function renderXYZTiles(
         try {
           printLog(
             "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
           );
 
           // Rendered data
@@ -1122,7 +1132,7 @@ export async function renderXYZTiles(
       if (needRender === true) {
         printLog(
           "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
         );
 
         // Rendered data
@@ -1152,15 +1162,15 @@ export async function renderXYZTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}: ${error}`
       );
     }
   }
 
   printLog("info", "Rendering datas...");
 
-  for (const idx1 in tilesSummaries) {
-    const tilesSummary = tilesSummaries[idx1];
+  for (const idx1 in tileBound) {
+    const tilesSummary = tileBound[idx1];
 
     for (const z in tilesSummary) {
       const tilesSummaryZ = tilesSummary[z];
@@ -1216,7 +1226,7 @@ export async function renderXYZTiles(
 
   printLog(
     "info",
-    `Completed render ${total} tiles of style "${id}" to xyz after ${
+    `Completed render ${tileBound.total} tiles of style "${id}" to xyz after ${
       (doneTime - startTime) / 1000
     }s!`
   );
@@ -1252,13 +1262,17 @@ export async function renderPostgreSQLTiles(
 ) {
   const startTime = Date.now();
 
-  const { total, tilesSummaries } = getTilesBoundsFromBBoxs(
-    [bbox],
-    [maxzoom],
+  const tileBound = getTileBoundFromCoverage(
+    {
+      bbox: bbox,
+      zoom: maxzoom,
+    },
     "xyz"
   );
 
-  let log = `Rendering ${total} tiles of style "${id}" to postgresql with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  let log = `Rendering ${
+    tileBound.total
+  } tiles of style "${id}" to postgresql with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -1321,7 +1335,7 @@ export async function renderPostgreSQLTiles(
         try {
           printLog(
             "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
           );
 
           // Rendered data
@@ -1378,7 +1392,7 @@ export async function renderPostgreSQLTiles(
       if (needRender === true) {
         printLog(
           "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
         );
 
         // Rendered data
@@ -1406,15 +1420,15 @@ export async function renderPostgreSQLTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}: ${error}`
       );
     }
   }
 
   printLog("info", "Rendering datas...");
 
-  for (const idx1 in tilesSummaries) {
-    const tilesSummary = tilesSummaries[idx1];
+  for (const idx1 in tileBound) {
+    const tilesSummary = tileBound[idx1];
 
     for (const z in tilesSummary) {
       const tilesSummaryZ = tilesSummary[z];
@@ -1464,7 +1478,9 @@ export async function renderPostgreSQLTiles(
 
   printLog(
     "info",
-    `Completed render ${total} tiles of style "${id}" to postgresql after ${
+    `Completed render ${
+      tileBound.total
+    } tiles of style "${id}" to postgresql after ${
       (doneTime - startTime) / 1000
     }s!`
   );

@@ -180,7 +180,7 @@ async function getMBTilesZoomLevelFromTiles(source, zoomType) {
 async function getMBTilesFormatFromTiles(source) {
   const data = await fetchOne(source, "SELECT tile_data FROM tiles LIMIT 1;");
 
-  if (data !== undefined) {
+  if (data !== undefined && data.tile_data !== null) {
     return detectFormatAndHeaders(data.tile_data).format;
   }
 }
@@ -379,7 +379,7 @@ export async function getMBTilesTile(source, z, x, y) {
     [z, x, (1 << z) - 1 - y]
   );
 
-  if (!data?.tile_data) {
+  if (data === undefined || data.tile_data === null) {
     throw new Error("Tile does not exist");
   }
 
@@ -910,7 +910,7 @@ export async function getMBTilesTileMD5(source, z, x, y) {
     [z, x, (1 << z) - 1 - y]
   );
 
-  if (!data?.hash) {
+  if (data === undefined || data.hash === null) {
     throw new Error("Tile MD5 does not exist");
   }
 
@@ -939,7 +939,7 @@ export async function getMBTilesTileCreated(source, z, x, y) {
     [z, x, (1 << z) - 1 - y]
   );
 
-  if (!data?.created) {
+  if (data === undefined || data.created === null) {
     throw new Error("Tile created does not exist");
   }
 

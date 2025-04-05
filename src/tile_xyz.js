@@ -756,7 +756,7 @@ export async function getXYZTileMD5(source, z, x, y) {
     [z, x, y]
   );
 
-  if (!data?.hash) {
+  if (data === undefined || data.hash === null) {
     throw new Error("Tile MD5 does not exist");
   }
 
@@ -785,7 +785,7 @@ export async function getXYZTileCreated(source, z, x, y) {
     [z, x, y]
   );
 
-  if (!data?.created) {
+  if (data === undefined || data.created === null) {
     throw new Error("Tile created does not exist");
   }
 

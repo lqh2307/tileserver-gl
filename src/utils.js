@@ -185,7 +185,7 @@ export function getLonLatFromXYZ(
  * Get tile bound for specific coverage
  * @param {{ zoom: number, bbox: [number, number, number, number]}} coverage Specific coverage
  * @param {"xyz"|"tms"} scheme Tile scheme
- * @returns {{ z: number x: [number, number], y: [number, number] }}
+ * @returns {{ total: number, z: number x: [number, number], y: [number, number] }}
  */
 export function getTileBoundFromCoverage(coverage, scheme) {
   const maxTileIndex = (1 << coverage.zoom) - 1;
@@ -212,6 +212,7 @@ export function getTileBoundFromCoverage(coverage, scheme) {
   }
 
   return {
+    total: (xMax - xMin + 1) * (yMax - yMin + 1),
     z: coverage.zoom,
     x: [xMin, xMax],
     y: [yMin, yMax],
@@ -227,13 +228,11 @@ export function getTileBoundFromCoverage(coverage, scheme) {
 export function getTileBoundsFromCoverages(coverages, scheme) {
   return coverages.reduce(
     (acc, coverage) => {
-      const tileBound = getTileBoundsFromCoverages(coverage, scheme);
+      const tileBound = getTileBoundFromCoverage(coverage, scheme);
 
       acc.tileBounds.push(tileBound);
 
-      acc.total +=
-        (tileBound.x[1] - tileBound.x[0] + 1) *
-        (tileBound.y[1] - tileBound.y[0] + 1);
+      acc.total += tileBound.total;
 
       return acc;
     },
@@ -249,13 +248,9 @@ export function getTileBoundsFromCoverages(coverages, scheme) {
  */
 export function countTilesFromCoverages(coverages, scheme) {
   return coverages.reduce((total, coverage) => {
-    const tileBound = getTileBoundsFromCoverages(coverage, scheme);
+    const tileBound = getTileBoundFromCoverage(coverage, scheme);
 
-    return (
-      total +
-      (tileBound.x[1] - tileBound.x[0] + 1) *
-        (tileBound.y[1] - tileBound.y[0] + 1)
-    );
+    return total + tileBound.total;
   }, 0);
 }
 
