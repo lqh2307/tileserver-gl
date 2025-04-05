@@ -12,6 +12,7 @@ import {
   cacheXYZTileFile,
   getXYZMetadata,
   getXYZTileMD5,
+  closeXYZMD5DB,
   openXYZMD5DB,
   validateXYZ,
   getXYZTile,
@@ -896,22 +897,11 @@ export const serve_data = {
                   }
 
                   /* Open MBTiles */
-                  if (
-                    dataInfo.storeCache === true ||
-                    (await isExistFile(dataInfo.path)) === false
-                  ) {
-                    dataInfo.source = await openMBTilesDB(
-                      dataInfo.path,
-                      sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                      false
-                    );
-                  } else {
-                    dataInfo.source = await openMBTilesDB(
-                      dataInfo.path,
-                      sqlite3.OPEN_READONLY,
-                      false
-                    );
-                  }
+                  dataInfo.source = await openMBTilesDB(
+                    dataInfo.path,
+                    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+                    false
+                  );
 
                   /* Get MBTiles metadata */
                   dataInfo.tileJSON = createMBTilesMetadata({
@@ -965,7 +955,6 @@ export const serve_data = {
 
               if (item.cache !== undefined) {
                 dataInfo.path = `${process.env.DATA_DIR}/caches/xyzs/${item.xyz}`;
-                const md5FilePath = `${dataInfo.path}/${item.xyz}.sqlite`;
 
                 const cacheSource = seed.datas?.[item.xyz];
 
@@ -984,22 +973,11 @@ export const serve_data = {
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
                 }
 
-                if (
-                  dataInfo.storeCache === true ||
-                  (await isExistFile(md5FilePath)) === false
-                ) {
-                  dataInfo.md5Source = await openXYZMD5DB(
-                    md5FilePath,
-                    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                    false
-                  );
-                } else {
-                  dataInfo.md5Source = await openXYZMD5DB(
-                    md5FilePath,
-                    sqlite3.OPEN_READONLY,
-                    false
-                  );
-                }
+                dataInfo.md5Source = await openXYZMD5DB(
+                  `${dataInfo.path}/${item.xyz}.sqlite`,
+                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+                  false
+                );
 
                 dataInfo.source = dataInfo.path;
 
@@ -1013,11 +991,19 @@ export const serve_data = {
 
                 dataInfo.source = dataInfo.path;
 
+                const md5Source = await openXYZMD5DB(
+                  `${dataInfo.path}/${item.xyz}.sqlite`,
+                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+                  false
+                );
+
                 /* Get XYZ metadata */
                 dataInfo.tileJSON = await getXYZMetadata(
                   dataInfo.source,
-                  dataInfo.md5Source
+                  md5Source
                 );
+
+                await closeXYZMD5DB(md5Source);
               }
 
               validateXYZ(dataInfo.tileJSON);
@@ -1056,7 +1042,7 @@ export const serve_data = {
                 dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
 
                 /* Open PostgreSQL */
-                dataInfo.source = await openPostgreSQLDB(dataInfo.path, true);
+                dataInfo.source = await openPostgreSQLDB(dataInfo.path, false);
 
                 /* Get PostgreSQL metadata */
                 dataInfo.tileJSON = await getPostgreSQLMetadata(
