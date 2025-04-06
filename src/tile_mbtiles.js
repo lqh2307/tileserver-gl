@@ -236,8 +236,6 @@ export async function getMBTilesTileHashFromCoverages(source, coverages) {
   let query = "";
   const params = [];
   tileBounds.forEach((tileBound, idx) => {
-    const { z, x, y } = tileBound;
-
     if (idx > 0) {
       query += " UNION ALL ";
     }
@@ -245,17 +243,21 @@ export async function getMBTilesTileHashFromCoverages(source, coverages) {
     query +=
       "SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?";
 
-    params.push(z, ...x, ...y);
+    params.push(tileBound.z, ...tileBound.x, ...tileBound.y);
   });
 
   query += ";";
 
+  const result = {};
   const rows = await fetchAll(source, query, params);
 
-  const result = {};
   rows.forEach((row) => {
     if (row.hash !== null) {
-      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
+      result[
+        `${row.zoom_level}/${row.tile_column}/${
+          (1 << row.zoom_level) - 1 - row.tile_row
+        }`
+      ] = row.hash;
     }
   });
 

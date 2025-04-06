@@ -69,25 +69,21 @@
           const cacheCoverageLayers = {};
           const cacheCoverageGeoJSONLayers = {};
 
-          for (const { bboxs, zooms } of jsonResponse.cacheCoverages) {
-            for (const zoom of zooms) {
-              if (cacheCoverageLayers[zoom] === undefined) {
-                cacheCoverageLayers[zoom] = {
-                  type: "MultiLineString",
-                  coordinates: []
-                };
-              }
-
-              for (const bbox of bboxs) {
-                cacheCoverageLayers[zoom].coordinates.push([
-                  [bbox[0], bbox[1]],
-                  [bbox[2], bbox[1]],
-                  [bbox[2], bbox[3]],
-                  [bbox[0], bbox[3]],
-                  [bbox[0], bbox[1]]
-                ]);
-              }
+          for (const { zoom, bbox } of jsonResponse.cacheCoverages) {
+            if (cacheCoverageLayers[zoom] === undefined) {
+              cacheCoverageLayers[zoom] = {
+                type: "MultiLineString",
+                coordinates: []
+              };
             }
+
+            cacheCoverageLayers[zoom].coordinates.push([
+              [bbox[0], bbox[1]],
+              [bbox[2], bbox[1]],
+              [bbox[2], bbox[3]],
+              [bbox[0], bbox[3]],
+              [bbox[0], bbox[1]]
+            ]);
           }
 
           let isCoverageVisible = true;

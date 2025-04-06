@@ -126,7 +126,6 @@ async function seedMBTilesTiles(
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  /* Log */
   let log = `Seeding ${total} tiles of mbtiles "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
@@ -299,13 +298,10 @@ async function seedMBTilesTiles(
   // Close MBTiles SQLite database
   await closeMBTilesDB(source);
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed seed ${total} tiles of mbtiles "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -343,7 +339,6 @@ async function seedPostgreSQLTiles(
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  /* Log */
   let log = `Seeding ${total} tiles of postgresql "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
@@ -515,13 +510,10 @@ async function seedPostgreSQLTiles(
   /* Close PostgreSQL database */
   await closePostgreSQLDB(source);
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed seed ${total} tiles of postgresql "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -559,7 +551,6 @@ async function seedXYZTiles(
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  /* Log */
   let log = `Seeding ${total} tiles of xyz "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
@@ -740,13 +731,10 @@ async function seedXYZTiles(
     /^.*\.(sqlite|gif|png|jpg|jpeg|webp|pbf)$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed seed ${total} tiles of xyz "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -763,7 +751,6 @@ async function seedXYZTiles(
 async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  /* Log */
   let log = `Seeding geojson "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
   let refreshTimestamp;
@@ -850,12 +837,11 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
     /^.*\.geojson$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
-    `Completed seeding geojson "${id}" after ${(doneTime - startTime) / 1000}s!`
+    `Completed seeding geojson "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`
   );
 }
 
@@ -871,7 +857,6 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
 async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  /* Log */
   let log = `Seeding sprite "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
   let refreshTimestamp;
@@ -946,12 +931,11 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
     /^.*\.(json|png)$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
-    `Completed seeding sprite "${id}" after ${(doneTime - startTime) / 1000}s!`
+    `Completed seeding sprite "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`
   );
 }
 
@@ -970,7 +954,6 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   const total = 256;
 
-  /* Log */
   let log = `Seeding ${total} fonts of font "${id}" with:\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
   let refreshTimestamp;
@@ -1072,13 +1055,10 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
     /^.*\.pbf$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed seeding ${total} fonts of font "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -1095,7 +1075,6 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  /* Log */
   let log = `Seeding style "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
   let refreshTimestamp;
@@ -1157,12 +1136,9 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
     /^.*\.json$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
-    `Completed seeding style "${id}" after ${(doneTime - startTime) / 1000}s!`
+    `Completed seeding style "${id}" after ${(Date.now() - startTime) / 1000}s!`
   );
 }
 
