@@ -95,7 +95,6 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  /* Log */
   let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:\n\tCoverages: ${JSON.stringify(
     coverages
   )}`;
@@ -213,13 +212,10 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   /* Close MBTiles SQLite database */
   await closeMBTilesDB(source);
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed clean up ${total} tiles of mbtiles "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -237,7 +233,6 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  /* Log */
   let log = `Cleaning up ${total} tiles of postgresql "${id}" with:\n\tCoverages: ${JSON.stringify(
     coverages
   )}`;
@@ -351,13 +346,10 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
   /* Close PostgreSQL database */
   await closePostgreSQLDB(source);
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed clean up ${total} tiles of postgresql "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -376,7 +368,6 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  /* Log */
   let log = `Cleaning up ${total} tiles of xyz "${id}" with:\n\tCoverages: ${JSON.stringify(
     coverages
   )}`;
@@ -499,13 +490,10 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     /^.*\.(sqlite|gif|png|jpg|jpeg|webp|pbf)$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed clean up ${total} tiles of xyz "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -519,7 +507,6 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 async function cleanUpGeoJSON(id, cleanUpBefore) {
   const startTime = Date.now();
 
-  /* Log */
   let log = `Cleaning up geojson "${id}" with:`;
 
   let cleanUpTimestamp;
@@ -581,13 +568,10 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
     /^.*\.geojson$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed clean up geojson "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -601,7 +585,6 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 async function cleanUpSprite(id, cleanUpBefore) {
   const startTime = Date.now();
 
-  /* Log */
   let log = `Cleaning up sprite "${id}" with:`;
 
   let cleanUpTimestamp;
@@ -674,12 +657,9 @@ async function cleanUpSprite(id, cleanUpBefore) {
     /^.*\.(json|png)$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
-    `Completed clean up sprite "${id}" after ${(doneTime - startTime) / 1000}s!`
+    `Completed clean up sprite "${id}" after ${(Date.now() - startTime) / 1000}s!`
   );
 }
 
@@ -694,7 +674,6 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   const total = 256;
 
-  /* Log */
   let log = `Cleaning up ${total} fonts of font "${id}" with:`;
 
   let cleanUpTimestamp;
@@ -768,13 +747,10 @@ async function cleanUpFont(id, cleanUpBefore) {
     /^.*\.pbf$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed clean up ${total} fonts of font "${id}" after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -788,7 +764,6 @@ async function cleanUpFont(id, cleanUpBefore) {
 async function cleanUpStyle(id, cleanUpBefore) {
   const startTime = Date.now();
 
-  /* Log */
   let log = `Cleaning up style "${id}" with:`;
 
   let cleanUpTimestamp;
@@ -850,12 +825,9 @@ async function cleanUpStyle(id, cleanUpBefore) {
     /^.*\.json$/
   );
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
-    `Completed clean up style "${id}" after ${(doneTime - startTime) / 1000}s!`
+    `Completed clean up style "${id}" after ${(Date.now() - startTime) / 1000}s!`
   );
 }
 
