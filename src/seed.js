@@ -161,7 +161,7 @@ async function seedMBTilesTiles(
 
       const res = await postDataToURL(
         hashURL,
-        300000, // 5 mins
+        600000, // 10 mins
         coverages,
         "json"
       );
@@ -186,7 +186,7 @@ async function seedMBTilesTiles(
   await updateMBTilesMetadata(
     source,
     metadata,
-    600000 // 10 mins
+    180000 // 3 mins
   );
 
   /* Download tiles */
@@ -378,7 +378,7 @@ async function seedPostgreSQLTiles(
 
       const res = await postDataToURL(
         hashURL,
-        300000, // 5 mins
+        600000, // 10 mins
         coverages,
         "json"
       );
@@ -403,7 +403,7 @@ async function seedPostgreSQLTiles(
   await updatePostgreSQLMetadata(
     source,
     metadata,
-    600000 // 10 mins
+    180000 // 3 mins
   );
 
   /* Download tiles */
@@ -595,7 +595,7 @@ async function seedXYZTiles(
 
       const res = await postDataToURL(
         hashURL,
-        300000, // 5 mins
+        600000, // 10 mins
         coverages,
         "json"
       );
@@ -620,7 +620,7 @@ async function seedXYZTiles(
   await updateXYZMetadata(
     source,
     metadata,
-    600000 // 10 mins
+    180000 // 3 mins
   );
 
   /* Download tile files */
