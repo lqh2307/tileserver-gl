@@ -205,7 +205,7 @@ export async function renderImage(
             let dataTile;
 
             try {
-              dataTile = await getMBTilesTile(item.source, z, x, y);
+              dataTile = getMBTilesTile(item.source, z, x, y);
             } catch (error) {
               if (
                 item.sourceURL !== undefined &&
@@ -770,8 +770,7 @@ export async function renderMBTilesTiles(
   /* Open MBTiles SQLite database */
   const source = await openMBTilesDB(
     `${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`,
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    false
+    true
   );
 
   /* Update metadata */
@@ -846,7 +845,7 @@ export async function renderMBTilesTiles(
         }
       } else if (refreshTimestamp !== undefined) {
         try {
-          const created = await getMBTilesTileCreated(source, z, x, y);
+          const created = getMBTilesTileCreated(source, z, x, y);
 
           if (!created || created < refreshTimestamp) {
             needRender = true;
@@ -1033,8 +1032,7 @@ export async function renderXYZTiles(
   /* Open MD5 SQLite database */
   const source = await openXYZMD5DB(
     `${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite`,
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    false
+    true
   );
 
   /* Update metadata */
@@ -1075,20 +1073,17 @@ export async function renderXYZTiles(
           );
 
           // Rendered data
-          const [data, md5] = await Promise.all([
-            renderImage(
-              tileScale,
-              tileSize,
-              rendered.compressionLevel,
-              rendered.styleJSON,
-              z,
-              x,
-              y
-            ),
-            getXYZTileMD5(source, z, x, y),
-          ]);
+          const data = await renderImage(
+            tileScale,
+            tileSize,
+            rendered.compressionLevel,
+            rendered.styleJSON,
+            z,
+            x,
+            y
+          );
 
-          if (calculateMD5(data) !== md5) {
+          if (calculateMD5(data) !== getXYZTileMD5(source, z, x, y)) {
             // Store data
             await cacheXYZTileFile(
               `${process.env.DATA_DIR}/exports/xyzs/${id}`,
@@ -1111,7 +1106,7 @@ export async function renderXYZTiles(
         }
       } else if (refreshTimestamp !== undefined) {
         try {
-          const created = await getXYZTileCreated(source, z, x, y);
+          const created = getXYZTileCreated(source, z, x, y);
 
           if (!created || created < refreshTimestamp) {
             needRender = true;

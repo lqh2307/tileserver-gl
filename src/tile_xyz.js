@@ -12,7 +12,6 @@ import {
   openSQLite,
   fetchOne,
   fetchAll,
-  runSQL,
 } from "./sqlite.js";
 import {
   getTileBoundsFromCoverages,
@@ -235,9 +234,9 @@ async function createXYZTile(
  * Get XYZ tile hash from coverages
  * @param {sqlite3.Database} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @returns {Promise<Object<string, string>>} Hash object
+ * @returns {Object<string, string>} Hash object
  */
-export async function getXYZTileHashFromCoverages(source, coverages) {
+export function getXYZTileHashFromCoverages(source, coverages) {
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   let query = "";
@@ -256,7 +255,7 @@ export async function getXYZTileHashFromCoverages(source, coverages) {
   query += ";";
 
   const result = {};
-  const rows = await fetchAll(source, query, params);
+  const rows = fetchAll(source, query, params);
 
   rows.forEach((row) => {
     if (row.hash !== null) {
@@ -301,16 +300,14 @@ export async function removeXYZTile(id, source, z, x, y, format, timeout) {
 /**
  * Open XYZ MD5 SQLite database
  * @param {string} filePath MD5 filepath
- * @param {number} mode SQLite mode (e.g: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_READONLY)
- * @param {boolean} wal Use WAL
+ * @param {boolean} isCreate Is create database?
  * @returns {Promise<sqlite3.Database>}
  */
-export async function openXYZMD5DB(filePath, mode, wal = false) {
-  const source = await openSQLite(filePath, mode, wal);
+export async function openXYZMD5DB(filePath, isCreate) {
+  const source = await openSQLite(filePath, isCreate);
 
-  if (mode & sqlite3.OPEN_CREATE) {
-    await runSQL(
-      source,
+  if (isCreate === true) {
+    source.exec(
       `
       CREATE TABLE IF NOT EXISTS
         metadata (
@@ -321,8 +318,7 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
       `
     );
 
-    await runSQL(
-      source,
+    source.exec(
       `
       CREATE TABLE IF NOT EXISTS
         md5s (
@@ -336,12 +332,11 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
       `
     );
 
-    const tableInfos = await fetchAll(source, "PRAGMA table_info(md5s)");
+    const tableInfos = fetchAll(source, "PRAGMA table_info(md5s)");
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {
-        await runSQL(
-          source,
+        source.exec(
           `ALTER TABLE
             md5s
           ADD COLUMN IF NOT EXISTS
@@ -358,8 +353,7 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
 
     if (tableInfos.some((col) => col.name === "created") === false) {
       try {
-        await runSQL(
-          source,
+        source.exec(
           `ALTER TABLE
             md5s
           ADD COLUMN IF NOT EXISTS
@@ -375,8 +369,7 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
     }
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
-      await runSQL(
-        source,
+      source.exec(
         `ALTER TABLE
           md5s
         ADD COLUMN IF NOT EXISTS
@@ -386,8 +379,7 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
     }
 
     if (tableInfos.some((col) => col.name === "created") === false) {
-      await runSQL(
-        source,
+      source.exec(
         `ALTER TABLE
           md5s
         ADD COLUMN IF NOT EXISTS
@@ -450,7 +442,7 @@ export async function getXYZMetadata(source, sourcePath) {
   };
 
   /* Get metadatas */
-  const rows = await fetchAll(source, "SELECT name, value FROM metadata;");
+  const rows = fetchAll(source, "SELECT name, value FROM metadata;");
 
   rows.forEach((row) => {
     switch (row.name) {
@@ -861,10 +853,10 @@ export async function cacheXYZTileFile(
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<string>} Returns the MD5 hash as a string
+ * @returns {string} Returns the MD5 hash as a string
  */
-export async function getXYZTileMD5(source, z, x, y) {
-  const data = await fetchOne(
+export function getXYZTileMD5(source, z, x, y) {
+  const data = fetchOne(
     source,
     `
     SELECT
@@ -890,10 +882,10 @@ export async function getXYZTileMD5(source, z, x, y) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<number>} Returns the created as a number
+ * @returns {number} Returns the created as a number
  */
-export async function getXYZTileCreated(source, z, x, y) {
-  const data = await fetchOne(
+export function getXYZTileCreated(source, z, x, y) {
+  const data = fetchOne(
     source,
     `
     SELECT

@@ -172,8 +172,7 @@ async function seedMBTilesTiles(
   /* Open MBTiles SQLite database */
   const source = await openMBTilesDB(
     `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    false
+    true
   );
 
   /* Update metadata */
@@ -202,7 +201,7 @@ async function seedMBTilesTiles(
 
       if (refreshTimestamp === true) {
         try {
-          const md5 = await getMBTilesTileMD5(source, z, x, y);
+          const md5 = getMBTilesTileMD5(source, z, x, y);
 
           if (md5 !== hashs[tileName]) {
             needDownload = true;
@@ -216,7 +215,7 @@ async function seedMBTilesTiles(
         }
       } else if (refreshTimestamp !== undefined) {
         try {
-          const created = await getMBTilesTileCreated(source, z, x, y);
+          const created = getMBTilesTileCreated(source, z, x, y);
 
           if (!created || created < refreshTimestamp) {
             needDownload = true;
@@ -597,8 +596,7 @@ async function seedXYZTiles(
   /* Open MD5 SQLite database */
   const source = await openXYZMD5DB(
     `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    false
+    true
   );
 
   /* Update metadata */
@@ -627,7 +625,7 @@ async function seedXYZTiles(
 
       if (refreshTimestamp === true) {
         try {
-          const md5 = await getXYZTileMD5(source, z, x, y);
+          const md5 = getXYZTileMD5(source, z, x, y);
 
           if (md5 !== hashs[tileName]) {
             needDownload = true;
@@ -641,7 +639,7 @@ async function seedXYZTiles(
         }
       } else if (refreshTimestamp !== undefined) {
         try {
-          const created = await getXYZTileCreated(source, z, x, y);
+          const created = getXYZTileCreated(source, z, x, y);
 
           if (!created || created < refreshTimestamp) {
             needDownload = true;

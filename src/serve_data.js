@@ -125,7 +125,7 @@ function getDataTileHandler() {
 
       if (item.sourceType === "mbtiles") {
         try {
-          dataTile = await getMBTilesTile(item.source, z, x, y);
+          dataTile = getMBTilesTile(item.source, z, x, y);
         } catch (error) {
           if (
             item.sourceURL !== undefined &&
@@ -377,11 +377,11 @@ function getDataTileMD5sHandler() {
       let md5s;
 
       if (item.sourceType === "mbtiles") {
-        md5s = await getMBTilesTileHashFromCoverages(item.source, req.body);
+        md5s = getMBTilesTileHashFromCoverages(item.source, req.body);
       } else if (item.sourceType === "pmtiles") {
         md5s = {};
       } else if (item.sourceType === "xyz") {
-        md5s = await getXYZTileHashFromCoverages(item.md5Source, req.body);
+        md5s = getXYZTileHashFromCoverages(item.md5Source, req.body);
       } else if (item.sourceType === "pg") {
         md5s = await getPostgreSQLTileHashFromCoverages(item.source, req.body);
       }
@@ -794,11 +794,7 @@ export const serve_data = {
                 }
 
                 /* Open MBTiles */
-                dataInfo.source = await openMBTilesDB(
-                  dataInfo.path,
-                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                  false
-                );
+                dataInfo.source = await openMBTilesDB(dataInfo.path, true);
 
                 /* Get MBTiles metadata */
                 dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
@@ -828,11 +824,7 @@ export const serve_data = {
                   }
 
                   /* Open MBTiles */
-                  dataInfo.source = await openMBTilesDB(
-                    dataInfo.path,
-                    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                    false
-                  );
+                  dataInfo.source = await openMBTilesDB(dataInfo.path, true);
 
                   /* Get MBTiles metadata */
                   dataInfo.tileJSON = createMBTilesMetadata({
@@ -844,11 +836,7 @@ export const serve_data = {
                   dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
 
                   /* Open MBTiles */
-                  dataInfo.source = await openMBTilesDB(
-                    dataInfo.path,
-                    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                    false
-                  );
+                  dataInfo.source = await openMBTilesDB(dataInfo.path, true);
 
                   /* Get MBTiles metadata */
                   dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
@@ -933,8 +921,7 @@ export const serve_data = {
                 /* Open XYZ MD5 */
                 const md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
-                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                  false
+                  true
                 );
 
                 /* Get XYZ metadata */
