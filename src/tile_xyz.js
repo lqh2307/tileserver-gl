@@ -1,18 +1,12 @@
 "use strict";
 
+import { runSQLWithTimeout, closeSQLite, openSQLite } from "./sqlite.js";
 import { StatusCodes } from "http-status-codes";
 import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
 import sqlite3 from "sqlite3";
-import {
-  runSQLWithTimeout,
-  closeSQLite,
-  openSQLite,
-  fetchOne,
-  fetchAll,
-} from "./sqlite.js";
 import {
   getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
@@ -255,7 +249,7 @@ export function getXYZTileHashFromCoverages(source, coverages) {
   query += ";";
 
   const result = {};
-  const rows = fetchAll(source, query, params);
+  const rows = source.prepare(query).all(...params);
 
   rows.forEach((row) => {
     if (row.hash !== null) {
@@ -332,7 +326,7 @@ export async function openXYZMD5DB(filePath, isCreate) {
       `
     );
 
-    const tableInfos = fetchAll(source, "PRAGMA table_info(md5s)");
+    const tableInfos = source.prepare("PRAGMA table_info(md5s)").all();
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {
@@ -442,7 +436,7 @@ export async function getXYZMetadata(source, sourcePath) {
   };
 
   /* Get metadatas */
-  const rows = fetchAll(source, "SELECT name, value FROM metadata;");
+  const rows = source.prepare("SELECT name, value FROM metadata;").all();
 
   rows.forEach((row) => {
     switch (row.name) {
@@ -856,18 +850,18 @@ export async function cacheXYZTileFile(
  * @returns {string} Returns the MD5 hash as a string
  */
 export function getXYZTileMD5(source, z, x, y) {
-  const data = fetchOne(
-    source,
-    `
+  const data = source
+    .prepare(
+      `
     SELECT
       hash
     FROM
       md5s
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `,
-    [z, x, y]
-  );
+    `
+    )
+    .get(z, x, y);
 
   if (data === undefined || data.hash === null) {
     throw new Error("Tile MD5 does not exist");
@@ -885,18 +879,18 @@ export function getXYZTileMD5(source, z, x, y) {
  * @returns {number} Returns the created as a number
  */
 export function getXYZTileCreated(source, z, x, y) {
-  const data = fetchOne(
-    source,
-    `
+  const data = source
+    .prepare(
+      `
     SELECT
       created
     FROM
       md5s
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `,
-    [z, x, y]
-  );
+    `
+    )
+    .get(z, x, y);
 
   if (data === undefined || data.created === null) {
     throw new Error("Tile created does not exist");

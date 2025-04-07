@@ -23,7 +23,6 @@ export async function openSQLite(filePath, isCreate) {
   try {
     source = new DatabaseSync(filePath);
 
-    source.exec("PRAGMA journal_mode=WAL;");
     source.exec("PRAGMA mmap_size = 0;");
     source.exec("PRAGMA busy_timeout = 30000;");
 
@@ -32,6 +31,8 @@ export async function openSQLite(filePath, isCreate) {
     if (source !== undefined) {
       source.close();
     }
+
+    throw error;
   }
 }
 
@@ -48,7 +49,7 @@ export async function runSQLWithTimeout(source, sql, params, timeout) {
 
   while (Date.now() - startTime <= timeout) {
     try {
-      source.prepare(sql).run(params);
+      source.prepare(sql).run(...params);
 
       return;
     } catch (error) {
@@ -61,28 +62,6 @@ export async function runSQLWithTimeout(source, sql, params, timeout) {
   }
 
   throw new Error("Timeout to access SQLite DB");
-}
-
-/**
- * Fetch one row from SQLite database
- * @param {DatabaseSync} source SQLite database instance
- * @param {string} sql SQL query string
- * @param {any[]} params Parameters for the SQL query
- * @returns {Object} The first row of the query result
- */
-export function fetchOne(source, sql, params) {
-  return source.prepare(sql).get(params);
-}
-
-/**
- * Fetch all rows from SQLite database
- * @param {DatabaseSync} source SQLite database instance
- * @param {string} sql SQL query string
- * @param {any[]} params Parameters for the SQL query
- * @returns {Object[]} An array of rows
- */
-export function fetchAll(source, sql, params) {
-  return source.prepare(sql).all(params);
 }
 
 /**
