@@ -188,8 +188,6 @@ export function getLonLatFromXYZ(
  * @returns {{ total: number, z: number x: [number, number], y: [number, number] }}
  */
 export function getTileBoundFromCoverage(coverage, scheme) {
-  const maxTileIndex = (1 << coverage.zoom) - 1;
-
   let [xMin, yMin] = getXYZFromLonLatZ(
     coverage.bbox[0],
     coverage.bbox[3],
@@ -202,10 +200,6 @@ export function getTileBoundFromCoverage(coverage, scheme) {
     coverage.zoom,
     scheme
   );
-
-  if (scheme === "tms") {
-    [yMin, yMax] = [maxTileIndex - yMax, maxTileIndex - yMin];
-  }
 
   if (yMin > yMax) {
     [yMin, yMax] = [yMax, yMin];
