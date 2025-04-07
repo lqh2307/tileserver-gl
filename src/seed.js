@@ -157,7 +157,7 @@ async function seedMBTilesTiles(
 
     try {
       hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
+        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`,
         300000, // 5 mins
         "json"
       );
@@ -369,7 +369,7 @@ async function seedPostgreSQLTiles(
 
     try {
       hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
+        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`,
         300000, // 5 mins
         "json"
       );
@@ -581,7 +581,7 @@ async function seedXYZTiles(
 
     try {
       hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
+        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`,
         300000, // 5 mins
         "json"
       );
