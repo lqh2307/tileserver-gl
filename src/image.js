@@ -956,7 +956,7 @@ export async function renderMBTilesTiles(
     `Completed render ${
       tileBound.total
     } tiles of style "${id}" to mbtiles after ${
-      (doneTime = Date.now() - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
