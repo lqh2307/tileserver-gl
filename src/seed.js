@@ -154,9 +154,9 @@ async function seedMBTilesTiles(
     printLog("info", log);
 
     /* Get hashs */
-    try {
-      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
+    try {
       printLog("info", `Get hashs from "${hashURL}"...`);
 
       const res = await postDataToURL(
@@ -168,7 +168,7 @@ async function seedMBTilesTiles(
 
       hashs = res.data;
     } catch (error) {
-      printLog("error", `Failed to get hashs: ${error}`);
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
       hashs = {};
     }
@@ -186,7 +186,7 @@ async function seedMBTilesTiles(
   await updateMBTilesMetadata(
     source,
     metadata,
-    300000 // 5 mins
+    600000 // 10 mins
   );
 
   /* Download tiles */
@@ -371,9 +371,9 @@ async function seedPostgreSQLTiles(
     printLog("info", log);
 
     /* Get hashs */
-    try {
-      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
+    try {
       printLog("info", `Get hashs from "${hashURL}"...`);
 
       const res = await postDataToURL(
@@ -385,7 +385,7 @@ async function seedPostgreSQLTiles(
 
       hashs = res.data;
     } catch (error) {
-      printLog("error", `Failed to get hashs: ${error}`);
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
       hashs = {};
     }
@@ -403,7 +403,7 @@ async function seedPostgreSQLTiles(
   await updatePostgreSQLMetadata(
     source,
     metadata,
-    300000 // 5 mins
+    600000 // 10 mins
   );
 
   /* Download tiles */
@@ -588,9 +588,9 @@ async function seedXYZTiles(
     printLog("info", log);
 
     /* Get hashs */
-    try {
-      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
+    try {
       printLog("info", `Get hashs from "${hashURL}"...`);
 
       const res = await postDataToURL(
@@ -602,7 +602,7 @@ async function seedXYZTiles(
 
       hashs = res.data;
     } catch (error) {
-      printLog("error", `Failed to get hashs: ${error}`);
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
       hashs = {};
     }
@@ -620,7 +620,7 @@ async function seedXYZTiles(
   await updateXYZMetadata(
     source,
     metadata,
-    300000 // 5 mins
+    600000 // 10 mins
   );
 
   /* Download tile files */

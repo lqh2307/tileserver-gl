@@ -23,8 +23,8 @@ export async function openSQLite(filePath, isCreate) {
   try {
     source = new DatabaseSync(filePath);
 
-    source.exec("PRAGMA mmap_size = 0;");
-    source.exec("PRAGMA busy_timeout = 30000;");
+    source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
+    source.exec("PRAGMA busy_timeout = 30000;"); // 30s
 
     return source;
   } catch (error) {

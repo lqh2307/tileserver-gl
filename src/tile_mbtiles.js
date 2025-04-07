@@ -317,7 +317,7 @@ export async function openMBTilesDB(filePath, isCreate) {
       `
     );
 
-    const tableInfos = source.prepare("PRAGMA table_info(tiles)").all();
+    const tableInfos = source.prepare("PRAGMA table_info(tiles);").all();
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {

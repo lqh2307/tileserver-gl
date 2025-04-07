@@ -325,7 +325,7 @@ export async function openXYZMD5DB(filePath, isCreate) {
       `
     );
 
-    const tableInfos = source.prepare("PRAGMA table_info(md5s)").all();
+    const tableInfos = source.prepare("PRAGMA table_info(md5s);").all();
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {
