@@ -33,6 +33,7 @@ import {
   removeEmptyFolders,
   getDataFromURL,
   getJSONSchema,
+  postDataToURL,
   validateJSON,
   calculateMD5,
   delay,
@@ -153,14 +154,19 @@ async function seedMBTilesTiles(
     printLog("info", log);
 
     /* Get hashs */
-    printLog("info", "Get hashs...");
-
     try {
-      hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`,
+      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+
+      printLog("info", `Get hashs from "${hashURL}"...`);
+
+      const res = await postDataToURL(
+        hashURL,
         300000, // 5 mins
+        coverages,
         "json"
       );
+
+      hashs = res.data;
     } catch (error) {
       printLog("error", `Failed to get hashs: ${error}`);
 
@@ -365,14 +371,19 @@ async function seedPostgreSQLTiles(
     printLog("info", log);
 
     /* Get hashs */
-    printLog("info", "Get hashs...");
-
     try {
-      hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`,
+      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+
+      printLog("info", `Get hashs from "${hashURL}"...`);
+
+      const res = await postDataToURL(
+        hashURL,
         300000, // 5 mins
+        coverages,
         "json"
       );
+
+      hashs = res.data;
     } catch (error) {
       printLog("error", `Failed to get hashs: ${error}`);
 
@@ -577,14 +588,19 @@ async function seedXYZTiles(
     printLog("info", log);
 
     /* Get hashs */
-    printLog("info", "Get hashs...");
-
     try {
-      hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`,
+      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+
+      printLog("info", `Get hashs from "${hashURL}"...`);
+
+      const res = await postDataToURL(
+        hashURL,
         300000, // 5 mins
+        coverages,
         "json"
       );
+
+      hashs = res.data;
     } catch (error) {
       printLog("error", `Failed to get hashs: ${error}`);
 
