@@ -5,7 +5,6 @@ import { StatusCodes } from "http-status-codes";
 import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
-import sqlite3 from "sqlite3";
 import path from "node:path";
 import fs from "node:fs";
 import {
@@ -21,7 +20,7 @@ import {
 
 /**
  * Get MBTiles layers from tiles
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @returns {Promise<[string, string, string, string]>}
  */
 async function getMBTilesLayersFromTiles(source) {
@@ -68,7 +67,7 @@ async function getMBTilesLayersFromTiles(source) {
 
 /**
  * Get MBTiles bounding box from tiles
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @returns {[number, number, number, number]} Bounding box in format [minLon, minLat, maxLon, maxLat]
  */
 function getMBTilesBBoxFromTiles(source) {
@@ -151,7 +150,7 @@ function getMBTilesBBoxFromTiles(source) {
 
 /**
  * Get MBTiles zoom level from tiles
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {"minzoom"|"maxzoom"} zoomType
  * @returns {number}
  */
@@ -169,7 +168,7 @@ function getMBTilesZoomLevelFromTiles(source, zoomType) {
 
 /**
  * Get MBTiles tile format from tiles
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @returns {string}
  */
 function getMBTilesFormatFromTiles(source) {
@@ -182,7 +181,7 @@ function getMBTilesFormatFromTiles(source) {
 
 /**
  * Create MBTiles tile
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -221,7 +220,7 @@ async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
 
 /**
  * Get MBTiles tile hash from coverages
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @returns {Object<string, string>} Hash object
  */
@@ -261,7 +260,7 @@ export function getMBTilesTileHashFromCoverages(source, coverages) {
 
 /**
  * Delete a tile from MBTiles tiles table
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -360,7 +359,7 @@ export async function openMBTilesDB(filePath, isCreate) {
 
 /**
  * Get MBTiles tile
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -394,7 +393,7 @@ export function getMBTilesTile(source, z, x, y) {
 
 /**
  * Get MBTiles metadata
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @returns {Promise<Promise<Object>>}
  */
 export async function getMBTilesMetadata(source) {
@@ -630,7 +629,7 @@ export function createMBTilesMetadata(metadata) {
 
 /**
  * Compact MBTiles
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @returns {void}
  */
 export function compactMBTiles(source) {
@@ -639,7 +638,7 @@ export function compactMBTiles(source) {
 
 /**
  * Close MBTiles
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @returns {Promise<void>}
  */
 export async function closeMBTilesDB(source) {
@@ -712,7 +711,7 @@ export async function downloadMBTilesFile(url, filePath, maxTry, timeout) {
 
 /**
  * Update MBTiles metadata table
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
@@ -778,7 +777,7 @@ export async function getMBTilesTileFromURL(url, timeout) {
 /**
  * Download MBTiles tile data
  * @param {string} url The URL to download the file from
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -838,7 +837,7 @@ export async function downloadMBTilesTile(
 
 /**
  * Cache MBTiles tile data
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -876,7 +875,7 @@ export async function cacheMBtilesTileData(
 
 /**
  * Get MD5 hash of MBTiles tile
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -905,7 +904,7 @@ export function getMBTilesTileMD5(source, z, x, y) {
 
 /**
  * Get created of MBTiles tile
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -938,7 +937,7 @@ export function getMBTilesTileCreated(source, z, x, y) {
  * @returns {Promise<number>}
  */
 export async function countMBTilesTiles(filePath) {
-  const source = await openSQLite(filePath, sqlite3.OPEN_READONLY, false);
+  const source = await openSQLite(filePath, false);
 
   const data = source.prepare("SELECT COUNT(*) AS count FROM tiles;").get();
 

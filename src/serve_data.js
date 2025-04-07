@@ -4,7 +4,6 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import sqlite3 from "sqlite3";
 import express from "express";
 import {
   getXYZTileHashFromCoverages,
@@ -903,8 +902,7 @@ export const serve_data = {
                 /* Open XYZ MD5 */
                 dataInfo.md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
-                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                  false
+                  true
                 );
 
                 /* Get XYZ metadata */

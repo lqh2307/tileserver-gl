@@ -6,7 +6,6 @@ import { downloadFontFile, getFontCreated } from "./font.js";
 import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
-import sqlite3 from "sqlite3";
 import {
   downloadGeoJSONFile,
   getGeoJSONCreated,

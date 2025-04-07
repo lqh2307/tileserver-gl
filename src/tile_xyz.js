@@ -6,7 +6,6 @@ import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
-import sqlite3 from "sqlite3";
 import {
   getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
@@ -177,7 +176,7 @@ async function getXYZFormatFromTiles(sourcePath) {
 /**
  * Create XYZ tile
  * @param {string} sourcePath XYZ folder path
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -226,7 +225,7 @@ async function createXYZTile(
 
 /**
  * Get XYZ tile hash from coverages
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @returns {Object<string, string>} Hash object
  */
@@ -263,7 +262,7 @@ export function getXYZTileHashFromCoverages(source, coverages) {
 /**
  * Remove XYZ tile data file
  * @param {string} id XYZ ID
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -295,7 +294,7 @@ export async function removeXYZTile(id, source, z, x, y, format, timeout) {
  * Open XYZ MD5 SQLite database
  * @param {string} filePath MD5 filepath
  * @param {boolean} isCreate Is create database?
- * @returns {Promise<sqlite3.Database>}
+ * @returns {Promise<DatabaseSync>}
  */
 export async function openXYZMD5DB(filePath, isCreate) {
   const source = await openSQLite(filePath, isCreate);
@@ -421,7 +420,7 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
 
 /**
  * Get XYZ metadata
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {string} sourcePath XYZ folder path
  * @returns {Promise<Object>}
  */
@@ -658,7 +657,7 @@ export function createXYZMetadata(metadata) {
 
 /**
  * Close the XYZ MD5 SQLite database
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @returns {Promise<void>}
  */
 export async function closeXYZMD5DB(source) {
@@ -669,7 +668,7 @@ export async function closeXYZMD5DB(source) {
  * Download XYZ tile data file
  * @param {string} url The URL to download the file from
  * @param {string} id XYZ ID
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -734,7 +733,7 @@ export async function downloadXYZTile(
 
 /**
  * Update MBTiles metadata table
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
@@ -800,7 +799,7 @@ export async function getXYZTileFromURL(url, timeout) {
 /**
  * Cache XYZ tile data file
  * @param {string} sourcePath XYZ folder path
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -843,7 +842,7 @@ export async function cacheXYZTileFile(
 
 /**
  * Get MD5 hash of XYZ tile
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -872,7 +871,7 @@ export function getXYZTileMD5(source, z, x, y) {
 
 /**
  * Get created of MBTiles tile
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index

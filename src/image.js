@@ -7,7 +7,6 @@ import { getFonts } from "./font.js";
 import { config } from "./config.js";
 import { Mutex } from "async-mutex";
 import cluster from "cluster";
-import sqlite3 from "sqlite3";
 import sharp from "sharp";
 import {
   updatePostgreSQLMetadata,
@@ -741,7 +740,6 @@ export async function renderMBTilesTiles(
     "xyz"
   );
 
-  /* Log */
   let log = `Rendering ${
     tileBound.total
   } tiles of style "${id}" to mbtiles with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
@@ -953,15 +951,12 @@ export async function renderMBTilesTiles(
     printLog("info", `Gdal command output: ${commandOutput}`);
   }
 
-  /* Log */
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed render ${
       tileBound.total
     } tiles of style "${id}" to mbtiles after ${
-      (doneTime - startTime) / 1000
+      (doneTime = Date.now() - startTime) / 1000
     }s!`
   );
 }
