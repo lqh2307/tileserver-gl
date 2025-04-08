@@ -181,7 +181,6 @@ async function getXYZFormatFromTiles(sourcePath) {
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {Buffer} data Tile data buffer
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
@@ -193,7 +192,6 @@ async function createXYZTile(
   x,
   y,
   format,
-  storeMD5,
   data,
   timeout
 ) {
@@ -217,7 +215,7 @@ async function createXYZTile(
           hash = excluded.hash,
           created = excluded.created;
       `,
-      [z, x, y, storeMD5 === true ? calculateMD5(data) : undefined, Date.now()],
+      [z, x, y, calculateMD5(data), Date.now()],
       timeout
     ),
   ]);
@@ -233,22 +231,19 @@ export function getXYZTileHashFromCoverages(source, coverages) {
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   let query = "";
-  const params = [];
+
   tileBounds.forEach((tileBound, idx) => {
     if (idx > 0) {
       query += " UNION ALL ";
     }
 
-    query +=
-      "SELECT zoom_level, tile_column, tile_row, hash FROM md5s WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?";
-
-    params.push(tileBound.z, ...tileBound.x, ...tileBound.y);
+    query += `SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
   });
 
   query += ";";
 
   const result = {};
-  const rows = source.prepare(query).all(...params);
+  const rows = source.prepare(query).all();
 
   rows.forEach((row) => {
     if (row.hash !== null) {
@@ -404,7 +399,7 @@ export async function openXYZMD5DB(filePath, isCreate) {
       } catch (error) {
         printLog(
           "error",
-          `Failed to create column "hash" for table "md5s" of XYZ MD5 DB ${filePath}: ${error}`
+          `Failed to create column "hash" for table "md5s" of XYZ MD5 DB "${filePath}": ${error}`
         );
       }
     }
@@ -421,7 +416,7 @@ export async function openXYZMD5DB(filePath, isCreate) {
       } catch (error) {
         printLog(
           "error",
-          `Failed to create column "created" for table "md5s" of XYZ MD5 DB ${filePath}: ${error}`
+          `Failed to create column "created" for table "md5s" of XYZ MD5 DB "${filePath}": ${error}`
         );
       }
     }
@@ -720,7 +715,6 @@ export async function closeXYZMD5DB(source) {
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
@@ -734,7 +728,6 @@ export async function downloadXYZTile(
   format,
   maxTry,
   timeout,
-  storeMD5,
   storeTransparent
 ) {
   await retry(async () => {
@@ -751,7 +744,6 @@ export async function downloadXYZTile(
         y,
         format,
         response.data,
-        storeMD5,
         storeTransparent
       );
     } catch (error) {
@@ -850,7 +842,6 @@ export async function getXYZTileFromURL(url, timeout) {
  * @param {number} y Y tile index
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @param {Buffer} data Tile data buffer
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
@@ -862,7 +853,6 @@ export async function cacheXYZTileFile(
   y,
   format,
   data,
-  storeMD5,
   storeTransparent
 ) {
   if (
@@ -878,7 +868,6 @@ export async function cacheXYZTileFile(
       x,
       y,
       format,
-      storeMD5,
       data,
       300000 // 5 mins
     );

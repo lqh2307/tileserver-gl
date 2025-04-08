@@ -595,7 +595,7 @@ export async function isExistFile(filePath) {
  * @param {RegExp} regex The regex to match files
  * @param {boolean} recurse Whether to search recursively in subdirectories
  * @param {boolean} includeDirPath Whether to include directory path
- * @returns {Promise<string>} Array of filepaths matching the regex
+ * @returns {Promise<string[]>} Array of filepaths matching the regex
  */
 export async function findFiles(
   dirPath,
@@ -645,7 +645,7 @@ export async function findFiles(
  * @param {RegExp} regex The regex to match folders
  * @param {boolean} recurse Whether to search recursively in subdirectories
  * @param {boolean} includeDirPath Whether to include directory path
- * @returns {Promise<string>} Array of folder paths matching the regex
+ * @returns {Promise<string[]>} Array of folder paths matching the regex
  */
 export async function findFolders(
   dirPath,

@@ -52,7 +52,6 @@ export async function runTasks(opts) {
     const defaultTimeout = 60000;
     const defaultMaxTry = 5;
     const defaultConcurrency = os.cpus().length;
-    const defaultStoreMD5 = false;
     const defaultStoreTransparent = false;
 
     /* Clean up sprites */
@@ -561,7 +560,6 @@ export async function runTasks(opts) {
                   seedDataItem.concurrency || defaultConcurrency,
                   seedDataItem.maxTry || defaultMaxTry,
                   seedDataItem.timeout || defaultTimeout,
-                  seedDataItem.storeMD5 || defaultStoreMD5,
                   seedDataItem.storeTransparent || defaultStoreTransparent,
                   seedDataItem.refreshBefore?.time ||
                     seedDataItem.refreshBefore?.day ||
@@ -577,7 +575,6 @@ export async function runTasks(opts) {
                   seedDataItem.concurrency || defaultConcurrency,
                   seedDataItem.maxTry || defaultMaxTry,
                   seedDataItem.timeout || defaultTimeout,
-                  seedDataItem.storeMD5 || defaultStoreMD5,
                   seedDataItem.storeTransparent || defaultStoreTransparent,
                   seedDataItem.refreshBefore?.time ||
                     seedDataItem.refreshBefore?.day ||
@@ -593,7 +590,6 @@ export async function runTasks(opts) {
                   seedDataItem.concurrency || defaultConcurrency,
                   seedDataItem.maxTry || defaultMaxTry,
                   seedDataItem.timeout || defaultTimeout,
-                  seedDataItem.storeMD5 || defaultStoreMD5,
                   seedDataItem.storeTransparent || defaultStoreTransparent,
                   seedDataItem.refreshBefore?.time ||
                     seedDataItem.refreshBefore?.day ||

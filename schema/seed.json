@@ -304,9 +304,6 @@
             "type": "string",
             "enum": ["xyz", "mbtiles", "pg"]
           },
-          "storeMD5": {
-            "type": "boolean"
-          },
           "storeTransparent": {
             "type": "boolean"
           }

@@ -161,7 +161,6 @@ function getDataTileHandler() {
                 x,
                 tmpY,
                 dataTile.data,
-                item.storeMD5,
                 item.storeTransparent
               ).catch((error) =>
                 printLog(
@@ -220,7 +219,6 @@ function getDataTileHandler() {
                 tmpY,
                 item.tileJSON.format,
                 dataTile.data,
-                item.storeMD5,
                 item.storeTransparent
               ).catch((error) =>
                 printLog(
@@ -269,7 +267,6 @@ function getDataTileHandler() {
                 x,
                 tmpY,
                 dataTile.data,
-                item.storeMD5,
                 item.storeTransparent
               ).catch((error) =>
                 printLog(
@@ -896,7 +893,6 @@ export const serve_data = {
                     dataInfo.sourceURL = cacheSource.url;
                     dataInfo.scheme = cacheSource.scheme;
                     dataInfo.storeCache = item.cache.store;
-                    dataInfo.storeMD5 = cacheSource.storeMD5;
                     dataInfo.storeTransparent = cacheSource.storeTransparent;
                   }
 
@@ -971,7 +967,6 @@ export const serve_data = {
                   dataInfo.sourceURL = cacheSource.url;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
-                  dataInfo.storeMD5 = cacheSource.storeMD5;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
                 }
 
@@ -1030,7 +1025,6 @@ export const serve_data = {
                   dataInfo.sourceURL = cacheSource.url;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
-                  dataInfo.storeMD5 = cacheSource.storeMD5;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
                 }
 

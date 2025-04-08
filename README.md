@@ -520,8 +520,7 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "concurrency": 50,
       "maxTry": 5,
       "storeType": "mbtiles",
-      "storeTransparent": false,
-      "storeMD5": true
+      "storeTransparent": false
     },
     "planet_cache": {
       "metadata": {
@@ -639,7 +638,6 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "maxTry": 5,
       "storeType": "mbtiles",
       "storeTransparent": false,
-      "storeMD5": true,
       "skip": true
     },
     "satellite_cache": {
@@ -744,7 +742,6 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "maxTry": 5,
       "storeType": "mbtiles",
       "storeTransparent": true,
-      "storeMD5": true,
       "skip": true
     },
     "satellite_md5_cache": {
@@ -785,8 +782,7 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "concurrency": 30,
       "maxTry": 5,
       "storeType": "mbtiles",
-      "storeTransparent": true,
-      "storeMD5": true
+      "storeTransparent": true
     }
   },
   "sprites": {},

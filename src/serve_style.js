@@ -294,7 +294,6 @@ function renderStyleHandler() {
           const defaultTileScale = 1;
           const defaultTileSize = 256;
           const defaultConcurrency = os.cpus().length;
-          const defaultStoreMD5 = false;
           const defaultStoreTransparent = false;
           const defaultCreateOverview = true;
 
@@ -310,7 +309,6 @@ function renderStyleHandler() {
                 req.body.bbox,
                 req.body.maxzoom,
                 req.body.concurrency || defaultConcurrency,
-                req.body.storeMD5 || defaultStoreMD5,
                 req.body.storeTransparent || defaultStoreTransparent,
                 req.body.createOverview || defaultCreateOverview,
                 req.body.refreshBefore?.time ||
@@ -332,7 +330,6 @@ function renderStyleHandler() {
                 req.body.bbox,
                 req.body.maxzoom,
                 req.body.concurrency || defaultConcurrency,
-                req.body.storeMD5 || defaultStoreMD5,
                 req.body.storeTransparent || defaultStoreTransparent,
                 req.body.createOverview || defaultCreateOverview,
                 req.body.refreshBefore?.time ||
@@ -354,7 +351,6 @@ function renderStyleHandler() {
                 req.body.bbox,
                 req.body.maxzoom,
                 req.body.concurrency || defaultConcurrency,
-                req.body.storeMD5 || defaultStoreMD5,
                 req.body.storeTransparent || defaultStoreTransparent,
                 req.body.createOverview || defaultCreateOverview,
                 req.body.refreshBefore?.time ||

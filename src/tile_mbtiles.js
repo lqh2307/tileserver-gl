@@ -52,12 +52,12 @@ async function getMBTilesLayersFromTiles(source) {
       break;
     }
 
-    for (const row of rows) {
+    rows.forEach((row) =>
       vectorTileProto.tile
         .decode(row.tile_data)
         .layers.map((layer) => layer.name)
-        .forEach((layer) => layerNames.add(layer));
-    }
+        .forEach((layer) => layerNames.add(layer))
+    );
 
     offset += batchSize;
   }
@@ -185,35 +185,27 @@ function getMBTilesFormatFromTiles(source) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {Buffer} data Tile data buffer
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-async function createMBTilesTile(source, z, x, y, storeMD5, data, timeout) {
+async function createMBTilesTile(source, z, x, y, data, timeout) {
   await runSQLWithTimeout(
     source,
     `
-        INSERT INTO
-          tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-        VALUES
-          (?, ?, ?, ?, ?, ?)
-        ON CONFLICT
-          (zoom_level, tile_column, tile_row)
-        DO UPDATE
-          SET
-            tile_data = excluded.tile_data,
-            hash = excluded.hash,
-            created = excluded.created;
-        `,
-    [
-      z,
-      x,
-      (1 << z) - 1 - y,
-      data,
-      storeMD5 === true ? calculateMD5(data) : undefined,
-      Date.now(),
-    ],
+    INSERT INTO
+      tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
+    VALUES
+      (?, ?, ?, ?, ?, ?)
+    ON CONFLICT
+      (zoom_level, tile_column, tile_row)
+    DO UPDATE
+      SET
+        tile_data = excluded.tile_data,
+        hash = excluded.hash,
+        created = excluded.created;
+    `,
+    [z, x, (1 << z) - 1 - y, data, calculateMD5(data), Date.now()],
     timeout
   );
 }
@@ -228,22 +220,19 @@ export function getMBTilesTileHashFromCoverages(source, coverages) {
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "tms");
 
   let query = "";
-  const params = [];
+
   tileBounds.forEach((tileBound, idx) => {
     if (idx > 0) {
       query += " UNION ALL ";
     }
 
-    query +=
-      "SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?";
-
-    params.push(tileBound.z, ...tileBound.x, ...tileBound.y);
+    query += `SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
   });
 
   query += ";";
 
   const result = {};
-  const rows = source.prepare(query).all(...params);
+  const rows = source.prepare(query).all();
 
   rows.forEach((row) => {
     if (row.hash !== null) {
@@ -304,7 +293,7 @@ export async function calculateMBTilesTileHash(source) {
             Date.now(),
             row.zoom_level,
             row.tile_column,
-            (1 << row.tile_row) - 1 - row.tile_row,
+            (1 << row.zoom_level) - 1 - row.tile_row,
           ],
           300000 // 5 mins
         )
@@ -386,7 +375,7 @@ export async function openMBTilesDB(filePath, isCreate) {
       } catch (error) {
         printLog(
           "error",
-          `Failed to create column "hash" for table "tiles" of MBTiles DB ${filePath}: ${error}`
+          `Failed to create column "hash" for table "tiles" of MBTiles DB "${filePath}": ${error}`
         );
       }
     }
@@ -403,7 +392,7 @@ export async function openMBTilesDB(filePath, isCreate) {
       } catch (error) {
         printLog(
           "error",
-          `Failed to create column "created" for table "tiles" of MBTiles DB ${filePath}: ${error}`
+          `Failed to create column "created" for table "tiles" of MBTiles DB "${filePath}": ${error}`
         );
       }
     }
@@ -424,13 +413,13 @@ export function getMBTilesTile(source, z, x, y) {
   let data = source
     .prepare(
       `
-    SELECT
-      tile_data
-    FROM
-      tiles
-    WHERE
-      zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `
+      SELECT
+        tile_data
+      FROM
+        tiles
+      WHERE
+        zoom_level = ? AND tile_column = ? AND tile_row = ?;
+      `
     )
     .get(z, x, (1 << z) - 1 - y);
 
@@ -838,7 +827,6 @@ export async function getMBTilesTileFromURL(url, timeout) {
  * @param {number} y Y tile index
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
@@ -850,7 +838,6 @@ export async function downloadMBTilesTile(
   y,
   maxTry,
   timeout,
-  storeMD5,
   storeTransparent
 ) {
   await retry(async () => {
@@ -865,7 +852,6 @@ export async function downloadMBTilesTile(
         x,
         y,
         response.data,
-        storeMD5,
         storeTransparent
       );
     } catch (error) {
@@ -897,7 +883,6 @@ export async function downloadMBTilesTile(
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {Buffer} data Tile data buffer
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
@@ -907,7 +892,6 @@ export async function cacheMBtilesTileData(
   x,
   y,
   data,
-  storeMD5,
   storeTransparent
 ) {
   if (
@@ -921,7 +905,6 @@ export async function cacheMBtilesTileData(
       z,
       x,
       y,
-      storeMD5,
       data,
       300000 // 5 mins
     );
@@ -940,13 +923,13 @@ export function getMBTilesTileMD5(source, z, x, y) {
   const data = source
     .prepare(
       `
-    SELECT
-      hash
-    FROM
-      tiles
-    WHERE
-      zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `
+      SELECT
+        hash
+      FROM
+        tiles
+      WHERE
+        zoom_level = ? AND tile_column = ? AND tile_row = ?;
+      `
     )
     .get(z, x, (1 << z) - 1 - y);
 
@@ -969,13 +952,13 @@ export function getMBTilesTileCreated(source, z, x, y) {
   const data = source
     .prepare(
       `
-    SELECT
-      created
-    FROM
-      tiles
-    WHERE
-      zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `
+      SELECT
+        created
+      FROM
+        tiles
+      WHERE
+        zoom_level = ? AND tile_column = ? AND tile_row = ?;
+      `
     )
     .get(z, x, (1 << z) - 1 - y);
 

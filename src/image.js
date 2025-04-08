@@ -241,7 +241,6 @@ export async function renderImage(
                     x,
                     tmpY,
                     dataTile.data,
-                    item.storeMD5,
                     item.storeTransparent
                   ).catch((error) =>
                     printLog(
@@ -335,7 +334,6 @@ export async function renderImage(
                     tmpY,
                     item.tileJSON.format,
                     dataTile.data,
-                    item.storeMD5,
                     item.storeTransparent
                   ).catch((error) =>
                     printLog(
@@ -421,7 +419,6 @@ export async function renderImage(
                     x,
                     tmpY,
                     dataTile.data,
-                    item.storeMD5,
                     item.storeTransparent
                   ).catch((error) =>
                     printLog(
@@ -710,7 +707,6 @@ export async function renderImage(
  * @param {[number, number, number, number]} bbox Bounding box in format [lonMin, latMin, lonMax, latMax] in EPSG:4326
  * @param {number} maxzoom Max zoom level
  * @param {number} concurrency Concurrency download
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
@@ -724,7 +720,6 @@ export async function renderMBTilesTiles(
   bbox,
   maxzoom,
   concurrency,
-  storeMD5,
   storeTransparent,
   createOverview,
   refreshBefore
@@ -742,7 +737,7 @@ export async function renderMBTilesTiles(
 
   let log = `Rendering ${
     tileBound.total
-  } tiles of style "${id}" to mbtiles with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  } tiles of style "${id}" to mbtiles with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -824,15 +819,7 @@ export async function renderMBTilesTiles(
 
           if (calculateMD5(data) !== md5) {
             // Store data
-            await cacheMBtilesTileData(
-              source,
-              z,
-              x,
-              y,
-              data,
-              storeMD5,
-              storeTransparent
-            );
+            await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
           }
         } catch (error) {
           if (error.message === "Tile MD5 does not exist") {
@@ -877,15 +864,7 @@ export async function renderMBTilesTiles(
         );
 
         // Store data
-        await cacheMBtilesTileData(
-          source,
-          z,
-          x,
-          y,
-          data,
-          storeMD5,
-          storeTransparent
-        );
+        await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
       }
     } catch (error) {
       printLog(
@@ -970,7 +949,6 @@ export async function renderMBTilesTiles(
  * @param {number[]} bbox Bounding box in format [lonMin, latMin, lonMax, latMax] in EPSG:4326
  * @param {number} maxzoom Max zoom level
  * @param {number} concurrency Concurrency to download
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
@@ -984,7 +962,6 @@ export async function renderXYZTiles(
   bbox,
   maxzoom,
   concurrency,
-  storeMD5,
   storeTransparent,
   createOverview,
   refreshBefore
@@ -1001,7 +978,7 @@ export async function renderXYZTiles(
 
   let log = `Rendering ${
     tileBound.total
-  } tiles of style "${id}" to xyz with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  } tiles of style "${id}" to xyz with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -1088,7 +1065,6 @@ export async function renderXYZTiles(
               y,
               metadata.format,
               data,
-              storeMD5,
               storeTransparent
             );
           }
@@ -1143,7 +1119,6 @@ export async function renderXYZTiles(
           y,
           metadata.format,
           data,
-          storeMD5,
           storeTransparent
         );
       }
@@ -1227,7 +1202,6 @@ export async function renderXYZTiles(
  * @param {number[]} bbox Bounding box in format [lonMin, latMin, lonMax, latMax] in EPSG:4326
  * @param {number} maxzoom Max zoom level
  * @param {number} concurrency Concurrency download
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
@@ -1241,7 +1215,6 @@ export async function renderPostgreSQLTiles(
   bbox,
   maxzoom,
   concurrency,
-  storeMD5,
   storeTransparent,
   createOverview,
   refreshBefore
@@ -1258,7 +1231,7 @@ export async function renderPostgreSQLTiles(
 
   let log = `Rendering ${
     tileBound.total
-  } tiles of style "${id}" to postgresql with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  } tiles of style "${id}" to postgresql with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -1346,7 +1319,6 @@ export async function renderPostgreSQLTiles(
               x,
               y,
               data,
-              storeMD5,
               storeTransparent
             );
           }
@@ -1393,15 +1365,7 @@ export async function renderPostgreSQLTiles(
         );
 
         // Store data
-        await cachePostgreSQLTileData(
-          source,
-          z,
-          x,
-          y,
-          data,
-          storeMD5,
-          storeTransparent
-        );
+        await cachePostgreSQLTileData(source, z, x, y, data, storeTransparent);
       }
     } catch (error) {
       printLog(
