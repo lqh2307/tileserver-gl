@@ -420,7 +420,6 @@ function calculateDataTileMD5sHandler() {
       if (item.sourceType === "mbtiles") {
         await calculateMBTilesTileHash(item.source);
       } else if (item.sourceType === "pmtiles") {
-        md5s = {};
       } else if (item.sourceType === "xyz") {
         await calculatXYZTileHash(
           item.source,
