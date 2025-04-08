@@ -262,7 +262,7 @@ export async function calculatePostgreSQLTileHash(source) {
       FROM
         tiles
       WHERE
-        hash IS NULL
+        hash IS NULL OR hash = ""
       LIMIT
         256
       OFFSET

@@ -274,7 +274,7 @@ export async function calculatXYZTileHash(sourcePath, source, format) {
     FROM
       md5s
     WHERE
-      hash IS NULL
+      hash IS NULL OR hash = ""
     LIMIT
       256
     OFFSET
