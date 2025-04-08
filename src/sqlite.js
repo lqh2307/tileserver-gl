@@ -23,6 +23,7 @@ export async function openSQLite(filePath, isCreate) {
   try {
     source = new DatabaseSync(filePath);
 
+    source.exec("PRAGMA journal_mode = DELETE;"); // Disable WAL mode
     source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
     source.exec("PRAGMA busy_timeout = 30000;"); // 30s
 

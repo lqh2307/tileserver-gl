@@ -51,7 +51,7 @@ async function getPostgreSQLLayersFromTiles(source) {
 
     data.rows.forEach((row) =>
       vectorTileProto.tile
-        .decode(row.tile_data)
+        .decode(Buffer.from(row.tile_data))
         .layers.map((layer) => layer.name)
         .forEach((layer) => layerNames.add(layer))
     );
@@ -274,7 +274,7 @@ export async function calculatePostgreSQLTileHash(source) {
             zoom_level = $3 AND tile_column = $4 AND tile_row = $5;
           `,
           [
-            calculateMD5(row.tile_data),
+            calculateMD5(Buffer.from(row.tile_data)),
             Date.now(),
             row.zoom_level,
             row.tile_column,

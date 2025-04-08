@@ -54,7 +54,7 @@ async function getMBTilesLayersFromTiles(source) {
 
     rows.forEach((row) =>
       vectorTileProto.tile
-        .decode(row.tile_data)
+        .decode(Buffer.from(row.tile_data))
         .layers.map((layer) => layer.name)
         .forEach((layer) => layerNames.add(layer))
     );
@@ -291,7 +291,7 @@ export async function calculateMBTilesTileHash(source) {
             Date.now(),
             row.zoom_level,
             row.tile_column,
-            (1 << row.zoom_level) - 1 - row.tile_row,
+            row.tile_row,
           ],
           300000 // 5 mins
         )
