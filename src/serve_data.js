@@ -415,16 +415,20 @@ function calculateDataTileMD5sHandler() {
     /* Calculate data tile MD5s */
     try {
       if (item.sourceType === "mbtiles") {
-        await calculateMBTilesTileHash(item.source);
+        setTimeout(() => calculateMBTilesTileHash(item.source), 0);
       } else if (item.sourceType === "pmtiles") {
       } else if (item.sourceType === "xyz") {
-        await calculatXYZTileHash(
-          item.source,
-          item.md5Source,
-          item.tileJSON.format
+        setTimeout(
+          () =>
+            calculatXYZTileHash(
+              item.source,
+              item.md5Source,
+              item.tileJSON.format
+            ),
+          0
         );
       } else if (item.sourceType === "pg") {
-        await calculatePostgreSQLTileHash(item.source);
+        setTimeout(() => calculatePostgreSQLTileHash(item.source), 0);
       }
 
       return res.status(StatusCodes.OK).send("OK");
