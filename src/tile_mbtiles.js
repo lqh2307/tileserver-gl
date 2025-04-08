@@ -267,7 +267,7 @@ export async function calculateMBTilesTileHash(source) {
   const sql = source.prepare(
     `
     SELECT
-      zoom_level, tile_column, tile_row
+      zoom_level, tile_column, tile_row, tile_data
     FROM
       tiles
     WHERE
@@ -373,7 +373,7 @@ export async function openMBTilesDB(filePath, isCreate) {
         source.exec(
           `ALTER TABLE
             tiles
-          ADD COLUMN IF NOT EXISTS
+          ADD COLUMN
             hash TEXT;
           `
         );
@@ -390,7 +390,7 @@ export async function openMBTilesDB(filePath, isCreate) {
         source.exec(
           `ALTER TABLE
             tiles
-          ADD COLUMN IF NOT EXISTS
+          ADD COLUMN
             created BIGINT;
           `
         );

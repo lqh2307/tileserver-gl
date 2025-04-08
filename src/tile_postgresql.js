@@ -258,7 +258,7 @@ export async function calculatePostgreSQLTileHash(source) {
     const data = await source.query(
       `
       SELECT
-        zoom_level, tile_column, tile_row
+        zoom_level, tile_column, tile_row, tile_data
       FROM
         tiles
       WHERE

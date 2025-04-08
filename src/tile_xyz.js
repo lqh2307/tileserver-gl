@@ -381,7 +381,7 @@ export async function openXYZMD5DB(filePath, isCreate) {
         source.exec(
           `ALTER TABLE
             md5s
-          ADD COLUMN IF NOT EXISTS
+          ADD COLUMN
             hash TEXT;
           `
         );
@@ -398,7 +398,7 @@ export async function openXYZMD5DB(filePath, isCreate) {
         source.exec(
           `ALTER TABLE
             md5s
-          ADD COLUMN IF NOT EXISTS
+          ADD COLUMN
             created BIGINT;
           `
         );
@@ -408,26 +408,6 @@ export async function openXYZMD5DB(filePath, isCreate) {
           `Failed to create column "created" for table "md5s" of XYZ MD5 DB ${filePath}: ${error}`
         );
       }
-    }
-
-    if (tableInfos.some((col) => col.name === "hash") === false) {
-      source.exec(
-        `ALTER TABLE
-          md5s
-        ADD COLUMN IF NOT EXISTS
-          hash TEXT;
-        `
-      );
-    }
-
-    if (tableInfos.some((col) => col.name === "created") === false) {
-      source.exec(
-        `ALTER TABLE
-          md5s
-        ADD COLUMN IF NOT EXISTS
-          created BIGINT;
-        `
-      );
     }
   }
 
