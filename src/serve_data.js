@@ -431,7 +431,7 @@ function calculateDataTileMD5sHandler() {
         await calculatePostgreSQLTileHash(item.source);
       }
 
-      return res.status(StatusCodes.OK).send();
+      return res.status(StatusCodes.OK).send("OK");
     } catch (error) {
       printLog("error", `Failed to calculate data tile md5s "${id}": ${error}`);
 
