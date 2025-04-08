@@ -286,7 +286,13 @@ export async function calculatePostgreSQLTileHash(source) {
           WHERE
             zoom_level = ? AND tile_column = ? AND tile_row = ?;
           `,
-          [calculateMD5(row.tile_data), Date.now(), z, x, y]
+          [
+            calculateMD5(row.tile_data),
+            Date.now(),
+            row.zoom_level,
+            row.tile_column,
+            row.tile_row,
+          ]
         )
       )
     );

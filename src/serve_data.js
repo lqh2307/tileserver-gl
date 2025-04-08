@@ -422,7 +422,11 @@ function calculateDataTileMD5sHandler() {
       } else if (item.sourceType === "pmtiles") {
         md5s = {};
       } else if (item.sourceType === "xyz") {
-        await calculatXYZTileHash(item.md5Source);
+        await calculatXYZTileHash(
+          item.source,
+          item.md5Source,
+          item.tileJSON.format
+        );
       } else if (item.sourceType === "pg") {
         await calculatePostgreSQLTileHash(item.source);
       }
@@ -703,8 +707,8 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.post(`/:id/md5s`, getDataTileMD5sHandler());
-    app.put(`/:id/md5s`, calculateDataTileMD5sHandler());
+    app.post("/:id/md5s", getDataTileMD5sHandler());
+    app.put("/:id/md5s", calculateDataTileMD5sHandler());
 
     /**
      * @swagger
@@ -776,7 +780,7 @@ export const serve_data = {
      *         description: Internal server error
      */
     app.get(
-      `/:id/:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}).:format`,
+      "/:id/:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}).:format",
       getDataTileHandler()
     );
 

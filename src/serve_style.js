@@ -1196,7 +1196,7 @@ export const serve_style = {
        *         description: Internal server error
        */
       app.get(
-        `/:id/(:tileSize/)?:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}):tileScale(@\\d+x)?.png`,
+        "/:id/(:tileSize/)?:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}):tileScale(@\\d+x)?.png",
         getRenderedTileHandler()
       );
     }

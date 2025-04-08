@@ -299,7 +299,14 @@ export async function calculateMBTilesTileHash(source) {
           WHERE
             zoom_level = ? AND tile_column = ? AND tile_row = ?;
           `,
-          [calculateMD5(row.tile_data), Date.now(), z, x, (1 << z) - 1 - y],
+          [
+            calculateMD5(row.tile_data),
+            Date.now(),
+            row.zoom_level,
+            row.tile_column,
+            row.tile_row,
+            (1 << row.tile_row) - 1 - row.tile_row,
+          ],
           300000 // 5 mins
         )
       )

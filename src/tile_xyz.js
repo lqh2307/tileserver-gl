@@ -261,10 +261,12 @@ export function getXYZTileHashFromCoverages(source, coverages) {
 
 /**
  * Calculate XYZ tile hash
+ * @param {string} sourcePath XYZ folder path
  * @param {DatabaseSync} source SQLite database instance
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<void>}
  */
-export async function calculatXYZTileHash(source) {
+export async function calculatXYZTileHash(sourcePath, source, format) {
   const sql = source.prepare(
     `
     SELECT
@@ -288,8 +290,16 @@ export async function calculatXYZTileHash(source) {
     }
 
     await Promise.all(
-      rows.map((row) =>
-        runSQLWithTimeout(
+      rows.map(async (row) => {
+        const data = await getXYZTile(
+          sourcePath,
+          row.zoom_level,
+          row.tile_column,
+          row.tile_row,
+          format
+        );
+
+        await runSQLWithTimeout(
           source,
           `
           UPDATE
@@ -300,10 +310,16 @@ export async function calculatXYZTileHash(source) {
           WHERE
             zoom_level = ? AND tile_column = ? AND tile_row = ?;
           `,
-          [calculateMD5(row.tile_data), Date.now(), z, x, y],
+          [
+            calculateMD5(data),
+            Date.now(),
+            row.zoom_level,
+            row.tile_column,
+            row.tile_row,
+          ],
           300000 // 5 mins
-        )
-      )
+        );
+      })
     );
   }
 }
