@@ -32,21 +32,21 @@ async function getMBTilesLayersFromTiles(source) {
     await fsPromise.readFile("public/protos/vector_tile.proto")
   );
 
+  const sql = source.prepare(
+    `
+    SELECT
+      tile_data
+    FROM
+      tiles
+    LIMIT
+      ?
+    OFFSET
+      ?;
+    `
+  );
+
   while (true) {
-    const rows = source
-      .prepare(
-        `
-      SELECT
-        tile_data
-      FROM
-        tiles
-      LIMIT
-        ?
-      OFFSET
-        ?;
-      `
-      )
-      .all(batchSize, offset);
+    const rows = sql.all(batchSize, offset);
 
     if (rows.length === 0) {
       break;
@@ -256,6 +256,55 @@ export function getMBTilesTileHashFromCoverages(source, coverages) {
   });
 
   return result;
+}
+
+/**
+ * Calculate MBTiles tile hash
+ * @param {DatabaseSync} source SQLite database instance
+ * @returns {Promise<void>}
+ */
+export async function calculateMBTilesTileHash(source) {
+  const sql = source.prepare(
+    `
+    SELECT
+      zoom_level, tile_column, tile_row
+    FROM
+      tiles
+    WHERE
+      hash IS NULL
+    LIMIT
+      256
+    OFFSET
+      0;
+    `
+  );
+
+  while (true) {
+    const rows = sql.all(256, 0);
+
+    if (rows.length === 0) {
+      break;
+    }
+
+    await Promise.all(
+      rows.map((row) =>
+        runSQLWithTimeout(
+          source,
+          `
+          UPDATE
+            tiles
+          SET
+            hash = ?,
+            created = ?
+          WHERE
+            zoom_level = ? AND tile_column = ? AND tile_row = ?;
+          `,
+          [calculateMD5(row.tile_data), Date.now(), z, x, (1 << z) - 1 - y],
+          300000 // 5 mins
+        )
+      )
+    );
+  }
 }
 
 /**

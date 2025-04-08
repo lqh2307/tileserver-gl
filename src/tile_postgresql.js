@@ -249,6 +249,51 @@ export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
 }
 
 /**
+ * Calculate PostgreSQL tile hash
+ * @param {pg.Client} source PostgreSQL database instance
+ * @returns {Promise<void>}
+ */
+export async function calculatePostgreSQLTileHash(source) {
+  while (true) {
+    const data = await source.query(
+      `
+      SELECT
+        zoom_level, tile_column, tile_row
+      FROM
+        tiles
+      WHERE
+        hash IS NULL
+      LIMIT
+        256
+      OFFSET
+        0;
+      `
+    );
+
+    if (data.rows.length === 0) {
+      break;
+    }
+
+    await Promise.all(
+      data.rows.map((row) =>
+        source.query(
+          `
+          UPDATE
+            tiles
+          SET
+            hash = ?,
+            created = ?
+          WHERE
+            zoom_level = ? AND tile_column = ? AND tile_row = ?;
+          `,
+          [calculateMD5(row.tile_data), Date.now(), z, x, y]
+        )
+      )
+    );
+  }
+}
+
+/**
  * Delete a tile from PostgreSQL tiles table
  * @param {pg.Client} source PostgreSQL database instance
  * @param {number} z Zoom level

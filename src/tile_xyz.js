@@ -260,6 +260,55 @@ export function getXYZTileHashFromCoverages(source, coverages) {
 }
 
 /**
+ * Calculate XYZ tile hash
+ * @param {DatabaseSync} source SQLite database instance
+ * @returns {Promise<void>}
+ */
+export async function calculatXYZTileHash(source) {
+  const sql = source.prepare(
+    `
+    SELECT
+      zoom_level, tile_column, tile_row
+    FROM
+      md5s
+    WHERE
+      hash IS NULL
+    LIMIT
+      256
+    OFFSET
+      0;
+    `
+  );
+
+  while (true) {
+    const rows = sql.all(256, 0);
+
+    if (rows.length === 0) {
+      break;
+    }
+
+    await Promise.all(
+      rows.map((row) =>
+        runSQLWithTimeout(
+          source,
+          `
+          UPDATE
+            md5s
+          SET
+            hash = ?,
+            created = ?
+          WHERE
+            zoom_level = ? AND tile_column = ? AND tile_row = ?;
+          `,
+          [calculateMD5(row.tile_data), Date.now(), z, x, y],
+          300000 // 5 mins
+        )
+      )
+    );
+  }
+}
+
+/**
  * Remove XYZ tile data file
  * @param {string} id XYZ ID
  * @param {DatabaseSync} source SQLite database instance

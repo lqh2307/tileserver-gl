@@ -7,6 +7,7 @@ import { seed } from "./seed.js";
 import express from "express";
 import {
   getXYZTileHashFromCoverages,
+  calculatXYZTileHash,
   createXYZMetadata,
   getXYZTileFromURL,
   cacheXYZTileFile,
@@ -17,6 +18,7 @@ import {
 } from "./tile_xyz.js";
 import {
   getMBTilesTileHashFromCoverages,
+  calculateMBTilesTileHash,
   createMBTilesMetadata,
   getMBTilesTileFromURL,
   cacheMBtilesTileData,
@@ -42,6 +44,7 @@ import {
 } from "./tile_pmtiles.js";
 import {
   getPostgreSQLTileHashFromCoverages,
+  calculatePostgreSQLTileHash,
   createPostgreSQLMetadata,
   getPostgreSQLTileFromURL,
   cachePostgreSQLTileData,
@@ -399,6 +402,43 @@ function getDataTileMD5sHandler() {
 }
 
 /**
+ * Calculate data tile MD5s handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function calculateDataTileMD5sHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+    const item = config.datas[id];
+
+    /* Check data is exist? */
+    if (item === undefined) {
+      return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+    }
+
+    /* Calculate data tile MD5s */
+    try {
+      if (item.sourceType === "mbtiles") {
+        await calculateMBTilesTileHash(item.source);
+      } else if (item.sourceType === "pmtiles") {
+        md5s = {};
+      } else if (item.sourceType === "xyz") {
+        await calculatXYZTileHash(item.md5Source);
+      } else if (item.sourceType === "pg") {
+        await calculatePostgreSQLTileHash(item.source);
+      }
+
+      return res.status(StatusCodes.OK).send();
+    } catch (error) {
+      printLog("error", `Failed to calculate data tile md5s "${id}": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
  * Get data tile list handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
@@ -628,8 +668,43 @@ export const serve_data = {
      *               example: Starting...
      *       500:
      *         description: Internal server error
+     *   put:
+     *     tags:
+     *       - Data
+     *     summary: Calculate data tile MD5s
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
+     *     responses:
+     *       200:
+     *         description: Data tile MD5s
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       204:
+     *         description: No content
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
      */
     app.post(`/:id/md5s`, getDataTileMD5sHandler());
+    app.put(`/:id/md5s`, calculateDataTileMD5sHandler());
 
     /**
      * @swagger
