@@ -260,7 +260,7 @@ export async function calculateMBTilesTileHash(source) {
     FROM
       tiles
     WHERE
-      hash IS NULL OR hash = ""
+      hash IS NULL
     LIMIT
       256
     OFFSET
