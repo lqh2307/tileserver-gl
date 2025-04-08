@@ -271,9 +271,7 @@ export async function calculatXYZTileHash(sourcePath, source, format) {
     WHERE
       hash IS NULL
     LIMIT
-      256
-    OFFSET
-      0;
+      256;
     `
   );
 

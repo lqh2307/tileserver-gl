@@ -253,9 +253,7 @@ export async function calculatePostgreSQLTileHash(source) {
       WHERE
         hash IS NULL
       LIMIT
-        256
-      OFFSET
-        0;
+        256;
       `
     );
 

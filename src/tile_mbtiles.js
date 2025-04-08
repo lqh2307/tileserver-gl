@@ -262,9 +262,7 @@ export async function calculateMBTilesTileHash(source) {
     WHERE
       hash IS NULL
     LIMIT
-      256
-    OFFSET
-      0;
+      256;
     `
   );
 
