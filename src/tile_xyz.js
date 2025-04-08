@@ -283,7 +283,7 @@ export async function calculatXYZTileHash(sourcePath, source, format) {
   );
 
   while (true) {
-    const rows = sql.all(256, 0);
+    const rows = sql.all();
 
     if (rows.length === 0) {
       break;

@@ -280,7 +280,7 @@ export async function calculateMBTilesTileHash(source) {
   );
 
   while (true) {
-    const rows = sql.all(256, 0);
+    const rows = sql.all();
 
     if (rows.length === 0) {
       break;
@@ -304,7 +304,6 @@ export async function calculateMBTilesTileHash(source) {
             Date.now(),
             row.zoom_level,
             row.tile_column,
-            row.tile_row,
             (1 << row.tile_row) - 1 - row.tile_row,
           ],
           300000 // 5 mins
