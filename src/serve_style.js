@@ -421,8 +421,8 @@ function getStylesListHandler() {
 function getRenderedTileHandler() {
   return async (req, res, next) => {
     if (
-      req.params.tileSize !== undefined &&
-      ["256", "512"].includes(req.params.tileSize) === false
+      req.query.tileSize !== undefined &&
+      ["256", "512"].includes(req.query.tileSize) === false
     ) {
       return res
         .status(StatusCodes.BAD_REQUEST)
@@ -437,14 +437,14 @@ function getRenderedTileHandler() {
       return res.status(StatusCodes.NOT_FOUND).send("Rendered does not exist");
     }
 
-    /* Get and check rendered tile scale (Default: 1). Ex: @2x -> 2 */
-    const tileScale = Number(req.params.tileScale?.slice(1, -1)) || 1;
+    /* Get tile scale (Default: 1) */
+    const tileScale = Number(req.query.tileScale) || 1;
 
     /* Get tile size (Default: 256px x 256px) */
     const z = Number(req.params.z);
     const x = Number(req.params.x);
     const y = Number(req.params.y);
-    const tileSize = Number(req.params.tileSize) || 256;
+    const tileSize = Number(req.query.tileSize) || 256;
 
     /* Render tile */
     try {
@@ -480,16 +480,23 @@ function getRenderedTileHandler() {
  */
 function getRenderedHandler() {
   return async (req, res, next) => {
-    if (
-      req.params.tileSize !== undefined &&
-      ["256", "512"].includes(req.params.tileSize) === false
-    ) {
+    const tileSize = req.query.tileSize;
+
+    if (tileSize !== undefined && ["256", "512"].includes(tileSize) === false) {
       return res
         .status(StatusCodes.BAD_REQUEST)
         .send("Tile size is not support");
     }
 
     const id = req.params.id;
+    const queryStrings = [];
+
+    if (tileSize !== undefined) {
+      queryStrings.push(`tileSize=${tileSize}`);
+    }
+    if (tileScale !== undefined) {
+      queryStrings.push(`tileScale=${tileScale}`);
+    }
 
     try {
       const item = config.styles[id];
@@ -512,9 +519,9 @@ function getRenderedHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          req.params.tileSize === undefined
-            ? `${requestHost}/styles/${id}/{z}/{x}/{y}.png`
-            : `${requestHost}/styles/${id}/${req.params.tileSize}/{z}/{x}/{y}.png`,
+          `${requestHost}/styles/${id}/{z}/{x}/{y}.png${
+            query.length ? `?${query.join("&")}` : ""
+          }`,
         ],
       });
     } catch (error) {
@@ -994,14 +1001,6 @@ export const serve_style = {
        *     tags:
        *       - Rendered
        *     summary: Get all style rendereds
-       *     parameters:
-       *       - in: path
-       *         name: tileSize
-       *         schema:
-       *           type: integer
-       *           enum: [256, 512]
-       *         required: false
-       *         description: Tile size (256 or 512)
        *     responses:
        *       200:
        *         description: List of all style rendereds
@@ -1072,20 +1071,12 @@ export const serve_style = {
        * tags:
        *   - name: Rendered
        *     description: Rendered related endpoints
-       * /styles/{tileSize}/{id}.json:
+       * /styles/{id}.json:
        *   get:
        *     tags:
        *       - Rendered
        *     summary: Get style rendered
        *     parameters:
-       *       - in: path
-       *         name: tileSize
-       *         schema:
-       *           type: integer
-       *           enum: [256, 512]
-       *           example: 256
-       *         required: false
-       *         description: Tile size (256 or 512)
        *       - in: path
        *         name: id
        *         schema:
@@ -1093,6 +1084,21 @@ export const serve_style = {
        *           example: id
        *         required: true
        *         description: ID of the style rendered
+       *       - in: query
+       *         name: tileSize
+       *         schema:
+       *           type: integer
+       *           enum: [256, 512]
+       *           example: 256
+       *         required: false
+       *         description: Tile size
+       *       - in: query
+       *         name: tileScale
+       *         schema:
+       *           type: integer
+       *           example: 2
+       *         required: false
+       *         description: Tile scale
        *     responses:
        *       200:
        *         description: Style rendered
@@ -1119,14 +1125,14 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/styles/{:tileSize/}:id.json", getRenderedHandler());
+      app.get("/styles/:id.json", getRenderedHandler());
 
       /**
        * @swagger
        * tags:
        *   - name: Rendered
        *     description: Rendered related endpoints
-       * /styles/{id}/{tileSize}/{z}/{x}/{y}{tileScale}.png:
+       * /styles/{id}/{z}/{x}/{y}.png:
        *   get:
        *     tags:
        *       - Rendered
@@ -1139,14 +1145,6 @@ export const serve_style = {
        *           example: id
        *         required: true
        *         description: ID of the style
-       *       - in: path
-       *         name: tileSize
-       *         schema:
-       *           type: integer
-       *           enum: [256, 512]
-       *           example: 256
-       *         required: false
-       *         description: Tile size (256 or 512)
        *       - in: path
        *         name: z
        *         schema:
@@ -1165,12 +1163,21 @@ export const serve_style = {
        *           type: integer
        *         required: true
        *         description: Y coordinate
-       *       - in: path
+       *       - in: query
+       *         name: tileSize
+       *         schema:
+       *           type: integer
+       *           enum: [256, 512]
+       *           example: 256
+       *         required: false
+       *         description: Tile size
+       *       - in: query
        *         name: tileScale
        *         schema:
-       *           type: string
+       *           type: integer
+       *           example: 2
        *         required: false
-       *         description: Scale of the tile (e.g., @2x)
+       *         description: Tile scale
        *     responses:
        *       200:
        *         description: Style tile
@@ -1193,10 +1200,7 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get(
-        "/styles/:id{/:tileSize}/:z/:x/:y{:tileScale}.png",
-        getRenderedTileHandler()
-      );
+      app.get("/styles/:id/:z/:x/:y.png", getRenderedTileHandler());
     }
 
     if (process.env.SERVE_FRONT_PAGE !== "false") {
@@ -1205,7 +1209,7 @@ export const serve_style = {
        * tags:
        *   - name: Style
        *     description: Style related endpoints
-       * /styles/{id}/:
+       * /styles/{id}:
        *   get:
        *     tags:
        *       - Style
