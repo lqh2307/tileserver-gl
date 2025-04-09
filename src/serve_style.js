@@ -1,5 +1,6 @@
 "use strict";
 
+import { cacheGeoJSONFile, getGeoJSON, getGeoJSONFromURL } from "./geojson.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
