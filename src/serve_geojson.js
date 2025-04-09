@@ -625,7 +625,7 @@ export const serve_geojson = {
        * tags:
        *   - name: GeoJSON
        *     description: GeoJSON related endpoints
-       * /geojsons/{id}/:
+       * /geojsons/{id}:
        *   get:
        *     tags:
        *       - GeoJSON

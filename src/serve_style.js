@@ -520,7 +520,7 @@ function getRenderedHandler() {
         id: id,
         tiles: [
           `${requestHost}/styles/${id}/{z}/{x}/{y}.png${
-            query.length ? `?${query.join("&")}` : ""
+            queryStrings.length ? `?${queryStrings.join("&")}` : ""
           }`,
         ],
       });
