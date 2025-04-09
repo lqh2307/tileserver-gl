@@ -441,10 +441,11 @@ function getRenderedTileHandler() {
     const tileScale = Number(req.query.tileScale) || 1;
 
     /* Get tile size (Default: 256px x 256px) */
+    const tileSize = Number(req.query.tileSize) || 256;
+
     const z = Number(req.params.z);
     const x = Number(req.params.x);
     const y = Number(req.params.y);
-    const tileSize = Number(req.query.tileSize) || 256;
 
     /* Render tile */
     try {
@@ -480,22 +481,21 @@ function getRenderedTileHandler() {
  */
 function getRenderedHandler() {
   return async (req, res, next) => {
-    const tileSize = req.query.tileSize;
-
-    if (tileSize !== undefined && ["256", "512"].includes(tileSize) === false) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .send("Tile size is not support");
-    }
-
     const id = req.params.id;
     const queryStrings = [];
 
-    if (tileSize !== undefined) {
-      queryStrings.push(`tileSize=${tileSize}`);
+    if (req.query.tileSize !== undefined) {
+      if (["256", "512"].includes(req.query.tileSize) === false) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send("Tile size is not support");
+      } else {
+        queryStrings.push(`tileSize=${req.query.tileSize}`);
+      }
     }
-    if (tileScale !== undefined) {
-      queryStrings.push(`tileScale=${tileScale}`);
+
+    if (req.query.tileScale !== undefined) {
+      queryStrings.push(`tileScale=${req.query.tileScale}`);
     }
 
     try {
