@@ -126,6 +126,10 @@ export async function postDataToURL(
  * @returns {boolean}
  */
 export function isLocalTileURL(url) {
+  if (typeof url !== "string") {
+    return false;
+  }
+
   return (
     url.startsWith("mbtiles://") === true ||
     url.startsWith("pmtiles://") === true ||

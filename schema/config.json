@@ -132,7 +132,8 @@
           { "required": ["mbtiles"] },
           { "required": ["pmtiles"] },
           { "required": ["xyz"] },
-          { "required": ["pg"] }
+          { "required": ["pg"] },
+          { "required": ["geojson"] }
         ]
       }
     },
