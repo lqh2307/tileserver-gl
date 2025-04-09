@@ -32,6 +32,9 @@ apt-get -y upgrade; \
 apt-get -y install \
   ca-certificates \
   wget \
+  cmake \
+  build-essential \
+  libproj22 \
   xvfb \
   libglfw3 \
   libuv1 \
@@ -79,8 +82,9 @@ Clean:
 
 ```bash
 apt-get -y remove \
-  ca-certificates \
-  wget;
+  wget \
+  cmake \
+  build-essential; \
 apt-get -y --purge autoremove; \
 apt-get clean; \
 rm -rf /var/lib/apt/lists/*;
