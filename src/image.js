@@ -804,20 +804,17 @@ export async function renderMBTilesTiles(
           );
 
           // Rendered data
-          const [data, md5] = await Promise.all([
-            renderImage(
-              tileScale,
-              tileSize,
-              rendered.compressionLevel,
-              rendered.styleJSON,
-              z,
-              x,
-              y
-            ),
-            getMBTilesTileMD5(source, z, x, y),
-          ]);
+          const data = await renderImage(
+            tileScale,
+            tileSize,
+            rendered.compressionLevel,
+            rendered.styleJSON,
+            z,
+            x,
+            y
+          );
 
-          if (calculateMD5(data) !== md5) {
+          if (calculateMD5(data) !== getMBTilesTileMD5(source, z, x, y)) {
             // Store data
             await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
           }
@@ -876,36 +873,30 @@ export async function renderMBTilesTiles(
 
   printLog("info", "Rendering datas...");
 
-  for (const idx1 in tileBound) {
-    const tilesSummary = tileBound[idx1];
+  const { z, x, y } = tileBound;
 
-    for (const z in tilesSummary) {
-      const tilesSummaryZ = tilesSummary[z];
-
-      for (let x = tilesSummaryZ.x[0]; x <= tilesSummaryZ.x[1]; x++) {
-        for (let y = tilesSummaryZ.y[0]; y <= tilesSummaryZ.y[1]; y++) {
-          if (rendered.export === true) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(50);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderMBTilesTileData(z, x, y, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
+  for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+    for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+      if (rendered.export === true) {
+        return;
       }
+
+      /* Wait slot for a task */
+      while (tasks.activeTasks >= concurrency) {
+        await delay(50);
+      }
+
+      await tasks.mutex.runExclusive(() => {
+        tasks.activeTasks++;
+        tasks.completeTasks++;
+      });
+
+      /* Run a task */
+      renderMBTilesTileData(z, x, y, tasks).finally(() =>
+        tasks.mutex.runExclusive(() => {
+          tasks.activeTasks--;
+        })
+      );
     }
   }
 
