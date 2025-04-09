@@ -6,7 +6,6 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import express from "express";
 
 /**
  * Get font handler
@@ -74,9 +73,12 @@ function getFontsListHandler() {
 }
 
 export const serve_font = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register font handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -113,7 +115,7 @@ export const serve_font = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/fonts.json", getFontsListHandler());
+    app.get("/fonts/fonts.json", getFontsListHandler());
 
     /**
      * @swagger
@@ -161,9 +163,7 @@ export const serve_font = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id/:range.pbf", getFontHandler());
-
-    return app;
+    app.get("/fonts/:id/:range.pbf", getFontHandler());
   },
 
   add: async () => {

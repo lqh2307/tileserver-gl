@@ -13,7 +13,6 @@ import { getFontSize } from "./font.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import express from "express";
 
 /**
  * Get summary handler
@@ -362,9 +361,12 @@ function serveSummaryHandler() {
 }
 
 export const serve_summary = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register summary handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -403,8 +405,6 @@ export const serve_summary = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/{*any}", serveSummaryHandler());
-
-    return app;
+    app.get("/summary", serveSummaryHandler());
   },
 };

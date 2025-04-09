@@ -4,7 +4,6 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import express from "express";
 import {
   getXYZTileHashFromCoverages,
   calculatXYZTileHash,
@@ -509,9 +508,12 @@ function getDataTileJSONsListHandler() {
 }
 
 export const serve_data = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register data handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -550,7 +552,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/datas.json", getDatasListHandler());
+    app.get("/datas/datas.json", getDatasListHandler());
 
     /**
      * @swagger
@@ -581,7 +583,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/tilejsons.json", getDataTileJSONsListHandler());
+    app.get("/datas/tilejsons.json", getDataTileJSONsListHandler());
 
     /**
      * @swagger
@@ -622,7 +624,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id.json", getDataHandler());
+    app.get("/datas/:id.json", getDataHandler());
 
     /**
      * @swagger
@@ -707,8 +709,8 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.post("/:id/md5s", getDataTileMD5sHandler());
-    app.put("/:id/md5s", calculateDataTileMD5sHandler());
+    app.post("/datas/:id/md5s", getDataTileMD5sHandler());
+    app.put("/datas/:id/md5s", calculateDataTileMD5sHandler());
 
     /**
      * @swagger
@@ -779,7 +781,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id/:z/:x/:y.:format", getDataTileHandler());
+    app.get("/datas/:id/:z/:x/:y.:format", getDataTileHandler());
 
     if (process.env.SERVE_FRONT_PAGE !== "false") {
       /* Serve data */
@@ -820,10 +822,8 @@ export const serve_data = {
        *       500:
        *         description: Internal server error
        */
-      app.use("/:id", serveDataHandler());
+      app.use("/datas/:id", serveDataHandler());
     }
-
-    return app;
   },
 
   add: async () => {

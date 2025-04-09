@@ -4,7 +4,6 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import express from "express";
 import {
   validateAndGetGeometryTypes,
   downloadGeoJSONFile,
@@ -351,9 +350,12 @@ function getGeoJSONGroupsListHandler() {
 }
 
 export const serve_geojson = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register geojson handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -392,7 +394,7 @@ export const serve_geojson = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/geojsons.json", getGeoJSONGroupsListHandler());
+    app.get("/geojsons/geojsons.json", getGeoJSONGroupsListHandler());
 
     /**
      * @swagger
@@ -431,7 +433,7 @@ export const serve_geojson = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id.json", getGeoJSONGroupInfoHandler());
+    app.get("/geojsons/:id.json", getGeoJSONGroupInfoHandler());
 
     /**
      * @swagger
@@ -477,7 +479,7 @@ export const serve_geojson = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id/:layer.json", getGeoJSONInfoHandler());
+    app.get("/geojsons/:id/:layer.json", getGeoJSONInfoHandler());
 
     /**
      * @swagger
@@ -523,7 +525,7 @@ export const serve_geojson = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id/:layer.geojson", getGeoJSONHandler());
+    app.get("/geojsons/:id/:layer.geojson", getGeoJSONHandler());
 
     /**
      * @swagger
@@ -569,7 +571,7 @@ export const serve_geojson = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id/:layer/md5", getGeoJSONMD5Handler());
+    app.get("/geojsons/:id/:layer/md5", getGeoJSONMD5Handler());
 
     if (process.env.SERVE_FRONT_PAGE !== "false") {
       /**
@@ -616,7 +618,7 @@ export const serve_geojson = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/:id/:layer", serveGeoJSONHandler());
+      app.get("/geojsons/:id/:layer", serveGeoJSONHandler());
 
       /**
        * @swagger
@@ -655,10 +657,8 @@ export const serve_geojson = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/:id", serveGeoJSONGroupHandler());
+      app.get("/geojsons/:id", serveGeoJSONGroupHandler());
     }
-
-    return app;
   },
 
   add: async () => {

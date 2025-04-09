@@ -3,7 +3,6 @@
 import { getRequestHost, getVersion } from "./utils.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
-import express from "express";
 
 /**
  * Serve swagger handler
@@ -36,13 +35,14 @@ function serveSwagger() {
 }
 
 export const serve_swagger = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register swagger handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     if (process.env.SERVE_SWAGGER !== "false") {
-      app.use("/index.html", swaggerUi.serve, serveSwagger());
+      app.use("/swagger/index.html", swaggerUi.serve, serveSwagger());
     }
-
-    return app;
   },
 };

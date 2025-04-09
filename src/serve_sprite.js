@@ -6,7 +6,6 @@ import { getRequestHost } from "./utils.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import express from "express";
 
 /**
  * Get sprite handler
@@ -85,9 +84,12 @@ function getSpritesListHandler() {
 }
 
 export const serve_sprite = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register sprite handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -126,7 +128,7 @@ export const serve_sprite = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/sprites.json", getSpritesListHandler());
+    app.get("/sprites/sprites.json", getSpritesListHandler());
 
     /**
      * @swagger
@@ -184,11 +186,9 @@ export const serve_sprite = {
      *         description: Internal server error
      */
     app.get(
-      ["/:id/sprite.:format", "/:id/sprite@2x.:format"],
+      ["/sprites/:id/sprite.:format", "/sprites/:id/sprite@2x.:format"],
       getSpriteHandler()
     );
-
-    return app;
   },
 
   add: async () => {

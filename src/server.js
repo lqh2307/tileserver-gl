@@ -134,9 +134,12 @@ export async function startServer() {
       .use(cors())
       .use(express.json())
       .use(loggerMiddleware())
-      .use("/{*any}", express.static("public/resources"))
-      .use("/{*any}", serve_common.init())
-      .use("/swagger", serve_swagger.init());
+      .use(express.static("public/resources"));
+
+    /* Register common handlers */
+    serve_common.init(app);
+    serve_swagger.init(app);
+    serve_prometheus.init(app);
 
     const server = app
       .listen(config.options?.listenPort || 8080, () => {
@@ -152,15 +155,14 @@ export async function startServer() {
     /* Load datas */
     await loadData();
 
-    app
-      .use("/prometheus", serve_prometheus.init())
-      .use("/summary", serve_summary.init())
-      .use("/datas", serve_data.init())
-      .use("/geojsons", serve_geojson.init())
-      .use("/fonts", serve_font.init())
-      .use("/sprites", serve_sprite.init())
-      .use("/styles", serve_style.init())
-      .use("/tasks", serve_task.init());
+    /* Register service handlers */
+    serve_summary.init(app);
+    serve_data.init(app);
+    serve_geojson.init(app);
+    serve_font.init(app);
+    serve_sprite.init(app);
+    serve_style.init(app);
+    serve_task.init(app);
   } catch (error) {
     printLog("error", `Failed to start server: ${error}. Exited!`);
 
