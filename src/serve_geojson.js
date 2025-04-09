@@ -569,7 +569,7 @@ export const serve_geojson = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id:/:layer/md5", getGeoJSONMD5Handler());
+    app.get("/:id/:layer/md5", getGeoJSONMD5Handler());
 
     if (process.env.SERVE_FRONT_PAGE !== "false") {
       /**
