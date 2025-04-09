@@ -61,7 +61,7 @@ export const serve_prometheus = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/", serveMetricsHandler());
+    app.get("/{*any}", serveMetricsHandler());
 
     return app;
   },

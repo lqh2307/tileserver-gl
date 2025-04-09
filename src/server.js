@@ -134,8 +134,8 @@ export async function startServer() {
       .use(cors())
       .use(express.json())
       .use(loggerMiddleware())
-      .use("/", express.static("public/resources"))
-      .use("/", serve_common.init())
+      .use("/{*any}", express.static("public/resources"))
+      .use("/{*any}", serve_common.init())
       .use("/swagger", serve_swagger.init());
 
     const server = app

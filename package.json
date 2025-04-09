@@ -4,9 +4,7 @@
   "version": "0.0.20",
   "license": "MIT",
   "author": "Huy Le <lqh23072000@gmail.com>",
-  "keywords": [
-    "tile-server"
-  ],
+  "keywords": ["tile-server"],
   "repository": {
     "url": "git+https://github.com/lqh2307/tileserver-gl.git",
     "type": "git"
@@ -33,7 +31,7 @@
     "handlebars": "4.7.8",
     "node-cron": "3.0.3",
     "chokidar": "4.0.3",
-    "express": "4.21.1",
+    "express": "5.1.0",
     "pmtiles": "4.3.0",
     "sharp": "0.34.1",
     "proj4": "2.15.0",

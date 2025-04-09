@@ -779,10 +779,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get(
-      "/:id/:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}).:format",
-      getDataTileHandler()
-    );
+    app.get("/:id/:z/:x/:y.:format", getDataTileHandler());
 
     if (process.env.SERVE_FRONT_PAGE !== "false") {
       /* Serve data */

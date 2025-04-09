@@ -183,7 +183,10 @@ export const serve_sprite = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id/sprite:scale(@2x)?.:format", getSpriteHandler());
+    app.get(
+      ["/:id/sprite.:format", "/:id/sprite@2x.:format"],
+      getSpriteHandler()
+    );
 
     return app;
   },

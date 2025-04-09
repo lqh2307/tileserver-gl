@@ -824,51 +824,6 @@ export const serve_style = {
      */
     app.get("/stylejsons.json", getStyleJSONsListHandler());
 
-    /**
-     * @swagger
-     * tags:
-     *   - name: Style
-     *     description: Style related endpoints
-     * /styles/{id}/style.json:
-     *   get:
-     *     tags:
-     *       - Style
-     *     summary: Get styleJSON
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         schema:
-     *           type: string
-     *           example: id
-     *         required: true
-     *         description: ID of the style
-     *       - in: query
-     *         name: raw
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Use raw
-     *     responses:
-     *       200:
-     *         description: StyleJSON
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/:id/style.json", getStyleHandler());
-
     if (config.enableBackendRender === true) {
       if (process.env.ENABLE_EXPORT !== "false") {
         /**
@@ -876,7 +831,7 @@ export const serve_style = {
          * tags:
          *   - name: Style
          *     description: Style related endpoints
-         * /styles/{id}/export/style.json:
+         * /styles/{id}/export:
          *   get:
          *     tags:
          *       - Style
@@ -939,9 +894,54 @@ export const serve_style = {
          *       500:
          *         description: Internal server error
          */
-        app.get("/:id/export/style.json", renderStyleHandler());
-        app.post("/:id/export/style.json", renderStyleHandler());
+        app.get("/:id/export", renderStyleHandler());
+        app.post("/:id/export", renderStyleHandler());
       }
+
+      /**
+       * @swagger
+       * tags:
+       *   - name: Style
+       *     description: Style related endpoints
+       * /styles/{id}/style.json:
+       *   get:
+       *     tags:
+       *       - Style
+       *     summary: Get styleJSON
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the style
+       *       - in: query
+       *         name: raw
+       *         schema:
+       *           type: boolean
+       *         required: false
+       *         description: Use raw
+       *     responses:
+       *       200:
+       *         description: StyleJSON
+       *         content:
+       *           application/json:
+       *             schema:
+       *               type: object
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/:id/style.json", getStyleHandler());
 
       /**
        * @swagger
@@ -1192,7 +1192,7 @@ export const serve_style = {
        *         description: Internal server error
        */
       app.get(
-        "/:id/(:tileSize/)?:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}):tileScale(@\\d+x)?.png",
+        "/:id{/:tileSize}/:z/:x/:y{:tileScale}.png",
         getRenderedTileHandler()
       );
     }

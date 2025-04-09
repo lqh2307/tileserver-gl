@@ -403,7 +403,7 @@ export const serve_summary = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/", serveSummaryHandler());
+    app.get("/{*any}", serveSummaryHandler());
 
     return app;
   },

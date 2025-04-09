@@ -161,7 +161,7 @@ export const serve_font = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id/:range(\\d{1,5}-\\d{1,5}).pbf", getFontHandler());
+    app.get("/:id/:range.pbf", getFontHandler());
 
     return app;
   },
