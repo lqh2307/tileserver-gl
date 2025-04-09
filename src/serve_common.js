@@ -1080,7 +1080,7 @@ export const serve_common = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/{*any}", serveFrontPageHandler());
+      app.get("/", serveFrontPageHandler());
     }
   },
 };

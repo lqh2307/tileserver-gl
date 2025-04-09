@@ -790,7 +790,7 @@ export const serve_data = {
        * tags:
        *   - name: Data
        *     description: Data related endpoints
-       * /datas/{id}/:
+       * /datas/{id}:
        *   get:
        *     tags:
        *       - Data
