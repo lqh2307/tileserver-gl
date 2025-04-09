@@ -874,7 +874,6 @@ export async function renderMBTilesTiles(
   printLog("info", "Rendering datas...");
 
   const { z, x, y } = tileBound;
-
   for (let xCount = x[0]; xCount <= x[1]; xCount++) {
     for (let yCount = y[0]; yCount <= y[1]; yCount++) {
       if (rendered.export === true) {
@@ -892,7 +891,7 @@ export async function renderMBTilesTiles(
       });
 
       /* Run a task */
-      renderMBTilesTileData(z, x, y, tasks).finally(() =>
+      renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
         tasks.mutex.runExclusive(() => {
           tasks.activeTasks--;
         })
@@ -1123,36 +1122,29 @@ export async function renderXYZTiles(
 
   printLog("info", "Rendering datas...");
 
-  for (const idx1 in tileBound) {
-    const tilesSummary = tileBound[idx1];
-
-    for (const z in tilesSummary) {
-      const tilesSummaryZ = tilesSummary[z];
-
-      for (let x = tilesSummaryZ.x[0]; x <= tilesSummaryZ.x[1]; x++) {
-        for (let y = tilesSummaryZ.y[0]; y <= tilesSummaryZ.y[1]; y++) {
-          if (rendered.export === true) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(50);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderXYZTileData(z, x, y, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
+  const { z, x, y } = tileBound;
+  for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+    for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+      if (rendered.export === true) {
+        return;
       }
+
+      /* Wait slot for a task */
+      while (tasks.activeTasks >= concurrency) {
+        await delay(50);
+      }
+
+      await tasks.mutex.runExclusive(() => {
+        tasks.activeTasks++;
+        tasks.completeTasks++;
+      });
+
+      /* Run a task */
+      renderXYZTileData(z, xCount, yCount, tasks).finally(() =>
+        tasks.mutex.runExclusive(() => {
+          tasks.activeTasks--;
+        })
+      );
     }
   }
 
@@ -1167,19 +1159,17 @@ export async function renderXYZTiles(
   /* Remove parent folders if empty */
   await removeEmptyFolders(
     `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-    /^.*\.(sqlite|json|gif|png|jpg|jpeg|webp|pbf)$/
+    /^.*\.(sqlite|gif|png|jpg|jpeg|webp|pbf)$/
   );
 
   /* Create overviews */
   if (createOverview === true) {
   }
 
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed render ${tileBound.total} tiles of style "${id}" to xyz after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -1368,36 +1358,29 @@ export async function renderPostgreSQLTiles(
 
   printLog("info", "Rendering datas...");
 
-  for (const idx1 in tileBound) {
-    const tilesSummary = tileBound[idx1];
-
-    for (const z in tilesSummary) {
-      const tilesSummaryZ = tilesSummary[z];
-
-      for (let x = tilesSummaryZ.x[0]; x <= tilesSummaryZ.x[1]; x++) {
-        for (let y = tilesSummaryZ.y[0]; y <= tilesSummaryZ.y[1]; y++) {
-          if (rendered.export === true) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(50);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderPostgreSQLTileData(z, x, y, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
+  const { z, x, y } = tileBound;
+  for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+    for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+      if (rendered.export === true) {
+        return;
       }
+
+      /* Wait slot for a task */
+      while (tasks.activeTasks >= concurrency) {
+        await delay(50);
+      }
+
+      await tasks.mutex.runExclusive(() => {
+        tasks.activeTasks++;
+        tasks.completeTasks++;
+      });
+
+      /* Run a task */
+      renderPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
+        tasks.mutex.runExclusive(() => {
+          tasks.activeTasks--;
+        })
+      );
     }
   }
 
@@ -1413,14 +1396,12 @@ export async function renderPostgreSQLTiles(
   if (createOverview === true) {
   }
 
-  const doneTime = Date.now();
-
   printLog(
     "info",
     `Completed render ${
       tileBound.total
     } tiles of style "${id}" to postgresql after ${
-      (doneTime - startTime) / 1000
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
