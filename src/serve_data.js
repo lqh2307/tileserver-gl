@@ -4,10 +4,9 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import sqlite3 from "sqlite3";
-import express from "express";
 import {
   getXYZTileHashFromCoverages,
+  calculatXYZTileHash,
   createXYZMetadata,
   getXYZTileFromURL,
   cacheXYZTileFile,
@@ -18,6 +17,7 @@ import {
 } from "./tile_xyz.js";
 import {
   getMBTilesTileHashFromCoverages,
+  calculateMBTilesTileHash,
   createMBTilesMetadata,
   getMBTilesTileFromURL,
   cacheMBtilesTileData,
@@ -43,6 +43,7 @@ import {
 } from "./tile_pmtiles.js";
 import {
   getPostgreSQLTileHashFromCoverages,
+  calculatePostgreSQLTileHash,
   createPostgreSQLMetadata,
   getPostgreSQLTileFromURL,
   cachePostgreSQLTileData,
@@ -125,7 +126,7 @@ function getDataTileHandler() {
 
       if (item.sourceType === "mbtiles") {
         try {
-          dataTile = await getMBTilesTile(item.source, z, x, y);
+          dataTile = getMBTilesTile(item.source, z, x, y);
         } catch (error) {
           if (
             item.sourceURL !== undefined &&
@@ -159,7 +160,6 @@ function getDataTileHandler() {
                 x,
                 tmpY,
                 dataTile.data,
-                item.storeMD5,
                 item.storeTransparent
               ).catch((error) =>
                 printLog(
@@ -218,7 +218,6 @@ function getDataTileHandler() {
                 tmpY,
                 item.tileJSON.format,
                 dataTile.data,
-                item.storeMD5,
                 item.storeTransparent
               ).catch((error) =>
                 printLog(
@@ -267,7 +266,6 @@ function getDataTileHandler() {
                 x,
                 tmpY,
                 dataTile.data,
-                item.storeMD5,
                 item.storeTransparent
               ).catch((error) =>
                 printLog(
@@ -377,11 +375,11 @@ function getDataTileMD5sHandler() {
       let md5s;
 
       if (item.sourceType === "mbtiles") {
-        md5s = await getMBTilesTileHashFromCoverages(item.source, req.body);
+        md5s = getMBTilesTileHashFromCoverages(item.source, req.body);
       } else if (item.sourceType === "pmtiles") {
         md5s = {};
       } else if (item.sourceType === "xyz") {
-        md5s = await getXYZTileHashFromCoverages(item.md5Source, req.body);
+        md5s = getXYZTileHashFromCoverages(item.md5Source, req.body);
       } else if (item.sourceType === "pg") {
         md5s = await getPostgreSQLTileHashFromCoverages(item.source, req.body);
       }
@@ -391,6 +389,50 @@ function getDataTileMD5sHandler() {
       return res.status(StatusCodes.OK).send(md5s);
     } catch (error) {
       printLog("error", `Failed to get data tile md5s "${id}": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Calculate data tile MD5s handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function calculateDataTileMD5sHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+    const item = config.datas[id];
+
+    /* Check data is exist? */
+    if (item === undefined) {
+      return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+    }
+
+    /* Calculate data tile MD5s */
+    try {
+      if (item.sourceType === "mbtiles") {
+        setTimeout(() => calculateMBTilesTileHash(item.source), 0);
+      } else if (item.sourceType === "pmtiles") {
+      } else if (item.sourceType === "xyz") {
+        setTimeout(
+          () =>
+            calculatXYZTileHash(
+              item.source,
+              item.md5Source,
+              item.tileJSON.format
+            ),
+          0
+        );
+      } else if (item.sourceType === "pg") {
+        setTimeout(() => calculatePostgreSQLTileHash(item.source), 0);
+      }
+
+      return res.status(StatusCodes.OK).send("OK");
+    } catch (error) {
+      printLog("error", `Failed to calculate data tile md5s "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -466,9 +508,12 @@ function getDataTileJSONsListHandler() {
 }
 
 export const serve_data = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register data handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -507,7 +552,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/datas.json", getDatasListHandler());
+    app.get("/datas/datas.json", getDatasListHandler());
 
     /**
      * @swagger
@@ -538,7 +583,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/tilejsons.json", getDataTileJSONsListHandler());
+    app.get("/datas/tilejsons.json", getDataTileJSONsListHandler());
 
     /**
      * @swagger
@@ -579,7 +624,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/:id.json", getDataHandler());
+    app.get("/datas/:id.json", getDataHandler());
 
     /**
      * @swagger
@@ -629,8 +674,43 @@ export const serve_data = {
      *               example: Starting...
      *       500:
      *         description: Internal server error
+     *   put:
+     *     tags:
+     *       - Data
+     *     summary: Calculate data tile MD5s
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
+     *     responses:
+     *       200:
+     *         description: Data tile MD5s
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       204:
+     *         description: No content
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
      */
-    app.post(`/:id/md5s`, getDataTileMD5sHandler());
+    app.post("/datas/:id/md5s", getDataTileMD5sHandler());
+    app.put("/datas/:id/md5s", calculateDataTileMD5sHandler());
 
     /**
      * @swagger
@@ -701,10 +781,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get(
-      `/:id/:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}).:format`,
-      getDataTileHandler()
-    );
+    app.get("/datas/:id/:z/:x/:y.:format", getDataTileHandler());
 
     if (process.env.SERVE_FRONT_PAGE !== "false") {
       /* Serve data */
@@ -745,10 +822,8 @@ export const serve_data = {
        *       500:
        *         description: Internal server error
        */
-      app.use("/:id", serveDataHandler());
+      app.use("/datas/:id", serveDataHandler());
     }
-
-    return app;
   },
 
   add: async () => {
@@ -794,11 +869,7 @@ export const serve_data = {
                 }
 
                 /* Open MBTiles */
-                dataInfo.source = await openMBTilesDB(
-                  dataInfo.path,
-                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                  false
-                );
+                dataInfo.source = await openMBTilesDB(dataInfo.path, true);
 
                 /* Get MBTiles metadata */
                 dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
@@ -823,16 +894,11 @@ export const serve_data = {
                     dataInfo.sourceURL = cacheSource.url;
                     dataInfo.scheme = cacheSource.scheme;
                     dataInfo.storeCache = item.cache.store;
-                    dataInfo.storeMD5 = cacheSource.storeMD5;
                     dataInfo.storeTransparent = cacheSource.storeTransparent;
                   }
 
                   /* Open MBTiles */
-                  dataInfo.source = await openMBTilesDB(
-                    dataInfo.path,
-                    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                    false
-                  );
+                  dataInfo.source = await openMBTilesDB(dataInfo.path, true);
 
                   /* Get MBTiles metadata */
                   dataInfo.tileJSON = createMBTilesMetadata({
@@ -844,11 +910,7 @@ export const serve_data = {
                   dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
 
                   /* Open MBTiles */
-                  dataInfo.source = await openMBTilesDB(
-                    dataInfo.path,
-                    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                    false
-                  );
+                  dataInfo.source = await openMBTilesDB(dataInfo.path, true);
 
                   /* Get MBTiles metadata */
                   dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
@@ -906,7 +968,6 @@ export const serve_data = {
                   dataInfo.sourceURL = cacheSource.url;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
-                  dataInfo.storeMD5 = cacheSource.storeMD5;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
                 }
 
@@ -915,8 +976,7 @@ export const serve_data = {
                 /* Open XYZ MD5 */
                 dataInfo.md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
-                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                  false
+                  true
                 );
 
                 /* Get XYZ metadata */
@@ -933,8 +993,7 @@ export const serve_data = {
                 /* Open XYZ MD5 */
                 const md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
-                  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-                  false
+                  true
                 );
 
                 /* Get XYZ metadata */
@@ -967,7 +1026,6 @@ export const serve_data = {
                   dataInfo.sourceURL = cacheSource.url;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
-                  dataInfo.storeMD5 = cacheSource.storeMD5;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
                 }
 

@@ -4,7 +4,6 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import express from "express";
 import {
   compileTemplate,
   isLocalTileURL,
@@ -294,7 +293,6 @@ function renderStyleHandler() {
           const defaultTileScale = 1;
           const defaultTileSize = 256;
           const defaultConcurrency = os.cpus().length;
-          const defaultStoreMD5 = false;
           const defaultStoreTransparent = false;
           const defaultCreateOverview = true;
 
@@ -310,7 +308,6 @@ function renderStyleHandler() {
                 req.body.bbox,
                 req.body.maxzoom,
                 req.body.concurrency || defaultConcurrency,
-                req.body.storeMD5 || defaultStoreMD5,
                 req.body.storeTransparent || defaultStoreTransparent,
                 req.body.createOverview || defaultCreateOverview,
                 req.body.refreshBefore?.time ||
@@ -332,7 +329,6 @@ function renderStyleHandler() {
                 req.body.bbox,
                 req.body.maxzoom,
                 req.body.concurrency || defaultConcurrency,
-                req.body.storeMD5 || defaultStoreMD5,
                 req.body.storeTransparent || defaultStoreTransparent,
                 req.body.createOverview || defaultCreateOverview,
                 req.body.refreshBefore?.time ||
@@ -354,7 +350,6 @@ function renderStyleHandler() {
                 req.body.bbox,
                 req.body.maxzoom,
                 req.body.concurrency || defaultConcurrency,
-                req.body.storeMD5 || defaultStoreMD5,
                 req.body.storeTransparent || defaultStoreTransparent,
                 req.body.createOverview || defaultCreateOverview,
                 req.body.refreshBefore?.time ||
@@ -747,9 +742,12 @@ function getRenderedTileJSONsListHandler() {
 }
 
 export const serve_style = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register style handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -788,7 +786,7 @@ export const serve_style = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/styles.json", getStylesListHandler());
+    app.get("/styles/styles.json", getStylesListHandler());
 
     /**
      * @swagger
@@ -826,52 +824,7 @@ export const serve_style = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/stylejsons.json", getStyleJSONsListHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Style
-     *     description: Style related endpoints
-     * /styles/{id}/style.json:
-     *   get:
-     *     tags:
-     *       - Style
-     *     summary: Get styleJSON
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         schema:
-     *           type: string
-     *           example: id
-     *         required: true
-     *         description: ID of the style
-     *       - in: query
-     *         name: raw
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Use raw
-     *     responses:
-     *       200:
-     *         description: StyleJSON
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/:id/style.json", getStyleHandler());
+    app.get("/styles/stylejsons.json", getStyleJSONsListHandler());
 
     if (config.enableBackendRender === true) {
       if (process.env.ENABLE_EXPORT !== "false") {
@@ -880,7 +833,7 @@ export const serve_style = {
          * tags:
          *   - name: Style
          *     description: Style related endpoints
-         * /styles/{id}/export/style.json:
+         * /styles/{id}/export:
          *   get:
          *     tags:
          *       - Style
@@ -943,9 +896,54 @@ export const serve_style = {
          *       500:
          *         description: Internal server error
          */
-        app.get("/:id/export/style.json", renderStyleHandler());
-        app.post("/:id/export/style.json", renderStyleHandler());
+        app.get("/styles/:id/export", renderStyleHandler());
+        app.post("/styles/:id/export", renderStyleHandler());
       }
+
+      /**
+       * @swagger
+       * tags:
+       *   - name: Style
+       *     description: Style related endpoints
+       * /styles/{id}/style.json:
+       *   get:
+       *     tags:
+       *       - Style
+       *     summary: Get styleJSON
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the style
+       *       - in: query
+       *         name: raw
+       *         schema:
+       *           type: boolean
+       *         required: false
+       *         description: Use raw
+       *     responses:
+       *       200:
+       *         description: StyleJSON
+       *         content:
+       *           application/json:
+       *             schema:
+       *               type: object
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/styles/:id/style.json", getStyleHandler());
 
       /**
        * @swagger
@@ -984,7 +982,7 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/:id/wmts.xml", serveWMTSHandler());
+      app.get("/styles/:id/wmts.xml", serveWMTSHandler());
 
       /**
        * @swagger
@@ -1036,7 +1034,7 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/rendereds.json", getRenderedsListHandler());
+      app.get("/styles/rendereds.json", getRenderedsListHandler());
 
       /**
        * @swagger
@@ -1067,7 +1065,7 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/tilejsons.json", getRenderedTileJSONsListHandler());
+      app.get("/styles/tilejsons.json", getRenderedTileJSONsListHandler());
 
       /**
        * @swagger
@@ -1121,7 +1119,7 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/(:tileSize/)?:id.json", getRenderedHandler());
+      app.get("/styles/{:tileSize/}:id.json", getRenderedHandler());
 
       /**
        * @swagger
@@ -1196,7 +1194,7 @@ export const serve_style = {
        *         description: Internal server error
        */
       app.get(
-        `/:id/(:tileSize/)?:z(\\d{1,2})/:x(\\d{1,7})/:y(\\d{1,7}):tileScale(@\\d+x)?.png`,
+        "/styles/:id{/:tileSize}/:z/:x/:y{:tileScale}.png",
         getRenderedTileHandler()
       );
     }
@@ -1239,10 +1237,8 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/:id", serveStyleHandler());
+      app.get("/styles/:id", serveStyleHandler());
     }
-
-    return app;
   },
 
   add: async () => {

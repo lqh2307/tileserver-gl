@@ -31,7 +31,7 @@ async function getPostgreSQLLayersFromTiles(source) {
   );
 
   while (true) {
-    const rows = await source.query(
+    const data = await source.query(
       `
       SELECT
         tile_data
@@ -45,16 +45,16 @@ async function getPostgreSQLLayersFromTiles(source) {
       [batchSize, offset]
     );
 
-    if (rows.rows.length === 0) {
+    if (data.rows.length === 0) {
       break;
     }
 
-    for (const row of rows.rows) {
+    data.rows.forEach((row) =>
       vectorTileProto.tile
-        .decode(row.tile_data)
+        .decode(Buffer.from(row.tile_data))
         .layers.map((layer) => layer.name)
-        .forEach((layer) => layerNames.add(layer));
-    }
+        .forEach((layer) => layerNames.add(layer))
+    );
 
     offset += batchSize;
   }
@@ -68,7 +68,7 @@ async function getPostgreSQLLayersFromTiles(source) {
  * @returns {Promise<[number, number, number, number]>} Bounding box in format [minLon, minLat, maxLon, maxLat]
  */
 async function getPostgreSQLBBoxFromTiles(source) {
-  const rows = await source.query(
+  const data = await source.query(
     `
     SELECT
       zoom_level,
@@ -85,13 +85,13 @@ async function getPostgreSQLBBoxFromTiles(source) {
 
   let bbox = [-180, -85.051129, 180, 85.051129];
 
-  for (let index = 0; index < rows.rows.length; index++) {
+  for (let index = 0; index < data.rows.length; index++) {
     const _bbox = getBBoxFromTiles(
-      rows.rows[index].xMin,
-      rows.rows[index].yMin,
-      rows.rows[index].xMax,
-      rows.rows[index].yMax,
-      rows.rows[index].zoom_level,
+      data.rows[index].xMin,
+      data.rows[index].yMin,
+      data.rows[index].xMax,
+      data.rows[index].yMax,
+      data.rows[index].zoom_level,
       "xyz"
     );
 
@@ -180,12 +180,11 @@ async function getPostgreSQLFormatFromTiles(source) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {Buffer} data Tile data buffer
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-async function createPostgreSQLTile(source, z, x, y, storeMD5, data, timeout) {
+async function createPostgreSQLTile(source, z, x, y, data, timeout) {
   await source.query({
     text: `
     INSERT INTO
@@ -196,18 +195,11 @@ async function createPostgreSQLTile(source, z, x, y, storeMD5, data, timeout) {
       (zoom_level, tile_column, tile_row)
     DO UPDATE
       SET
-      tile_data = excluded.tile_data,
-      hash = excluded.hash,
-      created = excluded.created;
+        tile_data = excluded.tile_data,
+        hash = excluded.hash,
+        created = excluded.created;
     `,
-    values: [
-      z,
-      x,
-      y,
-      data,
-      storeMD5 === true ? calculateMD5(data) : undefined,
-      Date.now(),
-    ],
+    values: [z, x, y, data, calculateMD5(data), Date.now()],
     statement_timeout: timeout,
   });
 }
@@ -222,22 +214,19 @@ export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   let query = "";
-  const params = [];
+
   tileBounds.forEach((tileBound, idx) => {
     if (idx > 0) {
       query += " UNION ALL ";
     }
 
-    query +=
-      "SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?";
-
-    params.push(tileBound.z, ...tileBound.x, ...tileBound.y);
+    query += `SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
   });
 
   query += ";";
 
   const result = {};
-  const data = await source.query(query, params);
+  const data = await source.query(query);
 
   data.rows.forEach((row) => {
     if (row.hash !== null) {
@@ -246,6 +235,55 @@ export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
   });
 
   return result;
+}
+
+/**
+ * Calculate PostgreSQL tile hash
+ * @param {pg.Client} source PostgreSQL database instance
+ * @returns {Promise<void>}
+ */
+export async function calculatePostgreSQLTileHash(source) {
+  while (true) {
+    const data = await source.query(
+      `
+      SELECT
+        zoom_level, tile_column, tile_row, tile_data
+      FROM
+        tiles
+      WHERE
+        hash IS NULL
+      LIMIT
+        256;
+      `
+    );
+
+    if (data.rows.length === 0) {
+      break;
+    }
+
+    await Promise.all(
+      data.rows.map((row) =>
+        source.query(
+          `
+          UPDATE
+            tiles
+          SET
+            hash = $1,
+            created = $2
+          WHERE
+            zoom_level = $3 AND tile_column = $4 AND tile_row = $5;
+          `,
+          [
+            calculateMD5(Buffer.from(row.tile_data)),
+            Date.now(),
+            row.zoom_level,
+            row.tile_column,
+            row.tile_row,
+          ]
+        )
+      )
+    );
+  }
 }
 
 /**
@@ -318,7 +356,7 @@ export async function openPostgreSQLDB(uri, isCreate) {
     } catch (error) {
       printLog(
         "error",
-        `Failed to create column "hash" for table "tiles" of PostgreSQL DB ${uri}: ${error}`
+        `Failed to create column "hash" for table "tiles" of PostgreSQL DB "${uri}": ${error}`
       );
     }
 
@@ -334,7 +372,7 @@ export async function openPostgreSQLDB(uri, isCreate) {
     } catch (error) {
       printLog(
         "error",
-        `Failed to create column "created" for table "tiles" of PostgreSQL DB ${uri}: ${error}`
+        `Failed to create column "created" for table "tiles" of PostgreSQL DB "${uri}": ${error}`
       );
     }
   }
@@ -702,7 +740,6 @@ export async function getPostgreSQLTileFromURL(url, timeout) {
  * @param {number} y Y tile index
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
@@ -714,7 +751,6 @@ export async function downloadPostgreSQLTile(
   y,
   maxTry,
   timeout,
-  storeMD5,
   storeTransparent
 ) {
   await retry(async () => {
@@ -729,7 +765,6 @@ export async function downloadPostgreSQLTile(
         x,
         y,
         response.data,
-        storeMD5,
         storeTransparent
       );
     } catch (error) {
@@ -761,7 +796,6 @@ export async function downloadPostgreSQLTile(
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {Buffer} data Tile data buffer
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
@@ -771,7 +805,6 @@ export async function cachePostgreSQLTileData(
   x,
   y,
   data,
-  storeMD5,
   storeTransparent
 ) {
   if (
@@ -785,7 +818,6 @@ export async function cachePostgreSQLTileData(
       z,
       x,
       y,
-      storeMD5,
       data,
       300000 // 5 mins
     );

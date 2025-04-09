@@ -1,19 +1,11 @@
 "use strict";
 
+import { runSQLWithTimeout, closeSQLite, openSQLite } from "./sqlite.js";
 import { StatusCodes } from "http-status-codes";
 import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
-import sqlite3 from "sqlite3";
-import {
-  runSQLWithTimeout,
-  closeSQLite,
-  openSQLite,
-  fetchOne,
-  fetchAll,
-  runSQL,
-} from "./sqlite.js";
 import {
   getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
@@ -184,12 +176,11 @@ async function getXYZFormatFromTiles(sourcePath) {
 /**
  * Create XYZ tile
  * @param {string} sourcePath XYZ folder path
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {Buffer} data Tile data buffer
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
@@ -201,7 +192,6 @@ async function createXYZTile(
   x,
   y,
   format,
-  storeMD5,
   data,
   timeout
 ) {
@@ -225,7 +215,7 @@ async function createXYZTile(
           hash = excluded.hash,
           created = excluded.created;
       `,
-      [z, x, y, storeMD5 === true ? calculateMD5(data) : undefined, Date.now()],
+      [z, x, y, calculateMD5(data), Date.now()],
       timeout
     ),
   ]);
@@ -233,30 +223,27 @@ async function createXYZTile(
 
 /**
  * Get XYZ tile hash from coverages
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @returns {Promise<Object<string, string>>} Hash object
+ * @returns {Object<string, string>} Hash object
  */
-export async function getXYZTileHashFromCoverages(source, coverages) {
+export function getXYZTileHashFromCoverages(source, coverages) {
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   let query = "";
-  const params = [];
+
   tileBounds.forEach((tileBound, idx) => {
     if (idx > 0) {
       query += " UNION ALL ";
     }
 
-    query +=
-      "SELECT zoom_level, tile_column, tile_row, hash FROM md5s WHERE zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?";
-
-    params.push(tileBound.z, ...tileBound.x, ...tileBound.y);
+    query += `SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
   });
 
   query += ";";
 
   const result = {};
-  const rows = await fetchAll(source, query, params);
+  const rows = source.prepare(query).all();
 
   rows.forEach((row) => {
     if (row.hash !== null) {
@@ -268,9 +255,72 @@ export async function getXYZTileHashFromCoverages(source, coverages) {
 }
 
 /**
+ * Calculate XYZ tile hash
+ * @param {string} sourcePath XYZ folder path
+ * @param {DatabaseSync} source SQLite database instance
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * @returns {Promise<void>}
+ */
+export async function calculatXYZTileHash(sourcePath, source, format) {
+  const sql = source.prepare(
+    `
+    SELECT
+      zoom_level, tile_column, tile_row
+    FROM
+      md5s
+    WHERE
+      hash IS NULL
+    LIMIT
+      256;
+    `
+  );
+
+  while (true) {
+    const rows = sql.all();
+
+    if (rows.length === 0) {
+      break;
+    }
+
+    await Promise.all(
+      rows.map(async (row) => {
+        const data = await getXYZTile(
+          sourcePath,
+          row.zoom_level,
+          row.tile_column,
+          row.tile_row,
+          format
+        );
+
+        await runSQLWithTimeout(
+          source,
+          `
+          UPDATE
+            md5s
+          SET
+            hash = ?,
+            created = ?
+          WHERE
+            zoom_level = ? AND tile_column = ? AND tile_row = ?;
+          `,
+          [
+            calculateMD5(data),
+            Date.now(),
+            row.zoom_level,
+            row.tile_column,
+            row.tile_row,
+          ],
+          300000 // 5 mins
+        );
+      })
+    );
+  }
+}
+
+/**
  * Remove XYZ tile data file
  * @param {string} id XYZ ID
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -301,16 +351,14 @@ export async function removeXYZTile(id, source, z, x, y, format, timeout) {
 /**
  * Open XYZ MD5 SQLite database
  * @param {string} filePath MD5 filepath
- * @param {number} mode SQLite mode (e.g: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_READONLY)
- * @param {boolean} wal Use WAL
- * @returns {Promise<sqlite3.Database>}
+ * @param {boolean} isCreate Is create database?
+ * @returns {Promise<DatabaseSync>}
  */
-export async function openXYZMD5DB(filePath, mode, wal = false) {
-  const source = await openSQLite(filePath, mode, wal);
+export async function openXYZMD5DB(filePath, isCreate) {
+  const source = await openSQLite(filePath, isCreate);
 
-  if (mode & sqlite3.OPEN_CREATE) {
-    await runSQL(
-      source,
+  if (isCreate === true) {
+    source.exec(
       `
       CREATE TABLE IF NOT EXISTS
         metadata (
@@ -321,8 +369,7 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
       `
     );
 
-    await runSQL(
-      source,
+    source.exec(
       `
       CREATE TABLE IF NOT EXISTS
         md5s (
@@ -336,64 +383,40 @@ export async function openXYZMD5DB(filePath, mode, wal = false) {
       `
     );
 
-    const tableInfos = await fetchAll(source, "PRAGMA table_info(md5s)");
+    const tableInfos = source.prepare("PRAGMA table_info(md5s);").all();
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {
-        await runSQL(
-          source,
+        source.exec(
           `ALTER TABLE
             md5s
-          ADD COLUMN IF NOT EXISTS
+          ADD COLUMN
             hash TEXT;
           `
         );
       } catch (error) {
         printLog(
           "error",
-          `Failed to create column "hash" for table "md5s" of XYZ MD5 DB ${filePath}: ${error}`
+          `Failed to create column "hash" for table "md5s" of XYZ MD5 DB "${filePath}": ${error}`
         );
       }
     }
 
     if (tableInfos.some((col) => col.name === "created") === false) {
       try {
-        await runSQL(
-          source,
+        source.exec(
           `ALTER TABLE
             md5s
-          ADD COLUMN IF NOT EXISTS
+          ADD COLUMN
             created BIGINT;
           `
         );
       } catch (error) {
         printLog(
           "error",
-          `Failed to create column "created" for table "md5s" of XYZ MD5 DB ${filePath}: ${error}`
+          `Failed to create column "created" for table "md5s" of XYZ MD5 DB "${filePath}": ${error}`
         );
       }
-    }
-
-    if (tableInfos.some((col) => col.name === "hash") === false) {
-      await runSQL(
-        source,
-        `ALTER TABLE
-          md5s
-        ADD COLUMN IF NOT EXISTS
-          hash TEXT;
-        `
-      );
-    }
-
-    if (tableInfos.some((col) => col.name === "created") === false) {
-      await runSQL(
-        source,
-        `ALTER TABLE
-          md5s
-        ADD COLUMN IF NOT EXISTS
-          created BIGINT;
-        `
-      );
     }
   }
 
@@ -435,7 +458,7 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
 
 /**
  * Get XYZ metadata
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {string} sourcePath XYZ folder path
  * @returns {Promise<Object>}
  */
@@ -450,7 +473,7 @@ export async function getXYZMetadata(source, sourcePath) {
   };
 
   /* Get metadatas */
-  const rows = await fetchAll(source, "SELECT name, value FROM metadata;");
+  const rows = source.prepare("SELECT name, value FROM metadata;").all();
 
   rows.forEach((row) => {
     switch (row.name) {
@@ -672,7 +695,7 @@ export function createXYZMetadata(metadata) {
 
 /**
  * Close the XYZ MD5 SQLite database
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @returns {Promise<void>}
  */
 export async function closeXYZMD5DB(source) {
@@ -683,14 +706,13 @@ export async function closeXYZMD5DB(source) {
  * Download XYZ tile data file
  * @param {string} url The URL to download the file from
  * @param {string} id XYZ ID
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
@@ -704,7 +726,6 @@ export async function downloadXYZTile(
   format,
   maxTry,
   timeout,
-  storeMD5,
   storeTransparent
 ) {
   await retry(async () => {
@@ -721,7 +742,6 @@ export async function downloadXYZTile(
         y,
         format,
         response.data,
-        storeMD5,
         storeTransparent
       );
     } catch (error) {
@@ -748,7 +768,7 @@ export async function downloadXYZTile(
 
 /**
  * Update MBTiles metadata table
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
@@ -814,13 +834,12 @@ export async function getXYZTileFromURL(url, timeout) {
 /**
  * Cache XYZ tile data file
  * @param {string} sourcePath XYZ folder path
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @param {Buffer} data Tile data buffer
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
@@ -832,7 +851,6 @@ export async function cacheXYZTileFile(
   y,
   format,
   data,
-  storeMD5,
   storeTransparent
 ) {
   if (
@@ -848,7 +866,6 @@ export async function cacheXYZTileFile(
       x,
       y,
       format,
-      storeMD5,
       data,
       300000 // 5 mins
     );
@@ -857,25 +874,25 @@ export async function cacheXYZTileFile(
 
 /**
  * Get MD5 hash of XYZ tile
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<string>} Returns the MD5 hash as a string
+ * @returns {string} Returns the MD5 hash as a string
  */
-export async function getXYZTileMD5(source, z, x, y) {
-  const data = await fetchOne(
-    source,
-    `
+export function getXYZTileMD5(source, z, x, y) {
+  const data = source
+    .prepare(
+      `
     SELECT
       hash
     FROM
       md5s
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `,
-    [z, x, y]
-  );
+    `
+    )
+    .get(z, x, y);
 
   if (data === undefined || data.hash === null) {
     throw new Error("Tile MD5 does not exist");
@@ -886,25 +903,25 @@ export async function getXYZTileMD5(source, z, x, y) {
 
 /**
  * Get created of MBTiles tile
- * @param {sqlite3.Database} source SQLite database instance
+ * @param {DatabaseSync} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<number>} Returns the created as a number
+ * @returns {number} Returns the created as a number
  */
-export async function getXYZTileCreated(source, z, x, y) {
-  const data = await fetchOne(
-    source,
-    `
+export function getXYZTileCreated(source, z, x, y) {
+  const data = source
+    .prepare(
+      `
     SELECT
       created
     FROM
       md5s
     WHERE
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `,
-    [z, x, y]
-  );
+    `
+    )
+    .get(z, x, y);
 
   if (data === undefined || data.created === null) {
     throw new Error("Tile created does not exist");

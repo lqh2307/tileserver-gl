@@ -74,6 +74,53 @@ export async function getDataFromURL(
 }
 
 /**
+ * Post data to URL
+ * @param {string} url URL to post data
+ * @param {number} timeout Timeout in milliseconds
+ * @param {Object} body Body
+ * @param {"arraybuffer"|"json"|"text"|"stream"|"blob"|"document"|"formdata"} responseType Response type
+ * @param {boolean} keepAlive Whether to keep the connection alive
+ * @returns {Promise<axios.AxiosResponse>}
+ */
+export async function postDataToURL(
+  url,
+  timeout,
+  body,
+  responseType,
+  keepAlive = false
+) {
+  try {
+    return await axios({
+      method: "POST",
+      url: url,
+      timeout: timeout,
+      responseType: responseType,
+      headers: {
+        "User-Agent": "Tile Server",
+        "Content-Type": "application/json",
+      },
+      data: body,
+      validateStatus: (status) => {
+        return status === StatusCodes.OK;
+      },
+      httpAgent: new http.Agent({
+        keepAlive: keepAlive,
+      }),
+      httpsAgent: new https.Agent({
+        keepAlive: keepAlive,
+      }),
+    });
+  } catch (error) {
+    if (error.response) {
+      error.message = `Status code: ${error.response.status} - ${error.response.statusText}`;
+      error.statusCode = error.response.status;
+    }
+
+    throw error;
+  }
+}
+
+/**
  * Check tile URL is local?
  * @param {string} url URL tile to check
  * @returns {boolean}
@@ -188,8 +235,6 @@ export function getLonLatFromXYZ(
  * @returns {{ total: number, z: number x: [number, number], y: [number, number] }}
  */
 export function getTileBoundFromCoverage(coverage, scheme) {
-  const maxTileIndex = (1 << coverage.zoom) - 1;
-
   let [xMin, yMin] = getXYZFromLonLatZ(
     coverage.bbox[0],
     coverage.bbox[3],
@@ -202,10 +247,6 @@ export function getTileBoundFromCoverage(coverage, scheme) {
     coverage.zoom,
     scheme
   );
-
-  if (scheme === "tms") {
-    [yMin, yMax] = [maxTileIndex - yMax, maxTileIndex - yMin];
-  }
 
   if (yMin > yMax) {
     [yMin, yMax] = [yMax, yMin];
@@ -554,7 +595,7 @@ export async function isExistFile(filePath) {
  * @param {RegExp} regex The regex to match files
  * @param {boolean} recurse Whether to search recursively in subdirectories
  * @param {boolean} includeDirPath Whether to include directory path
- * @returns {Promise<string>} Array of filepaths matching the regex
+ * @returns {Promise<string[]>} Array of filepaths matching the regex
  */
 export async function findFiles(
   dirPath,
@@ -604,7 +645,7 @@ export async function findFiles(
  * @param {RegExp} regex The regex to match folders
  * @param {boolean} recurse Whether to search recursively in subdirectories
  * @param {boolean} includeDirPath Whether to include directory path
- * @returns {Promise<string>} Array of folder paths matching the regex
+ * @returns {Promise<string[]>} Array of folder paths matching the regex
  */
 export async function findFolders(
   dirPath,

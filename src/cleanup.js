@@ -7,7 +7,6 @@ import { getFontCreated, removeFontFile } from "./font.js";
 import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
-import sqlite3 from "sqlite3";
 import {
   getXYZTileCreated,
   removeXYZTile,
@@ -117,8 +116,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   /* Open MBTiles SQLite database */
   const source = await openMBTilesDB(
     `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    false
+    true
   );
 
   /* Remove tiles */
@@ -138,7 +136,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
       if (cleanUpTimestamp !== undefined) {
         try {
-          const created = await getMBTilesTileCreated(source, z, x, y);
+          const created = getMBTilesTileCreated(source, z, x, y);
 
           if (!created || created < cleanUpTimestamp) {
             needRemove = true;
@@ -207,7 +205,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   }
 
   /* Compact MBTiles */
-  await compactMBTiles(source);
+  compactMBTiles(source);
 
   /* Close MBTiles SQLite database */
   await closeMBTilesDB(source);
@@ -390,8 +388,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
   /* Open XYZ MD5 SQLite database */
   const source = await openXYZMD5DB(
     `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    false
+    true
   );
 
   /* Remove tile files */
@@ -411,7 +408,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
       if (cleanUpTimestamp !== undefined) {
         try {
-          const created = await getXYZTileCreated(source, z, x, y);
+          const created = getXYZTileCreated(source, z, x, y);
 
           if (!created || created < cleanUpTimestamp) {
             needRemove = true;
@@ -659,7 +656,9 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed clean up sprite "${id}" after ${(Date.now() - startTime) / 1000}s!`
+    `Completed clean up sprite "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`
   );
 }
 
@@ -827,7 +826,9 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed clean up style "${id}" after ${(Date.now() - startTime) / 1000}s!`
+    `Completed clean up style "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`
   );
 }
 

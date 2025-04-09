@@ -5,7 +5,6 @@ import { updateCleanUpFile, readCleanUpFile } from "./cleanup.js";
 import { readSeedFile, updateSeedFile } from "./seed.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
-import express from "express";
 import {
   getXYZFromLonLatZ,
   compileTemplate,
@@ -771,9 +770,12 @@ function serveRestartKillHandler() {
 }
 
 export const serve_common = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register common handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -1047,8 +1049,8 @@ export const serve_common = {
      */
     app.get("/restart", serveRestartKillHandler());
 
+    /* Serve front page */
     if (process.env.SERVE_FRONT_PAGE !== "false") {
-      /* Serve front page */
       /**
        * @swagger
        * tags:
@@ -1078,9 +1080,7 @@ export const serve_common = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/", serveFrontPageHandler());
+      app.get("/{*any}", serveFrontPageHandler());
     }
-
-    return app;
   },
 };

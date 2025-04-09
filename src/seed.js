@@ -6,7 +6,6 @@ import { downloadFontFile, getFontCreated } from "./font.js";
 import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
-import sqlite3 from "sqlite3";
 import {
   downloadGeoJSONFile,
   getGeoJSONCreated,
@@ -34,6 +33,7 @@ import {
   removeEmptyFolders,
   getDataFromURL,
   getJSONSchema,
+  postDataToURL,
   validateJSON,
   calculateMD5,
   delay,
@@ -103,7 +103,6 @@ async function updateSeedFile(seed, timeout) {
  * @param {number} concurrency Concurrency download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
@@ -117,7 +116,6 @@ async function seedMBTilesTiles(
   concurrency,
   maxTry,
   timeout,
-  storeMD5,
   storeTransparent,
   refreshBefore
 ) {
@@ -126,7 +124,7 @@ async function seedMBTilesTiles(
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  let log = `Seeding ${total} tiles of mbtiles "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
+  let log = `Seeding ${total} tiles of mbtiles "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
@@ -154,16 +152,21 @@ async function seedMBTilesTiles(
     printLog("info", log);
 
     /* Get hashs */
-    printLog("info", "Get hashs...");
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
     try {
-      hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
-        300000, // 5 mins
+      printLog("info", `Get hashs from "${hashURL}"...`);
+
+      const res = await postDataToURL(
+        hashURL,
+        600000, // 10 mins
+        coverages,
         "json"
       );
+
+      hashs = res.data;
     } catch (error) {
-      printLog("error", `Failed to get hashs: ${error}`);
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
       hashs = {};
     }
@@ -172,8 +175,7 @@ async function seedMBTilesTiles(
   /* Open MBTiles SQLite database */
   const source = await openMBTilesDB(
     `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    false
+    true
   );
 
   /* Update metadata */
@@ -182,7 +184,7 @@ async function seedMBTilesTiles(
   await updateMBTilesMetadata(
     source,
     metadata,
-    300000 // 5 mins
+    180000 // 3 mins
   );
 
   /* Download tiles */
@@ -202,7 +204,7 @@ async function seedMBTilesTiles(
 
       if (refreshTimestamp === true) {
         try {
-          const md5 = await getMBTilesTileMD5(source, z, x, y);
+          const md5 = getMBTilesTileMD5(source, z, x, y);
 
           if (md5 !== hashs[tileName]) {
             needDownload = true;
@@ -216,7 +218,7 @@ async function seedMBTilesTiles(
         }
       } else if (refreshTimestamp !== undefined) {
         try {
-          const created = await getMBTilesTileCreated(source, z, x, y);
+          const created = getMBTilesTileCreated(source, z, x, y);
 
           if (!created || created < refreshTimestamp) {
             needDownload = true;
@@ -253,7 +255,6 @@ async function seedMBTilesTiles(
           tmpY,
           maxTry,
           timeout,
-          storeMD5,
           storeTransparent
         );
       }
@@ -316,7 +317,6 @@ async function seedMBTilesTiles(
  * @param {number} concurrency Concurrency download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
@@ -330,7 +330,6 @@ async function seedPostgreSQLTiles(
   concurrency,
   maxTry,
   timeout,
-  storeMD5,
   storeTransparent,
   refreshBefore
 ) {
@@ -339,7 +338,7 @@ async function seedPostgreSQLTiles(
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  let log = `Seeding ${total} tiles of postgresql "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
+  let log = `Seeding ${total} tiles of postgresql "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
@@ -367,16 +366,21 @@ async function seedPostgreSQLTiles(
     printLog("info", log);
 
     /* Get hashs */
-    printLog("info", "Get hashs...");
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
     try {
-      hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
-        300000, // 5 mins
+      printLog("info", `Get hashs from "${hashURL}"...`);
+
+      const res = await postDataToURL(
+        hashURL,
+        600000, // 10 mins
+        coverages,
         "json"
       );
+
+      hashs = res.data;
     } catch (error) {
-      printLog("error", `Failed to get hashs: ${error}`);
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
       hashs = {};
     }
@@ -394,7 +398,7 @@ async function seedPostgreSQLTiles(
   await updatePostgreSQLMetadata(
     source,
     metadata,
-    300000 // 5 mins
+    180000 // 3 mins
   );
 
   /* Download tiles */
@@ -465,7 +469,6 @@ async function seedPostgreSQLTiles(
           tmpY,
           maxTry,
           timeout,
-          storeMD5,
           storeTransparent
         );
       }
@@ -528,7 +531,6 @@ async function seedPostgreSQLTiles(
  * @param {number} concurrency Concurrency to download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeMD5 Is store MD5 hashed?
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
@@ -542,7 +544,6 @@ async function seedXYZTiles(
   concurrency,
   maxTry,
   timeout,
-  storeMD5,
   storeTransparent,
   refreshBefore
 ) {
@@ -551,7 +552,7 @@ async function seedXYZTiles(
   /* Calculate summary */
   const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  let log = `Seeding ${total} tiles of xyz "${id}" with:\n\tStore MD5: ${storeMD5}\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
+  let log = `Seeding ${total} tiles of xyz "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
     coverages
   )}`;
 
@@ -579,16 +580,21 @@ async function seedXYZTiles(
     printLog("info", log);
 
     /* Get hashs */
-    printLog("info", "Get hashs...");
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
     try {
-      hashs = await getDataFromURL(
-        `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5`,
-        300000, // 5 mins
+      printLog("info", `Get hashs from "${hashURL}"...`);
+
+      const res = await postDataToURL(
+        hashURL,
+        600000, // 10 mins
+        coverages,
         "json"
       );
+
+      hashs = res.data;
     } catch (error) {
-      printLog("error", `Failed to get hashs: ${error}`);
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
       hashs = {};
     }
@@ -597,8 +603,7 @@ async function seedXYZTiles(
   /* Open MD5 SQLite database */
   const source = await openXYZMD5DB(
     `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    false
+    true
   );
 
   /* Update metadata */
@@ -607,7 +612,7 @@ async function seedXYZTiles(
   await updateXYZMetadata(
     source,
     metadata,
-    300000 // 5 mins
+    180000 // 3 mins
   );
 
   /* Download tile files */
@@ -627,7 +632,7 @@ async function seedXYZTiles(
 
       if (refreshTimestamp === true) {
         try {
-          const md5 = await getXYZTileMD5(source, z, x, y);
+          const md5 = getXYZTileMD5(source, z, x, y);
 
           if (md5 !== hashs[tileName]) {
             needDownload = true;
@@ -641,7 +646,7 @@ async function seedXYZTiles(
         }
       } else if (refreshTimestamp !== undefined) {
         try {
-          const created = await getXYZTileCreated(source, z, x, y);
+          const created = getXYZTileCreated(source, z, x, y);
 
           if (!created || created < refreshTimestamp) {
             needDownload = true;
@@ -680,7 +685,6 @@ async function seedXYZTiles(
           metadata.format,
           maxTry,
           timeout,
-          storeMD5,
           storeTransparent
         );
       }

@@ -3,7 +3,6 @@
 import { StatusCodes } from "http-status-codes";
 import { getMetrics } from "./prometheus.js";
 import { printLog } from "./logger.js";
-import express from "express";
 
 /**
  * Get metrics handler
@@ -28,9 +27,12 @@ function serveMetricsHandler() {
 }
 
 export const serve_prometheus = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register prometheus handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -61,8 +63,6 @@ export const serve_prometheus = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/", serveMetricsHandler());
-
-    return app;
+    app.get("/prometheus", serveMetricsHandler());
   },
 };

@@ -1177,7 +1177,7 @@
         document.getElementById("exportRenderForm").onsubmit = (event) => {
           event.preventDefault();
 
-          fetch(`${baseURL}/styles/${styleID}/export/style.json`, {
+          fetch(`${baseURL}/styles/${styleID}/export`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1201,7 +1201,7 @@
         let maxRetries = 5;
 
         function tryFetch() {
-          fetch(`${baseURL}/styles/${styleID}/export/style.json?cancel=true`, {
+          fetch(`${baseURL}/styles/${styleID}/export?cancel=true`, {
             method: "GET",
           })
             .then((response) => {

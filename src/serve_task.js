@@ -2,7 +2,6 @@
 
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
-import express from "express";
 
 /**
  * Start task handler
@@ -68,9 +67,12 @@ function cancelTaskHandler() {
 }
 
 export const serve_task = {
-  init: () => {
-    const app = express().disable("x-powered-by");
-
+  /**
+   * Register task handlers
+   * @param {Express} app Express object
+   * @returns {void}
+   */
+  init: (app) => {
     /**
      * @swagger
      * tags:
@@ -165,7 +167,7 @@ export const serve_task = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/start", startTaskHandler());
+    app.get("/tasks/start", startTaskHandler());
 
     /**
      * @swagger
@@ -194,8 +196,6 @@ export const serve_task = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/cancel", cancelTaskHandler());
-
-    return app;
+    app.get("/tasks/cancel", cancelTaskHandler());
   },
 };

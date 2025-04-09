@@ -128,10 +128,10 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
     "listenPort": 8080,
     "serveFrontPage": true,
     "serveSwagger": true,
-    "taskSchedule": "0 0 0 * * *",
-    "postgreSQLBaseURI": "postgresql://localhost:5432",
-    "process": 1,
-    "thread": 8
+    "taskSchedule": "0 00 18 * * *",
+    "postgreSQLBaseURI": "postgresql://postgres:postgres@172.26.192.1:5432",
+    "process": 2,
+    "thread": 128
   },
   "styles": {
     "osm": {
@@ -309,7 +309,14 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "mbtiles": "asia_vietnam/asia_vietnam.mbtiles"
     },
     "satellite": {
-      "mbtiles": "satellite",
+      "mbtiles": "satellite_cache",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "satellite_md5": {
+      "mbtiles": "satellite_md5_cache",
       "cache": {
         "forward": true,
         "store": true
@@ -482,27 +489,38 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       "coverages": [
         {
-          "bboxs": [
-            [
-              96,
-              4,
-              120,
-              28
-            ]
+          "bbox": [
+            96,
+            4,
+            120,
+            28
           ],
-          "zooms": [
-            0,
-            5,
-            9
-          ]
+          "zoom": 0
+        },
+        {
+          "bbox": [
+            96,
+            4,
+            120,
+            28
+          ],
+          "zoom": 5
+        },
+        {
+          "bbox": [
+            96,
+            4,
+            120,
+            28
+          ],
+          "zoom": 9
         }
       ],
       "timeout": 60000,
       "concurrency": 50,
       "maxTry": 5,
       "storeType": "mbtiles",
-      "storeTransparent": false,
-      "storeMD5": true
+      "storeTransparent": false
     },
     "planet_cache": {
       "metadata": {
@@ -579,38 +597,40 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "url": "https://dwuxtsziek7cf.cloudfront.net/planet/{z}/{x}/{y}.pbf",
       "coverages": [
         {
-          "bboxs": [
-            [
-              96,
-              8,
-              102,
-              16
-            ],
-            [
-              108,
-              20,
-              114,
-              28
-            ]
+          "bbox": [
+            108,
+            20,
+            114,
+            28
           ],
-          "zooms": [
-            0,
-            5,
-            10
-          ]
+          "zoom": 0
         },
         {
-          "bboxs": [
-            [
-              96,
-              4,
-              120,
-              28
-            ]
+          "bbox": [
+            96,
+            8,
+            102,
+            16
           ],
-          "zooms": [
-            10
-          ]
+          "zoom": 5
+        },
+        {
+          "bbox": [
+            96,
+            8,
+            102,
+            16
+          ],
+          "zoom": 10
+        },
+        {
+          "bbox": [
+            96,
+            4,
+            120,
+            28
+          ],
+          "zoom": 10
         }
       ],
       "timeout": 60000,
@@ -618,10 +638,9 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "maxTry": 5,
       "storeType": "mbtiles",
       "storeTransparent": false,
-      "storeMD5": true,
       "skip": true
     },
-    "satellite": {
+    "satellite_cache": {
       "metadata": {
         "name": "satellite",
         "description": "satellite",
@@ -646,36 +665,76 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       "coverages": [
         {
-          "bboxs": [
-            [
-              104.4,
-              8.55,
-              106.8,
-              10.42
-            ],
-            [
-              102.5,
-              20.5,
-              108,
-              21.5
-            ],
-            [
-              103.8,
-              20.15,
-              106.65,
-              20.5
-            ],
-            [
-              103.8,
-              19,
-              106.39,
-              20.15
-            ]
+          "bbox": [
+            104.4,
+            8.55,
+            106.8,
+            10.42
           ],
-          "zooms": [
-            17,
-            18
-          ]
+          "zoom": 17
+        },
+        {
+          "bbox": [
+            102.5,
+            20.5,
+            108,
+            21.5
+          ],
+          "zoom": 17
+        },
+        {
+          "bbox": [
+            103.8,
+            20.15,
+            106.65,
+            20.5
+          ],
+          "zoom": 17
+        },
+        {
+          "bbox": [
+            103.8,
+            19,
+            106.39,
+            20.15
+          ],
+          "zoom": 17
+        },
+        {
+          "bbox": [
+            104.4,
+            8.55,
+            106.8,
+            10.42
+          ],
+          "zoom": 18
+        },
+        {
+          "bbox": [
+            102.5,
+            20.5,
+            108,
+            21.5
+          ],
+          "zoom": 18
+        },
+        {
+          "bbox": [
+            103.8,
+            20.15,
+            106.65,
+            20.5
+          ],
+          "zoom": 18
+        },
+        {
+          "bbox": [
+            103.8,
+            19,
+            106.39,
+            20.15
+          ],
+          "zoom": 18
         }
       ],
       "timeout": 180000,
@@ -683,8 +742,47 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "maxTry": 5,
       "storeType": "mbtiles",
       "storeTransparent": true,
-      "storeMD5": true,
       "skip": true
+    },
+    "satellite_md5_cache": {
+      "metadata": {
+        "name": "satellite",
+        "description": "satellite",
+        "format": "jpeg",
+        "bounds": [
+          -180,
+          -90,
+          180,
+          90
+        ],
+        "center": [
+          108,
+          16,
+          10
+        ],
+        "minzoom": 0,
+        "maxzoom": 18
+      },
+      "refreshBefore": {
+        "md5": true
+      },
+      "url": "http://localhost:8080/datas/satellite/{z}/{x}/{y}.jpeg",
+      "coverages": [
+        {
+          "bbox": [
+            106.3654661178589,
+            20.785024793097858,
+            106.40363931655885,
+            20.80269765224451
+          ],
+          "zoom": 16
+        }
+      ],
+      "timeout": 180000,
+      "concurrency": 30,
+      "maxTry": 5,
+      "storeType": "mbtiles",
+      "storeTransparent": true
     }
   },
   "sprites": {},
@@ -727,25 +825,31 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
     "osm_cache": {
       "coverages": [
         {
-          "bboxs": [
-            [
-              96,
-              8,
-              102,
-              16
-            ],
-            [
-              108,
-              20,
-              114,
-              28
-            ]
+          "bbox": [
+            96,
+            8,
+            102,
+            16
           ],
-          "zooms": [
-            0,
-            5,
-            10
-          ]
+          "zoom": 0
+        },
+        {
+          "bbox": [
+            96,
+            8,
+            102,
+            16
+          ],
+          "zoom": 5
+        },
+        {
+          "bbox": [
+            108,
+            20,
+            114,
+            28
+          ],
+          "zoom": 10
         }
       ],
       "cleanUpBefore": {
@@ -757,7 +861,7 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
   "fonts": {
     "Roboto Medium": {
       "cleanUpBefore": {
-        "time": "2024-10-10T00:00:00"
+        "time": "2025-10-10T00:00:00"
       }
     }
   }
