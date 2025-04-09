@@ -176,6 +176,15 @@ function getStyleHandler() {
           Object.keys(styleJSON.sources).map(async (id) => {
             const source = styleJSON.sources[id];
 
+            // Fix geoJSON URL
+            if (source.data !== undefined) {
+              if (isLocalTileURL(source.data) === true) {
+                const elements = source.data.split("/");
+
+                source.data = `${requestHost}/geojsons/${elements[2]}/${elements[3]}.geojson`;
+              }
+            }
+
             // Fix tileJSON URL
             if (source.url !== undefined) {
               if (isLocalTileURL(source.url) === true) {
@@ -649,6 +658,15 @@ function getStyleJSONsListHandler() {
             await Promise.all(
               Object.keys(styleJSON.sources).map(async (id) => {
                 const source = styleJSON.sources[id];
+
+                // Fix geoJSON URL
+                if (source.data !== undefined) {
+                  if (isLocalTileURL(source.data) === true) {
+                    const elements = source.data.split("/");
+
+                    source.data = `${requestHost}/geojsons/${elements[2]}/${elements[3]}.geojson`;
+                  }
+                }
 
                 // Fix tileJSON URL
                 if (source.url !== undefined) {
@@ -1378,6 +1396,55 @@ export const serve_style = {
               await Promise.all(
                 Object.keys(styleJSON.sources).map(async (id) => {
                   const source = styleJSON.sources[id];
+
+                  if (source.data !== undefined) {
+                    if (isLocalTileURL(source.data) === true) {
+                      const elements = source.data.split("/");
+                      const item = config.geojsons[elements[2]][elements[3]];
+
+                      let geoJSON;
+
+                      /* Get geoJSON and Cache if not exist (if use cache) */
+                      try {
+                        geoJSON = await getGeoJSON(item.path, false);
+                      } catch (error) {
+                        if (
+                          item.sourceURL !== undefined &&
+                          error.message === "GeoJSON does not exist"
+                        ) {
+                          printLog(
+                            "info",
+                            `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`
+                          );
+
+                          geoJSON = await getGeoJSONFromURL(
+                            item.sourceURL,
+                            60000, // 1 mins
+                            false
+                          );
+
+                          if (item.storeCache === true) {
+                            printLog(
+                              "info",
+                              `Caching GeoJSON "${id}" - File "${item.path}"...`
+                            );
+
+                            cacheGeoJSONFile(item.path, geoJSON).catch(
+                              (error) =>
+                                printLog(
+                                  "error",
+                                  `Failed to cache GeoJSON "${id}" - File "${item.path}": ${error}`
+                                )
+                            );
+                          }
+                        } else {
+                          throw error;
+                        }
+                      }
+
+                      source.data = geoJSON;
+                    }
+                  }
 
                   if (source.tiles !== undefined) {
                     const tiles = new Set(

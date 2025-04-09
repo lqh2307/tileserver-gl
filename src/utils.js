@@ -130,7 +130,8 @@ export function isLocalTileURL(url) {
     url.startsWith("mbtiles://") === true ||
     url.startsWith("pmtiles://") === true ||
     url.startsWith("xyz://") === true ||
-    url.startsWith("pg://") === true
+    url.startsWith("pg://") === true ||
+    url.startsWith("geojson://") === true
   );
 }
 

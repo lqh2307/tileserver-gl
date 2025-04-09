@@ -158,6 +158,24 @@ export async function validateStyle(styleJSON) {
     Object.keys(styleJSON.sources).map(async (id) => {
       const source = styleJSON.sources[id];
 
+      if (source.data !== undefined) {
+        if (isLocalTileURL(source.data) === true) {
+          const elements = source.data.split("/");
+
+          if (config.geojsons[elements[2]] === undefined) {
+            throw new Error(
+              `Source "${id}" is not found data source "${elements[2]}"`
+            );
+          }
+
+          if (config.geojsons[elements[2]][elements[3]] === undefined) {
+            throw new Error(
+              `Source "${id}" is not found data source "${elements[3]}"`
+            );
+          }
+        }
+      }
+
       if (source.url !== undefined) {
         if (isLocalTileURL(source.url) === true) {
           const sourceID = source.url.split("/")[2];
