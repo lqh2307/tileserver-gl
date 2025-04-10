@@ -62,7 +62,6 @@ RUN \
     libopengl0 \
     libpng16-16 \
     libwebp7 \
-    libsqlite3-0 \
     libcurl4 \
     libproj22;
 
