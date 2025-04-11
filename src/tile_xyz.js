@@ -694,6 +694,15 @@ export function createXYZMetadata(metadata) {
 }
 
 /**
+ * Compact XYZ
+ * @param {DatabaseSync} source SQLite database instance
+ * @returns {void}
+ */
+export function compactXYZ(source) {
+  source.exec("VACUUM;");
+}
+
+/**
  * Close the XYZ MD5 SQLite database
  * @param {DatabaseSync} source SQLite database instance
  * @returns {Promise<void>}

@@ -12,6 +12,7 @@ import {
   removeXYZTile,
   closeXYZMD5DB,
   openXYZMD5DB,
+  compactXYZ,
 } from "./tile_xyz.js";
 import {
   getMBTilesTileCreated,
@@ -477,6 +478,9 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
   while (tasks.activeTasks > 0) {
     await delay(50);
   }
+
+  /* Compact XYZ (Block DB) */
+  // compactXYZ(source);
 
   /* Close XYZ MD5 SQLite database */
   await closeXYZMD5DB(source);
