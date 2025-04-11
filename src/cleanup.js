@@ -204,8 +204,8 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     await delay(50);
   }
 
-  /* Compact MBTiles */
-  compactMBTiles(source);
+  /* Compact MBTiles (Block DB) */
+  // compactMBTiles(source);
 
   /* Close MBTiles SQLite database */
   await closeMBTilesDB(source);
