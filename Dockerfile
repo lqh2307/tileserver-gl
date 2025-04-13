@@ -23,8 +23,8 @@ RUN \
   mkdir -p build; \
   cd build; \
   cmake .. -DCMAKE_BUILD_TYPE=Release; \
-  cmake --build . -j ${nproc}; \
-  cmake --build . --target install -j ${nproc}; \
+  cmake --build .; \
+  cmake --build . --target install; \
   cd ../..; \
   rm -rf ./gdal-${GDAL_VERSION}*;
 
