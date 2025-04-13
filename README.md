@@ -58,8 +58,8 @@ cd ./gdal-${GDAL_VERSION}; \
 mkdir -p build; \
 cd build; \
 cmake .. -DCMAKE_BUILD_TYPE=Release; \
-cmake --build .; \
-cmake --build . --target install; \
+cmake --build . -j ${nproc}; \
+cmake --build . --target install -j ${nproc}; \
 cd ../..; \
 rm -rf ./gdal-${GDAL_VERSION}*; \
 ldconfig;
