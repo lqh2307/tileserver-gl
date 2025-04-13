@@ -76,561 +76,551 @@ if (cluster.isPrimary !== true) {
 sharp.cache(false);
 
 /**
- * Render tile
- * @param {number} tileScale Tile scale
- * @param {Object} styleJSON StyleJSON
- * @returns {Object}
+ * Render tile callback
+ * @param {Object} req
+ * @param {Function} callback
+ * @returns {Promise<void>}
  */
-function renderTile(tileScale, styleJSON) {
-  const renderer = new mlgl.Map({
-    mode: "tile",
-    ratio: tileScale,
-    request: async (req, callback) => {
-      const url = decodeURIComponent(req.url);
-      const parts = url.split("/");
-      let tileFormat = "other";
+async function renderTileCallback(req, callback) {
+  const url = decodeURIComponent(req.url);
+  const parts = url.split("/");
+  let tileFormat = "other";
 
-      switch (parts[0]) {
-        case "sprites:": {
-          try {
-            /* Get sprite */
-            const data = await getSprite(parts[2], parts[3]);
+  switch (parts[0]) {
+    case "sprites:": {
+      try {
+        /* Get sprite */
+        const data = await getSprite(parts[2], parts[3]);
 
-            callback(null, {
-              data: data,
-            });
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty sprite...`
-            );
+        callback(null, {
+          data: data,
+        });
+      } catch (error) {
+        printLog(
+          "warn",
+          `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty sprite...`
+        );
 
-            callback(error, {
-              data: null,
-            });
-          }
+        callback(error, {
+          data: null,
+        });
+      }
 
-          break;
+      break;
+    }
+
+    case "fonts:": {
+      try {
+        /* Get font */
+        let data = await getFonts(parts[2], parts[3]);
+
+        /* Unzip pbf font */
+        const headers = detectFormatAndHeaders(data).headers;
+
+        if (
+          headers["content-type"] === "application/x-protobuf" &&
+          headers["content-encoding"] !== undefined
+        ) {
+          data = await unzipAsync(data);
         }
 
-        case "fonts:": {
-          try {
-            /* Get font */
-            let data = await getFonts(parts[2], parts[3]);
+        callback(null, {
+          data: data,
+        });
+      } catch (error) {
+        printLog(
+          "warn",
+          `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty font...`
+        );
 
-            /* Unzip pbf font */
-            const headers = detectFormatAndHeaders(data).headers;
+        callback(error, {
+          data: null,
+        });
+      }
 
-            if (
-              headers["content-type"] === "application/x-protobuf" &&
-              headers["content-encoding"] !== undefined
-            ) {
-              data = await unzipAsync(data);
-            }
+      break;
+    }
 
-            callback(null, {
-              data: data,
-            });
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty font...`
-            );
+    case "pmtiles:": {
+      const z = Number(parts[3]);
+      const x = Number(parts[4]);
+      const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+      const tileName = `${z}/${x}/${y}`;
+      const item = config.datas[parts[2]];
 
-            callback(error, {
-              data: null,
-            });
-          }
+      try {
+        /* Get rendered tile */
+        const dataTile = await getPMTilesTile(item.source, z, x, y);
 
-          break;
+        /* Unzip pbf rendered tile */
+        if (
+          dataTile.headers["content-type"] === "application/x-protobuf" &&
+          dataTile.headers["content-encoding"] !== undefined
+        ) {
+          dataTile.data = await unzipAsync(dataTile.data);
         }
 
-        case "pmtiles:": {
-          const z = Number(parts[3]);
-          const x = Number(parts[4]);
-          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-          const tileName = `${z}/${x}/${y}`;
-          const item = config.datas[parts[2]];
+        callback(null, {
+          data: dataTile.data,
+        });
+      } catch (error) {
+        printLog(
+          "warn",
+          `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+        );
 
-          try {
-            /* Get rendered tile */
-            const dataTile = await getPMTilesTile(item.source, z, x, y);
+        tileFormat = item.tileJSON.format;
+      }
 
-            /* Unzip pbf rendered tile */
-            if (
-              dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"] !== undefined
-            ) {
-              dataTile.data = await unzipAsync(dataTile.data);
-            }
+      break;
+    }
 
-            callback(null, {
-              data: dataTile.data,
-            });
-          } catch (error) {
+    case "mbtiles:": {
+      const z = Number(parts[3]);
+      const x = Number(parts[4]);
+      const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+      const tileName = `${z}/${x}/${y}`;
+      const item = config.datas[parts[2]];
+
+      try {
+        /* Get rendered tile */
+        let dataTile;
+
+        try {
+          dataTile = getMBTilesTile(item.source, z, x, y);
+        } catch (error) {
+          if (
+            item.sourceURL !== undefined &&
+            error.message === "Tile does not exist"
+          ) {
+            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+            const targetURL = item.sourceURL
+              .replace("{z}", `${z}`)
+              .replace("{x}", `${x}`)
+              .replace("{y}", `${tmpY}`);
+
             printLog(
-              "warn",
-              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+              "info",
+              `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
             );
 
-            tileFormat = item.tileJSON.format;
-          }
-
-          break;
-        }
-
-        case "mbtiles:": {
-          const z = Number(parts[3]);
-          const x = Number(parts[4]);
-          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-          const tileName = `${z}/${x}/${y}`;
-          const item = config.datas[parts[2]];
-
-          try {
-            /* Get rendered tile */
-            let dataTile;
-
-            try {
-              dataTile = getMBTilesTile(item.source, z, x, y);
-            } catch (error) {
-              if (
-                item.sourceURL !== undefined &&
-                error.message === "Tile does not exist"
-              ) {
-                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-                const targetURL = item.sourceURL
-                  .replace("{z}", `${z}`)
-                  .replace("{x}", `${x}`)
-                  .replace("{y}", `${tmpY}`);
-
-                printLog(
-                  "info",
-                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
-                );
-
-                /* Get data */
-                dataTile = await getMBTilesTileFromURL(
-                  targetURL,
-                  60000 // 1 mins
-                );
-
-                /* Cache */
-                if (item.storeCache === true) {
-                  printLog(
-                    "info",
-                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
-                  );
-
-                  cacheMBtilesTileData(
-                    item.source,
-                    z,
-                    x,
-                    tmpY,
-                    dataTile.data,
-                    item.storeTransparent
-                  ).catch((error) =>
-                    printLog(
-                      "error",
-                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                    )
-                  );
-                }
-              } else {
-                throw error;
-              }
-            }
-
-            /* Unzip pbf rendered tile */
-            if (
-              dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"] !== undefined
-            ) {
-              dataTile.data = await unzipAsync(dataTile.data);
-            }
-
-            callback(null, {
-              data: dataTile.data,
-            });
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+            /* Get data */
+            dataTile = await getMBTilesTileFromURL(
+              targetURL,
+              60000 // 1 mins
             );
 
-            tileFormat = item.tileJSON.format;
-          }
+            /* Cache */
+            if (item.storeCache === true) {
+              printLog(
+                "info",
+                `Caching data "${parts[2]}" - Tile "${tileName}"...`
+              );
 
-          break;
-        }
-
-        case "xyz:": {
-          const z = Number(parts[3]);
-          const x = Number(parts[4]);
-          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-          const tileName = `${z}/${x}/${y}`;
-          const item = config.datas[parts[2]];
-
-          try {
-            /* Get rendered tile */
-            let dataTile;
-
-            try {
-              dataTile = await getXYZTile(
+              cacheMBtilesTileData(
                 item.source,
                 z,
                 x,
-                y,
-                item.tileJSON.format
+                tmpY,
+                dataTile.data,
+                item.storeTransparent
+              ).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
+                )
               );
-            } catch (error) {
-              if (
-                item.sourceURL !== undefined &&
-                error.message === "Tile does not exist"
-              ) {
-                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-                const targetURL = item.sourceURL
-                  .replace("{z}", `${z}`)
-                  .replace("{x}", `${x}`)
-                  .replace("{y}", `${tmpY}`);
-
-                printLog(
-                  "info",
-                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
-                );
-
-                /* Get data */
-                dataTile = await getXYZTileFromURL(
-                  targetURL,
-                  60000 // 1 mins
-                );
-
-                /* Cache */
-                if (item.storeCache === true) {
-                  printLog(
-                    "info",
-                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
-                  );
-
-                  cacheXYZTileFile(
-                    item.source,
-                    item.md5Source,
-                    z,
-                    x,
-                    tmpY,
-                    item.tileJSON.format,
-                    dataTile.data,
-                    item.storeTransparent
-                  ).catch((error) =>
-                    printLog(
-                      "error",
-                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                    )
-                  );
-                }
-              } else {
-                throw error;
-              }
             }
-
-            /* Unzip pbf rendered tile */
-            if (
-              dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"] !== undefined
-            ) {
-              dataTile.data = await unzipAsync(dataTile.data);
-            }
-
-            callback(null, {
-              data: dataTile.data,
-            });
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
-            );
-
-            tileFormat = item.tileJSON.format;
+          } else {
+            throw error;
           }
-
-          break;
         }
 
-        case "pg:": {
-          const z = Number(parts[3]);
-          const x = Number(parts[4]);
-          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-          const tileName = `${z}/${x}/${y}`;
-          const item = config.datas[parts[2]];
-
-          try {
-            /* Get rendered tile */
-            let dataTile;
-
-            try {
-              dataTile = await getPostgreSQLTile(item.source, z, x, y);
-            } catch (error) {
-              if (
-                item.sourceURL !== undefined &&
-                error.message === "Tile does not exist"
-              ) {
-                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-                const targetURL = item.sourceURL
-                  .replace("{z}", `${z}`)
-                  .replace("{x}", `${x}`)
-                  .replace("{y}", `${tmpY}`);
-
-                printLog(
-                  "info",
-                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
-                );
-
-                /* Get data */
-                dataTile = await getPostgreSQLTileFromURL(
-                  targetURL,
-                  60000 // 1 mins
-                );
-
-                /* Cache */
-                if (item.storeCache === true) {
-                  printLog(
-                    "info",
-                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
-                  );
-
-                  cachePostgreSQLTileData(
-                    item.source,
-                    z,
-                    x,
-                    tmpY,
-                    dataTile.data,
-                    item.storeTransparent
-                  ).catch((error) =>
-                    printLog(
-                      "error",
-                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                    )
-                  );
-                }
-              } else {
-                throw error;
-              }
-            }
-
-            /* Unzip pbf rendered tile */
-            if (
-              dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"] !== undefined
-            ) {
-              dataTile.data = await unzipAsync(dataTile.data);
-            }
-
-            callback(null, {
-              data: dataTile.data,
-            });
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
-            );
-
-            tileFormat = item.tileJSON.format;
-          }
-
-          break;
+        /* Unzip pbf rendered tile */
+        if (
+          dataTile.headers["content-type"] === "application/x-protobuf" &&
+          dataTile.headers["content-encoding"] !== undefined
+        ) {
+          dataTile.data = await unzipAsync(dataTile.data);
         }
 
-        case "http:":
-        case "https:": {
-          try {
-            printLog("info", `Getting data tile from "${url}"...`);
+        callback(null, {
+          data: dataTile.data,
+        });
+      } catch (error) {
+        printLog(
+          "warn",
+          `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+        );
 
-            const dataTile = await getDataFromURL(
-              url,
-              60000, // 1 mins,
-              "arraybuffer"
-            );
-
-            /* Unzip pbf data */
-            const headers = detectFormatAndHeaders(dataTile.data).headers;
-
-            if (
-              headers["content-type"] === "application/x-protobuf" &&
-              headers["content-encoding"] !== undefined
-            ) {
-              dataTile.data = await unzipAsync(dataTile.data);
-            }
-
-            callback(null, {
-              data: dataTile.data,
-            });
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get data tile from "${url}": ${error}. Serving empty tile...`
-            );
-
-            tileFormat = url.slice(url.lastIndexOf(".") + 1);
-          }
-
-          break;
-        }
-
-        default: {
-          printLog("warn", `Unknown scheme: "${parts[0]}". Skipping...`);
-
-          break;
-        }
+        tileFormat = item.tileJSON.format;
       }
 
-      switch (tileFormat) {
-        case "other": {
-          break;
+      break;
+    }
+
+    case "xyz:": {
+      const z = Number(parts[3]);
+      const x = Number(parts[4]);
+      const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+      const tileName = `${z}/${x}/${y}`;
+      const item = config.datas[parts[2]];
+
+      try {
+        /* Get rendered tile */
+        let dataTile;
+
+        try {
+          dataTile = await getXYZTile(
+            item.source,
+            z,
+            x,
+            y,
+            item.tileJSON.format
+          );
+        } catch (error) {
+          if (
+            item.sourceURL !== undefined &&
+            error.message === "Tile does not exist"
+          ) {
+            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+            const targetURL = item.sourceURL
+              .replace("{z}", `${z}`)
+              .replace("{x}", `${x}`)
+              .replace("{y}", `${tmpY}`);
+
+            printLog(
+              "info",
+              `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
+            );
+
+            /* Get data */
+            dataTile = await getXYZTileFromURL(
+              targetURL,
+              60000 // 1 mins
+            );
+
+            /* Cache */
+            if (item.storeCache === true) {
+              printLog(
+                "info",
+                `Caching data "${parts[2]}" - Tile "${tileName}"...`
+              );
+
+              cacheXYZTileFile(
+                item.source,
+                item.md5Source,
+                z,
+                x,
+                tmpY,
+                item.tileJSON.format,
+                dataTile.data,
+                item.storeTransparent
+              ).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
+                )
+              );
+            }
+          } else {
+            throw error;
+          }
         }
 
-        case "gif": {
-          callback(null, {
-            data: Buffer.from([
-              0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80,
-              0x00, 0x00, 0x4c, 0x69, 0x71, 0x00, 0x00, 0x00, 0x21, 0xff, 0x0b,
-              0x4e, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30,
-              0x03, 0x01, 0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x05, 0x00, 0x00,
-              0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
-              0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3b,
-            ]),
-          });
-
-          break;
+        /* Unzip pbf rendered tile */
+        if (
+          dataTile.headers["content-type"] === "application/x-protobuf" &&
+          dataTile.headers["content-encoding"] !== undefined
+        ) {
+          dataTile.data = await unzipAsync(dataTile.data);
         }
 
-        case "png": {
-          callback(null, {
-            data: Buffer.from([
-              0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00,
-              0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-              0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89,
-              0x00, 0x00, 0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x03,
-              0xe8, 0x00, 0x00, 0x03, 0xe8, 0x01, 0xb5, 0x7b, 0x52, 0x6b, 0x00,
-              0x00, 0x00, 0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x60,
-              0x60, 0x60, 0x60, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0xa5, 0xf6,
-              0x45, 0x40, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
-              0x42, 0x60, 0x82,
-            ]),
-          });
+        callback(null, {
+          data: dataTile.data,
+        });
+      } catch (error) {
+        printLog(
+          "warn",
+          `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+        );
 
-          break;
-        }
-
-        case "jpg": {
-          callback(null, {
-            data: Buffer.from([
-              0xff, 0xd8, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x06, 0x04, 0x05, 0x06,
-              0x05, 0x04, 0x06, 0x06, 0x05, 0x06, 0x07, 0x07, 0x06, 0x08, 0x0a,
-              0x10, 0x0a, 0x0a, 0x09, 0x09, 0x0a, 0x14, 0x0e, 0x0f, 0x0c, 0x10,
-              0x17, 0x14, 0x18, 0x18, 0x17, 0x14, 0x16, 0x16, 0x1a, 0x1d, 0x25,
-              0x1f, 0x1a, 0x1b, 0x23, 0x1c, 0x16, 0x16, 0x20, 0x2c, 0x20, 0x23,
-              0x26, 0x27, 0x29, 0x2a, 0x29, 0x19, 0x1f, 0x2d, 0x30, 0x2d, 0x28,
-              0x30, 0x25, 0x28, 0x29, 0x28, 0xff, 0xdb, 0x00, 0x43, 0x01, 0x07,
-              0x07, 0x07, 0x0a, 0x08, 0x0a, 0x13, 0x0a, 0x0a, 0x13, 0x28, 0x1a,
-              0x16, 0x1a, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-              0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-              0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-              0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-              0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0xff, 0xc0, 0x00,
-              0x11, 0x08, 0x00, 0x01, 0x00, 0x01, 0x03, 0x01, 0x22, 0x00, 0x02,
-              0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xc4, 0x00, 0x15, 0x00, 0x01,
-              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0xff, 0xc4, 0x00, 0x14, 0x10,
-              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x01,
-              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x11,
-              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03,
-              0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3f, 0x00, 0x95, 0x00,
-              0x07, 0xff, 0xd9,
-            ]),
-          });
-
-          break;
-        }
-
-        case "jpeg": {
-          callback(null, {
-            data: Buffer.from([
-              0xff, 0xd8, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x06, 0x04, 0x05, 0x06,
-              0x05, 0x04, 0x06, 0x06, 0x05, 0x06, 0x07, 0x07, 0x06, 0x08, 0x0a,
-              0x10, 0x0a, 0x0a, 0x09, 0x09, 0x0a, 0x14, 0x0e, 0x0f, 0x0c, 0x10,
-              0x17, 0x14, 0x18, 0x18, 0x17, 0x14, 0x16, 0x16, 0x1a, 0x1d, 0x25,
-              0x1f, 0x1a, 0x1b, 0x23, 0x1c, 0x16, 0x16, 0x20, 0x2c, 0x20, 0x23,
-              0x26, 0x27, 0x29, 0x2a, 0x29, 0x19, 0x1f, 0x2d, 0x30, 0x2d, 0x28,
-              0x30, 0x25, 0x28, 0x29, 0x28, 0xff, 0xdb, 0x00, 0x43, 0x01, 0x07,
-              0x07, 0x07, 0x0a, 0x08, 0x0a, 0x13, 0x0a, 0x0a, 0x13, 0x28, 0x1a,
-              0x16, 0x1a, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-              0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-              0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-              0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-              0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0xff, 0xc0, 0x00,
-              0x11, 0x08, 0x00, 0x01, 0x00, 0x01, 0x03, 0x01, 0x22, 0x00, 0x02,
-              0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xc4, 0x00, 0x15, 0x00, 0x01,
-              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0xff, 0xc4, 0x00, 0x14, 0x10,
-              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x01,
-              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x11,
-              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03,
-              0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3f, 0x00, 0x95, 0x00,
-              0x07, 0xff, 0xd9,
-            ]),
-          });
-
-          break;
-        }
-
-        case "webp": {
-          callback(null, {
-            data: Buffer.from([
-              0x52, 0x49, 0x46, 0x46, 0x40, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42,
-              0x50, 0x56, 0x50, 0x38, 0x58, 0x0a, 0x00, 0x00, 0x00, 0x10, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x41, 0x4c, 0x50,
-              0x48, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x56, 0x50, 0x38, 0x20,
-              0x18, 0x00, 0x00, 0x00, 0x30, 0x01, 0x00, 0x9d, 0x01, 0x2a, 0x01,
-              0x00, 0x01, 0x00, 0x01, 0x40, 0x26, 0x25, 0xa4, 0x00, 0x03, 0x70,
-              0x00, 0xfe, 0xfd, 0x36, 0x68, 0x00,
-            ]),
-          });
-
-          break;
-        }
-
-        case "pbf": {
-          callback(null, {
-            data: Buffer.from([]),
-          });
-
-          break;
-        }
-
-        default: {
-          printLog("warn", `Unknown tile format: "${tileFormat}". Skipping...`);
-
-          callback(null, {
-            data: Buffer.from([]),
-          });
-
-          break;
-        }
+        tileFormat = item.tileJSON.format;
       }
-    },
-  });
 
-  renderer.load(styleJSON);
+      break;
+    }
 
-  return renderer;
+    case "pg:": {
+      const z = Number(parts[3]);
+      const x = Number(parts[4]);
+      const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+      const tileName = `${z}/${x}/${y}`;
+      const item = config.datas[parts[2]];
+
+      try {
+        /* Get rendered tile */
+        let dataTile;
+
+        try {
+          dataTile = await getPostgreSQLTile(item.source, z, x, y);
+        } catch (error) {
+          if (
+            item.sourceURL !== undefined &&
+            error.message === "Tile does not exist"
+          ) {
+            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+            const targetURL = item.sourceURL
+              .replace("{z}", `${z}`)
+              .replace("{x}", `${x}`)
+              .replace("{y}", `${tmpY}`);
+
+            printLog(
+              "info",
+              `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
+            );
+
+            /* Get data */
+            dataTile = await getPostgreSQLTileFromURL(
+              targetURL,
+              60000 // 1 mins
+            );
+
+            /* Cache */
+            if (item.storeCache === true) {
+              printLog(
+                "info",
+                `Caching data "${parts[2]}" - Tile "${tileName}"...`
+              );
+
+              cachePostgreSQLTileData(
+                item.source,
+                z,
+                x,
+                tmpY,
+                dataTile.data,
+                item.storeTransparent
+              ).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
+                )
+              );
+            }
+          } else {
+            throw error;
+          }
+        }
+
+        /* Unzip pbf rendered tile */
+        if (
+          dataTile.headers["content-type"] === "application/x-protobuf" &&
+          dataTile.headers["content-encoding"] !== undefined
+        ) {
+          dataTile.data = await unzipAsync(dataTile.data);
+        }
+
+        callback(null, {
+          data: dataTile.data,
+        });
+      } catch (error) {
+        printLog(
+          "warn",
+          `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+        );
+
+        tileFormat = item.tileJSON.format;
+      }
+
+      break;
+    }
+
+    case "http:":
+    case "https:": {
+      try {
+        printLog("info", `Getting data tile from "${url}"...`);
+
+        const dataTile = await getDataFromURL(
+          url,
+          60000, // 1 mins,
+          "arraybuffer"
+        );
+
+        /* Unzip pbf data */
+        const headers = detectFormatAndHeaders(dataTile.data).headers;
+
+        if (
+          headers["content-type"] === "application/x-protobuf" &&
+          headers["content-encoding"] !== undefined
+        ) {
+          dataTile.data = await unzipAsync(dataTile.data);
+        }
+
+        callback(null, {
+          data: dataTile.data,
+        });
+      } catch (error) {
+        printLog(
+          "warn",
+          `Failed to get data tile from "${url}": ${error}. Serving empty tile...`
+        );
+
+        tileFormat = url.slice(url.lastIndexOf(".") + 1);
+      }
+
+      break;
+    }
+
+    default: {
+      printLog("warn", `Unknown scheme: "${parts[0]}". Skipping...`);
+
+      break;
+    }
+  }
+
+  switch (tileFormat) {
+    case "other": {
+      break;
+    }
+
+    case "gif": {
+      callback(null, {
+        data: Buffer.from([
+          0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80,
+          0x00, 0x00, 0x4c, 0x69, 0x71, 0x00, 0x00, 0x00, 0x21, 0xff, 0x0b,
+          0x4e, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30,
+          0x03, 0x01, 0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x05, 0x00, 0x00,
+          0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+          0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3b,
+        ]),
+      });
+
+      break;
+    }
+
+    case "png": {
+      callback(null, {
+        data: Buffer.from([
+          0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00,
+          0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+          0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89,
+          0x00, 0x00, 0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x03,
+          0xe8, 0x00, 0x00, 0x03, 0xe8, 0x01, 0xb5, 0x7b, 0x52, 0x6b, 0x00,
+          0x00, 0x00, 0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x60,
+          0x60, 0x60, 0x60, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0xa5, 0xf6,
+          0x45, 0x40, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+          0x42, 0x60, 0x82,
+        ]),
+      });
+
+      break;
+    }
+
+    case "jpg": {
+      callback(null, {
+        data: Buffer.from([
+          0xff, 0xd8, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x06, 0x04, 0x05, 0x06,
+          0x05, 0x04, 0x06, 0x06, 0x05, 0x06, 0x07, 0x07, 0x06, 0x08, 0x0a,
+          0x10, 0x0a, 0x0a, 0x09, 0x09, 0x0a, 0x14, 0x0e, 0x0f, 0x0c, 0x10,
+          0x17, 0x14, 0x18, 0x18, 0x17, 0x14, 0x16, 0x16, 0x1a, 0x1d, 0x25,
+          0x1f, 0x1a, 0x1b, 0x23, 0x1c, 0x16, 0x16, 0x20, 0x2c, 0x20, 0x23,
+          0x26, 0x27, 0x29, 0x2a, 0x29, 0x19, 0x1f, 0x2d, 0x30, 0x2d, 0x28,
+          0x30, 0x25, 0x28, 0x29, 0x28, 0xff, 0xdb, 0x00, 0x43, 0x01, 0x07,
+          0x07, 0x07, 0x0a, 0x08, 0x0a, 0x13, 0x0a, 0x0a, 0x13, 0x28, 0x1a,
+          0x16, 0x1a, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
+          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
+          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
+          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
+          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0xff, 0xc0, 0x00,
+          0x11, 0x08, 0x00, 0x01, 0x00, 0x01, 0x03, 0x01, 0x22, 0x00, 0x02,
+          0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xc4, 0x00, 0x15, 0x00, 0x01,
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0xff, 0xc4, 0x00, 0x14, 0x10,
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x01,
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x11,
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03,
+          0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3f, 0x00, 0x95, 0x00,
+          0x07, 0xff, 0xd9,
+        ]),
+      });
+
+      break;
+    }
+
+    case "jpeg": {
+      callback(null, {
+        data: Buffer.from([
+          0xff, 0xd8, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x06, 0x04, 0x05, 0x06,
+          0x05, 0x04, 0x06, 0x06, 0x05, 0x06, 0x07, 0x07, 0x06, 0x08, 0x0a,
+          0x10, 0x0a, 0x0a, 0x09, 0x09, 0x0a, 0x14, 0x0e, 0x0f, 0x0c, 0x10,
+          0x17, 0x14, 0x18, 0x18, 0x17, 0x14, 0x16, 0x16, 0x1a, 0x1d, 0x25,
+          0x1f, 0x1a, 0x1b, 0x23, 0x1c, 0x16, 0x16, 0x20, 0x2c, 0x20, 0x23,
+          0x26, 0x27, 0x29, 0x2a, 0x29, 0x19, 0x1f, 0x2d, 0x30, 0x2d, 0x28,
+          0x30, 0x25, 0x28, 0x29, 0x28, 0xff, 0xdb, 0x00, 0x43, 0x01, 0x07,
+          0x07, 0x07, 0x0a, 0x08, 0x0a, 0x13, 0x0a, 0x0a, 0x13, 0x28, 0x1a,
+          0x16, 0x1a, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
+          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
+          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
+          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
+          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0xff, 0xc0, 0x00,
+          0x11, 0x08, 0x00, 0x01, 0x00, 0x01, 0x03, 0x01, 0x22, 0x00, 0x02,
+          0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xc4, 0x00, 0x15, 0x00, 0x01,
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0xff, 0xc4, 0x00, 0x14, 0x10,
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x01,
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x11,
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03,
+          0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3f, 0x00, 0x95, 0x00,
+          0x07, 0xff, 0xd9,
+        ]),
+      });
+
+      break;
+    }
+
+    case "webp": {
+      callback(null, {
+        data: Buffer.from([
+          0x52, 0x49, 0x46, 0x46, 0x40, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42,
+          0x50, 0x56, 0x50, 0x38, 0x58, 0x0a, 0x00, 0x00, 0x00, 0x10, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x41, 0x4c, 0x50,
+          0x48, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x56, 0x50, 0x38, 0x20,
+          0x18, 0x00, 0x00, 0x00, 0x30, 0x01, 0x00, 0x9d, 0x01, 0x2a, 0x01,
+          0x00, 0x01, 0x00, 0x01, 0x40, 0x26, 0x25, 0xa4, 0x00, 0x03, 0x70,
+          0x00, 0xfe, 0xfd, 0x36, 0x68, 0x00,
+        ]),
+      });
+
+      break;
+    }
+
+    case "pbf": {
+      callback(null, {
+        data: Buffer.from([]),
+      });
+
+      break;
+    }
+
+    default: {
+      printLog("warn", `Unknown tile format: "${tileFormat}". Skipping...`);
+
+      callback(null, {
+        data: Buffer.from([]),
+      });
+
+      break;
+    }
+  }
 }
 
 /**
@@ -653,7 +643,13 @@ export async function renderImage(
   x,
   y
 ) {
-  const renderer = renderTile(tileScale, styleJSON);
+  const renderer = new mlgl.Map({
+    mode: "tile",
+    ratio: tileScale,
+    request: renderTileCallback,
+  });
+
+  renderer.load(styleJSON);
 
   const data = await new Promise((resolve, reject) => {
     renderer.render(
