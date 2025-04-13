@@ -616,13 +616,16 @@ export async function renderImage(
 
   renderer.load(styleJSON);
 
+  const isNeedHack = z === 0 && tileSize === 256;
+  const hackTileSize = isNeedHack === true ? tileSize * 2 : tileSize;
+
   const data = await new Promise((resolve, reject) => {
     renderer.render(
       {
         zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
         center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
-        width: z === 0 && tileSize === 256 ? tileSize * 2 : tileSize,
-        height: z === 0 && tileSize === 256 ? tileSize * 2 : tileSize,
+        width: hackTileSize,
+        height: hackTileSize,
       },
       (error, data) => {
         renderer.release();
@@ -636,21 +639,12 @@ export async function renderImage(
     );
   });
 
-  if (z === 0 && tileSize === 256) {
-    return await renderImageData(
-      data,
-      tileSize * tileScale * 2,
-      tileSize * tileScale,
-      format
-    );
-  } else {
-    return await renderImageData(
-      data,
-      tileSize * tileScale * 2,
-      undefined,
-      format
-    );
-  }
+  return await renderImageData(
+    data,
+    hackTileSize * tileScale,
+    isNeedHack === true ? (hackTileSize / 2) * tileScale : undefined,
+    format
+  );
 }
 
 /**
