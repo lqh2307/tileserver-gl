@@ -1,8 +1,8 @@
 "use strict";
 
 import { removeOldCacheLocks, runCommand } from "./utils.js";
-import { initLogger, printLog } from "./logger.js";
 import { readConfigFile } from "./config.js";
+import { printLog } from "./logger.js";
 import chokidar from "chokidar";
 import cluster from "cluster";
 import cron from "node-cron";
@@ -23,9 +23,6 @@ async function startClusterServer() {
   process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
   process.env.RESTART_AFTER_CONFIG_CHANGE =
     process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
-
-  // Init logger
-  initLogger();
 
   if (cluster.isPrimary === true) {
     printLog(

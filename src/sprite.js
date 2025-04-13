@@ -3,8 +3,8 @@
 import { StatusCodes } from "http-status-codes";
 import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
-import sharp from "sharp";
 import {
+  getPNGImageMetadata,
   removeFileWithLock,
   createFileWithLock,
   getDataFromURL,
@@ -13,8 +13,6 @@ import {
   findFiles,
   retry,
 } from "./utils.js";
-
-sharp.cache(false);
 
 /**
  * Remove sprite file with lock
@@ -131,7 +129,7 @@ export async function validateSprite(spriteDirPath) {
       );
 
       /* Validate PNG sprite */
-      const pngMetadata = await sharp(`${fileNameWoExt}.png`).metadata();
+      const pngMetadata = await getPNGImageMetadata(`${fileNameWoExt}.png`);
 
       if (pngMetadata.format !== "png") {
         throw new Error("Invalid PNG file");

@@ -76,25 +76,12 @@ if (cluster.isPrimary !== true) {
 sharp.cache(false);
 
 /**
- * Render image
+ * Render tile
  * @param {number} tileScale Tile scale
- * @param {256|512} tileSize Tile size
- * @param {number} compressionLevel Compression level
  * @param {Object} styleJSON StyleJSON
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @returns {Promise<Buffer>}
+ * @returns {Object}
  */
-export async function renderImage(
-  tileScale,
-  tileSize,
-  compressionLevel,
-  styleJSON,
-  z,
-  x,
-  y
-) {
+function renderTile(tileScale, styleJSON) {
   const renderer = new mlgl.Map({
     mode: "tile",
     ratio: tileScale,
@@ -642,6 +629,31 @@ export async function renderImage(
   });
 
   renderer.load(styleJSON);
+
+  return renderer;
+}
+
+/**
+ * Render image
+ * @param {number} tileScale Tile scale
+ * @param {256|512} tileSize Tile size
+ * @param {number} compressionLevel Compression level
+ * @param {Object} styleJSON StyleJSON
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {Promise<Buffer>}
+ */
+export async function renderImage(
+  tileScale,
+  tileSize,
+  compressionLevel,
+  styleJSON,
+  z,
+  x,
+  y
+) {
+  const renderer = renderTile(tileScale, styleJSON);
 
   const data = await new Promise((resolve, reject) => {
     renderer.render(

@@ -904,6 +904,15 @@ export async function runCommand(command) {
 }
 
 /**
+ * Get PNG image metadata
+ * @param {string} filePath File path to store file
+ * @returns {Promise<Object>}
+ */
+export async function getPNGImageMetadata(filePath) {
+  return await sharp(filePath).metadata();
+}
+
+/**
  * Check if PNG image file/buffer is full transparent (alpha = 0)
  * @param {Buffer} buffer Buffer of the PNG image
  * @returns {Promise<boolean>}

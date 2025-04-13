@@ -5,11 +5,8 @@ import pino from "pino";
 
 let logger;
 
-/**
- * Init pino logger
- * @returns {void}
- */
-export function initLogger() {
+/* Init pino logger */
+if (logger === undefined) {
   logger = pino(
     {
       level: "info",
