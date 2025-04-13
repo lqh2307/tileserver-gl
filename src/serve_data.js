@@ -674,7 +674,7 @@ export const serve_data = {
      *               example: Starting...
      *       500:
      *         description: Internal server error
-     *   put:
+     *   get:
      *     tags:
      *       - Data
      *     summary: Calculate data tile MD5s
@@ -709,8 +709,8 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
+    app.get("/datas/:id/md5s", calculateDataTileMD5sHandler());
     app.post("/datas/:id/md5s", getDataTileMD5sHandler());
-    app.put("/datas/:id/md5s", calculateDataTileMD5sHandler());
 
     /**
      * @swagger
