@@ -30,8 +30,8 @@ import os from "os";
  */
 export async function runTasks(opts) {
   try {
-    printLog("info", "Starting seed and clean up task...");
-  } catch (error) {
+    printLog("info", "Starting seed and clean up tasks...");
+
     if (
       opts.cleanUpSprites === true ||
       opts.cleanUpFonts === true ||
@@ -623,6 +623,8 @@ export async function runTasks(opts) {
     } else {
       printLog("info", "No task assigned. Skipping...");
     }
+  } catch (error) {
+    printLog("error", `Failed to run tasks: ${error}`);
   } finally {
     printLog("info", "Completed seed and clean up tasks!");
   }
