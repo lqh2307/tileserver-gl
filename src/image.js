@@ -29,12 +29,11 @@ import {
 } from "./tile_mbtiles.js";
 import {
   getTileBoundsFromCoverages,
-  renderPNGImageWithResize,
   detectFormatAndHeaders,
   removeEmptyFolders,
   getLonLatFromXYZ,
+  renderImageData,
   getDataFromURL,
-  renderPNGImage,
   calculateMD5,
   unzipAsync,
   runCommand,
@@ -518,40 +517,7 @@ async function renderTileCallback(req, callback) {
       break;
     }
 
-    case "jpg": {
-      callback(null, {
-        data: Buffer.from([
-          0xff, 0xd8, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x06, 0x04, 0x05, 0x06,
-          0x05, 0x04, 0x06, 0x06, 0x05, 0x06, 0x07, 0x07, 0x06, 0x08, 0x0a,
-          0x10, 0x0a, 0x0a, 0x09, 0x09, 0x0a, 0x14, 0x0e, 0x0f, 0x0c, 0x10,
-          0x17, 0x14, 0x18, 0x18, 0x17, 0x14, 0x16, 0x16, 0x1a, 0x1d, 0x25,
-          0x1f, 0x1a, 0x1b, 0x23, 0x1c, 0x16, 0x16, 0x20, 0x2c, 0x20, 0x23,
-          0x26, 0x27, 0x29, 0x2a, 0x29, 0x19, 0x1f, 0x2d, 0x30, 0x2d, 0x28,
-          0x30, 0x25, 0x28, 0x29, 0x28, 0xff, 0xdb, 0x00, 0x43, 0x01, 0x07,
-          0x07, 0x07, 0x0a, 0x08, 0x0a, 0x13, 0x0a, 0x0a, 0x13, 0x28, 0x1a,
-          0x16, 0x1a, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0xff, 0xc0, 0x00,
-          0x11, 0x08, 0x00, 0x01, 0x00, 0x01, 0x03, 0x01, 0x22, 0x00, 0x02,
-          0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xc4, 0x00, 0x15, 0x00, 0x01,
-          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0xff, 0xc4, 0x00, 0x14, 0x10,
-          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x01,
-          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x11,
-          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03,
-          0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3f, 0x00, 0x95, 0x00,
-          0x07, 0xff, 0xd9,
-        ]),
-      });
-
-      break;
-    }
-
+    case "jpg":
     case "jpeg": {
       callback(null, {
         data: Buffer.from([
@@ -626,21 +592,21 @@ async function renderTileCallback(req, callback) {
  * Render image
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
- * @param {number} compressionLevel Compression level
  * @param {Object} styleJSON StyleJSON
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
+ * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<Buffer>}
  */
 export async function renderImage(
   tileScale,
   tileSize,
-  compressionLevel,
   styleJSON,
   z,
   x,
-  y
+  y,
+  format
 ) {
   const renderer = new mlgl.Map({
     mode: "tile",
@@ -671,14 +637,19 @@ export async function renderImage(
   });
 
   if (z === 0 && tileSize === 256) {
-    return await renderPNGImageWithResize(
+    return await renderImageData(
       data,
       tileSize * tileScale * 2,
       tileSize * tileScale,
-      compressionLevel
+      format
     );
   } else {
-    return await renderPNGImage(data, tileSize * tileScale, compressionLevel);
+    return await renderImageData(
+      data,
+      tileSize * tileScale * 2,
+      undefined,
+      format
+    );
   }
 }
 
@@ -810,11 +781,11 @@ export async function renderMBTilesTiles(
           const data = await renderImage(
             tileScale,
             tileSize,
-            rendered.compressionLevel,
             rendered.styleJSON,
             z,
             x,
-            y
+            y,
+            metadata.format
           );
 
           if (calculateMD5(data) !== hashs[tileName]) {
@@ -856,11 +827,11 @@ export async function renderMBTilesTiles(
         const data = await renderImage(
           tileScale,
           tileSize,
-          rendered.compressionLevel,
           rendered.styleJSON,
           z,
           x,
-          y
+          y,
+          metadata.format
         );
 
         // Store data
@@ -1060,11 +1031,11 @@ export async function renderXYZTiles(
           const data = await renderImage(
             tileScale,
             tileSize,
-            rendered.compressionLevel,
             rendered.styleJSON,
             z,
             x,
-            y
+            y,
+            metadata.format
           );
 
           if (calculateMD5(data) !== hashs[tileName]) {
@@ -1115,11 +1086,11 @@ export async function renderXYZTiles(
         const data = await renderImage(
           tileScale,
           tileSize,
-          rendered.compressionLevel,
           rendered.styleJSON,
           z,
           x,
-          y
+          y,
+          metadata.format
         );
 
         // Store data
@@ -1182,7 +1153,7 @@ export async function renderXYZTiles(
   /* Remove parent folders if empty */
   await removeEmptyFolders(
     `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-    /^.*\.(sqlite|gif|png|jpg|jpeg|webp|pbf)$/
+    /^.*\.(sqlite|gif|png|jpg|jpeg|webp)$/
   );
 
   /* Create overviews */
@@ -1325,11 +1296,11 @@ export async function renderPostgreSQLTiles(
           const data = await renderImage(
             tileScale,
             tileSize,
-            rendered.compressionLevel,
             rendered.styleJSON,
             z,
             x,
-            y
+            y,
+            metadata.format
           );
 
           if (calculateMD5(data) !== hashs[tileName]) {
@@ -1378,11 +1349,11 @@ export async function renderPostgreSQLTiles(
         const data = await renderImage(
           tileScale,
           tileSize,
-          rendered.compressionLevel,
           rendered.styleJSON,
           z,
           x,
-          y
+          y,
+          metadata.format
         );
 
         // Store data

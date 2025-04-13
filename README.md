@@ -140,142 +140,73 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
   },
   "styles": {
     "osm": {
-      "style": "osm/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "osm/style.json"
     },
     "3d": {
-      "style": "3d/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "3d/style.json"
     },
     "backdrop": {
-      "style": "backdrop/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "backdrop/style.json"
     },
     "basic": {
-      "style": "basic/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "basic/style.json"
     },
     "basic-v2": {
-      "style": "basic-v2/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "basic-v2/style.json"
     },
     "bright": {
-      "style": "bright/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "bright/style.json"
     },
     "dark-matter": {
-      "style": "dark-matter/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "dark-matter/style.json"
     },
     "dataviz": {
-      "style": "dataviz/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "dataviz/style.json"
     },
     "dataviz-dark": {
-      "style": "dataviz-dark/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "dataviz-dark/style.json"
     },
     "dataviz-light": {
-      "style": "dataviz-light/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "dataviz-light/style.json"
     },
     "fiord": {
-      "style": "fiord/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "fiord/style.json"
     },
     "hybrid": {
-      "style": "hybrid/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "hybrid/style.json"
     },
     "landscape": {
-      "style": "landscape/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "landscape/style.json"
     },
     "liberty": {
-      "style": "liberty/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "liberty/style.json"
     },
     "openstreetmap": {
-      "style": "openstreetmap/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "openstreetmap/style.json"
     },
     "outdoor-v2": {
-      "style": "outdoor-v2/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "outdoor-v2/style.json"
     },
     "positron": {
-      "style": "positron/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "positron/style.json"
     },
     "protomap": {
-      "style": "protomap/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "protomap/style.json"
     },
     "streets-v2": {
-      "style": "streets-v2/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "streets-v2/style.json"
     },
     "terrain": {
-      "style": "terrain/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "terrain/style.json"
     },
     "toner": {
-      "style": "toner/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "toner/style.json"
     },
     "topo": {
-      "style": "topo/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "topo/style.json"
     },
     "winter-v2": {
-      "style": "winter-v2/style.json",
-      "rendered": {
-        "compressionLevel": 9
-      }
+      "style": "winter-v2/style.json"
     },
     "demotiles": {
       "style": "demotiles_cache",

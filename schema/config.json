@@ -53,16 +53,6 @@
                 "type": "boolean"
               }
             }
-          },
-          "rendered": {
-            "type": "object",
-            "properties": {
-              "compressionLevel": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 9
-              }
-            }
           }
         },
         "required": ["style"]

@@ -430,6 +430,16 @@ function getStylesListHandler() {
  */
 function getRenderedTileHandler() {
   return async (req, res, next) => {
+    /* Check data tile format */
+    if (
+      ["jpeg", "jpg", "png", "webp", "gif"].includes(req.params.format) ===
+      false
+    ) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .send("Rendered tile format is not support");
+    }
+
     if (
       req.query.tileSize !== undefined &&
       ["256", "512"].includes(req.query.tileSize) === false
@@ -462,14 +472,39 @@ function getRenderedTileHandler() {
       const image = await renderImage(
         tileScale,
         tileSize,
-        item.rendered.compressionLevel,
         item.rendered.styleJSON,
         z,
         x,
-        y
+        y,
+        req.params.format
       );
 
-      res.header("content-type", "image/png");
+      switch (req.params.format) {
+        case "gif": {
+          res.header("content-type", "image/gif");
+
+          break;
+        }
+
+        case "png": {
+          res.header("content-type", "image/png");
+
+          break;
+        }
+
+        case "jpg":
+        case "jpeg": {
+          res.header("content-type", "image/jpeg");
+
+          break;
+        }
+
+        case "webp": {
+          res.header("content-type", "image/webp");
+
+          break;
+        }
+      }
 
       return res.status(StatusCodes.OK).send(image);
     } catch (error) {
@@ -1151,7 +1186,7 @@ export const serve_style = {
        * tags:
        *   - name: Rendered
        *     description: Rendered related endpoints
-       * /styles/{id}/{z}/{x}/{y}.png:
+       * /styles/{id}/{z}/{x}/{y}.{format}:
        *   get:
        *     tags:
        *       - Rendered
@@ -1182,6 +1217,14 @@ export const serve_style = {
        *           type: integer
        *         required: true
        *         description: Y coordinate
+       *       - in: path
+       *         name: format
+       *         required: true
+       *         schema:
+       *           type: string
+       *           enum: [jpeg, jpg, png, webp, gif]
+       *           example: png
+       *         description: Tile format
        *       - in: query
        *         name: tileSize
        *         schema:
@@ -1219,7 +1262,7 @@ export const serve_style = {
        *       500:
        *         description: Internal server error
        */
-      app.get("/styles/:id/:z/:x/:y.png", getRenderedTileHandler());
+      app.get("/styles/:id/:z/:x/:y.:format", getRenderedTileHandler());
     }
 
     if (process.env.SERVE_FRONT_PAGE !== "false") {
@@ -1381,7 +1424,6 @@ export const serve_style = {
                   description: styleInfo.name,
                 }),
                 styleJSON: {},
-                compressionLevel: item.rendered.compressionLevel || 6,
               };
 
               /* Fix center */

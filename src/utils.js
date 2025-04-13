@@ -955,55 +955,62 @@ export async function isFullTransparentPNGImage(buffer) {
 /**
  * Render PNG image
  * @param {Buffer} data PNG image data
- * @param {number} size PNG image size
- * @param {number} compressionLevel Compression level
- * @returns {Promise<Buffer>}
- */
-export async function renderPNGImage(data, size, compressionLevel) {
-  return await sharp(data, {
-    raw: {
-      premultiplied: true,
-      width: size,
-      height: size,
-      channels: 4,
-    },
-  })
-    .png({
-      compressionLevel: compressionLevel,
-    })
-    .toBuffer();
-}
-
-/**
- * Render PNG image
- * @param {Buffer} data PNG image data
  * @param {number} originSize PNG image origin size
  * @param {number} targetSize PNG image target size
- * @param {number} compressionLevel Compression level
+ * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<Buffer>}
  */
-export async function renderPNGImageWithResize(
-  data,
-  originSize,
-  targetSize,
-  compressionLevel
-) {
-  return await sharp(data, {
+export async function renderImageData(data, originSize, targetSize, format) {
+  const image = sharp(data, {
     raw: {
       premultiplied: true,
       width: originSize,
       height: originSize,
       channels: 4,
     },
-  })
-    .resize({
+  });
+
+  if (targetSize !== undefined) {
+    image.resize({
       width: targetSize,
       height: targetSize,
-    })
-    .png({
-      compressionLevel: compressionLevel,
-    })
-    .toBuffer();
+    });
+  }
+
+  switch (format) {
+    case "gif": {
+      image.gif({});
+
+      break;
+    }
+
+    case "png": {
+      image.png({
+        compressionLevel: 9,
+      });
+
+      break;
+    }
+
+    case "jpg":
+    case "jpeg": {
+      image.jpeg({
+        quality: 100,
+      });
+
+      break;
+    }
+
+    case "webp": {
+      image.webp({
+        quality: 100,
+      });
+
+      break;
+    }
+  }
+
+  return await image.toBuffer();
 }
 
 /**
