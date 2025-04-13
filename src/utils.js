@@ -866,7 +866,9 @@ export async function getVersion() {
  * @returns {Promise<Object>}
  */
 export async function getJSONSchema(schema) {
-  return JSON.parse(await fsPromise.readFile(`schema/${schema}.json`, "utf8"));
+  return JSON.parse(
+    await fsPromise.readFile(`public/schemas/${schema}.json`, "utf8")
+  );
 }
 
 /**
