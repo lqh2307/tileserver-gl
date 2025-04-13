@@ -628,7 +628,9 @@ export async function renderImage(
         height: hackTileSize,
       },
       (error, data) => {
-        renderer.release();
+        if (renderer !== undefined) {
+          renderer.release();
+        }
 
         if (error) {
           return reject(error);
