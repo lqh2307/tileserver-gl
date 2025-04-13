@@ -1413,7 +1413,6 @@ export const serve_style = {
           /* Serve rendered */
           if (
             config.enableBackendRender === true &&
-            item.rendered !== undefined &&
             isCanServeRendered === true
           ) {
             try {
