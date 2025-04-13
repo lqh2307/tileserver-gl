@@ -5,7 +5,7 @@ import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
-import fs from "node:fs";
+import cluster from "cluster";
 import {
   removeFileWithLock,
   createFileWithLock,
@@ -14,7 +14,21 @@ import {
   retry,
 } from "./utils.js";
 
-const glyphsProto = protobuf(fs.readFileSync("public/protos/glyphs.proto"));
+let glyphsProto;
+
+if (cluster.isPrimary !== true) {
+  fsPromise
+    .readFile("public/protos/glyphs.proto")
+    .then((data) => {
+      glyphsProto = protobuf(data);
+    })
+    .catch((error) => {
+      printLog(
+        "error",
+        `Failed to load proto "public/protos/glyphs.proto": ${error}`
+      );
+    });
+}
 
 /**
  * Remove font file with lock

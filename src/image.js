@@ -1,7 +1,7 @@
 "use strict";
 
+import { cacheSpriteFile, getSprite, getSpriteFromURL } from "./sprite.js";
 import { getPMTilesTile } from "./tile_pmtiles.js";
-import { getSprite } from "./sprite.js";
 import { printLog } from "./logger.js";
 import { getFonts } from "./font.js";
 import { config } from "./config.js";
@@ -87,8 +87,49 @@ async function renderTileCallback(req, callback) {
   switch (parts[0]) {
     case "sprites:": {
       try {
+        const item = config.sprites[parts[2]];
+
         /* Get sprite */
-        const data = await getSprite(parts[2], parts[3]);
+        let data;
+
+        try {
+          data = await getSprite(parts[2], parts[3]);
+        } catch (error) {
+          if (
+            item.sourceURL !== undefined &&
+            error.message === "Sprite does not exist"
+          ) {
+            const targetURL = item.sourceURL.replace("/sprite", `/${parts[3]}`);
+
+            printLog(
+              "info",
+              `Forwarding sprite "${parts[2]}" - Filename "${parts[3]}" - To "${targetURL}"...`
+            );
+
+            /* Get sprite */
+            data = await getSpriteFromURL(
+              targetURL,
+              60000 // 1 mins
+            );
+
+            /* Cache */
+            if (item.storeCache === true) {
+              printLog(
+                "info",
+                `Caching sprite "${parts[2]}" - Filename "${parts[3]}"...`
+              );
+
+              cacheSpriteFile(item.source, parts[3], data).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache sprite "${parts[2]}" - Filename "${parts[3]}": ${error}`
+                )
+              );
+            }
+          } else {
+            throw error;
+          }
+        }
 
         callback(null, {
           data: data,

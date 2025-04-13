@@ -1,11 +1,16 @@
 "use strict";
 
-import { getSprite, validateSprite } from "./sprite.js";
 import { StatusCodes } from "http-status-codes";
 import { getRequestHost } from "./utils.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
+import {
+  getSpriteFromURL,
+  cacheSpriteFile,
+  validateSprite,
+  getSprite,
+} from "./sprite.js";
 
 /**
  * Get sprite handler
@@ -20,18 +25,54 @@ function getSpriteHandler() {
     }
 
     const id = req.params.id;
+    const item = config.sprites[id];
+
+    if (item === undefined) {
+      return res.status(StatusCodes.NOT_FOUND).send("Sprite does not exist");
+    }
 
     try {
-      const item = config.sprites[id];
+      let data;
+      const fileName = req.url.slice(req.url.lastIndexOf("/") + 1);
 
-      if (item === undefined) {
-        return res.status(StatusCodes.NOT_FOUND).send("Sprite does not exist");
+      try {
+        data = await getSprite(id, fileName);
+      } catch (error) {
+        if (
+          item.sourceURL !== undefined &&
+          error.message === "Sprite does not exist"
+        ) {
+          const targetURL = item.sourceURL.replace("/sprite", `/${fileName}`);
+
+          printLog(
+            "info",
+            `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
+          );
+
+          /* Get sprite */
+          data = await getSpriteFromURL(
+            targetURL,
+            60000 // 1 mins
+          );
+
+          /* Cache */
+          if (item.storeCache === true) {
+            printLog(
+              "info",
+              `Caching sprite "${id}" - Filename "${fileName}"...`
+            );
+
+            cacheSpriteFile(item.source, fileName, data).catch((error) =>
+              printLog(
+                "error",
+                `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
+              )
+            );
+          }
+        } else {
+          throw error;
+        }
       }
-
-      const data = await getSprite(
-        id,
-        req.url.slice(req.url.lastIndexOf("/") + 1)
-      );
 
       if (req.params.format === "json") {
         res.header("content-type", "application/json");
