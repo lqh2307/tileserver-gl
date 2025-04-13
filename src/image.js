@@ -7,7 +7,6 @@ import { getFonts } from "./font.js";
 import { config } from "./config.js";
 import { Mutex } from "async-mutex";
 import cluster from "cluster";
-import sharp from "sharp";
 import {
   updatePostgreSQLMetadata,
   getPostgreSQLTileFromURL,
@@ -30,10 +29,12 @@ import {
 } from "./tile_mbtiles.js";
 import {
   getTileBoundFromCoverage,
+  renderPNGImageWithResize,
   detectFormatAndHeaders,
   removeEmptyFolders,
   getLonLatFromXYZ,
   getDataFromURL,
+  renderPNGImage,
   calculateMD5,
   unzipAsync,
   runCommand,
@@ -72,8 +73,6 @@ if (cluster.isPrimary !== true) {
       );
     });
 }
-
-sharp.cache(false);
 
 /**
  * Render tile callback
@@ -656,8 +655,8 @@ export async function renderImage(
       {
         zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
         center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
-        width: z === 0 && tileSize === 256 ? 512 : tileSize,
-        height: z === 0 && tileSize === 256 ? 512 : tileSize,
+        width: z === 0 && tileSize === 256 ? tileSize * 2 : tileSize,
+        height: z === 0 && tileSize === 256 ? tileSize * 2 : tileSize,
       },
       (error, data) => {
         renderer.release();
@@ -672,37 +671,14 @@ export async function renderImage(
   });
 
   if (z === 0 && tileSize === 256) {
-    // HACK2: This hack allows tile-server to support zoom level 0 - 256px tiles, which would actually be zoom -1 in maplibre-gl-native
-    return await sharp(data, {
-      raw: {
-        premultiplied: true,
-        width: 512 * tileScale,
-        height: 512 * tileScale,
-        channels: 4,
-      },
-    })
-      .resize({
-        width: 256 * tileScale,
-        height: 256 * tileScale,
-      })
-      .png({
-        compressionLevel: compressionLevel,
-      })
-      .toBuffer();
-    // END HACK2
+    return await renderPNGImageWithResize(
+      data,
+      tileSize * tileScale * 2,
+      tileSize * tileScale,
+      compressionLevel
+    );
   } else {
-    return await sharp(data, {
-      raw: {
-        premultiplied: true,
-        width: tileSize * tileScale,
-        height: tileSize * tileScale,
-        channels: 4,
-      },
-    })
-      .png({
-        compressionLevel: compressionLevel,
-      })
-      .toBuffer();
+    return await renderPNGImage(data, tileSize * tileScale, compressionLevel);
   }
 }
 

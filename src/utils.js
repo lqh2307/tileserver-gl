@@ -953,6 +953,60 @@ export async function isFullTransparentPNGImage(buffer) {
 }
 
 /**
+ * Render PNG image
+ * @param {Buffer} data PNG image data
+ * @param {number} size PNG image size
+ * @param {number} compressionLevel Compression level
+ * @returns {Promise<Buffer>}
+ */
+export async function renderPNGImage(data, size, compressionLevel) {
+  return await sharp(data, {
+    raw: {
+      premultiplied: true,
+      width: size,
+      height: size,
+      channels: 4,
+    },
+  })
+    .png({
+      compressionLevel: compressionLevel,
+    })
+    .toBuffer();
+}
+
+/**
+ * Render PNG image
+ * @param {Buffer} data PNG image data
+ * @param {number} originSize PNG image origin size
+ * @param {number} targetSize PNG image target size
+ * @param {number} compressionLevel Compression level
+ * @returns {Promise<Buffer>}
+ */
+export async function renderPNGImageWithResize(
+  data,
+  originSize,
+  targetSize,
+  compressionLevel
+) {
+  return await sharp(data, {
+    raw: {
+      premultiplied: true,
+      width: originSize,
+      height: originSize,
+      channels: 4,
+    },
+  })
+    .resize({
+      width: targetSize,
+      height: targetSize,
+    })
+    .png({
+      compressionLevel: compressionLevel,
+    })
+    .toBuffer();
+}
+
+/**
  * Create file with lock
  * @param {string} filePath File path to store file
  * @param {Buffer} data Data buffer
