@@ -128,48 +128,44 @@ async function seedMBTilesTiles(
     coverages
   )}`;
 
-  let hashs;
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-
-    printLog("info", log);
   } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
-
-    printLog("info", log);
   } else if (typeof refreshBefore === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
+  }
 
-    printLog("info", log);
+  printLog("info", log);
 
-    /* Get hashs */
-    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+  /* Get hashs */
+  let hashs;
+  const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
-    try {
-      printLog("info", `Get hashs from "${hashURL}"...`);
+  try {
+    printLog("info", `Get hashs from "${hashURL}"...`);
 
-      const res = await postDataToURL(
-        hashURL,
-        600000, // 10 mins
-        coverages,
-        "json"
-      );
+    const res = await postDataToURL(
+      hashURL,
+      600000, // 10 mins
+      coverages,
+      "json"
+    );
 
-      hashs = res.data;
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+    hashs = res.data;
+  } catch (error) {
+    printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
-      hashs = {};
-    }
+    hashs = {};
   }
 
   /* Open MBTiles SQLite database */
@@ -342,48 +338,44 @@ async function seedPostgreSQLTiles(
     coverages
   )}`;
 
-  let hashs;
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-
-    printLog("info", log);
   } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
-
-    printLog("info", log);
   } else if (typeof refreshBefore === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
+  }
 
-    printLog("info", log);
+  printLog("info", log);
 
-    /* Get hashs */
-    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+  /* Get hashs */
+  let hashs;
+  const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
-    try {
-      printLog("info", `Get hashs from "${hashURL}"...`);
+  try {
+    printLog("info", `Get hashs from "${hashURL}"...`);
 
-      const res = await postDataToURL(
-        hashURL,
-        600000, // 10 mins
-        coverages,
-        "json"
-      );
+    const res = await postDataToURL(
+      hashURL,
+      600000, // 10 mins
+      coverages,
+      "json"
+    );
 
-      hashs = res.data;
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+    hashs = res.data;
+  } catch (error) {
+    printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
-      hashs = {};
-    }
+    hashs = {};
   }
 
   /* Open PostgreSQL database */
@@ -556,48 +548,44 @@ async function seedXYZTiles(
     coverages
   )}`;
 
-  let hashs;
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-
-    printLog("info", log);
   } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
-
-    printLog("info", log);
   } else if (typeof refreshBefore === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
+  }
 
-    printLog("info", log);
+  printLog("info", log);
 
-    /* Get hashs */
-    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+  /* Get hashs */
+  let hashs;
+  const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
-    try {
-      printLog("info", `Get hashs from "${hashURL}"...`);
+  try {
+    printLog("info", `Get hashs from "${hashURL}"...`);
 
-      const res = await postDataToURL(
-        hashURL,
-        600000, // 10 mins
-        coverages,
-        "json"
-      );
+    const res = await postDataToURL(
+      hashURL,
+      600000, // 10 mins
+      coverages,
+      "json"
+    );
 
-      hashs = res.data;
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+    hashs = res.data;
+  } catch (error) {
+    printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
 
-      hashs = {};
-    }
+    hashs = {};
   }
 
   /* Open MD5 SQLite database */

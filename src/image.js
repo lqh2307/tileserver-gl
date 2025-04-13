@@ -8,27 +8,27 @@ import { config } from "./config.js";
 import { Mutex } from "async-mutex";
 import cluster from "cluster";
 import {
+  getPostgreSQLTileHashFromCoverages,
   updatePostgreSQLMetadata,
   getPostgreSQLTileFromURL,
   getPostgreSQLTileCreated,
   cachePostgreSQLTileData,
-  getPostgreSQLTileMD5,
   getPostgreSQLTile,
   closePostgreSQLDB,
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 import {
+  getMBTilesTileHashFromCoverages,
   updateMBTilesMetadata,
   getMBTilesTileFromURL,
   getMBTilesTileCreated,
   cacheMBtilesTileData,
-  getMBTilesTileMD5,
   getMBTilesTile,
   closeMBTilesDB,
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
-  getTileBoundFromCoverage,
+  getTileBoundsFromCoverages,
   renderPNGImageWithResize,
   detectFormatAndHeaders,
   removeEmptyFolders,
@@ -42,11 +42,11 @@ import {
   delay,
 } from "./utils.js";
 import {
+  getXYZTileHashFromCoverages,
   updateXYZMetadata,
   getXYZTileCreated,
   getXYZTileFromURL,
   cacheXYZTileFile,
-  getXYZTileMD5,
   closeXYZMD5DB,
   openXYZMD5DB,
   getXYZTile,
@@ -710,18 +710,17 @@ export async function renderMBTilesTiles(
 ) {
   const startTime = Date.now();
 
-  /* Calculate summary */
-  const tileBound = getTileBoundFromCoverage(
+  const coverages = [
     {
       bbox: bbox,
       zoom: maxzoom,
     },
-    "xyz"
-  );
+  ];
 
-  let log = `Rendering ${
-    tileBound.total
-  } tiles of style "${id}" to mbtiles with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  /* Calculate summary */
+  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+
+  let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -749,6 +748,26 @@ export async function renderMBTilesTiles(
     `${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`,
     true
   );
+
+  /* Get hashs */
+  let hashs;
+  try {
+    printLog(
+      "info",
+      `Get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles"...`
+    );
+
+    const res = getMBTilesTileHashFromCoverages(source, coverages);
+
+    hashs = res.data;
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles": ${error}`
+    );
+
+    hashs = {};
+  }
 
   /* Update metadata */
   printLog("info", "Updating metadata...");
@@ -784,7 +803,7 @@ export async function renderMBTilesTiles(
         try {
           printLog(
             "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
           );
 
           // Rendered data
@@ -798,7 +817,7 @@ export async function renderMBTilesTiles(
             y
           );
 
-          if (calculateMD5(data) !== getMBTilesTileMD5(source, z, x, y)) {
+          if (calculateMD5(data) !== hashs[tileName]) {
             // Store data
             await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
           }
@@ -830,7 +849,7 @@ export async function renderMBTilesTiles(
       if (needRender === true) {
         printLog(
           "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
         );
 
         // Rendered data
@@ -850,36 +869,37 @@ export async function renderMBTilesTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}: ${error}`
+        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
       );
     }
   }
 
   printLog("info", "Rendering datas...");
 
-  const { z, x, y } = tileBound;
-  for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-    for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-      if (rendered.export === true) {
-        return;
+  for (const { z, x, y } of tileBounds) {
+    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+        if (rendered.export === true) {
+          return;
+        }
+
+        /* Wait slot for a task */
+        while (tasks.activeTasks >= concurrency) {
+          await delay(50);
+        }
+
+        await tasks.mutex.runExclusive(() => {
+          tasks.activeTasks++;
+          tasks.completeTasks++;
+        });
+
+        /* Run a task */
+        renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
+          tasks.mutex.runExclusive(() => {
+            tasks.activeTasks--;
+          })
+        );
       }
-
-      /* Wait slot for a task */
-      while (tasks.activeTasks >= concurrency) {
-        await delay(50);
-      }
-
-      await tasks.mutex.runExclusive(() => {
-        tasks.activeTasks++;
-        tasks.completeTasks++;
-      });
-
-      /* Run a task */
-      renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-        tasks.mutex.runExclusive(() => {
-          tasks.activeTasks--;
-        })
-      );
     }
   }
 
@@ -906,9 +926,7 @@ export async function renderMBTilesTiles(
 
   printLog(
     "info",
-    `Completed render ${
-      tileBound.total
-    } tiles of style "${id}" to mbtiles after ${
+    `Completed render ${total} tiles of style "${id}" to mbtiles after ${
       (Date.now() - startTime) / 1000
     }s!`
   );
@@ -942,17 +960,17 @@ export async function renderXYZTiles(
 ) {
   const startTime = Date.now();
 
-  const tileBound = getTileBoundFromCoverage(
+  const coverages = [
     {
       bbox: bbox,
       zoom: maxzoom,
     },
-    "xyz"
-  );
+  ];
 
-  let log = `Rendering ${
-    tileBound.total
-  } tiles of style "${id}" to xyz with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  /* Calculate summary */
+  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+
+  let log = `Rendering ${total} tiles of style "${id}" to xyz with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -980,6 +998,26 @@ export async function renderXYZTiles(
     `${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite`,
     true
   );
+
+  /* Get hashs */
+  let hashs;
+  try {
+    printLog(
+      "info",
+      `Get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite"...`
+    );
+
+    const res = getXYZTileHashFromCoverages(source, coverages);
+
+    hashs = res.data;
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite": ${error}`
+    );
+
+    hashs = {};
+  }
 
   /* Update metadata */
   printLog("info", "Updating metadata...");
@@ -1015,7 +1053,7 @@ export async function renderXYZTiles(
         try {
           printLog(
             "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
           );
 
           // Rendered data
@@ -1029,7 +1067,7 @@ export async function renderXYZTiles(
             y
           );
 
-          if (calculateMD5(data) !== getXYZTileMD5(source, z, x, y)) {
+          if (calculateMD5(data) !== hashs[tileName]) {
             // Store data
             await cacheXYZTileFile(
               `${process.env.DATA_DIR}/exports/xyzs/${id}`,
@@ -1070,7 +1108,7 @@ export async function renderXYZTiles(
       if (needRender === true) {
         printLog(
           "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
         );
 
         // Rendered data
@@ -1099,36 +1137,37 @@ export async function renderXYZTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}: ${error}`
+        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
       );
     }
   }
 
   printLog("info", "Rendering datas...");
 
-  const { z, x, y } = tileBound;
-  for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-    for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-      if (rendered.export === true) {
-        return;
+  for (const { z, x, y } of tileBounds) {
+    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+        if (rendered.export === true) {
+          return;
+        }
+
+        /* Wait slot for a task */
+        while (tasks.activeTasks >= concurrency) {
+          await delay(50);
+        }
+
+        await tasks.mutex.runExclusive(() => {
+          tasks.activeTasks++;
+          tasks.completeTasks++;
+        });
+
+        /* Run a task */
+        renderXYZTileData(z, xCount, yCount, tasks).finally(() =>
+          tasks.mutex.runExclusive(() => {
+            tasks.activeTasks--;
+          })
+        );
       }
-
-      /* Wait slot for a task */
-      while (tasks.activeTasks >= concurrency) {
-        await delay(50);
-      }
-
-      await tasks.mutex.runExclusive(() => {
-        tasks.activeTasks++;
-        tasks.completeTasks++;
-      });
-
-      /* Run a task */
-      renderXYZTileData(z, xCount, yCount, tasks).finally(() =>
-        tasks.mutex.runExclusive(() => {
-          tasks.activeTasks--;
-        })
-      );
     }
   }
 
@@ -1152,7 +1191,7 @@ export async function renderXYZTiles(
 
   printLog(
     "info",
-    `Completed render ${tileBound.total} tiles of style "${id}" to xyz after ${
+    `Completed render ${total} tiles of style "${id}" to xyz after ${
       (Date.now() - startTime) / 1000
     }s!`
   );
@@ -1186,17 +1225,17 @@ export async function renderPostgreSQLTiles(
 ) {
   const startTime = Date.now();
 
-  const tileBound = getTileBoundFromCoverage(
+  const coverages = [
     {
       bbox: bbox,
       zoom: maxzoom,
     },
-    "xyz"
-  );
+  ];
 
-  let log = `Rendering ${
-    tileBound.total
-  } tiles of style "${id}" to postgresql with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
+  /* Calculate summary */
+  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+
+  let log = `Rendering ${total} tiles of style "${id}" to postgresql with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
     bbox
   )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
@@ -1224,6 +1263,26 @@ export async function renderPostgreSQLTiles(
     `${process.env.POSTGRESQL_BASE_URI}/${id}`,
     true
   );
+
+  /* Get hashs */
+  let hashs;
+  try {
+    printLog(
+      "info",
+      `Get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}"...`
+    );
+
+    const res = getPostgreSQLTileHashFromCoverages(source, coverages);
+
+    hashs = res.data;
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}: ${error}`
+    );
+
+    hashs = {};
+  }
 
   /* Update metadata */
   printLog("info", "Updating metadata...");
@@ -1259,24 +1318,21 @@ export async function renderPostgreSQLTiles(
         try {
           printLog(
             "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
           );
 
           // Rendered data
-          const [data, md5] = await Promise.all([
-            renderImage(
-              tileScale,
-              tileSize,
-              rendered.compressionLevel,
-              rendered.styleJSON,
-              z,
-              x,
-              y
-            ),
-            getPostgreSQLTileMD5(source, z, x, y),
-          ]);
+          const data = await renderImage(
+            tileScale,
+            tileSize,
+            rendered.compressionLevel,
+            rendered.styleJSON,
+            z,
+            x,
+            y
+          );
 
-          if (calculateMD5(data) !== md5) {
+          if (calculateMD5(data) !== hashs[tileName]) {
             // Store data
             await cachePostgreSQLTileData(
               source,
@@ -1315,7 +1371,7 @@ export async function renderPostgreSQLTiles(
       if (needRender === true) {
         printLog(
           "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}...`
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
         );
 
         // Rendered data
@@ -1335,36 +1391,37 @@ export async function renderPostgreSQLTiles(
     } catch (error) {
       printLog(
         "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${tileBound.total}: ${error}`
+        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
       );
     }
   }
 
   printLog("info", "Rendering datas...");
 
-  const { z, x, y } = tileBound;
-  for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-    for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-      if (rendered.export === true) {
-        return;
+  for (const { z, x, y } of tileBounds) {
+    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+        if (rendered.export === true) {
+          return;
+        }
+
+        /* Wait slot for a task */
+        while (tasks.activeTasks >= concurrency) {
+          await delay(50);
+        }
+
+        await tasks.mutex.runExclusive(() => {
+          tasks.activeTasks++;
+          tasks.completeTasks++;
+        });
+
+        /* Run a task */
+        renderPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
+          tasks.mutex.runExclusive(() => {
+            tasks.activeTasks--;
+          })
+        );
       }
-
-      /* Wait slot for a task */
-      while (tasks.activeTasks >= concurrency) {
-        await delay(50);
-      }
-
-      await tasks.mutex.runExclusive(() => {
-        tasks.activeTasks++;
-        tasks.completeTasks++;
-      });
-
-      /* Run a task */
-      renderPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
-        tasks.mutex.runExclusive(() => {
-          tasks.activeTasks--;
-        })
-      );
     }
   }
 
@@ -1382,9 +1439,7 @@ export async function renderPostgreSQLTiles(
 
   printLog(
     "info",
-    `Completed render ${
-      tileBound.total
-    } tiles of style "${id}" to postgresql after ${
+    `Completed render ${total} tiles of style "${id}" to postgresql after ${
       (Date.now() - startTime) / 1000
     }s!`
   );
