@@ -2,6 +2,5 @@
 !src
 !data
 !public
-!schema
 !package.json
 !entrypoint.sh
