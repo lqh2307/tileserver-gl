@@ -724,9 +724,7 @@ export async function renderMBTilesTiles(
       `Get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles"...`
     );
 
-    const res = getMBTilesTileHashFromCoverages(source, coverages);
-
-    hashs = res.data;
+    hashs = getMBTilesTileHashFromCoverages(source, coverages);
   } catch (error) {
     printLog(
       "error",
@@ -974,9 +972,7 @@ export async function renderXYZTiles(
       `Get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite"...`
     );
 
-    const res = getXYZTileHashFromCoverages(source, coverages);
-
-    hashs = res.data;
+    hashs = getXYZTileHashFromCoverages(source, coverages);
   } catch (error) {
     printLog(
       "error",
@@ -1239,9 +1235,7 @@ export async function renderPostgreSQLTiles(
       `Get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}"...`
     );
 
-    const res = getPostgreSQLTileHashFromCoverages(source, coverages);
-
-    hashs = res.data;
+    hashs = await getPostgreSQLTileHashFromCoverages(source, coverages);
   } catch (error) {
     printLog(
       "error",
