@@ -822,7 +822,7 @@ export const serve_data = {
        *       500:
        *         description: Internal server error
        */
-      app.use("/datas/:id", serveDataHandler());
+      app.get("/datas/:id", serveDataHandler());
     }
   },
 
