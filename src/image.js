@@ -608,18 +608,18 @@ export async function renderImage(
   y,
   format
 ) {
-  const renderer = new mlgl.Map({
-    mode: "tile",
-    ratio: tileScale,
-    request: renderTileCallback,
-  });
-
-  renderer.load(styleJSON);
-
   const isNeedHack = z === 0 && tileSize === 256;
-  const hackTileSize = isNeedHack === true ? tileSize * 2 : tileSize;
+  const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
 
   const data = await new Promise((resolve, reject) => {
+    const renderer = new mlgl.Map({
+      mode: "tile",
+      ratio: tileScale,
+      request: renderTileCallback,
+    });
+
+    renderer.load(styleJSON);
+
     renderer.render(
       {
         zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
@@ -642,7 +642,7 @@ export async function renderImage(
   return await renderImageData(
     data,
     hackTileSize * tileScale,
-    isNeedHack === true ? (hackTileSize / 2) * tileScale : undefined,
+    isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
     format
   );
 }
