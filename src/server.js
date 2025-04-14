@@ -132,7 +132,7 @@ export async function startServer() {
       .disable("x-powered-by")
       .enable("trust proxy")
       .use(cors())
-      .use(express.json())
+      .use(express.json({ limit: "100mb" }))
       .use(loggerMiddleware())
       .use(express.static("public/resources"));
 
