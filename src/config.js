@@ -17,7 +17,7 @@ async function readConfigFile(isValidate) {
     "utf8"
   );
 
-  Object.assign(config, JSON.parse(data));
+  const config = JSON.parse(data);
 
   /* Validate config.json file */
   if (isValidate === true) {
@@ -32,7 +32,7 @@ async function readConfigFile(isValidate) {
  * @returns {Promise<void>}
  */
 async function loadConfigFile() {
-  config = await readConfigFile(false);
+  Object.assign(config, await readConfigFile(true));
 
   config.repo = {
     styles: {},

@@ -61,7 +61,7 @@ async function readSeedFile(isValidate) {
     "utf8"
   );
 
-  Object.assign(seed, JSON.parse(data));
+  const seed = JSON.parse(data);
 
   /* Validate seed.json file */
   if (isValidate === true) {
@@ -76,7 +76,7 @@ async function readSeedFile(isValidate) {
  * @returns {Promise<void>}
  */
 async function loadSeedFile() {
-  seed = await readSeedFile(true);
+  Object.assign(seed, await readSeedFile(true));
 }
 
 /**

@@ -50,7 +50,7 @@ async function readCleanUpFile(isValidate) {
     "utf8"
   );
 
-  Object.assign(cleanUp, JSON.parse(data));
+  const cleanUp = JSON.parse(data);
 
   /* Validate cleanup.json file */
   if (isValidate === true) {
@@ -65,7 +65,7 @@ async function readCleanUpFile(isValidate) {
  * @returns {Promise<void>}
  */
 async function loadCleanUpFile() {
-  cleanUp = await readCleanUpFile(true);
+  Object.assign(cleanUp, await readCleanUpFile(true));
 }
 
 /**
