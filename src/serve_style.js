@@ -6,6 +6,7 @@ import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
+  createTileMetadataFromTemplate,
   compileTemplate,
   isLocalTileURL,
   getRequestHost,
@@ -21,7 +22,6 @@ import {
   getStyle,
 } from "./style.js";
 import {
-  createRenderedMetadata,
   renderPostgreSQLTiles,
   renderMBTilesTiles,
   renderXYZTiles,
@@ -1418,7 +1418,7 @@ export const serve_style = {
             try {
               /* Rendered info */
               const rendered = {
-                tileJSON: createRenderedMetadata({
+                tileJSON: createTileMetadataFromTemplate({
                   name: styleInfo.name,
                   description: styleInfo.name,
                 }),

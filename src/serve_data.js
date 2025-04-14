@@ -7,7 +7,7 @@ import { seed } from "./seed.js";
 import {
   getXYZTileHashFromCoverages,
   calculatXYZTileHash,
-  createXYZMetadata,
+  updateXYZMetadata,
   getXYZTileFromURL,
   cacheXYZTileFile,
   getXYZMetadata,
@@ -18,7 +18,7 @@ import {
 import {
   getMBTilesTileHashFromCoverages,
   calculateMBTilesTileHash,
-  createMBTilesMetadata,
+  updateMBTilesMetadata,
   getMBTilesTileFromURL,
   cacheMBtilesTileData,
   downloadMBTilesFile,
@@ -28,6 +28,7 @@ import {
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
+  createTileMetadataFromTemplate,
   compileTemplate,
   getRequestHost,
   getJSONSchema,
@@ -44,7 +45,7 @@ import {
 import {
   getPostgreSQLTileHashFromCoverages,
   calculatePostgreSQLTileHash,
-  createPostgreSQLMetadata,
+  updatePostgreSQLMetadata,
   getPostgreSQLTileFromURL,
   cachePostgreSQLTileData,
   getPostgreSQLMetadata,
@@ -875,12 +876,9 @@ export const serve_data = {
                 dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
               } else {
                 if (item.cache !== undefined) {
-                  /* Get MBTiles path */
-                  dataInfo.path = `${process.env.DATA_DIR}/caches/mbtiles/${item.mbtiles}/${item.mbtiles}.mbtiles`;
-
+                  /* Get MBTiles cache options */
                   const cacheSource = seed.datas?.[item.mbtiles];
 
-                  /* Get other MBTiles options */
                   if (
                     cacheSource === undefined ||
                     cacheSource.storeType !== "mbtiles"
@@ -897,14 +895,24 @@ export const serve_data = {
                     dataInfo.storeTransparent = cacheSource.storeTransparent;
                   }
 
+                  /* Get MBTiles path */
+                  dataInfo.path = `${process.env.DATA_DIR}/caches/mbtiles/${item.mbtiles}/${item.mbtiles}.mbtiles`;
+
                   /* Open MBTiles */
                   dataInfo.source = await openMBTilesDB(dataInfo.path, true);
 
                   /* Get MBTiles metadata */
-                  dataInfo.tileJSON = createMBTilesMetadata({
+                  dataInfo.tileJSON = createTileMetadataFromTemplate({
                     ...cacheSource.metadata,
                     cacheCoverages: cacheSource.coverages,
                   });
+
+                  /* Update MBTiles metadata */
+                  await updateMBTilesMetadata(
+                    dataInfo.source,
+                    dataInfo.tileJSON,
+                    60000 // 1 mins
+                  );
                 } else {
                   /* Get MBTiles path */
                   dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
@@ -951,12 +959,9 @@ export const serve_data = {
               dataInfo.sourceType = "xyz";
 
               if (item.cache !== undefined) {
-                /* Get XYZ path */
-                dataInfo.path = `${process.env.DATA_DIR}/caches/xyzs/${item.xyz}`;
-
+                /* Get XYZ cache options */
                 const cacheSource = seed.datas?.[item.xyz];
 
-                /* Get other XYZ options */
                 if (
                   cacheSource === undefined ||
                   cacheSource.storeType !== "xyz"
@@ -971,6 +976,9 @@ export const serve_data = {
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
                 }
 
+                /* Get XYZ path */
+                dataInfo.path = `${process.env.DATA_DIR}/caches/xyzs/${item.xyz}`;
+
                 dataInfo.source = dataInfo.path;
 
                 /* Open XYZ MD5 */
@@ -980,10 +988,17 @@ export const serve_data = {
                 );
 
                 /* Get XYZ metadata */
-                dataInfo.tileJSON = createXYZMetadata({
+                dataInfo.tileJSON = createTileMetadataFromTemplate({
                   ...cacheSource.metadata,
                   cacheCoverages: cacheSource.coverages,
                 });
+
+                /* Update XYZ metadata */
+                await updateXYZMetadata(
+                  dataInfo.md5Source,
+                  dataInfo.tileJSON,
+                  60000 // 1 mins
+                );
               } else {
                 /* Get XYZ path */
                 dataInfo.path = `${process.env.DATA_DIR}/xyzs/${item.xyz}`;
@@ -1009,12 +1024,9 @@ export const serve_data = {
               dataInfo.sourceType = "pg";
 
               if (item.cache !== undefined) {
-                /* Get XYZ path */
-                dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
-
+                /* Get PostgreSQL cache options */
                 const cacheSource = seed.datas?.[item.pg];
 
-                /* Get other PostgreSQL options */
                 if (
                   cacheSource === undefined ||
                   cacheSource.storeType !== "pg"
@@ -1029,14 +1041,24 @@ export const serve_data = {
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
                 }
 
+                /* Get XYZ path */
+                dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
                 /* Open PostgreSQL */
                 dataInfo.source = await openPostgreSQLDB(dataInfo.path, true);
 
                 /* Get PostgreSQL metadata */
-                dataInfo.tileJSON = createPostgreSQLMetadata({
+                dataInfo.tileJSON = createTileMetadataFromTemplate({
                   ...cacheSource.metadata,
                   cacheCoverages: cacheSource.coverages,
                 });
+
+                /* Update PostgreSQL metadata */
+                await updatePostgreSQLMetadata(
+                  dataInfo.source,
+                  dataInfo.tileJSON,
+                  60000 // 1 mins
+                );
               } else {
                 /* Get XYZ path */
                 dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;

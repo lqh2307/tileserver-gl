@@ -12,7 +12,6 @@ import {
   getGeoJSON,
 } from "./geojson.js";
 import {
-  updateXYZMetadata,
   getXYZTileCreated,
   downloadXYZTile,
   closeXYZMD5DB,
@@ -20,7 +19,6 @@ import {
   openXYZMD5DB,
 } from "./tile_xyz.js";
 import {
-  updateMBTilesMetadata,
   getMBTilesTileCreated,
   downloadMBTilesTile,
   getMBTilesTileMD5,
@@ -39,7 +37,6 @@ import {
   delay,
 } from "./utils.js";
 import {
-  updatePostgreSQLMetadata,
   getPostgreSQLTileCreated,
   downloadPostgreSQLTile,
   getPostgreSQLTileMD5,
@@ -174,15 +171,6 @@ async function seedMBTilesTiles(
     true
   );
 
-  /* Update metadata */
-  printLog("info", "Updating metadata...");
-
-  await updateMBTilesMetadata(
-    source,
-    metadata,
-    180000 // 3 mins
-  );
-
   /* Download tiles */
   const tasks = {
     mutex: new Mutex(),
@@ -293,7 +281,7 @@ async function seedMBTilesTiles(
   }
 
   // Close MBTiles SQLite database
-  await closeMBTilesDB(source);
+  closeMBTilesDB(source);
 
   printLog(
     "info",
@@ -382,15 +370,6 @@ async function seedPostgreSQLTiles(
   const source = await openPostgreSQLDB(
     `${process.env.POSTGRESQL_BASE_URI}/${id}`,
     true
-  );
-
-  /* Update metadata */
-  printLog("info", "Updating metadata...");
-
-  await updatePostgreSQLMetadata(
-    source,
-    metadata,
-    180000 // 3 mins
   );
 
   /* Download tiles */
@@ -594,15 +573,6 @@ async function seedXYZTiles(
     true
   );
 
-  /* Update metadata */
-  printLog("info", "Updating metadata...");
-
-  await updateXYZMetadata(
-    source,
-    metadata,
-    180000 // 3 mins
-  );
-
   /* Download tile files */
   const tasks = {
     mutex: new Mutex(),
@@ -715,7 +685,7 @@ async function seedXYZTiles(
   }
 
   /* Close MD5 SQLite database */
-  await closeXYZMD5DB(source);
+  closeXYZMD5DB(source);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(

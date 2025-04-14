@@ -915,7 +915,7 @@ export async function renderMBTilesTiles(
   }
 
   // Close MBTiles SQLite database
-  await closeMBTilesDB(source);
+  closeMBTilesDB(source);
 
   /* Create overviews */
   if (createOverview === true) {
@@ -1181,7 +1181,7 @@ export async function renderXYZTiles(
   }
 
   /* Close MD5 SQLite database */
-  await closeXYZMD5DB(source);
+  closeXYZMD5DB(source);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(
@@ -1445,77 +1445,4 @@ export async function renderPostgreSQLTiles(
       (Date.now() - startTime) / 1000
     }s!`
   );
-}
-
-/**
- * Create Rendered metadata
- * @param {Object} metadata Metadata object
- * @returns {Object}
- */
-export function createRenderedMetadata(metadata) {
-  const data = {};
-
-  if (metadata.name !== undefined) {
-    data.name = metadata.name;
-  } else {
-    data.name = "Unknown";
-  }
-
-  if (metadata.description !== undefined) {
-    data.description = metadata.description;
-  } else {
-    data.description = "Unknown";
-  }
-
-  if (metadata.attribution !== undefined) {
-    data.attribution = metadata.attribution;
-  } else {
-    data.attribution = "<b>Viettel HighTech</b>";
-  }
-
-  if (metadata.version !== undefined) {
-    data.version = metadata.version;
-  } else {
-    data.version = "1.0.0";
-  }
-
-  if (metadata.type !== undefined) {
-    data.type = metadata.type;
-  } else {
-    data.type = "overlay";
-  }
-
-  if (metadata.format !== undefined) {
-    data.format = metadata.format;
-  } else {
-    data.format = "png";
-  }
-
-  if (metadata.minzoom !== undefined) {
-    data.minzoom = metadata.minzoom;
-  } else {
-    data.minzoom = 0;
-  }
-
-  if (metadata.maxzoom !== undefined) {
-    data.maxzoom = metadata.maxzoom;
-  } else {
-    data.maxzoom = 22;
-  }
-
-  if (metadata.bounds !== undefined) {
-    data.bounds = deepClone(metadata.bounds);
-  } else {
-    data.bounds = [-180, -85.051129, 180, 85.051129];
-  }
-
-  if (metadata.center !== undefined) {
-    data.center = [
-      (data.bounds[0] + data.bounds[2]) / 2,
-      (data.bounds[1] + data.bounds[3]) / 2,
-      Math.floor((data.minzoom + data.maxzoom) / 2),
-    ];
-  }
-
-  return data;
 }

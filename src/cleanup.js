@@ -209,7 +209,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   // compactMBTiles(source);
 
   /* Close MBTiles SQLite database */
-  await closeMBTilesDB(source);
+  closeMBTilesDB(source);
 
   printLog(
     "info",
@@ -483,7 +483,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
   // compactXYZ(source);
 
   /* Close XYZ MD5 SQLite database */
-  await closeXYZMD5DB(source);
+  closeXYZMD5DB(source);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(
