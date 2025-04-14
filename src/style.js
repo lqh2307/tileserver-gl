@@ -71,7 +71,7 @@ export async function cacheStyleFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
-    300000 // 5 mins
+    30000 // 30 secs
   );
 }
 

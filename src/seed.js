@@ -93,7 +93,6 @@ async function updateSeedFile(seed, timeout) {
 /**
  * Seed MBTiles tiles
  * @param {string} id Cache MBTiles ID
- * @param {Object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -106,7 +105,6 @@ async function updateSeedFile(seed, timeout) {
  */
 async function seedMBTilesTiles(
   id,
-  metadata,
   url,
   scheme,
   coverages,
@@ -153,7 +151,7 @@ async function seedMBTilesTiles(
 
     const res = await postDataToURL(
       hashURL,
-      600000, // 10 mins
+      300000, // 5 mins
       coverages,
       "json"
     );
@@ -168,7 +166,8 @@ async function seedMBTilesTiles(
   /* Open MBTiles SQLite database */
   const source = await openMBTilesDB(
     `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
-    true
+    true,
+    30000 // 30 secs
   );
 
   /* Download tiles */
@@ -294,7 +293,6 @@ async function seedMBTilesTiles(
 /**
  * Seed PostgreSQL tiles
  * @param {string} id Cache PostgreSQL ID
- * @param {Object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -307,7 +305,6 @@ async function seedMBTilesTiles(
  */
 async function seedPostgreSQLTiles(
   id,
-  metadata,
   url,
   scheme,
   coverages,
@@ -354,7 +351,7 @@ async function seedPostgreSQLTiles(
 
     const res = await postDataToURL(
       hashURL,
-      600000, // 10 mins
+      300000, // 5 mins
       coverages,
       "json"
     );
@@ -495,7 +492,7 @@ async function seedPostgreSQLTiles(
 /**
  * Seed XYZ tiles
  * @param {string} id Cache XYZ ID
- * @param {Object} metadata Metadata object
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @param {string} url Tile URL
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -508,7 +505,7 @@ async function seedPostgreSQLTiles(
  */
 async function seedXYZTiles(
   id,
-  metadata,
+  format,
   url,
   scheme,
   coverages,
@@ -555,7 +552,7 @@ async function seedXYZTiles(
 
     const res = await postDataToURL(
       hashURL,
-      600000, // 10 mins
+      300000, // 5 mins
       coverages,
       "json"
     );
@@ -570,7 +567,8 @@ async function seedXYZTiles(
   /* Open MD5 SQLite database */
   const source = await openXYZMD5DB(
     `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
-    true
+    true,
+    30000 // 30 secs
   );
 
   /* Download tile files */
@@ -640,7 +638,7 @@ async function seedXYZTiles(
           z,
           x,
           tmpY,
-          metadata.format,
+          format,
           maxTry,
           timeout,
           storeTransparent

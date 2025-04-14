@@ -225,7 +225,7 @@ function getGeoJSONHandler() {
 
           geoJSON = await getGeoJSONFromURL(
             geoJSONLayer.sourceURL,
-            60000, // 1 mins
+            30000, // 30 secs
             false
           );
 

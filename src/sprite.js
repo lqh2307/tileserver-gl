@@ -35,7 +35,7 @@ export async function cacheSpriteFile(sourcePath, fileName, data) {
   await createFileWithLock(
     `${sourcePath}/${fileName}`,
     data,
-    300000 // 5 mins
+    30000 // 30 secs
   );
 }
 

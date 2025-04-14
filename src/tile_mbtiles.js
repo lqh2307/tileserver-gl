@@ -1,6 +1,5 @@
 "use strict";
 
-import { runSQLWithTimeout, closeSQLite, openSQLite } from "./sqlite.js";
 import { StatusCodes } from "http-status-codes";
 import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
@@ -8,13 +7,17 @@ import { printLog } from "./logger.js";
 import path from "node:path";
 import fs from "node:fs";
 import {
+  openSQLiteWithTimeout,
+  runSQLWithTimeout,
+  closeSQLite,
+} from "./sqlite.js";
+import {
   getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
   getBBoxFromTiles,
   getDataFromURL,
   calculateMD5,
-  deepClone,
   retry,
 } from "./utils.js";
 
@@ -293,7 +296,7 @@ export async function calculateMBTilesTileHash(source) {
             row.tile_column,
             row.tile_row,
           ],
-          300000 // 5 mins
+          30000 // 30 secs
         )
       )
     );
@@ -327,10 +330,11 @@ export async function removeMBTilesTile(source, z, x, y, timeout) {
  * Open MBTiles database
  * @param {string} filePath MBTiles filepath
  * @param {boolean} isCreate Is create database?
+ * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<Object>}
  */
-export async function openMBTilesDB(filePath, isCreate) {
-  const source = await openSQLite(filePath, isCreate);
+export async function openMBTilesDB(filePath, isCreate, timeout) {
+  const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
 
   if (isCreate === true) {
     source.exec(
@@ -819,7 +823,7 @@ export async function cacheMBtilesTileData(
       x,
       y,
       data,
-      300000 // 5 mins
+      30000 // 30 secs
     );
   }
 }
@@ -888,7 +892,11 @@ export function getMBTilesTileCreated(source, z, x, y) {
  * @returns {Promise<number>}
  */
 export async function countMBTilesTiles(filePath) {
-  const source = await openSQLite(filePath, false);
+  const source = await openSQLiteWithTimeout(
+    filePath,
+    false,
+    30000 // 30 secs
+  );
 
   const data = source.prepare("SELECT COUNT(*) AS count FROM tiles;").get();
 

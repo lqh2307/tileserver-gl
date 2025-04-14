@@ -109,7 +109,7 @@ async function renderTileCallback(req, callback) {
             /* Get sprite */
             data = await getSpriteFromURL(
               targetURL,
-              60000 // 1 mins
+              30000 // 30 secs
             );
 
             /* Cache */
@@ -247,7 +247,7 @@ async function renderTileCallback(req, callback) {
             /* Get data */
             dataTile = await getMBTilesTileFromURL(
               targetURL,
-              60000 // 1 mins
+              30000 // 30 secs
             );
 
             /* Cache */
@@ -338,7 +338,7 @@ async function renderTileCallback(req, callback) {
             /* Get data */
             dataTile = await getXYZTileFromURL(
               targetURL,
-              60000 // 1 mins
+              30000 // 30 secs
             );
 
             /* Cache */
@@ -425,7 +425,7 @@ async function renderTileCallback(req, callback) {
             /* Get data */
             dataTile = await getPostgreSQLTileFromURL(
               targetURL,
-              60000 // 1 mins
+              30000 // 30 secs
             );
 
             /* Cache */
@@ -484,7 +484,7 @@ async function renderTileCallback(req, callback) {
 
         const dataTile = await getDataFromURL(
           url,
-          60000, // 1 mins,
+          30000, // 30 secs
           "arraybuffer"
         );
 
@@ -754,7 +754,8 @@ export async function renderMBTilesTiles(
   /* Open MBTiles SQLite database */
   const source = await openMBTilesDB(
     `${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`,
-    true
+    true,
+    30000 // 30 secs
   );
 
   /* Get hashs */
@@ -785,7 +786,7 @@ export async function renderMBTilesTiles(
       maxzoom: maxzoom,
       minzoom: maxzoom,
     },
-    300000 // 5 mins
+    30000 // 30 secs
   );
 
   /* Render tiles */
@@ -1002,7 +1003,8 @@ export async function renderXYZTiles(
   /* Open MD5 SQLite database */
   const source = await openXYZMD5DB(
     `${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite`,
-    true
+    true,
+    30000 // 30 secs
   );
 
   /* Get hashs */
@@ -1033,7 +1035,7 @@ export async function renderXYZTiles(
       maxzoom: maxzoom,
       minzoom: maxzoom,
     },
-    300000 // 5 mins
+    30000 // 30 secs
   );
 
   /* Render tile files */
@@ -1296,7 +1298,7 @@ export async function renderPostgreSQLTiles(
       maxzoom: maxzoom,
       minzoom: maxzoom,
     },
-    300000 // 5 mins
+    30000 // 30 secs
   );
 
   /* Render tiles */

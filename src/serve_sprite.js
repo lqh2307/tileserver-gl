@@ -52,7 +52,7 @@ function getSpriteHandler() {
           /* Get sprite */
           data = await getSpriteFromURL(
             targetURL,
-            60000 // 1 mins
+            30000 // 30 secs
           );
 
           /* Cache */

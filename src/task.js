@@ -556,7 +556,7 @@ export async function runTasks(opts) {
                 if (seedDataItem.storeType === "xyz") {
                   await seedXYZTiles(
                     id,
-                    seedDataItem.metadata,
+                    seedDataItem.metadata.format,
                     seedDataItem.url,
                     seedDataItem.scheme,
                     seedDataItem.coverages,
@@ -571,7 +571,6 @@ export async function runTasks(opts) {
                 } else if (seedDataItem.storeType === "mbtiles") {
                   await seedMBTilesTiles(
                     id,
-                    seedDataItem.metadata,
                     seedDataItem.url,
                     seedDataItem.scheme,
                     seedDataItem.coverages,
@@ -586,7 +585,6 @@ export async function runTasks(opts) {
                 } else if (seedDataItem.storeType === "pg") {
                   await seedPostgreSQLTiles(
                     id,
-                    seedDataItem.metadata,
                     seedDataItem.url,
                     seedDataItem.scheme,
                     seedDataItem.coverages,

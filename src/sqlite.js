@@ -6,35 +6,46 @@ import { delay } from "./utils.js";
 import path from "node:path";
 
 /**
- * Open SQLite database
+ * Open SQLite database with timeout
  * @param {string} filePath File path
  * @param {boolean} isCreate Is create database?
+ * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<DatabaseSync>} SQLite database instance
  */
-export async function openSQLite(filePath, isCreate) {
+export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
   if (isCreate === true) {
     await fsPromise.mkdir(path.dirname(filePath), {
       recursive: true,
     });
   }
 
+  const startTime = Date.now();
+
   let source;
 
-  try {
-    source = new DatabaseSync(filePath);
+  while (Date.now() - startTime <= timeout) {
+    try {
+      source = new DatabaseSync(filePath);
 
-    source.exec("PRAGMA journal_mode = DELETE;"); // Disable WAL mode
-    source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
-    source.exec("PRAGMA busy_timeout = 30000;"); // 30s
+      source.exec("PRAGMA journal_mode = DELETE;"); // Disable WAL mode
+      source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
+      source.exec("PRAGMA busy_timeout = 30000;"); // 30s
 
-    return source;
-  } catch (error) {
-    if (source !== undefined) {
-      source.close();
+      return source;
+    } catch (error) {
+      if (error.code === "SQLITE_BUSY") {
+        await delay(50);
+      } else {
+        if (source !== undefined) {
+          source.close();
+        }
+
+        throw error;
+      }
     }
-
-    throw error;
   }
+
+  throw new Error("Timeout to access SQLite DB");
 }
 
 /**

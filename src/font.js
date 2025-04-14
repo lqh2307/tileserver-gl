@@ -51,7 +51,7 @@ export async function cacheFontFile(sourcePath, range, data) {
   await createFileWithLock(
     `${sourcePath}/${range}.pbf`,
     data,
-    300000 // 5 mins
+    30000 // 30 secs
   );
 }
 

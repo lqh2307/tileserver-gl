@@ -1,11 +1,15 @@
 "use strict";
 
-import { runSQLWithTimeout, closeSQLite, openSQLite } from "./sqlite.js";
 import { StatusCodes } from "http-status-codes";
 import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
+import {
+  openSQLiteWithTimeout,
+  runSQLWithTimeout,
+  closeSQLite,
+} from "./sqlite.js";
 import {
   getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
@@ -17,7 +21,6 @@ import {
   calculateMD5,
   findFolders,
   findFiles,
-  deepClone,
   delay,
   retry,
 } from "./utils.js";
@@ -199,7 +202,7 @@ async function createXYZTile(
     createFileWithLock(
       `${sourcePath}/${z}/${x}/${y}.${format}`,
       data,
-      300000 // 5 mins
+      30000 // 30 secs
     ),
     runSQLWithTimeout(
       source,
@@ -310,7 +313,7 @@ export async function calculatXYZTileHash(sourcePath, source, format) {
             row.tile_column,
             row.tile_row,
           ],
-          300000 // 5 mins
+          30000 // 30 secs
         );
       })
     );
@@ -352,10 +355,11 @@ export async function removeXYZTile(id, source, z, x, y, format, timeout) {
  * Open XYZ MD5 SQLite database
  * @param {string} filePath MD5 filepath
  * @param {boolean} isCreate Is create database?
+ * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<DatabaseSync>}
  */
-export async function openXYZMD5DB(filePath, isCreate) {
-  const source = await openSQLite(filePath, isCreate);
+export async function openXYZMD5DB(filePath, isCreate, timeout) {
+  const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
 
   if (isCreate === true) {
     source.exec(
@@ -791,7 +795,7 @@ export async function cacheXYZTileFile(
       y,
       format,
       data,
-      300000 // 5 mins
+      30000 // 30 secs
     );
   }
 }

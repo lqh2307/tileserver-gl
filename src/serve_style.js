@@ -128,7 +128,7 @@ function getStyleHandler() {
 
           styleJSON = await getStyleJSONFromURL(
             item.sourceURL,
-            60000, // 1 mins
+            30000, // 30 secs
             false
           );
 
@@ -646,7 +646,7 @@ function getStyleJSONsListHandler() {
 
               styleJSON = await getStyleJSONFromURL(
                 item.sourceURL,
-                60000, // 1 mins
+                30000, // 30 secs
                 true
               );
 
@@ -1346,7 +1346,7 @@ export const serve_style = {
                   item.style,
                   styleInfo.path,
                   5,
-                  300000 // 5 mins
+                  30000 // 30 secs
                 );
               }
             } else {
@@ -1461,7 +1461,7 @@ export const serve_style = {
 
                           geoJSON = await getGeoJSONFromURL(
                             item.sourceURL,
-                            60000, // 1 mins
+                            30000, // 30 secs
                             false
                           );
 

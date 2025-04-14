@@ -148,7 +148,7 @@ function getDataTileHandler() {
             /* Get data */
             dataTile = await getMBTilesTileFromURL(
               targetURL,
-              60000 // 1 mins
+              30000 // 30 secs
             );
 
             /* Cache */
@@ -204,7 +204,7 @@ function getDataTileHandler() {
             /* Get data */
             dataTile = await getXYZTileFromURL(
               targetURL,
-              60000 // 1 mins
+              30000 // 30 secs
             );
 
             /* Cache */
@@ -254,7 +254,7 @@ function getDataTileHandler() {
             /* Get data */
             dataTile = await getPostgreSQLTileFromURL(
               targetURL,
-              60000 // 1 mins
+              30000 // 30 secs
             );
 
             /* Cache */
@@ -870,7 +870,11 @@ export const serve_data = {
                 }
 
                 /* Open MBTiles */
-                dataInfo.source = await openMBTilesDB(dataInfo.path, true);
+                dataInfo.source = await openMBTilesDB(
+                  dataInfo.path,
+                  true,
+                  30000 // 30 secs
+                );
 
                 /* Get MBTiles metadata */
                 dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
@@ -899,7 +903,11 @@ export const serve_data = {
                   dataInfo.path = `${process.env.DATA_DIR}/caches/mbtiles/${item.mbtiles}/${item.mbtiles}.mbtiles`;
 
                   /* Open MBTiles */
-                  dataInfo.source = await openMBTilesDB(dataInfo.path, true);
+                  dataInfo.source = await openMBTilesDB(
+                    dataInfo.path,
+                    true,
+                    30000 // 30 secs
+                  );
 
                   /* Get MBTiles metadata */
                   dataInfo.tileJSON = createTileMetadataFromTemplate({
@@ -911,14 +919,18 @@ export const serve_data = {
                   await updateMBTilesMetadata(
                     dataInfo.source,
                     dataInfo.tileJSON,
-                    60000 // 1 mins
+                    30000 // 30 secs
                   );
                 } else {
                   /* Get MBTiles path */
                   dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
 
                   /* Open MBTiles */
-                  dataInfo.source = await openMBTilesDB(dataInfo.path, true);
+                  dataInfo.source = await openMBTilesDB(
+                    dataInfo.path,
+                    true,
+                    30000 // 30 secs
+                  );
 
                   /* Get MBTiles metadata */
                   dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
@@ -997,7 +1009,7 @@ export const serve_data = {
                 await updateXYZMetadata(
                   dataInfo.md5Source,
                   dataInfo.tileJSON,
-                  60000 // 1 mins
+                  30000 // 30 secs
                 );
               } else {
                 /* Get XYZ path */
@@ -1008,7 +1020,8 @@ export const serve_data = {
                 /* Open XYZ MD5 */
                 const md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
-                  true
+                  true,
+                  30000 // 30 secs
                 );
 
                 /* Get XYZ metadata */
@@ -1057,7 +1070,7 @@ export const serve_data = {
                 await updatePostgreSQLMetadata(
                   dataInfo.source,
                   dataInfo.tileJSON,
-                  60000 // 1 mins
+                  30000 // 30 secs
                 );
               } else {
                 /* Get XYZ path */

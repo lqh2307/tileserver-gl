@@ -117,7 +117,8 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   /* Open MBTiles SQLite database */
   const source = await openMBTilesDB(
     `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
-    true
+    true,
+    30000 // 30 secs
   );
 
   /* Remove tiles */
@@ -164,7 +165,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
           z,
           x,
           y,
-          300000 // 5 mins
+          30000 // 30 secs
         );
       }
     } catch (error) {
@@ -301,7 +302,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
           z,
           x,
           y,
-          300000 // 5 mins
+          30000 // 30 secs
         );
       }
     } catch (error) {
@@ -389,7 +390,8 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
   /* Open XYZ MD5 SQLite database */
   const source = await openXYZMD5DB(
     `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
-    true
+    true,
+    30000 // 30 secs
   );
 
   /* Remove tile files */
@@ -438,7 +440,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
           x,
           y,
           format,
-          300000 // 5 mins
+          30000 // 30 secs
         );
       }
     } catch (error) {
@@ -556,7 +558,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
       await removeGeoJSONFile(
         filePath,
-        300000 // 5 mins
+        30000 // 30 secs
       );
     }
   } catch (error) {
@@ -633,7 +635,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
         await removeSpriteFile(
           filePath,
-          300000 // 5 mins
+          30000 // 30 secs
         );
       }
     } catch (error) {
@@ -725,7 +727,7 @@ async function cleanUpFont(id, cleanUpBefore) {
 
         await removeFontFile(
           filePath,
-          300000 // 5 mins
+          30000 // 30 secs
         );
       }
     } catch (error) {
@@ -815,7 +817,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
       await removeStyleFile(
         filePath,
-        300000 // 5 mins
+        30000 // 30 secs
       );
     }
   } catch (error) {

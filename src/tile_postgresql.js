@@ -12,7 +12,6 @@ import {
   getBBoxFromTiles,
   getDataFromURL,
   calculateMD5,
-  deepClone,
   retry,
 } from "./utils.js";
 
@@ -734,7 +733,7 @@ export async function cachePostgreSQLTileData(
       x,
       y,
       data,
-      300000 // 5 mins
+      30000 // 30 secs
     );
   }
 }
