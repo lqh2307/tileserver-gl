@@ -183,7 +183,7 @@ async function seedMBTilesTiles(
 
     await updateMBTilesMetadata(
       source,
-      ...metadata,
+      metadata,
       30000 // 30 secs
     );
 
@@ -406,7 +406,7 @@ async function seedPostgreSQLTiles(
 
     await updatePostgreSQLMetadata(
       source,
-      ...metadata,
+      metadata,
       30000 // 30 secs
     );
 
@@ -630,7 +630,7 @@ async function seedXYZTiles(
 
     await updateXYZMetadata(
       source,
-      ...metadata,
+      metadata,
       30000 // 30 secs
     );
 
