@@ -86,272 +86,298 @@ async function updateCleanUpFile(cleanUp, timeout) {
  * Clean up MBTiles tiles
  * @param {string} id Clean up MBTiles ID
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
 async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   const startTime = Date.now();
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+  let source;
 
-  let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:\n\tCoverages: ${JSON.stringify(
-    coverages
-  )}`;
+  try {
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
-    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+    let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}`;
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
-    const now = new Date();
+    let cleanUpTimestamp;
+    if (typeof cleanUpBefore === "string") {
+      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+      log += `\n\tClean up before: ${cleanUpBefore}`;
+    } else if (typeof cleanUpBefore === "number") {
+      const now = new Date();
 
-    log += `\n\tOld than: ${cleanUpBefore} days`;
-  }
+      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
 
-  printLog("info", log);
+      log += `\n\tOld than: ${cleanUpBefore} days`;
+    }
 
-  /* Open MBTiles SQLite database */
-  const source = await openMBTilesDB(
-    `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
-    true,
-    30000 // 30 secs
-  );
+    printLog("info", log);
 
-  /* Remove tiles */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
+    /* Open MBTiles SQLite database */
+    source = await openMBTilesDB(
+      `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
+      true,
+      30000 // 30 secs
+    );
 
-  async function cleanUpMBTilesTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
+    /* Remove tiles */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
 
-    const completeTasks = tasks.completeTasks;
+    async function cleanUpMBTilesTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
 
-    try {
-      let needRemove = false;
+      const completeTasks = tasks.completeTasks;
 
-      if (cleanUpTimestamp !== undefined) {
-        try {
-          const created = getMBTilesTileCreated(source, z, x, y);
+      try {
+        let needRemove = false;
 
-          if (!created || created < cleanUpTimestamp) {
-            needRemove = true;
+        if (cleanUpTimestamp !== undefined) {
+          try {
+            const created = getMBTilesTileCreated(source, z, x, y);
+
+            if (!created || created < cleanUpTimestamp) {
+              needRemove = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needRemove = true;
+            } else {
+              throw error;
+            }
           }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needRemove = true;
-          } else {
-            throw error;
-          }
+        } else {
+          needRemove = true;
         }
-      } else {
-        needRemove = true;
-      }
 
-      if (needRemove === true) {
+        if (needRemove === true) {
+          printLog(
+            "info",
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          await removeMBTilesTile(
+            source,
+            z,
+            x,
+            y,
+            30000 // 30 secs
+          );
+        }
+      } catch (error) {
         printLog(
-          "info",
-          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        await removeMBTilesTile(
-          source,
-          z,
-          x,
-          y,
-          30000 // 30 secs
+          "error",
+          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-      );
     }
-  }
 
-  printLog("info", "Removing datas...");
+    printLog("info", "Removing datas...");
 
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= 256) {
-          await delay(50);
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= 256) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          cleanUpMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
         }
-
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
-
-        /* Run a task */
-        cleanUpMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
-        );
       }
     }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    /* Compact MBTiles (Block DB) */
+    // compactMBTiles(source);
+
+    printLog(
+      "info",
+      `Completed clean up ${total} tiles of mbtiles "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to clean up mbtiles "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      /* Close MBTiles SQLite database */
+      closeMBTilesDB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  /* Compact MBTiles (Block DB) */
-  // compactMBTiles(source);
-
-  /* Close MBTiles SQLite database */
-  closeMBTilesDB(source);
-
-  printLog(
-    "info",
-    `Completed clean up ${total} tiles of mbtiles "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
  * Clean up PostgreSQL tiles
  * @param {string} id Clean up PostgreSQL ID
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
 async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
   const startTime = Date.now();
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+  let source;
 
-  let log = `Cleaning up ${total} tiles of postgresql "${id}" with:\n\tCoverages: ${JSON.stringify(
-    coverages
-  )}`;
+  try {
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
-    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+    let log = `Cleaning up ${total} tiles of postgresql "${id}" with:\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}`;
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
-    const now = new Date();
+    let cleanUpTimestamp;
+    if (typeof cleanUpBefore === "string") {
+      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+      log += `\n\tClean up before: ${cleanUpBefore}`;
+    } else if (typeof cleanUpBefore === "number") {
+      const now = new Date();
 
-    log += `\n\tOld than: ${cleanUpBefore} days`;
-  }
+      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
 
-  printLog("info", log);
+      log += `\n\tOld than: ${cleanUpBefore} days`;
+    }
 
-  /* Open PostgreSQL database */
-  const source = await openPostgreSQLDB(
-    `${process.env.POSTGRESQL_BASE_URI}/${id}`,
-    true
-  );
+    printLog("info", log);
 
-  /* Remove tiles */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
+    /* Open PostgreSQL database */
+    source = await openPostgreSQLDB(
+      `${process.env.POSTGRESQL_BASE_URI}/${id}`,
+      true
+    );
 
-  async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
+    /* Remove tiles */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
 
-    const completeTasks = tasks.completeTasks;
+    async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
 
-    try {
-      let needRemove = false;
+      const completeTasks = tasks.completeTasks;
 
-      if (cleanUpTimestamp !== undefined) {
-        try {
-          const created = await getPostgreSQLTileCreated(source, z, x, y);
+      try {
+        let needRemove = false;
 
-          if (!created || created < cleanUpTimestamp) {
-            needRemove = true;
+        if (cleanUpTimestamp !== undefined) {
+          try {
+            const created = await getPostgreSQLTileCreated(source, z, x, y);
+
+            if (!created || created < cleanUpTimestamp) {
+              needRemove = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needRemove = true;
+            } else {
+              throw error;
+            }
           }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needRemove = true;
-          } else {
-            throw error;
-          }
+        } else {
+          needRemove = true;
         }
-      } else {
-        needRemove = true;
-      }
 
-      if (needRemove === true) {
+        if (needRemove === true) {
+          printLog(
+            "info",
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          await removePostgreSQLTile(
+            source,
+            z,
+            x,
+            y,
+            30000 // 30 secs
+          );
+        }
+      } catch (error) {
         printLog(
-          "info",
-          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        await removePostgreSQLTile(
-          source,
-          z,
-          x,
-          y,
-          30000 // 30 secs
+          "error",
+          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-      );
     }
-  }
 
-  printLog("info", "Removing datas...");
+    printLog("info", "Removing datas...");
 
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= 256) {
-          await delay(50);
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= 256) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          cleanUpPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
         }
-
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
-
-        /* Run a task */
-        cleanUpPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
-        );
       }
     }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    printLog(
+      "info",
+      `Completed clean up ${total} tiles of postgresql "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to clean up postgresql "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      /* Close PostgreSQL database */
+      await closePostgreSQLDB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  /* Close PostgreSQL database */
-  await closePostgreSQLDB(source);
-
-  printLog(
-    "info",
-    `Completed clean up ${total} tiles of postgresql "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
@@ -359,152 +385,165 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
  * @param {string} id Clean up XYZ ID
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
 async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
   const startTime = Date.now();
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+  let source;
 
-  let log = `Cleaning up ${total} tiles of xyz "${id}" with:\n\tCoverages: ${JSON.stringify(
-    coverages
-  )}`;
+  try {
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-  let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
-    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+    let log = `Cleaning up ${total} tiles of xyz "${id}" with:\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}`;
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
-    const now = new Date();
+    let cleanUpTimestamp;
+    if (typeof cleanUpBefore === "string") {
+      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+      log += `\n\tClean up before: ${cleanUpBefore}`;
+    } else if (typeof cleanUpBefore === "number") {
+      const now = new Date();
 
-    log += `\n\tOld than: ${cleanUpBefore} days`;
-  }
+      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
 
-  printLog("info", log);
+      log += `\n\tOld than: ${cleanUpBefore} days`;
+    }
 
-  /* Open XYZ MD5 SQLite database */
-  const source = await openXYZMD5DB(
-    `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
-    true,
-    30000 // 30 secs
-  );
+    printLog("info", log);
 
-  /* Remove tile files */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
+    /* Open XYZ MD5 SQLite database */
+    source = await openXYZMD5DB(
+      `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
+      true,
+      30000 // 30 secs
+    );
 
-  async function cleanUpXYZTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
+    /* Remove tile files */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
 
-    const completeTasks = tasks.completeTasks;
+    async function cleanUpXYZTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
 
-    try {
-      let needRemove = false;
+      const completeTasks = tasks.completeTasks;
 
-      if (cleanUpTimestamp !== undefined) {
-        try {
-          const created = getXYZTileCreated(source, z, x, y);
+      try {
+        let needRemove = false;
 
-          if (!created || created < cleanUpTimestamp) {
-            needRemove = true;
+        if (cleanUpTimestamp !== undefined) {
+          try {
+            const created = getXYZTileCreated(source, z, x, y);
+
+            if (!created || created < cleanUpTimestamp) {
+              needRemove = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needRemove = true;
+            } else {
+              throw error;
+            }
           }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needRemove = true;
-          } else {
-            throw error;
-          }
+        } else {
+          needRemove = true;
         }
-      } else {
-        needRemove = true;
-      }
 
-      if (needRemove === true) {
+        if (needRemove === true) {
+          printLog(
+            "info",
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          await removeXYZTile(
+            id,
+            source,
+            z,
+            x,
+            y,
+            format,
+            30000 // 30 secs
+          );
+        }
+      } catch (error) {
         printLog(
-          "info",
-          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        await removeXYZTile(
-          id,
-          source,
-          z,
-          x,
-          y,
-          format,
-          30000 // 30 secs
+          "error",
+          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-      );
     }
-  }
 
-  printLog("info", "Removing datas...");
+    printLog("info", "Removing datas...");
 
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= 256) {
-          await delay(50);
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= 256) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          cleanUpXYZTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
         }
-
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
-
-        /* Run a task */
-        cleanUpXYZTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
-        );
       }
     }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    /* Compact XYZ (Block DB) */
+    // compactXYZ(source);
+
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/xyzs/${id}`,
+      /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/
+    );
+
+    printLog(
+      "info",
+      `Completed clean up ${total} tiles of xyz "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to clean up xyz "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      /* Close XYZ MD5 SQLite database */
+      closeXYZMD5DB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  /* Compact XYZ (Block DB) */
-  // compactXYZ(source);
-
-  /* Close XYZ MD5 SQLite database */
-  closeXYZMD5DB(source);
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-    /^.*\.(sqlite|gif|png|jpg|jpeg|webp|pbf)$/
-  );
-
-  printLog(
-    "info",
-    `Completed clean up ${total} tiles of xyz "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
  * Clean up geojson
  * @param {string} id Clean up geojson ID
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
 async function cleanUpGeoJSON(id, cleanUpBefore) {
@@ -582,137 +621,244 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 /**
  * Clean up sprite
  * @param {string} id Clean up sprite ID
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
 async function cleanUpSprite(id, cleanUpBefore) {
   const startTime = Date.now();
 
-  let log = `Cleaning up sprite "${id}" with:`;
+  try {
+    let log = `Cleaning up sprite "${id}" with:`;
 
-  let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
-    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+    let cleanUpTimestamp;
+    if (typeof cleanUpBefore === "string") {
+      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
-    const now = new Date();
+      log += `\n\tClean up before: ${cleanUpBefore}`;
+    } else if (typeof cleanUpBefore === "number") {
+      const now = new Date();
 
-    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
 
-    log += `\n\tOld than: ${cleanUpBefore} days`;
-  }
+      log += `\n\tOld than: ${cleanUpBefore} days`;
+    }
 
-  printLog("info", log);
+    printLog("info", log);
 
-  /* Remove sprite files */
-  async function cleanUpSpriteData(fileName) {
-    const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
+    /* Remove sprite files */
+    async function cleanUpSpriteData(fileName) {
+      const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
 
-    try {
-      let needRemove = false;
+      try {
+        let needRemove = false;
 
-      if (cleanUpTimestamp !== undefined) {
-        try {
-          const created = await getSpriteCreated(filePath);
+        if (cleanUpTimestamp !== undefined) {
+          try {
+            const created = await getSpriteCreated(filePath);
 
-          if (!created || created < cleanUpTimestamp) {
-            needRemove = true;
+            if (!created || created < cleanUpTimestamp) {
+              needRemove = true;
+            }
+          } catch (error) {
+            if (error.message === "Sprite created does not exist") {
+              needRemove = true;
+            } else {
+              throw error;
+            }
           }
-        } catch (error) {
-          if (error.message === "Sprite created does not exist") {
-            needRemove = true;
-          } else {
-            throw error;
-          }
+        } else {
+          needRemove = true;
         }
-      } else {
-        needRemove = true;
-      }
 
-      if (needRemove === true) {
-        printLog("info", `Removing sprite "${id}" - File "${fileName}"...`);
+        if (needRemove === true) {
+          printLog("info", `Removing sprite "${id}" - File "${fileName}"...`);
 
-        await removeSpriteFile(
-          filePath,
-          30000 // 30 secs
+          await removeSpriteFile(
+            filePath,
+            30000 // 30 secs
+          );
+        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to clean up sprite "${id}" - File "${fileName}": ${error}`
         );
       }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to clean up sprite "${id}" - File "${fileName}": ${error}`
-      );
     }
+
+    printLog("info", "Removing sprites...");
+
+    await Promise.all(
+      ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
+        (fileName) => cleanUpSpriteData(fileName)
+      )
+    );
+
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/sprites/${id}`,
+      /^.*\.(json|png)$/
+    );
+
+    printLog(
+      "info",
+      `Completed clean up sprite "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to clean up sprite "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
   }
-
-  printLog("info", "Removing sprites...");
-
-  await Promise.all(
-    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-      (fileName) => cleanUpSpriteData(fileName)
-    )
-  );
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/sprites/${id}`,
-    /^.*\.(json|png)$/
-  );
-
-  printLog(
-    "info",
-    `Completed clean up sprite "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
  * Clean up font
  * @param {string} id Clean up font ID
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
 async function cleanUpFont(id, cleanUpBefore) {
   const startTime = Date.now();
 
-  const total = 256;
+  try {
+    const total = 256;
 
-  let log = `Cleaning up ${total} fonts of font "${id}" with:`;
+    let log = `Cleaning up ${total} fonts of font "${id}" with:`;
 
-  let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
-    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+    let cleanUpTimestamp;
+    if (typeof cleanUpBefore === "string") {
+      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
-    const now = new Date();
+      log += `\n\tClean up before: ${cleanUpBefore}`;
+    } else if (typeof cleanUpBefore === "number") {
+      const now = new Date();
 
-    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
 
-    log += `\n\tOld than: ${cleanUpBefore} days`;
+      log += `\n\tOld than: ${cleanUpBefore} days`;
+    }
+
+    printLog("info", log);
+
+    /* Remove font files */
+    async function cleanUpFontData(start, end) {
+      const range = `${start}-${end}`;
+      const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
+
+      try {
+        let needRemove = false;
+
+        if (cleanUpTimestamp !== undefined) {
+          try {
+            const created = await getFontCreated(filePath);
+
+            if (!created || created < cleanUpTimestamp) {
+              needRemove = true;
+            }
+          } catch (error) {
+            if (error.message === "Font created does not exist") {
+              needRemove = true;
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          needRemove = true;
+        }
+
+        if (needRemove === true) {
+          printLog("info", `Removing font "${id}" - Range "${range}"...`);
+
+          await removeFontFile(
+            filePath,
+            30000 // 30 secs
+          );
+        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to clean up font "${id}" -  Range "${range}": ${error}`
+        );
+      }
+    }
+
+    printLog("info", "Removing fonts...");
+
+    await Promise.all(
+      Array.from({ length: total }, (_, i) =>
+        cleanUpFontData(i * 256, i * 256 + 255)
+      )
+    );
+
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/fonts/${id}`,
+      /^.*\.pbf$/
+    );
+
+    printLog(
+      "info",
+      `Completed clean up ${total} fonts of font "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to clean up font "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
   }
+}
 
-  printLog("info", log);
+/**
+ * Clean up style
+ * @param {string} id Clean up style ID
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
+ * @returns {Promise<void>}
+ */
+async function cleanUpStyle(id, cleanUpBefore) {
+  const startTime = Date.now();
 
-  /* Remove font files */
-  async function cleanUpFontData(start, end) {
-    const range = `${start}-${end}`;
-    const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
+  try {
+    let log = `Cleaning up style "${id}" with:`;
+
+    let cleanUpTimestamp;
+    if (typeof cleanUpBefore === "string") {
+      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+
+      log += `\n\tClean up before: ${cleanUpBefore}`;
+    } else if (typeof cleanUpBefore === "number") {
+      const now = new Date();
+
+      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+
+      log += `\n\tOld than: ${cleanUpBefore} days`;
+    }
+
+    printLog("info", log);
+
+    /* Remove style.json file */
+    const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
 
     try {
       let needRemove = false;
 
       if (cleanUpTimestamp !== undefined) {
         try {
-          const created = await getFontCreated(filePath);
+          const created = await getStyleCreated(filePath);
 
           if (!created || created < cleanUpTimestamp) {
             needRemove = true;
           }
         } catch (error) {
-          if (error.message === "Font created does not exist") {
+          if (error.message === "Style created does not exist") {
             needRemove = true;
           } else {
             throw error;
@@ -722,120 +868,40 @@ async function cleanUpFont(id, cleanUpBefore) {
         needRemove = true;
       }
 
-      if (needRemove === true) {
-        printLog("info", `Removing font "${id}" - Range "${range}"...`);
+      printLog("info", "Removing style...");
 
-        await removeFontFile(
+      if (needRemove === true) {
+        printLog("info", `Removing style "${id}" - File "${filePath}"...`);
+
+        await removeStyleFile(
           filePath,
           30000 // 30 secs
         );
       }
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to clean up font "${id}" -  Range "${range}": ${error}`
-      );
-    }
-  }
-
-  printLog("info", "Removing fonts...");
-
-  await Promise.all(
-    Array.from({ length: total }, (_, i) =>
-      cleanUpFontData(i * 256, i * 256 + 255)
-    )
-  );
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/fonts/${id}`,
-    /^.*\.pbf$/
-  );
-
-  printLog(
-    "info",
-    `Completed clean up ${total} fonts of font "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
-}
-
-/**
- * Clean up style
- * @param {string} id Clean up style ID
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted/Comprare MD5
- * @returns {Promise<void>}
- */
-async function cleanUpStyle(id, cleanUpBefore) {
-  const startTime = Date.now();
-
-  let log = `Cleaning up style "${id}" with:`;
-
-  let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
-    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
-
-    log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
-    const now = new Date();
-
-    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
-
-    log += `\n\tOld than: ${cleanUpBefore} days`;
-  }
-
-  printLog("info", log);
-
-  /* Remove style.json file */
-  const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
-
-  try {
-    let needRemove = false;
-
-    if (cleanUpTimestamp !== undefined) {
-      try {
-        const created = await getStyleCreated(filePath);
-
-        if (!created || created < cleanUpTimestamp) {
-          needRemove = true;
-        }
-      } catch (error) {
-        if (error.message === "Style created does not exist") {
-          needRemove = true;
-        } else {
-          throw error;
-        }
-      }
-    } else {
-      needRemove = true;
+      printLog("error", `Failed to clean up style "${id}": ${error}`);
     }
 
-    printLog("info", "Removing style...");
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/styles/${id}`,
+      /^.*\.json$/
+    );
 
-    if (needRemove === true) {
-      printLog("info", `Removing style "${id}" - File "${filePath}"...`);
-
-      await removeStyleFile(
-        filePath,
-        30000 // 30 secs
-      );
-    }
+    printLog(
+      "info",
+      `Completed clean up style "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
   } catch (error) {
-    printLog("error", `Failed to clean up style "${id}": ${error}`);
+    printLog(
+      "error",
+      `Failed to clean up style "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
   }
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/styles/${id}`,
-    /^.*\.json$/
-  );
-
-  printLog(
-    "info",
-    `Completed clean up style "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 export {

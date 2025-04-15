@@ -718,96 +718,152 @@ export async function renderMBTilesTiles(
 ) {
   const startTime = Date.now();
 
-  const coverages = [
-    {
-      bbox: bbox,
-      zoom: maxzoom,
-    },
-  ];
+  let source;
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
-
-  let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
-    bbox
-  )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
-
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
-
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
-
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-    log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
-    refreshTimestamp = true;
-
-    log += `\n\tRefresh before: check MD5`;
-  }
-
-  printLog("info", log);
-
-  /* Open MBTiles SQLite database */
-  const source = await openMBTilesDB(
-    `${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`,
-    true,
-    30000 // 30 secs
-  );
-
-  /* Get hashs */
-  let hashs;
   try {
-    printLog(
-      "info",
-      `Get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles"...`
+    const coverages = [
+      {
+        bbox: bbox,
+        zoom: maxzoom,
+      },
+    ];
+
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+
+    let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
+
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
+
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
+
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+
+      log += `\n\tOld than: ${refreshBefore} days`;
+    } else if (typeof refreshBefore === "boolean") {
+      refreshTimestamp = true;
+
+      log += `\n\tRefresh before: check MD5`;
+    }
+
+    printLog("info", log);
+
+    /* Open MBTiles SQLite database */
+    source = await openMBTilesDB(
+      `${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`,
+      true,
+      30000 // 30 secs
     );
 
-    hashs = getMBTilesTileHashFromCoverages(source, coverages);
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles": ${error}`
-    );
-
-    hashs = {};
-  }
-
-  /* Update metadata */
-  printLog("info", "Updating metadata...");
-
-  await updateMBTilesMetadata(
-    source,
-    {
-      ...metadata,
-      maxzoom: maxzoom,
-      minzoom: maxzoom,
-    },
-    30000 // 30 secs
-  );
-
-  /* Render tiles */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
-
-  const rendered = config.styles[id].rendered;
-
-  async function renderMBTilesTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
-
-    const completeTasks = tasks.completeTasks;
-
+    /* Get hashs */
+    let hashs;
     try {
-      let needRender = false;
+      printLog(
+        "info",
+        `Get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles"...`
+      );
 
-      if (refreshTimestamp === true) {
-        try {
+      hashs = getMBTilesTileHashFromCoverages(source, coverages);
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles": ${error}`
+      );
+
+      hashs = {};
+    }
+
+    /* Update metadata */
+    printLog("info", "Updating metadata...");
+
+    await updateMBTilesMetadata(
+      source,
+      {
+        ...metadata,
+        maxzoom: maxzoom,
+        minzoom: maxzoom,
+      },
+      30000 // 30 secs
+    );
+
+    /* Render tiles */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
+
+    const rendered = config.styles[id].rendered;
+
+    async function renderMBTilesTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
+
+      const completeTasks = tasks.completeTasks;
+
+      try {
+        let needRender = false;
+
+        if (refreshTimestamp === true) {
+          try {
+            printLog(
+              "info",
+              `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            );
+
+            // Rendered data
+            const data = await renderImage(
+              tileScale,
+              tileSize,
+              rendered.styleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+
+            if (calculateMD5(data) !== hashs[tileName]) {
+              // Store data
+              await cacheMBtilesTileData(
+                source,
+                z,
+                x,
+                y,
+                data,
+                storeTransparent
+              );
+            }
+          } catch (error) {
+            if (error.message === "Tile MD5 does not exist") {
+              needRender = true;
+            } else {
+              throw error;
+            }
+          }
+        } else if (refreshTimestamp !== undefined) {
+          try {
+            const created = getMBTilesTileCreated(source, z, x, y);
+
+            if (!created || created < refreshTimestamp) {
+              needRender = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needRender = true;
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          needRender = true;
+        }
+
+        if (needRender === true) {
           printLog(
             "info",
             `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
@@ -824,119 +880,83 @@ export async function renderMBTilesTiles(
             metadata.format
           );
 
-          if (calculateMD5(data) !== hashs[tileName]) {
-            // Store data
-            await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
-          }
-        } catch (error) {
-          if (error.message === "Tile MD5 does not exist") {
-            needRender = true;
-          } else {
-            throw error;
-          }
+          // Store data
+          await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
         }
-      } else if (refreshTimestamp !== undefined) {
-        try {
-          const created = getMBTilesTileCreated(source, z, x, y);
-
-          if (!created || created < refreshTimestamp) {
-            needRender = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needRender = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needRender = true;
-      }
-
-      if (needRender === true) {
+      } catch (error) {
         printLog(
-          "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        // Rendered data
-        const data = await renderImage(
-          tileScale,
-          tileSize,
-          rendered.styleJSON,
-          z,
-          x,
-          y,
-          metadata.format
-        );
-
-        // Store data
-        await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-      );
-    }
-  }
-
-  printLog("info", "Rendering datas...");
-
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        if (rendered.export === true) {
-          return;
-        }
-
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= concurrency) {
-          await delay(50);
-        }
-
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
-
-        /* Run a task */
-        renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
+          "error",
+          `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
+
+    printLog("info", "Rendering datas...");
+
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          if (rendered.export === true) {
+            return;
+          }
+
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= concurrency) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
+        }
+      }
+    }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    /* Create overviews */
+    if (createOverview === true) {
+      printLog("info", "Creating overviews...");
+
+      const command = `gdaladdo -r lanczos -oo ZLEVEL=9 ${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304`;
+
+      printLog("info", `Gdal command: ${command}`);
+
+      const commandOutput = await runCommand(command);
+
+      printLog("info", `Gdal command output: ${commandOutput}`);
+    }
+
+    printLog(
+      "info",
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to render style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      // Close MBTiles SQLite database
+      closeMBTilesDB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  // Close MBTiles SQLite database
-  closeMBTilesDB(source);
-
-  /* Create overviews */
-  if (createOverview === true) {
-    printLog("info", "Creating overviews...");
-
-    const command = `gdaladdo -r lanczos -oo ZLEVEL=9 ${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`;
-
-    printLog("info", `Gdal command: ${command}`);
-
-    const commandOutput = await runCommand(command);
-
-    printLog("info", `Gdal command output: ${commandOutput}`);
-  }
-
-  printLog(
-    "info",
-    `Completed render ${total} tiles of style "${id}" to mbtiles after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
@@ -967,96 +987,154 @@ export async function renderXYZTiles(
 ) {
   const startTime = Date.now();
 
-  const coverages = [
-    {
-      bbox: bbox,
-      zoom: maxzoom,
-    },
-  ];
+  let source;
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
-
-  let log = `Rendering ${total} tiles of style "${id}" to xyz with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
-    bbox
-  )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
-
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
-
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
-
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-    log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
-    refreshTimestamp = true;
-
-    log += `\n\tRefresh before: check MD5`;
-  }
-
-  printLog("info", log);
-
-  /* Open MD5 SQLite database */
-  const source = await openXYZMD5DB(
-    `${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite`,
-    true,
-    30000 // 30 secs
-  );
-
-  /* Get hashs */
-  let hashs;
   try {
-    printLog(
-      "info",
-      `Get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite"...`
+    const coverages = [
+      {
+        bbox: bbox,
+        zoom: maxzoom,
+      },
+    ];
+
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+
+    let log = `Rendering ${total} tiles of style "${id}" to xyz with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
+
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
+
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
+
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+
+      log += `\n\tOld than: ${refreshBefore} days`;
+    } else if (typeof refreshBefore === "boolean") {
+      refreshTimestamp = true;
+
+      log += `\n\tRefresh before: check MD5`;
+    }
+
+    printLog("info", log);
+
+    /* Open MD5 SQLite database */
+    const source = await openXYZMD5DB(
+      `${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite`,
+      true,
+      30000 // 30 secs
     );
 
-    hashs = getXYZTileHashFromCoverages(source, coverages);
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite": ${error}`
-    );
-
-    hashs = {};
-  }
-
-  /* Update metadata */
-  printLog("info", "Updating metadata...");
-
-  await updateXYZMetadata(
-    source,
-    {
-      ...metadata,
-      maxzoom: maxzoom,
-      minzoom: maxzoom,
-    },
-    30000 // 30 secs
-  );
-
-  /* Render tile files */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
-
-  const rendered = config.styles[id].rendered;
-
-  async function renderXYZTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
-
-    const completeTasks = tasks.completeTasks;
-
+    /* Get hashs */
+    let hashs;
     try {
-      let needRender = false;
+      printLog(
+        "info",
+        `Get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite"...`
+      );
 
-      if (refreshTimestamp === true) {
-        try {
+      hashs = getXYZTileHashFromCoverages(source, coverages);
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite": ${error}`
+      );
+
+      hashs = {};
+    }
+
+    /* Update metadata */
+    printLog("info", "Updating metadata...");
+
+    await updateXYZMetadata(
+      source,
+      {
+        ...metadata,
+        maxzoom: maxzoom,
+        minzoom: maxzoom,
+      },
+      30000 // 30 secs
+    );
+
+    /* Render tile files */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
+
+    const rendered = config.styles[id].rendered;
+
+    async function renderXYZTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
+
+      const completeTasks = tasks.completeTasks;
+
+      try {
+        let needRender = false;
+
+        if (refreshTimestamp === true) {
+          try {
+            printLog(
+              "info",
+              `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            );
+
+            // Rendered data
+            const data = await renderImage(
+              tileScale,
+              tileSize,
+              rendered.styleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+
+            if (calculateMD5(data) !== hashs[tileName]) {
+              // Store data
+              await cacheXYZTileFile(
+                `${process.env.DATA_DIR}/exports/xyzs/${id}`,
+                source,
+                z,
+                x,
+                y,
+                metadata.format,
+                data,
+                storeTransparent
+              );
+            }
+          } catch (error) {
+            if (error.message === "Tile MD5 does not exist") {
+              needRender = true;
+            } else {
+              throw error;
+            }
+          }
+        } else if (refreshTimestamp !== undefined) {
+          try {
+            const created = getXYZTileCreated(source, z, x, y);
+
+            if (!created || created < refreshTimestamp) {
+              needRender = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needRender = true;
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          needRender = true;
+        }
+
+        if (needRender === true) {
           printLog(
             "info",
             `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
@@ -1073,134 +1151,89 @@ export async function renderXYZTiles(
             metadata.format
           );
 
-          if (calculateMD5(data) !== hashs[tileName]) {
-            // Store data
-            await cacheXYZTileFile(
-              `${process.env.DATA_DIR}/exports/xyzs/${id}`,
-              source,
-              z,
-              x,
-              y,
-              metadata.format,
-              data,
-              storeTransparent
-            );
-          }
-        } catch (error) {
-          if (error.message === "Tile MD5 does not exist") {
-            needRender = true;
-          } else {
-            throw error;
-          }
+          // Store data
+          await cacheXYZTileFile(
+            `${process.env.DATA_DIR}/exports/xyzs/${id}`,
+            source,
+            z,
+            x,
+            y,
+            metadata.format,
+            data,
+            storeTransparent
+          );
         }
-      } else if (refreshTimestamp !== undefined) {
-        try {
-          const created = getXYZTileCreated(source, z, x, y);
-
-          if (!created || created < refreshTimestamp) {
-            needRender = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needRender = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needRender = true;
-      }
-
-      if (needRender === true) {
+      } catch (error) {
         printLog(
-          "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        // Rendered data
-        const data = await renderImage(
-          tileScale,
-          tileSize,
-          rendered.styleJSON,
-          z,
-          x,
-          y,
-          metadata.format
-        );
-
-        // Store data
-        await cacheXYZTileFile(
-          `${process.env.DATA_DIR}/exports/xyzs/${id}`,
-          source,
-          z,
-          x,
-          y,
-          metadata.format,
-          data,
-          storeTransparent
-        );
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-      );
-    }
-  }
-
-  printLog("info", "Rendering datas...");
-
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        if (rendered.export === true) {
-          return;
-        }
-
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= concurrency) {
-          await delay(50);
-        }
-
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
-
-        /* Run a task */
-        renderXYZTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
+          "error",
+          `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
+
+    printLog("info", "Rendering datas...");
+
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          if (rendered.export === true) {
+            return;
+          }
+
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= concurrency) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          renderXYZTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
+        }
+      }
+    }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/xyzs/${id}`,
+      /^.*\.(gif|png|jpg|jpeg|webp)$/
+    );
+
+    /* Create overviews */
+    if (createOverview === true) {
+    }
+
+    printLog(
+      "info",
+      `Completed render ${total} tiles of style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to render style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      /* Close MD5 SQLite database */
+      closeXYZMD5DB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  /* Close MD5 SQLite database */
-  closeXYZMD5DB(source);
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-    /^.*\.(sqlite|gif|png|jpg|jpeg|webp)$/
-  );
-
-  /* Create overviews */
-  if (createOverview === true) {
-  }
-
-  printLog(
-    "info",
-    `Completed render ${total} tiles of style "${id}" to xyz after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
@@ -1231,95 +1264,151 @@ export async function renderPostgreSQLTiles(
 ) {
   const startTime = Date.now();
 
-  const coverages = [
-    {
-      bbox: bbox,
-      zoom: maxzoom,
-    },
-  ];
+  let source;
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
-
-  let log = `Rendering ${total} tiles of style "${id}" to postgresql with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax zoom: ${maxzoom}\n\tBBox: ${JSON.stringify(
-    bbox
-  )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
-
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
-
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
-
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-    log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
-    refreshTimestamp = true;
-
-    log += `\n\tRefresh before: check MD5`;
-  }
-
-  printLog("info", log);
-
-  /* Open PostgreSQL database */
-  const source = await openPostgreSQLDB(
-    `${process.env.POSTGRESQL_BASE_URI}/${id}`,
-    true
-  );
-
-  /* Get hashs */
-  let hashs;
   try {
-    printLog(
-      "info",
-      `Get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}"...`
+    const coverages = [
+      {
+        bbox: bbox,
+        zoom: maxzoom,
+      },
+    ];
+
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+
+    let log = `Rendering ${total} tiles of style "${id}" to postgresql with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
+
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
+
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
+
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+
+      log += `\n\tOld than: ${refreshBefore} days`;
+    } else if (typeof refreshBefore === "boolean") {
+      refreshTimestamp = true;
+
+      log += `\n\tRefresh before: check MD5`;
+    }
+
+    printLog("info", log);
+
+    /* Open PostgreSQL database */
+    source = await openPostgreSQLDB(
+      `${process.env.POSTGRESQL_BASE_URI}/${id}`,
+      true
     );
 
-    hashs = await getPostgreSQLTileHashFromCoverages(source, coverages);
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}: ${error}`
-    );
-
-    hashs = {};
-  }
-
-  /* Update metadata */
-  printLog("info", "Updating metadata...");
-
-  await updatePostgreSQLMetadata(
-    source,
-    {
-      ...metadata,
-      maxzoom: maxzoom,
-      minzoom: maxzoom,
-    },
-    30000 // 30 secs
-  );
-
-  /* Render tiles */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
-
-  const rendered = config.styles[id].rendered;
-
-  async function renderPostgreSQLTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
-
-    const completeTasks = tasks.completeTasks;
-
+    /* Get hashs */
+    let hashs;
     try {
-      let needRender = false;
+      printLog(
+        "info",
+        `Get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}"...`
+      );
 
-      if (refreshTimestamp === true) {
-        try {
+      hashs = await getPostgreSQLTileHashFromCoverages(source, coverages);
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}: ${error}`
+      );
+
+      hashs = {};
+    }
+
+    /* Update metadata */
+    printLog("info", "Updating metadata...");
+
+    await updatePostgreSQLMetadata(
+      source,
+      {
+        ...metadata,
+        maxzoom: maxzoom,
+        minzoom: maxzoom,
+      },
+      30000 // 30 secs
+    );
+
+    /* Render tiles */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
+
+    const rendered = config.styles[id].rendered;
+
+    async function renderPostgreSQLTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
+
+      const completeTasks = tasks.completeTasks;
+
+      try {
+        let needRender = false;
+
+        if (refreshTimestamp === true) {
+          try {
+            printLog(
+              "info",
+              `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            );
+
+            // Rendered data
+            const data = await renderImage(
+              tileScale,
+              tileSize,
+              rendered.styleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+
+            if (calculateMD5(data) !== hashs[tileName]) {
+              // Store data
+              await cachePostgreSQLTileData(
+                source,
+                z,
+                x,
+                y,
+                data,
+                storeTransparent
+              );
+            }
+          } catch (error) {
+            if (error.message === "Tile MD5 does not exist") {
+              needRender = true;
+            } else {
+              throw error;
+            }
+          }
+        } else if (refreshTimestamp !== undefined) {
+          try {
+            const created = await getPostgreSQLTileCreated(source, z, x, y);
+
+            if (!created || created < refreshTimestamp) {
+              needRender = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needRender = true;
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          needRender = true;
+        }
+
+        if (needRender === true) {
           printLog(
             "info",
             `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
@@ -1336,115 +1425,79 @@ export async function renderPostgreSQLTiles(
             metadata.format
           );
 
-          if (calculateMD5(data) !== hashs[tileName]) {
-            // Store data
-            await cachePostgreSQLTileData(
-              source,
-              z,
-              x,
-              y,
-              data,
-              storeTransparent
-            );
-          }
-        } catch (error) {
-          if (error.message === "Tile MD5 does not exist") {
-            needRender = true;
-          } else {
-            throw error;
-          }
+          // Store data
+          await cachePostgreSQLTileData(
+            source,
+            z,
+            x,
+            y,
+            data,
+            storeTransparent
+          );
         }
-      } else if (refreshTimestamp !== undefined) {
-        try {
-          const created = await getPostgreSQLTileCreated(source, z, x, y);
-
-          if (!created || created < refreshTimestamp) {
-            needRender = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needRender = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needRender = true;
-      }
-
-      if (needRender === true) {
+      } catch (error) {
         printLog(
-          "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        // Rendered data
-        const data = await renderImage(
-          tileScale,
-          tileSize,
-          rendered.styleJSON,
-          z,
-          x,
-          y,
-          metadata.format
-        );
-
-        // Store data
-        await cachePostgreSQLTileData(source, z, x, y, data, storeTransparent);
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-      );
-    }
-  }
-
-  printLog("info", "Rendering datas...");
-
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        if (rendered.export === true) {
-          return;
-        }
-
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= concurrency) {
-          await delay(50);
-        }
-
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
-
-        /* Run a task */
-        renderPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
+          "error",
+          `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
+
+    printLog("info", "Rendering datas...");
+
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          if (rendered.export === true) {
+            return;
+          }
+
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= concurrency) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          renderPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
+        }
+      }
+    }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    /* Create overviews */
+    if (createOverview === true) {
+    }
+
+    printLog(
+      "info",
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to render style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      /* Close PostgreSQL database */
+      await closePostgreSQLDB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  /* Close PostgreSQL database */
-  await closePostgreSQLDB(source);
-
-  /* Create overviews */
-  if (createOverview === true) {
-  }
-
-  printLog(
-    "info",
-    `Completed render ${total} tiles of style "${id}" to postgresql after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }

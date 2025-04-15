@@ -7,7 +7,6 @@ import { seed } from "./seed.js";
 import {
   getXYZTileHashFromCoverages,
   calculatXYZTileHash,
-  updateXYZMetadata,
   getXYZTileFromURL,
   cacheXYZTileFile,
   getXYZMetadata,
@@ -18,7 +17,6 @@ import {
 import {
   getMBTilesTileHashFromCoverages,
   calculateMBTilesTileHash,
-  updateMBTilesMetadata,
   getMBTilesTileFromURL,
   cacheMBtilesTileData,
   downloadMBTilesFile,
@@ -45,7 +43,6 @@ import {
 import {
   getPostgreSQLTileHashFromCoverages,
   calculatePostgreSQLTileHash,
-  updatePostgreSQLMetadata,
   getPostgreSQLTileFromURL,
   cachePostgreSQLTileData,
   getPostgreSQLMetadata,
@@ -914,13 +911,6 @@ export const serve_data = {
                     ...cacheSource.metadata,
                     cacheCoverages: cacheSource.coverages,
                   });
-
-                  /* Update MBTiles metadata */
-                  await updateMBTilesMetadata(
-                    dataInfo.source,
-                    dataInfo.tileJSON,
-                    30000 // 30 secs
-                  );
                 } else {
                   /* Get MBTiles path */
                   dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
@@ -1004,13 +994,6 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: cacheSource.coverages,
                 });
-
-                /* Update XYZ metadata */
-                await updateXYZMetadata(
-                  dataInfo.md5Source,
-                  dataInfo.tileJSON,
-                  30000 // 30 secs
-                );
               } else {
                 /* Get XYZ path */
                 dataInfo.path = `${process.env.DATA_DIR}/xyzs/${item.xyz}`;
@@ -1065,13 +1048,6 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: cacheSource.coverages,
                 });
-
-                /* Update PostgreSQL metadata */
-                await updatePostgreSQLMetadata(
-                  dataInfo.source,
-                  dataInfo.tileJSON,
-                  30000 // 30 secs
-                );
               } else {
                 /* Get XYZ path */
                 dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;

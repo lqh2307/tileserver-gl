@@ -13,6 +13,7 @@ import {
 } from "./geojson.js";
 import {
   getXYZTileCreated,
+  updateXYZMetadata,
   downloadXYZTile,
   closeXYZMD5DB,
   getXYZTileMD5,
@@ -20,6 +21,7 @@ import {
 } from "./tile_xyz.js";
 import {
   getMBTilesTileCreated,
+  updateMBTilesMetadata,
   downloadMBTilesTile,
   getMBTilesTileMD5,
   closeMBTilesDB,
@@ -38,6 +40,7 @@ import {
 } from "./utils.js";
 import {
   getPostgreSQLTileCreated,
+  updatePostgreSQLMetadata,
   downloadPostgreSQLTile,
   getPostgreSQLTileMD5,
   closePostgreSQLDB,
@@ -93,6 +96,7 @@ async function updateSeedFile(seed, timeout) {
 /**
  * Seed MBTiles tiles
  * @param {string} id Cache MBTiles ID
+ * @param {Object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -105,6 +109,7 @@ async function updateSeedFile(seed, timeout) {
  */
 async function seedMBTilesTiles(
   id,
+  metadata,
   url,
   scheme,
   coverages,
@@ -116,183 +121,206 @@ async function seedMBTilesTiles(
 ) {
   const startTime = Date.now();
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
-
-  let log = `Seeding ${total} tiles of mbtiles "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
-    coverages
-  )}`;
-
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
-
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
-
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-    log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
-    refreshTimestamp = true;
-
-    log += `\n\tRefresh before: check MD5`;
-  }
-
-  printLog("info", log);
-
-  /* Get hashs */
-  let hashs;
-  const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+  let source;
 
   try {
-    printLog("info", `Get hashs from "${hashURL}"...`);
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    const res = await postDataToURL(
-      hashURL,
-      300000, // 5 mins
-      coverages,
-      "json"
-    );
+    let log = `Seeding ${total} tiles of mbtiles "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}`;
 
-    hashs = res.data;
-  } catch (error) {
-    printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
 
-    hashs = {};
-  }
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
 
-  /* Open MBTiles SQLite database */
-  const source = await openMBTilesDB(
-    `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
-    true,
-    30000 // 30 secs
-  );
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-  /* Download tiles */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
+      log += `\n\tOld than: ${refreshBefore} days`;
+    } else if (typeof refreshBefore === "boolean") {
+      refreshTimestamp = true;
 
-  async function seedMBTilesTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
+      log += `\n\tRefresh before: check MD5`;
+    }
 
-    const completeTasks = tasks.completeTasks;
+    printLog("info", log);
+
+    /* Get hashs */
+    let hashs;
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
     try {
-      let needDownload = false;
+      printLog("info", `Get hashs from "${hashURL}"...`);
 
-      if (refreshTimestamp === true) {
-        try {
-          const md5 = getMBTilesTileMD5(source, z, x, y);
-
-          if (md5 !== hashs[tileName]) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile MD5 does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else if (refreshTimestamp !== undefined) {
-        try {
-          const created = getMBTilesTileCreated(source, z, x, y);
-
-          if (!created || created < refreshTimestamp) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needDownload = true;
-      }
-
-      if (needDownload === true) {
-        const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-        const targetURL = url
-          .replace("{z}", `${z}`)
-          .replace("{x}", `${x}`)
-          .replace("{y}", `${tmpY}`);
-
-        printLog(
-          "info",
-          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-        );
-
-        await downloadMBTilesTile(
-          targetURL,
-          source,
-          z,
-          x,
-          tmpY,
-          maxTry,
-          timeout,
-          storeTransparent
-        );
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+      const res = await postDataToURL(
+        hashURL,
+        300000, // 5 mins
+        coverages,
+        "json"
       );
+
+      hashs = res.data;
+    } catch (error) {
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+
+      hashs = {};
     }
-  }
 
-  printLog("info", "Downloading datas...");
+    /* Open MBTiles SQLite database */
+    source = await openMBTilesDB(
+      `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
+      true,
+      30000 // 30 secs
+    );
 
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= concurrency) {
-          await delay(50);
+    /* Update MBTiles metadata */
+    printLog("info", "Updating metadata...");
+
+    await updateMBTilesMetadata(
+      source,
+      ...metadata,
+      30000 // 30 secs
+    );
+
+    /* Download tiles */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
+
+    async function seedMBTilesTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
+
+      const completeTasks = tasks.completeTasks;
+
+      try {
+        let needDownload = false;
+
+        if (refreshTimestamp === true) {
+          try {
+            const md5 = getMBTilesTileMD5(source, z, x, y);
+
+            if (md5 !== hashs[tileName]) {
+              needDownload = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile MD5 does not exist") {
+              needDownload = true;
+            } else {
+              throw error;
+            }
+          }
+        } else if (refreshTimestamp !== undefined) {
+          try {
+            const created = getMBTilesTileCreated(source, z, x, y);
+
+            if (!created || created < refreshTimestamp) {
+              needDownload = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needDownload = true;
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          needDownload = true;
         }
 
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
+        if (needDownload === true) {
+          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
-        /* Run a task */
-        seedMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
+          const targetURL = url
+            .replace("{z}", `${z}`)
+            .replace("{x}", `${x}`)
+            .replace("{y}", `${tmpY}`);
+
+          printLog(
+            "info",
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          );
+
+          await downloadMBTilesTile(
+            targetURL,
+            source,
+            z,
+            x,
+            tmpY,
+            maxTry,
+            timeout,
+            storeTransparent
+          );
+        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
+
+    printLog("info", "Downloading datas...");
+
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= concurrency) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          seedMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
+        }
+      }
+    }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    printLog(
+      "info",
+      `Completed seed ${total} tiles of mbtiles "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to seed mbtiles "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      // Close MBTiles SQLite database
+      closeMBTilesDB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  // Close MBTiles SQLite database
-  closeMBTilesDB(source);
-
-  printLog(
-    "info",
-    `Completed seed ${total} tiles of mbtiles "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
  * Seed PostgreSQL tiles
  * @param {string} id Cache PostgreSQL ID
+ * @param {Object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -305,6 +333,7 @@ async function seedMBTilesTiles(
  */
 async function seedPostgreSQLTiles(
   id,
+  metadata,
   url,
   scheme,
   coverages,
@@ -316,183 +345,205 @@ async function seedPostgreSQLTiles(
 ) {
   const startTime = Date.now();
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
-
-  let log = `Seeding ${total} tiles of postgresql "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
-    coverages
-  )}`;
-
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
-
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
-
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-    log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
-    refreshTimestamp = true;
-
-    log += `\n\tRefresh before: check MD5`;
-  }
-
-  printLog("info", log);
-
-  /* Get hashs */
-  let hashs;
-  const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+  let source;
 
   try {
-    printLog("info", `Get hashs from "${hashURL}"...`);
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    const res = await postDataToURL(
-      hashURL,
-      300000, // 5 mins
-      coverages,
-      "json"
-    );
+    let log = `Seeding ${total} tiles of postgresql "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}`;
 
-    hashs = res.data;
-  } catch (error) {
-    printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
 
-    hashs = {};
-  }
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
 
-  /* Open PostgreSQL database */
-  const source = await openPostgreSQLDB(
-    `${process.env.POSTGRESQL_BASE_URI}/${id}`,
-    true
-  );
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-  /* Download tiles */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
+      log += `\n\tOld than: ${refreshBefore} days`;
+    } else if (typeof refreshBefore === "boolean") {
+      refreshTimestamp = true;
 
-  async function seedPostgreSQLTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
+      log += `\n\tRefresh before: check MD5`;
+    }
 
-    const completeTasks = tasks.completeTasks;
+    printLog("info", log);
+
+    /* Get hashs */
+    let hashs;
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
     try {
-      let needDownload = false;
+      printLog("info", `Get hashs from "${hashURL}"...`);
 
-      if (refreshTimestamp === true) {
-        try {
-          const md5 = await getPostgreSQLTileMD5(source, z, x, y);
-
-          if (md5 !== hashs[tileName]) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile MD5 does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else if (refreshTimestamp !== undefined) {
-        try {
-          const created = await getPostgreSQLTileCreated(source, z, x, y);
-
-          if (!created || created < refreshTimestamp) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needDownload = true;
-      }
-
-      if (needDownload === true) {
-        const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-        const targetURL = url
-          .replace("{z}", `${z}`)
-          .replace("{x}", `${x}`)
-          .replace("{y}", `${tmpY}`);
-
-        printLog(
-          "info",
-          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-        );
-
-        await downloadPostgreSQLTile(
-          targetURL,
-          source,
-          z,
-          x,
-          tmpY,
-          maxTry,
-          timeout,
-          storeTransparent
-        );
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+      const res = await postDataToURL(
+        hashURL,
+        300000, // 5 mins
+        coverages,
+        "json"
       );
+
+      hashs = res.data;
+    } catch (error) {
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+
+      hashs = {};
     }
-  }
 
-  printLog("info", "Downloading datas...");
+    /* Open PostgreSQL database */
+    source = await openPostgreSQLDB(
+      `${process.env.POSTGRESQL_BASE_URI}/${id}`,
+      true
+    );
 
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= concurrency) {
-          await delay(50);
+    /* Update PostgreSQL metadata */
+    printLog("info", "Updating metadata...");
+
+    await updatePostgreSQLMetadata(
+      source,
+      ...metadata,
+      30000 // 30 secs
+    );
+
+    /* Download tiles */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
+
+    async function seedPostgreSQLTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
+
+      const completeTasks = tasks.completeTasks;
+
+      try {
+        let needDownload = false;
+
+        if (refreshTimestamp === true) {
+          try {
+            const md5 = await getPostgreSQLTileMD5(source, z, x, y);
+
+            if (md5 !== hashs[tileName]) {
+              needDownload = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile MD5 does not exist") {
+              needDownload = true;
+            } else {
+              throw error;
+            }
+          }
+        } else if (refreshTimestamp !== undefined) {
+          try {
+            const created = await getPostgreSQLTileCreated(source, z, x, y);
+
+            if (!created || created < refreshTimestamp) {
+              needDownload = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needDownload = true;
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          needDownload = true;
         }
 
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
+        if (needDownload === true) {
+          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
-        /* Run a task */
-        seedPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
+          const targetURL = url
+            .replace("{z}", `${z}`)
+            .replace("{x}", `${x}`)
+            .replace("{y}", `${tmpY}`);
+
+          printLog(
+            "info",
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          );
+
+          await downloadPostgreSQLTile(
+            targetURL,
+            source,
+            z,
+            x,
+            tmpY,
+            maxTry,
+            timeout,
+            storeTransparent
+          );
+        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
+
+    printLog("info", "Downloading datas...");
+
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= concurrency) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          seedPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
+        }
+      }
+    }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    printLog(
+      "info",
+      `Completed seed ${total} tiles of postgresql "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to seed postgresql "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      /* Close PostgreSQL database */
+      await closePostgreSQLDB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  /* Close PostgreSQL database */
-  await closePostgreSQLDB(source);
-
-  printLog(
-    "info",
-    `Completed seed ${total} tiles of postgresql "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
  * Seed XYZ tiles
  * @param {string} id Cache XYZ ID
- * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * @param {Object} metadata Metadata object
  * @param {string} url Tile URL
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -505,7 +556,7 @@ async function seedPostgreSQLTiles(
  */
 async function seedXYZTiles(
   id,
-  format,
+  metadata,
   url,
   scheme,
   coverages,
@@ -517,186 +568,208 @@ async function seedXYZTiles(
 ) {
   const startTime = Date.now();
 
-  /* Calculate summary */
-  const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
-
-  let log = `Seeding ${total} tiles of xyz "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tBBoxs: ${JSON.stringify(
-    coverages
-  )}`;
-
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
-
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
-
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-    log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
-    refreshTimestamp = true;
-
-    log += `\n\tRefresh before: check MD5`;
-  }
-
-  printLog("info", log);
-
-  /* Get hashs */
-  let hashs;
-  const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+  let source;
 
   try {
-    printLog("info", `Get hashs from "${hashURL}"...`);
+    /* Calculate summary */
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    const res = await postDataToURL(
-      hashURL,
-      300000, // 5 mins
-      coverages,
-      "json"
-    );
+    let log = `Seeding ${total} tiles of xyz "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tCoverages: ${JSON.stringify(
+      coverages
+    )}`;
 
-    hashs = res.data;
-  } catch (error) {
-    printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
 
-    hashs = {};
-  }
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
 
-  /* Open MD5 SQLite database */
-  const source = await openXYZMD5DB(
-    `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
-    true,
-    30000 // 30 secs
-  );
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-  /* Download tile files */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
+      log += `\n\tOld than: ${refreshBefore} days`;
+    } else if (typeof refreshBefore === "boolean") {
+      refreshTimestamp = true;
 
-  async function seedXYZTileData(z, x, y, tasks) {
-    const tileName = `${z}/${x}/${y}`;
+      log += `\n\tRefresh before: check MD5`;
+    }
 
-    const completeTasks = tasks.completeTasks;
+    printLog("info", log);
+
+    /* Get hashs */
+    let hashs;
+    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
 
     try {
-      let needDownload = false;
+      printLog("info", `Get hashs from "${hashURL}"...`);
 
-      if (refreshTimestamp === true) {
-        try {
-          const md5 = getXYZTileMD5(source, z, x, y);
-
-          if (md5 !== hashs[tileName]) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile MD5 does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else if (refreshTimestamp !== undefined) {
-        try {
-          const created = getXYZTileCreated(source, z, x, y);
-
-          if (!created || created < refreshTimestamp) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "Tile created does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needDownload = true;
-      }
-
-      if (needDownload === true) {
-        const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-        const targetURL = url
-          .replace("{z}", `${z}`)
-          .replace("{x}", `${x}`)
-          .replace("{y}", `${tmpY}`);
-
-        printLog(
-          "info",
-          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-        );
-
-        await downloadXYZTile(
-          targetURL,
-          id,
-          source,
-          z,
-          x,
-          tmpY,
-          format,
-          maxTry,
-          timeout,
-          storeTransparent
-        );
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+      const res = await postDataToURL(
+        hashURL,
+        300000, // 5 mins
+        coverages,
+        "json"
       );
+
+      hashs = res.data;
+    } catch (error) {
+      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
+
+      hashs = {};
     }
-  }
 
-  printLog("info", "Downloading datas...");
+    /* Open MD5 SQLite database */
+    source = await openXYZMD5DB(
+      `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
+      true,
+      30000 // 30 secs
+    );
 
-  for (const { z, x, y } of tileBounds) {
-    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-        /* Wait slot for a task */
-        while (tasks.activeTasks >= concurrency) {
-          await delay(50);
+    /* Update XYZ metadata */
+    printLog("info", "Updating metadata...");
+
+    await updateXYZMetadata(
+      source,
+      ...metadata,
+      30000 // 30 secs
+    );
+
+    /* Download tile files */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
+
+    async function seedXYZTileData(z, x, y, tasks) {
+      const tileName = `${z}/${x}/${y}`;
+
+      const completeTasks = tasks.completeTasks;
+
+      try {
+        let needDownload = false;
+
+        if (refreshTimestamp === true) {
+          try {
+            const md5 = getXYZTileMD5(source, z, x, y);
+
+            if (md5 !== hashs[tileName]) {
+              needDownload = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile MD5 does not exist") {
+              needDownload = true;
+            } else {
+              throw error;
+            }
+          }
+        } else if (refreshTimestamp !== undefined) {
+          try {
+            const created = getXYZTileCreated(source, z, x, y);
+
+            if (!created || created < refreshTimestamp) {
+              needDownload = true;
+            }
+          } catch (error) {
+            if (error.message === "Tile created does not exist") {
+              needDownload = true;
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          needDownload = true;
         }
 
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks++;
-          tasks.completeTasks++;
-        });
+        if (needDownload === true) {
+          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
-        /* Run a task */
-        seedXYZTileData(z, xCount, yCount, tasks).finally(() =>
-          tasks.mutex.runExclusive(() => {
-            tasks.activeTasks--;
-          })
+          const targetURL = url
+            .replace("{z}", `${z}`)
+            .replace("{x}", `${x}`)
+            .replace("{y}", `${tmpY}`);
+
+          printLog(
+            "info",
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          );
+
+          await downloadXYZTile(
+            targetURL,
+            id,
+            source,
+            z,
+            x,
+            tmpY,
+            metadata.format,
+            maxTry,
+            timeout,
+            storeTransparent
+          );
+        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
+
+    printLog("info", "Downloading datas...");
+
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= concurrency) {
+            await delay(50);
+          }
+
+          await tasks.mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          seedXYZTileData(z, xCount, yCount, tasks).finally(() =>
+            tasks.mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
+        }
+      }
+    }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(50);
+    }
+
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/xyzs/${id}`,
+      /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/
+    );
+
+    printLog(
+      "info",
+      `Completed seed ${total} tiles of xyz "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to seed xyz "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
+  } finally {
+    if (source !== undefined) {
+      /* Close MD5 SQLite database */
+      closeXYZMD5DB(source);
+    }
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  /* Close MD5 SQLite database */
-  closeXYZMD5DB(source);
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-    /^.*\.(sqlite|gif|png|jpg|jpeg|webp|pbf)$/
-  );
-
-  printLog(
-    "info",
-    `Completed seed ${total} tiles of xyz "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
@@ -711,98 +784,107 @@ async function seedXYZTiles(
 async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  let log = `Seeding geojson "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
-
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
-
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
-
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-    log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
-    refreshTimestamp = true;
-
-    log += `\n\tRefresh before: check MD5`;
-  }
-
-  printLog("info", log);
-
-  /* Download GeoJSON file */
-  const filePath = `${process.env.DATA_DIR}/caches/geojsons/${id}/${id}.geojson`;
-
   try {
-    let needDownload = false;
+    let log = `Seeding geojson "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-    if (refreshTimestamp === true) {
-      try {
-        const [response, geoJSONData] = await Promise.all([
-          getDataFromURL(
-            url.replace(`${id}.geojson`, `${id}/md5`),
-            timeout,
-            "arraybuffer"
-          ),
-          getGeoJSON(filePath, false),
-        ]);
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
 
-        if (response.headers["etag"] !== calculateMD5(geoJSONData)) {
-          needDownload = true;
-        }
-      } catch (error) {
-        if (error.message === "GeoJSON does not exist") {
-          needDownload = true;
-        } else {
-          throw error;
-        }
-      }
-    } else if (refreshTimestamp !== undefined) {
-      try {
-        const created = await getGeoJSONCreated(filePath);
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
 
-        if (!created || created < refreshTimestamp) {
-          needDownload = true;
-        }
-      } catch (error) {
-        if (error.message === "GeoJSON created does not exist") {
-          needDownload = true;
-        } else {
-          throw error;
-        }
-      }
-    } else {
-      needDownload = true;
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+
+      log += `\n\tOld than: ${refreshBefore} days`;
+    } else if (typeof refreshBefore === "boolean") {
+      refreshTimestamp = true;
+
+      log += `\n\tRefresh before: check MD5`;
     }
 
-    printLog("info", "Downloading geojson...");
+    printLog("info", log);
 
-    if (needDownload === true) {
-      printLog(
-        "info",
-        `Downloading geojson "${id}" - File "${filePath}" - From "${url}"...`
-      );
+    /* Download GeoJSON file */
+    const filePath = `${process.env.DATA_DIR}/caches/geojsons/${id}/${id}.geojson`;
 
-      await downloadGeoJSONFile(url, filePath, maxTry, timeout);
+    try {
+      let needDownload = false;
+
+      if (refreshTimestamp === true) {
+        try {
+          const [response, geoJSONData] = await Promise.all([
+            getDataFromURL(
+              url.replace(`${id}.geojson`, `${id}/md5`),
+              timeout,
+              "arraybuffer"
+            ),
+            getGeoJSON(filePath, false),
+          ]);
+
+          if (response.headers["etag"] !== calculateMD5(geoJSONData)) {
+            needDownload = true;
+          }
+        } catch (error) {
+          if (error.message === "GeoJSON does not exist") {
+            needDownload = true;
+          } else {
+            throw error;
+          }
+        }
+      } else if (refreshTimestamp !== undefined) {
+        try {
+          const created = await getGeoJSONCreated(filePath);
+
+          if (!created || created < refreshTimestamp) {
+            needDownload = true;
+          }
+        } catch (error) {
+          if (error.message === "GeoJSON created does not exist") {
+            needDownload = true;
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        needDownload = true;
+      }
+
+      printLog("info", "Downloading geojson...");
+
+      if (needDownload === true) {
+        printLog(
+          "info",
+          `Downloading geojson "${id}" - File "${filePath}" - From "${url}"...`
+        );
+
+        await downloadGeoJSONFile(url, filePath, maxTry, timeout);
+      }
+    } catch (error) {
+      printLog("error", `Failed to seed geojson "${id}": ${error}`);
     }
+
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/geojsons/${id}`,
+      /^.*\.geojson$/
+    );
+
+    printLog(
+      "info",
+      `Completed seed geojson "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
   } catch (error) {
-    printLog("error", `Failed to seed geojson "${id}": ${error}`);
+    printLog(
+      "error",
+      `Failed to seed geojson "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
   }
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/geojsons/${id}`,
-    /^.*\.geojson$/
-  );
-
-  printLog(
-    "info",
-    `Completed seeding geojson "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
@@ -817,86 +899,93 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
 async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  let log = `Seeding sprite "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  try {
+    let log = `Seeding sprite "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
 
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
 
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-    log += `\n\tOld than: ${refreshBefore} days`;
-  }
-
-  printLog("info", log);
-
-  /* Download sprite files */
-  async function seedSpriteData(fileName) {
-    const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
-
-    try {
-      let needDownload = false;
-
-      if (refreshTimestamp !== undefined) {
-        try {
-          const created = await getSpriteCreated(filePath);
-
-          if (!created || created < refreshTimestamp) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "Sprite created does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needDownload = true;
-      }
-
-      if (needDownload === true) {
-        const targetURL = url.replace("{id}", `${id}`);
-
-        printLog(
-          "info",
-          `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`
-        );
-
-        await downloadSpriteFile(url, id, fileName, maxTry, timeout);
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to seed sprite "${id}" - File "${fileName}": ${error}`
-      );
+      log += `\n\tOld than: ${refreshBefore} days`;
     }
+
+    printLog("info", log);
+
+    /* Download sprite files */
+    async function seedSpriteData(fileName) {
+      const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
+
+      try {
+        let needDownload = false;
+
+        if (refreshTimestamp !== undefined) {
+          try {
+            const created = await getSpriteCreated(filePath);
+
+            if (!created || created < refreshTimestamp) {
+              needDownload = true;
+            }
+          } catch (error) {
+            if (error.message === "Sprite created does not exist") {
+              needDownload = true;
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          needDownload = true;
+        }
+
+        if (needDownload === true) {
+          const targetURL = url.replace("{id}", `${id}`);
+
+          printLog(
+            "info",
+            `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`
+          );
+
+          await downloadSpriteFile(url, id, fileName, maxTry, timeout);
+        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to seed sprite "${id}" - File "${fileName}": ${error}`
+        );
+      }
+    }
+
+    printLog("info", "Downloading sprites...");
+
+    await Promise.all(
+      ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
+        (fileName) => seedSpriteData(fileName)
+      )
+    );
+
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/sprites/${id}`,
+      /^.*\.(json|png)$/
+    );
+
+    printLog(
+      "info",
+      `Completed seed sprite "${id}" after ${(Date.now() - startTime) / 1000}s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to seed sprite "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
   }
-
-  printLog("info", "Downloading sprites...");
-
-  await Promise.all(
-    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-      (fileName) => seedSpriteData(fileName)
-    )
-  );
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/sprites/${id}`,
-    /^.*\.(json|png)$/
-  );
-
-  printLog(
-    "info",
-    `Completed seeding sprite "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
@@ -912,115 +1001,124 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
 async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  const total = 256;
+  try {
+    const total = 256;
 
-  let log = `Seeding ${total} fonts of font "${id}" with:\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+    let log = `Seeding ${total} fonts of font "${id}" with:\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
 
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
 
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-    log += `\n\tOld than: ${refreshBefore} days`;
-  }
+      log += `\n\tOld than: ${refreshBefore} days`;
+    }
 
-  printLog("info", log);
+    printLog("info", log);
 
-  /* Remove font files */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
+    /* Remove font files */
+    const tasks = {
+      mutex: new Mutex(),
+      activeTasks: 0,
+      completeTasks: 0,
+    };
 
-  async function seedFontData(start, end, tasks) {
-    const range = `${start}-${end}`;
-    const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
+    async function seedFontData(start, end, tasks) {
+      const range = `${start}-${end}`;
+      const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
 
-    const completeTasks = tasks.completeTasks;
+      const completeTasks = tasks.completeTasks;
 
-    try {
-      let needDownload = false;
+      try {
+        let needDownload = false;
 
-      if (refreshTimestamp !== undefined) {
-        try {
-          const created = await getFontCreated(filePath);
+        if (refreshTimestamp !== undefined) {
+          try {
+            const created = await getFontCreated(filePath);
 
-          if (!created || created < refreshTimestamp) {
-            needDownload = true;
+            if (!created || created < refreshTimestamp) {
+              needDownload = true;
+            }
+          } catch (error) {
+            if (error.message === "Font created does not exist") {
+              needDownload = true;
+            } else {
+              throw error;
+            }
           }
-        } catch (error) {
-          if (error.message === "Font created does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
+        } else {
+          needDownload = true;
         }
-      } else {
-        needDownload = true;
-      }
 
-      if (needDownload === true) {
-        const targetURL = url.replace("{range}", `${range}`);
+        if (needDownload === true) {
+          const targetURL = url.replace("{range}", `${range}`);
 
+          printLog(
+            "info",
+            `Downloading font "${id}" - Range "${range}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          );
+
+          await downloadFontFile(targetURL, id, range, maxTry, timeout);
+        }
+      } catch (error) {
         printLog(
-          "info",
-          `Downloading font "${id}" - Range "${range}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          "error",
+          `Failed to seed font "${id}" - Range "${range}" - ${completeTasks}/${total}: ${error}`
         );
-
-        await downloadFontFile(targetURL, id, range, maxTry, timeout);
       }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to seed font "${id}" - Range "${range}" - ${completeTasks}/${total}: ${error}`
+    }
+
+    printLog("info", "Downloading fonts...");
+
+    for (let i = 0; i < 256; i++) {
+      /* Wait slot for a task */
+      while (tasks.activeTasks >= concurrency) {
+        await delay(50);
+      }
+
+      await tasks.mutex.runExclusive(() => {
+        tasks.activeTasks++;
+        tasks.completeTasks++;
+      });
+
+      /* Run a task */
+      seedFontData(i * 256, i * 256 + 255, tasks).finally(() =>
+        tasks.mutex.runExclusive(() => {
+          tasks.activeTasks--;
+        })
       );
     }
-  }
 
-  printLog("info", "Downloading fonts...");
-
-  for (let i = 0; i < 256; i++) {
-    /* Wait slot for a task */
-    while (tasks.activeTasks >= concurrency) {
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
       await delay(50);
     }
 
-    await tasks.mutex.runExclusive(() => {
-      tasks.activeTasks++;
-      tasks.completeTasks++;
-    });
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/fonts/${id}`,
+      /^.*\.pbf$/
+    );
 
-    /* Run a task */
-    seedFontData(i * 256, i * 256 + 255, tasks).finally(() =>
-      tasks.mutex.runExclusive(() => {
-        tasks.activeTasks--;
-      })
+    printLog(
+      "info",
+      `Completed seed ${total} fonts of font "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
+  } catch (error) {
+    printLog(
+      "error",
+      `Failed to seed font "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
     );
   }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(50);
-  }
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/fonts/${id}`,
-    /^.*\.pbf$/
-  );
-
-  printLog(
-    "info",
-    `Completed seeding ${total} fonts of font "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
-  );
 }
 
 /**
@@ -1035,71 +1133,82 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  let log = `Seeding style "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
-
-  let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
-    refreshTimestamp = new Date(refreshBefore).getTime();
-
-    log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
-    const now = new Date();
-
-    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-    log += `\n\tOld than: ${refreshBefore} days`;
-  }
-
-  printLog("info", log);
-
-  /* Download style.json file */
-  const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
-
   try {
-    let needDownload = false;
+    let log = `Seeding style "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-    if (refreshTimestamp !== undefined) {
-      try {
-        const created = await getStyleCreated(filePath);
+    let refreshTimestamp;
+    if (typeof refreshBefore === "string") {
+      refreshTimestamp = new Date(refreshBefore).getTime();
 
-        if (!created || created < refreshTimestamp) {
-          needDownload = true;
+      log += `\n\tRefresh before: ${refreshBefore}`;
+    } else if (typeof refreshBefore === "number") {
+      const now = new Date();
+
+      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+
+      log += `\n\tOld than: ${refreshBefore} days`;
+    }
+
+    printLog("info", log);
+
+    /* Download style.json file */
+    const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
+
+    try {
+      let needDownload = false;
+
+      if (refreshTimestamp !== undefined) {
+        try {
+          const created = await getStyleCreated(filePath);
+
+          if (!created || created < refreshTimestamp) {
+            needDownload = true;
+          }
+        } catch (error) {
+          if (error.message === "Style created does not exist") {
+            needDownload = true;
+          } else {
+            throw error;
+          }
         }
-      } catch (error) {
-        if (error.message === "Style created does not exist") {
-          needDownload = true;
-        } else {
-          throw error;
-        }
+      } else {
+        needDownload = true;
       }
-    } else {
-      needDownload = true;
+
+      printLog("info", "Downloading style...");
+
+      if (needDownload === true) {
+        printLog(
+          "info",
+          `Downloading style "${id}" - File "${filePath}" - From "${url}"...`
+        );
+
+        await downloadStyleFile(url, filePath, maxTry, timeout);
+      }
+    } catch (error) {
+      printLog("error", `Failed to seed style "${id}": ${error}`);
     }
 
-    printLog("info", "Downloading style...");
+    /* Remove parent folders if empty */
+    await removeEmptyFolders(
+      `${process.env.DATA_DIR}/caches/styles/${id}`,
+      /^.*\.json$/
+    );
 
-    if (needDownload === true) {
-      printLog(
-        "info",
-        `Downloading style "${id}" - File "${filePath}" - From "${url}"...`
-      );
-
-      await downloadStyleFile(url, filePath, maxTry, timeout);
-    }
+    printLog(
+      "info",
+      `Completed seeding style "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`
+    );
   } catch (error) {
-    printLog("error", `Failed to seed style "${id}": ${error}`);
+    printLog(
+      "error",
+      `Failed to seed style "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s: ${error}`
+    );
   }
-
-  /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/styles/${id}`,
-    /^.*\.json$/
-  );
-
-  printLog(
-    "info",
-    `Completed seeding style "${id}" after ${(Date.now() - startTime) / 1000}s!`
-  );
 }
 
 export {
