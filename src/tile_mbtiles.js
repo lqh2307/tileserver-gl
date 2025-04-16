@@ -8,6 +8,7 @@ import path from "node:path";
 import fs from "node:fs";
 import {
   openSQLiteWithTimeout,
+  execSQLWithTimeout,
   runSQLWithTimeout,
   closeSQLite,
 } from "./sqlite.js";
@@ -337,7 +338,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
   const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
 
   if (isCreate === true) {
-    source.exec(
+    await execSQLWithTimeout(
       `
       CREATE TABLE IF NOT EXISTS
         metadata (
@@ -345,10 +346,11 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           value TEXT NOT NULL,
           PRIMARY KEY (name)
         );
-      `
+      `,
+      30000 // 30 secs
     );
 
-    source.exec(
+    await execSQLWithTimeout(
       `
       CREATE TABLE IF NOT EXISTS
         tiles (
@@ -360,19 +362,21 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           created BIGINT,
           PRIMARY KEY (zoom_level, tile_column, tile_row)
         );
-      `
+      `,
+      30000 // 30 secs
     );
 
     const tableInfos = source.prepare("PRAGMA table_info(tiles);").all();
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {
-        source.exec(
+        await execSQLWithTimeout(
           `ALTER TABLE
             tiles
           ADD COLUMN
             hash TEXT;
-          `
+          `,
+          30000 // 30 secs
         );
       } catch (error) {
         printLog(
@@ -384,12 +388,13 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
 
     if (tableInfos.some((col) => col.name === "created") === false) {
       try {
-        source.exec(
+        await execSQLWithTimeout(
           `ALTER TABLE
             tiles
           ADD COLUMN
             created BIGINT;
-          `
+          `,
+          30000 // 30 secs
         );
       } catch (error) {
         printLog(

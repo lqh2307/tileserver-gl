@@ -7,6 +7,7 @@ import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
 import {
   openSQLiteWithTimeout,
+  execSQLWithTimeout,
   runSQLWithTimeout,
   closeSQLite,
 } from "./sqlite.js";
@@ -362,7 +363,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
   const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
 
   if (isCreate === true) {
-    source.exec(
+    await execSQLWithTimeout(
       `
       CREATE TABLE IF NOT EXISTS
         metadata (
@@ -370,10 +371,11 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
           value TEXT NOT NULL,
           PRIMARY KEY (name)
         );
-      `
+      `,
+      30000 // 30 secs
     );
 
-    source.exec(
+    await execSQLWithTimeout(
       `
       CREATE TABLE IF NOT EXISTS
         md5s (
@@ -384,19 +386,21 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
           created BIGINT,
           PRIMARY KEY (zoom_level, tile_column, tile_row)
         );
-      `
+      `,
+      30000 // 30 secs
     );
 
     const tableInfos = source.prepare("PRAGMA table_info(md5s);").all();
 
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {
-        source.exec(
+        await execSQLWithTimeout(
           `ALTER TABLE
             md5s
           ADD COLUMN
             hash TEXT;
-          `
+          `,
+          30000 // 30 secs
         );
       } catch (error) {
         printLog(
@@ -408,12 +412,13 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
 
     if (tableInfos.some((col) => col.name === "created") === false) {
       try {
-        source.exec(
+        await execSQLWithTimeout(
           `ALTER TABLE
             md5s
           ADD COLUMN
             created BIGINT;
-          `
+          `,
+          30000 // 30 secs
         );
       } catch (error) {
         printLog(

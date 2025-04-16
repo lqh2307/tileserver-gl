@@ -77,6 +77,33 @@ export async function runSQLWithTimeout(source, sql, params, timeout) {
 }
 
 /**
+ * Exec a SQL command in SQLite with timeout
+ * @param {DatabaseSync} source SQLite database instance
+ * @param {string} sql SQL command to execute
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<void>}
+ */
+export async function execSQLWithTimeout(source, sql, timeout) {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime <= timeout) {
+    try {
+      source.exec(sql);
+
+      return;
+    } catch (error) {
+      if (error.code === "SQLITE_BUSY") {
+        await delay(50);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error("Timeout to access SQLite DB");
+}
+
+/**
  * Close SQLite database
  * @param {DatabaseSync} source SQLite database instance
  * @returns {void}
