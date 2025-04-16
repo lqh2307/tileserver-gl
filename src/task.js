@@ -92,12 +92,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed clean up ${ids.length} sprites after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -141,12 +139,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed clean up ${ids.length} fonts after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -190,12 +186,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed clean up ${ids.length} styles after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -239,12 +233,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed clean up ${ids.length} geojsons after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -307,12 +299,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed clean up ${ids.length} datas after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -359,12 +349,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed seed ${ids.length} sprites after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -412,12 +400,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed seed ${ids.length} fonts after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -464,12 +450,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed seed ${ids.length} styles after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -517,12 +501,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed seed ${ids.length} geojsons after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -607,12 +589,10 @@ export async function runTasks(opts) {
               }
             }
 
-            const doneTime = Date.now();
-
             printLog(
               "info",
               `Completed seed ${ids.length} datas after: ${
-                (doneTime - startTime) / 1000
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }

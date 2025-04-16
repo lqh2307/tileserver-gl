@@ -303,12 +303,7 @@ async function seedMBTilesTiles(
       }s!`
     );
   } catch (error) {
-    printLog(
-      "error",
-      `Failed to seed mbtiles "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    throw error;
   } finally {
     if (source !== undefined) {
       // Close MBTiles SQLite database
@@ -526,12 +521,7 @@ async function seedPostgreSQLTiles(
       }s!`
     );
   } catch (error) {
-    printLog(
-      "error",
-      `Failed to seed postgresql "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    throw error;
   } finally {
     if (source !== undefined) {
       /* Close PostgreSQL database */
@@ -758,12 +748,7 @@ async function seedXYZTiles(
       }s!`
     );
   } catch (error) {
-    printLog(
-      "error",
-      `Failed to seed xyz "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    throw error;
   } finally {
     if (source !== undefined) {
       /* Close MD5 SQLite database */
@@ -784,107 +769,96 @@ async function seedXYZTiles(
 async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  try {
-    let log = `Seeding geojson "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  let log = `Seeding geojson "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-    let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
-      refreshTimestamp = new Date(refreshBefore).getTime();
+  let refreshTimestamp;
+  if (typeof refreshBefore === "string") {
+    refreshTimestamp = new Date(refreshBefore).getTime();
 
-      log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
-      const now = new Date();
+    log += `\n\tRefresh before: ${refreshBefore}`;
+  } else if (typeof refreshBefore === "number") {
+    const now = new Date();
 
-      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-      log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
-      refreshTimestamp = true;
+    log += `\n\tOld than: ${refreshBefore} days`;
+  } else if (typeof refreshBefore === "boolean") {
+    refreshTimestamp = true;
 
-      log += `\n\tRefresh before: check MD5`;
-    }
-
-    printLog("info", log);
-
-    /* Download GeoJSON file */
-    const filePath = `${process.env.DATA_DIR}/caches/geojsons/${id}/${id}.geojson`;
-
-    try {
-      let needDownload = false;
-
-      if (refreshTimestamp === true) {
-        try {
-          const [response, geoJSONData] = await Promise.all([
-            getDataFromURL(
-              url.replace(`${id}.geojson`, `${id}/md5`),
-              timeout,
-              "arraybuffer"
-            ),
-            getGeoJSON(filePath, false),
-          ]);
-
-          if (response.headers["etag"] !== calculateMD5(geoJSONData)) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "GeoJSON does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else if (refreshTimestamp !== undefined) {
-        try {
-          const created = await getGeoJSONCreated(filePath);
-
-          if (!created || created < refreshTimestamp) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "GeoJSON created does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needDownload = true;
-      }
-
-      printLog("info", "Downloading geojson...");
-
-      if (needDownload === true) {
-        printLog(
-          "info",
-          `Downloading geojson "${id}" - File "${filePath}" - From "${url}"...`
-        );
-
-        await downloadGeoJSONFile(url, filePath, maxTry, timeout);
-      }
-    } catch (error) {
-      printLog("error", `Failed to seed geojson "${id}": ${error}`);
-    }
-
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/geojsons/${id}`,
-      /^.*\.geojson$/
-    );
-
-    printLog(
-      "info",
-      `Completed seed geojson "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to seed geojson "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    log += `\n\tRefresh before: check MD5`;
   }
+
+  printLog("info", log);
+
+  /* Download GeoJSON file */
+  const filePath = `${process.env.DATA_DIR}/caches/geojsons/${id}/${id}.geojson`;
+
+  try {
+    let needDownload = false;
+
+    if (refreshTimestamp === true) {
+      try {
+        const [response, geoJSONData] = await Promise.all([
+          getDataFromURL(
+            url.replace(`${id}.geojson`, `${id}/md5`),
+            timeout,
+            "arraybuffer"
+          ),
+          getGeoJSON(filePath, false),
+        ]);
+
+        if (response.headers["etag"] !== calculateMD5(geoJSONData)) {
+          needDownload = true;
+        }
+      } catch (error) {
+        if (error.message === "GeoJSON does not exist") {
+          needDownload = true;
+        } else {
+          throw error;
+        }
+      }
+    } else if (refreshTimestamp !== undefined) {
+      try {
+        const created = await getGeoJSONCreated(filePath);
+
+        if (!created || created < refreshTimestamp) {
+          needDownload = true;
+        }
+      } catch (error) {
+        if (error.message === "GeoJSON created does not exist") {
+          needDownload = true;
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      needDownload = true;
+    }
+
+    printLog("info", "Downloading geojson...");
+
+    if (needDownload === true) {
+      printLog(
+        "info",
+        `Downloading geojson "${id}" - File "${filePath}" - From "${url}"...`
+      );
+
+      await downloadGeoJSONFile(url, filePath, maxTry, timeout);
+    }
+  } catch (error) {
+    printLog("error", `Failed to seed geojson "${id}": ${error}`);
+  }
+
+  /* Remove parent folders if empty */
+  await removeEmptyFolders(
+    `${process.env.DATA_DIR}/caches/geojsons/${id}`,
+    /^.*\.geojson$/
+  );
+
+  printLog(
+    "info",
+    `Completed seed geojson "${id}" after ${(Date.now() - startTime) / 1000}s!`
+  );
 }
 
 /**
@@ -899,93 +873,84 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
 async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  try {
-    let log = `Seeding sprite "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  let log = `Seeding sprite "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-    let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
-      refreshTimestamp = new Date(refreshBefore).getTime();
+  let refreshTimestamp;
+  if (typeof refreshBefore === "string") {
+    refreshTimestamp = new Date(refreshBefore).getTime();
 
-      log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
-      const now = new Date();
+    log += `\n\tRefresh before: ${refreshBefore}`;
+  } else if (typeof refreshBefore === "number") {
+    const now = new Date();
 
-      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-      log += `\n\tOld than: ${refreshBefore} days`;
-    }
-
-    printLog("info", log);
-
-    /* Download sprite files */
-    async function seedSpriteData(fileName) {
-      const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
-
-      try {
-        let needDownload = false;
-
-        if (refreshTimestamp !== undefined) {
-          try {
-            const created = await getSpriteCreated(filePath);
-
-            if (!created || created < refreshTimestamp) {
-              needDownload = true;
-            }
-          } catch (error) {
-            if (error.message === "Sprite created does not exist") {
-              needDownload = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needDownload = true;
-        }
-
-        if (needDownload === true) {
-          const targetURL = url.replace("{id}", `${id}`);
-
-          printLog(
-            "info",
-            `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`
-          );
-
-          await downloadSpriteFile(url, id, fileName, maxTry, timeout);
-        }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to seed sprite "${id}" - File "${fileName}": ${error}`
-        );
-      }
-    }
-
-    printLog("info", "Downloading sprites...");
-
-    await Promise.all(
-      ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-        (fileName) => seedSpriteData(fileName)
-      )
-    );
-
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/sprites/${id}`,
-      /^.*\.(json|png)$/
-    );
-
-    printLog(
-      "info",
-      `Completed seed sprite "${id}" after ${(Date.now() - startTime) / 1000}s!`
-    );
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to seed sprite "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    log += `\n\tOld than: ${refreshBefore} days`;
   }
+
+  printLog("info", log);
+
+  /* Download sprite files */
+  async function seedSpriteData(fileName) {
+    const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
+
+    try {
+      let needDownload = false;
+
+      if (refreshTimestamp !== undefined) {
+        try {
+          const created = await getSpriteCreated(filePath);
+
+          if (!created || created < refreshTimestamp) {
+            needDownload = true;
+          }
+        } catch (error) {
+          if (error.message === "Sprite created does not exist") {
+            needDownload = true;
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        needDownload = true;
+      }
+
+      if (needDownload === true) {
+        const targetURL = url.replace("{id}", `${id}`);
+
+        printLog(
+          "info",
+          `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`
+        );
+
+        await downloadSpriteFile(url, id, fileName, maxTry, timeout);
+      }
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to seed sprite "${id}" - File "${fileName}": ${error}`
+      );
+    }
+  }
+
+  printLog("info", "Downloading sprites...");
+
+  await Promise.all(
+    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
+      (fileName) => seedSpriteData(fileName)
+    )
+  );
+
+  /* Remove parent folders if empty */
+  await removeEmptyFolders(
+    `${process.env.DATA_DIR}/caches/sprites/${id}`,
+    /^.*\.(json|png)$/
+  );
+
+  printLog(
+    "info",
+    `Completed seed sprite "${id}" after ${(Date.now() - startTime) / 1000}s!`
+  );
 }
 
 /**
@@ -1001,124 +966,115 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
 async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  try {
-    const total = 256;
+  const total = 256;
 
-    let log = `Seeding ${total} fonts of font "${id}" with:\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  let log = `Seeding ${total} fonts of font "${id}" with:\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-    let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
-      refreshTimestamp = new Date(refreshBefore).getTime();
+  let refreshTimestamp;
+  if (typeof refreshBefore === "string") {
+    refreshTimestamp = new Date(refreshBefore).getTime();
 
-      log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
-      const now = new Date();
+    log += `\n\tRefresh before: ${refreshBefore}`;
+  } else if (typeof refreshBefore === "number") {
+    const now = new Date();
 
-      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-      log += `\n\tOld than: ${refreshBefore} days`;
-    }
+    log += `\n\tOld than: ${refreshBefore} days`;
+  }
 
-    printLog("info", log);
+  printLog("info", log);
 
-    /* Remove font files */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
+  /* Remove font files */
+  const tasks = {
+    mutex: new Mutex(),
+    activeTasks: 0,
+    completeTasks: 0,
+  };
 
-    async function seedFontData(start, end, tasks) {
-      const range = `${start}-${end}`;
-      const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
+  async function seedFontData(start, end, tasks) {
+    const range = `${start}-${end}`;
+    const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
 
-      const completeTasks = tasks.completeTasks;
+    const completeTasks = tasks.completeTasks;
 
-      try {
-        let needDownload = false;
+    try {
+      let needDownload = false;
 
-        if (refreshTimestamp !== undefined) {
-          try {
-            const created = await getFontCreated(filePath);
+      if (refreshTimestamp !== undefined) {
+        try {
+          const created = await getFontCreated(filePath);
 
-            if (!created || created < refreshTimestamp) {
-              needDownload = true;
-            }
-          } catch (error) {
-            if (error.message === "Font created does not exist") {
-              needDownload = true;
-            } else {
-              throw error;
-            }
+          if (!created || created < refreshTimestamp) {
+            needDownload = true;
           }
-        } else {
-          needDownload = true;
+        } catch (error) {
+          if (error.message === "Font created does not exist") {
+            needDownload = true;
+          } else {
+            throw error;
+          }
         }
+      } else {
+        needDownload = true;
+      }
 
-        if (needDownload === true) {
-          const targetURL = url.replace("{range}", `${range}`);
+      if (needDownload === true) {
+        const targetURL = url.replace("{range}", `${range}`);
 
-          printLog(
-            "info",
-            `Downloading font "${id}" - Range "${range}" - From "${targetURL}" - ${completeTasks}/${total}...`
-          );
-
-          await downloadFontFile(targetURL, id, range, maxTry, timeout);
-        }
-      } catch (error) {
         printLog(
-          "error",
-          `Failed to seed font "${id}" - Range "${range}" - ${completeTasks}/${total}: ${error}`
+          "info",
+          `Downloading font "${id}" - Range "${range}" - From "${targetURL}" - ${completeTasks}/${total}...`
         );
+
+        await downloadFontFile(targetURL, id, range, maxTry, timeout);
       }
-    }
-
-    printLog("info", "Downloading fonts...");
-
-    for (let i = 0; i < 256; i++) {
-      /* Wait slot for a task */
-      while (tasks.activeTasks >= concurrency) {
-        await delay(50);
-      }
-
-      await tasks.mutex.runExclusive(() => {
-        tasks.activeTasks++;
-        tasks.completeTasks++;
-      });
-
-      /* Run a task */
-      seedFontData(i * 256, i * 256 + 255, tasks).finally(() =>
-        tasks.mutex.runExclusive(() => {
-          tasks.activeTasks--;
-        })
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to seed font "${id}" - Range "${range}" - ${completeTasks}/${total}: ${error}`
       );
     }
+  }
 
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
+  printLog("info", "Downloading fonts...");
+
+  for (let i = 0; i < 256; i++) {
+    /* Wait slot for a task */
+    while (tasks.activeTasks >= concurrency) {
       await delay(50);
     }
 
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/fonts/${id}`,
-      /^.*\.pbf$/
-    );
+    await tasks.mutex.runExclusive(() => {
+      tasks.activeTasks++;
+      tasks.completeTasks++;
+    });
 
-    printLog(
-      "info",
-      `Completed seed ${total} fonts of font "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to seed font "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
+    /* Run a task */
+    seedFontData(i * 256, i * 256 + 255, tasks).finally(() =>
+      tasks.mutex.runExclusive(() => {
+        tasks.activeTasks--;
+      })
     );
   }
+
+  /* Wait all tasks done */
+  while (tasks.activeTasks > 0) {
+    await delay(50);
+  }
+
+  /* Remove parent folders if empty */
+  await removeEmptyFolders(
+    `${process.env.DATA_DIR}/caches/fonts/${id}`,
+    /^.*\.pbf$/
+  );
+
+  printLog(
+    "info",
+    `Completed seed ${total} fonts of font "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`
+  );
 }
 
 /**
@@ -1133,82 +1089,71 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  try {
-    let log = `Seeding style "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  let log = `Seeding style "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-    let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
-      refreshTimestamp = new Date(refreshBefore).getTime();
+  let refreshTimestamp;
+  if (typeof refreshBefore === "string") {
+    refreshTimestamp = new Date(refreshBefore).getTime();
 
-      log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
-      const now = new Date();
+    log += `\n\tRefresh before: ${refreshBefore}`;
+  } else if (typeof refreshBefore === "number") {
+    const now = new Date();
 
-      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
+    refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
-      log += `\n\tOld than: ${refreshBefore} days`;
-    }
-
-    printLog("info", log);
-
-    /* Download style.json file */
-    const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
-
-    try {
-      let needDownload = false;
-
-      if (refreshTimestamp !== undefined) {
-        try {
-          const created = await getStyleCreated(filePath);
-
-          if (!created || created < refreshTimestamp) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message === "Style created does not exist") {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needDownload = true;
-      }
-
-      printLog("info", "Downloading style...");
-
-      if (needDownload === true) {
-        printLog(
-          "info",
-          `Downloading style "${id}" - File "${filePath}" - From "${url}"...`
-        );
-
-        await downloadStyleFile(url, filePath, maxTry, timeout);
-      }
-    } catch (error) {
-      printLog("error", `Failed to seed style "${id}": ${error}`);
-    }
-
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/styles/${id}`,
-      /^.*\.json$/
-    );
-
-    printLog(
-      "info",
-      `Completed seeding style "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to seed style "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    log += `\n\tOld than: ${refreshBefore} days`;
   }
+
+  printLog("info", log);
+
+  /* Download style.json file */
+  const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
+
+  try {
+    let needDownload = false;
+
+    if (refreshTimestamp !== undefined) {
+      try {
+        const created = await getStyleCreated(filePath);
+
+        if (!created || created < refreshTimestamp) {
+          needDownload = true;
+        }
+      } catch (error) {
+        if (error.message === "Style created does not exist") {
+          needDownload = true;
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      needDownload = true;
+    }
+
+    printLog("info", "Downloading style...");
+
+    if (needDownload === true) {
+      printLog(
+        "info",
+        `Downloading style "${id}" - File "${filePath}" - From "${url}"...`
+      );
+
+      await downloadStyleFile(url, filePath, maxTry, timeout);
+    }
+  } catch (error) {
+    printLog("error", `Failed to seed style "${id}": ${error}`);
+  }
+
+  /* Remove parent folders if empty */
+  await removeEmptyFolders(
+    `${process.env.DATA_DIR}/caches/styles/${id}`,
+    /^.*\.json$/
+  );
+
+  printLog(
+    "info",
+    `Completed seed style "${id}" after ${(Date.now() - startTime) / 1000}s!`
+  );
 }
 
 export {

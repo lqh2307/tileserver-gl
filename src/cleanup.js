@@ -219,12 +219,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
       }s!`
     );
   } catch (error) {
-    printLog(
-      "error",
-      `Failed to clean up mbtiles "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    throw error;
   } finally {
     if (source !== undefined) {
       /* Close MBTiles SQLite database */
@@ -366,12 +361,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
       }s!`
     );
   } catch (error) {
-    printLog(
-      "error",
-      `Failed to clean up postgresql "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    throw error;
   } finally {
     if (source !== undefined) {
       /* Close PostgreSQL database */
@@ -526,12 +516,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
       }s!`
     );
   } catch (error) {
-    printLog(
-      "error",
-      `Failed to clean up xyz "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    throw error;
   } finally {
     if (source !== undefined) {
       /* Close XYZ MD5 SQLite database */
@@ -627,93 +612,84 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 async function cleanUpSprite(id, cleanUpBefore) {
   const startTime = Date.now();
 
-  try {
-    let log = `Cleaning up sprite "${id}" with:`;
+  let log = `Cleaning up sprite "${id}" with:`;
 
-    let cleanUpTimestamp;
-    if (typeof cleanUpBefore === "string") {
-      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+  let cleanUpTimestamp;
+  if (typeof cleanUpBefore === "string") {
+    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-      log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (typeof cleanUpBefore === "number") {
-      const now = new Date();
+    log += `\n\tClean up before: ${cleanUpBefore}`;
+  } else if (typeof cleanUpBefore === "number") {
+    const now = new Date();
 
-      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
 
-      log += `\n\tOld than: ${cleanUpBefore} days`;
-    }
+    log += `\n\tOld than: ${cleanUpBefore} days`;
+  }
 
-    printLog("info", log);
+  printLog("info", log);
 
-    /* Remove sprite files */
-    async function cleanUpSpriteData(fileName) {
-      const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
+  /* Remove sprite files */
+  async function cleanUpSpriteData(fileName) {
+    const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
 
-      try {
-        let needRemove = false;
+    try {
+      let needRemove = false;
 
-        if (cleanUpTimestamp !== undefined) {
-          try {
-            const created = await getSpriteCreated(filePath);
+      if (cleanUpTimestamp !== undefined) {
+        try {
+          const created = await getSpriteCreated(filePath);
 
-            if (!created || created < cleanUpTimestamp) {
-              needRemove = true;
-            }
-          } catch (error) {
-            if (error.message === "Sprite created does not exist") {
-              needRemove = true;
-            } else {
-              throw error;
-            }
+          if (!created || created < cleanUpTimestamp) {
+            needRemove = true;
           }
-        } else {
-          needRemove = true;
+        } catch (error) {
+          if (error.message === "Sprite created does not exist") {
+            needRemove = true;
+          } else {
+            throw error;
+          }
         }
+      } else {
+        needRemove = true;
+      }
 
-        if (needRemove === true) {
-          printLog("info", `Removing sprite "${id}" - File "${fileName}"...`);
+      if (needRemove === true) {
+        printLog("info", `Removing sprite "${id}" - File "${fileName}"...`);
 
-          await removeSpriteFile(
-            filePath,
-            30000 // 30 secs
-          );
-        }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to clean up sprite "${id}" - File "${fileName}": ${error}`
+        await removeSpriteFile(
+          filePath,
+          30000 // 30 secs
         );
       }
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to clean up sprite "${id}" - File "${fileName}": ${error}`
+      );
     }
-
-    printLog("info", "Removing sprites...");
-
-    await Promise.all(
-      ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-        (fileName) => cleanUpSpriteData(fileName)
-      )
-    );
-
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/sprites/${id}`,
-      /^.*\.(json|png)$/
-    );
-
-    printLog(
-      "info",
-      `Completed clean up sprite "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to clean up sprite "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
   }
+
+  printLog("info", "Removing sprites...");
+
+  await Promise.all(
+    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
+      (fileName) => cleanUpSpriteData(fileName)
+    )
+  );
+
+  /* Remove parent folders if empty */
+  await removeEmptyFolders(
+    `${process.env.DATA_DIR}/caches/sprites/${id}`,
+    /^.*\.(json|png)$/
+  );
+
+  printLog(
+    "info",
+    `Completed clean up sprite "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`
+  );
 }
 
 /**
@@ -725,96 +701,87 @@ async function cleanUpSprite(id, cleanUpBefore) {
 async function cleanUpFont(id, cleanUpBefore) {
   const startTime = Date.now();
 
-  try {
-    const total = 256;
+  const total = 256;
 
-    let log = `Cleaning up ${total} fonts of font "${id}" with:`;
+  let log = `Cleaning up ${total} fonts of font "${id}" with:`;
 
-    let cleanUpTimestamp;
-    if (typeof cleanUpBefore === "string") {
-      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+  let cleanUpTimestamp;
+  if (typeof cleanUpBefore === "string") {
+    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-      log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (typeof cleanUpBefore === "number") {
-      const now = new Date();
+    log += `\n\tClean up before: ${cleanUpBefore}`;
+  } else if (typeof cleanUpBefore === "number") {
+    const now = new Date();
 
-      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
 
-      log += `\n\tOld than: ${cleanUpBefore} days`;
-    }
+    log += `\n\tOld than: ${cleanUpBefore} days`;
+  }
 
-    printLog("info", log);
+  printLog("info", log);
 
-    /* Remove font files */
-    async function cleanUpFontData(start, end) {
-      const range = `${start}-${end}`;
-      const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
+  /* Remove font files */
+  async function cleanUpFontData(start, end) {
+    const range = `${start}-${end}`;
+    const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
 
-      try {
-        let needRemove = false;
+    try {
+      let needRemove = false;
 
-        if (cleanUpTimestamp !== undefined) {
-          try {
-            const created = await getFontCreated(filePath);
+      if (cleanUpTimestamp !== undefined) {
+        try {
+          const created = await getFontCreated(filePath);
 
-            if (!created || created < cleanUpTimestamp) {
-              needRemove = true;
-            }
-          } catch (error) {
-            if (error.message === "Font created does not exist") {
-              needRemove = true;
-            } else {
-              throw error;
-            }
+          if (!created || created < cleanUpTimestamp) {
+            needRemove = true;
           }
-        } else {
-          needRemove = true;
+        } catch (error) {
+          if (error.message === "Font created does not exist") {
+            needRemove = true;
+          } else {
+            throw error;
+          }
         }
+      } else {
+        needRemove = true;
+      }
 
-        if (needRemove === true) {
-          printLog("info", `Removing font "${id}" - Range "${range}"...`);
+      if (needRemove === true) {
+        printLog("info", `Removing font "${id}" - Range "${range}"...`);
 
-          await removeFontFile(
-            filePath,
-            30000 // 30 secs
-          );
-        }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to clean up font "${id}" -  Range "${range}": ${error}`
+        await removeFontFile(
+          filePath,
+          30000 // 30 secs
         );
       }
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to clean up font "${id}" -  Range "${range}": ${error}`
+      );
     }
-
-    printLog("info", "Removing fonts...");
-
-    await Promise.all(
-      Array.from({ length: total }, (_, i) =>
-        cleanUpFontData(i * 256, i * 256 + 255)
-      )
-    );
-
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/fonts/${id}`,
-      /^.*\.pbf$/
-    );
-
-    printLog(
-      "info",
-      `Completed clean up ${total} fonts of font "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to clean up font "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
   }
+
+  printLog("info", "Removing fonts...");
+
+  await Promise.all(
+    Array.from({ length: total }, (_, i) =>
+      cleanUpFontData(i * 256, i * 256 + 255)
+    )
+  );
+
+  /* Remove parent folders if empty */
+  await removeEmptyFolders(
+    `${process.env.DATA_DIR}/caches/fonts/${id}`,
+    /^.*\.pbf$/
+  );
+
+  printLog(
+    "info",
+    `Completed clean up ${total} fonts of font "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`
+  );
 }
 
 /**
@@ -826,82 +793,73 @@ async function cleanUpFont(id, cleanUpBefore) {
 async function cleanUpStyle(id, cleanUpBefore) {
   const startTime = Date.now();
 
-  try {
-    let log = `Cleaning up style "${id}" with:`;
+  let log = `Cleaning up style "${id}" with:`;
 
-    let cleanUpTimestamp;
-    if (typeof cleanUpBefore === "string") {
-      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+  let cleanUpTimestamp;
+  if (typeof cleanUpBefore === "string") {
+    cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-      log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (typeof cleanUpBefore === "number") {
-      const now = new Date();
+    log += `\n\tClean up before: ${cleanUpBefore}`;
+  } else if (typeof cleanUpBefore === "number") {
+    const now = new Date();
 
-      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
+    cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
 
-      log += `\n\tOld than: ${cleanUpBefore} days`;
-    }
-
-    printLog("info", log);
-
-    /* Remove style.json file */
-    const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
-
-    try {
-      let needRemove = false;
-
-      if (cleanUpTimestamp !== undefined) {
-        try {
-          const created = await getStyleCreated(filePath);
-
-          if (!created || created < cleanUpTimestamp) {
-            needRemove = true;
-          }
-        } catch (error) {
-          if (error.message === "Style created does not exist") {
-            needRemove = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        needRemove = true;
-      }
-
-      printLog("info", "Removing style...");
-
-      if (needRemove === true) {
-        printLog("info", `Removing style "${id}" - File "${filePath}"...`);
-
-        await removeStyleFile(
-          filePath,
-          30000 // 30 secs
-        );
-      }
-    } catch (error) {
-      printLog("error", `Failed to clean up style "${id}": ${error}`);
-    }
-
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/styles/${id}`,
-      /^.*\.json$/
-    );
-
-    printLog(
-      "info",
-      `Completed clean up style "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to clean up style "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    log += `\n\tOld than: ${cleanUpBefore} days`;
   }
+
+  printLog("info", log);
+
+  /* Remove style.json file */
+  const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
+
+  try {
+    let needRemove = false;
+
+    if (cleanUpTimestamp !== undefined) {
+      try {
+        const created = await getStyleCreated(filePath);
+
+        if (!created || created < cleanUpTimestamp) {
+          needRemove = true;
+        }
+      } catch (error) {
+        if (error.message === "Style created does not exist") {
+          needRemove = true;
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      needRemove = true;
+    }
+
+    printLog("info", "Removing style...");
+
+    if (needRemove === true) {
+      printLog("info", `Removing style "${id}" - File "${filePath}"...`);
+
+      await removeStyleFile(
+        filePath,
+        30000 // 30 secs
+      );
+    }
+  } catch (error) {
+    printLog("error", `Failed to clean up style "${id}": ${error}`);
+  }
+
+  /* Remove parent folders if empty */
+  await removeEmptyFolders(
+    `${process.env.DATA_DIR}/caches/styles/${id}`,
+    /^.*\.json$/
+  );
+
+  printLog(
+    "info",
+    `Completed clean up style "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`
+  );
 }
 
 export {
