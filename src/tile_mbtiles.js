@@ -339,6 +339,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
 
   if (isCreate === true) {
     await execSQLWithTimeout(
+      source,
       `
       CREATE TABLE IF NOT EXISTS
         metadata (
@@ -351,6 +352,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
     );
 
     await execSQLWithTimeout(
+      source,
       `
       CREATE TABLE IF NOT EXISTS
         tiles (
@@ -371,6 +373,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {
         await execSQLWithTimeout(
+          source,
           `ALTER TABLE
             tiles
           ADD COLUMN
@@ -389,6 +392,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
     if (tableInfos.some((col) => col.name === "created") === false) {
       try {
         await execSQLWithTimeout(
+          source,
           `ALTER TABLE
             tiles
           ADD COLUMN

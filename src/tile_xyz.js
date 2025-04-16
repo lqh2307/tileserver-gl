@@ -364,6 +364,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
 
   if (isCreate === true) {
     await execSQLWithTimeout(
+      source,
       `
       CREATE TABLE IF NOT EXISTS
         metadata (
@@ -376,6 +377,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
     );
 
     await execSQLWithTimeout(
+      source,
       `
       CREATE TABLE IF NOT EXISTS
         md5s (
@@ -395,6 +397,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
     if (tableInfos.some((col) => col.name === "hash") === false) {
       try {
         await execSQLWithTimeout(
+          source,
           `ALTER TABLE
             md5s
           ADD COLUMN
@@ -413,6 +416,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
     if (tableInfos.some((col) => col.name === "created") === false) {
       try {
         await execSQLWithTimeout(
+          source,
           `ALTER TABLE
             md5s
           ADD COLUMN
