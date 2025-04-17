@@ -755,26 +755,23 @@ export async function renderMBTilesTiles(
     printLog("info", log);
 
     /* Open MBTiles SQLite database */
+    const filePath = `${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`;
+
     source = await openMBTilesDB(
-      `${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`,
+      filePath,
       true,
       30000 // 30 secs
     );
 
     /* Get hashs */
     let hashs;
+
     try {
-      printLog(
-        "info",
-        `Get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles"...`
-      );
+      printLog("info", `Get hashs from "${filePath}"...`);
 
       hashs = getMBTilesTileHashFromCoverages(source, coverages);
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to get hashs from "${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles": ${error}`
-      );
+      printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 
       hashs = {};
     }
@@ -929,7 +926,7 @@ export async function renderMBTilesTiles(
     if (createOverview === true) {
       printLog("info", "Creating overviews...");
 
-      const command = `gdaladdo -r lanczos -oo ZLEVEL=9 ${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304`;
+      const command = `gdaladdo -r lanczos -oo ZLEVEL=9 ${filePath} 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304`;
 
       printLog("info", `Gdal command: ${command}`);
 
@@ -1024,26 +1021,23 @@ export async function renderXYZTiles(
     printLog("info", log);
 
     /* Open MD5 SQLite database */
+    const filePath = `${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite`;
+
     const source = await openXYZMD5DB(
-      `${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite`,
+      filePath,
       true,
       30000 // 30 secs
     );
 
     /* Get hashs */
     let hashs;
+
     try {
-      printLog(
-        "info",
-        `Get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite"...`
-      );
+      printLog("info", `Get hashs from "${filePath}"...`);
 
       hashs = getXYZTileHashFromCoverages(source, coverages);
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to get hashs from "${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite": ${error}`
-      );
+      printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 
       hashs = {};
     }
@@ -1301,25 +1295,19 @@ export async function renderPostgreSQLTiles(
     printLog("info", log);
 
     /* Open PostgreSQL database */
-    source = await openPostgreSQLDB(
-      `${process.env.POSTGRESQL_BASE_URI}/${id}`,
-      true
-    );
+    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+    source = await openPostgreSQLDB(filePath, true);
 
     /* Get hashs */
     let hashs;
+
     try {
-      printLog(
-        "info",
-        `Get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}"...`
-      );
+      printLog("info", `Get hashs from "${filePath}"...`);
 
       hashs = await getPostgreSQLTileHashFromCoverages(source, coverages);
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to get hashs from "${process.env.POSTGRESQL_BASE_URI}/${id}: ${error}`
-      );
+      printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 
       hashs = {};
     }

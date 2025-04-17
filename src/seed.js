@@ -12,18 +12,18 @@ import {
   getGeoJSON,
 } from "./geojson.js";
 import {
+  getXYZTileHashFromCoverages,
   getXYZTileCreated,
   updateXYZMetadata,
   downloadXYZTile,
   closeXYZMD5DB,
-  getXYZTileMD5,
   openXYZMD5DB,
 } from "./tile_xyz.js";
 import {
+  getMBTilesTileHashFromCoverages,
   getMBTilesTileCreated,
   updateMBTilesMetadata,
   downloadMBTilesTile,
-  getMBTilesTileMD5,
   closeMBTilesDB,
   openMBTilesDB,
 } from "./tile_mbtiles.js";
@@ -39,10 +39,10 @@ import {
   delay,
 } from "./utils.js";
 import {
+  getPostgreSQLTileHashFromCoverages,
   getPostgreSQLTileCreated,
   updatePostgreSQLMetadata,
   downloadPostgreSQLTile,
-  getPostgreSQLTileMD5,
   closePostgreSQLDB,
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
@@ -150,33 +150,47 @@ async function seedMBTilesTiles(
 
     printLog("info", log);
 
-    /* Get hashs */
-    let hashs;
-    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
-
-    try {
-      printLog("info", `Get hashs from "${hashURL}"...`);
-
-      const res = await postDataToURL(
-        hashURL,
-        300000, // 5 mins
-        coverages,
-        "json"
-      );
-
-      hashs = res.data;
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
-
-      hashs = {};
-    }
-
     /* Open MBTiles SQLite database */
+    const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
+
     source = await openMBTilesDB(
-      `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
+      filePath,
       true,
       30000 // 30 secs
     );
+
+    /* Get hashs */
+    let targetHashs;
+    let hashs;
+
+    if (refreshTimestamp === true) {
+      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+
+      try {
+        printLog(
+          "info",
+          `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
+        );
+
+        targetHashs = await postDataToURL(
+          hashURL,
+          300000, // 5 mins
+          coverages,
+          "json"
+        );
+
+        targetHashs = res.data;
+        hashs = getMBTilesTileHashFromCoverages(source, coverages);
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get target hashs from "${hashURL}" and hashs from "${filePath}": ${error}`
+        );
+
+        targetHashs = {};
+        hashs = {};
+      }
+    }
 
     /* Update MBTiles metadata */
     printLog("info", "Updating metadata...");
@@ -203,18 +217,11 @@ async function seedMBTilesTiles(
         let needDownload = false;
 
         if (refreshTimestamp === true) {
-          try {
-            const md5 = getMBTilesTileMD5(source, z, x, y);
-
-            if (md5 !== hashs[tileName]) {
-              needDownload = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile MD5 does not exist") {
-              needDownload = true;
-            } else {
-              throw error;
-            }
+          if (
+            hashs[tileName] === undefined ||
+            hashs[tileName] !== targetHashs[tileName]
+          ) {
+            needDownload = true;
           }
         } else if (refreshTimestamp !== undefined) {
           try {
@@ -369,32 +376,43 @@ async function seedPostgreSQLTiles(
 
     printLog("info", log);
 
-    /* Get hashs */
-    let hashs;
-    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
-
-    try {
-      printLog("info", `Get hashs from "${hashURL}"...`);
-
-      const res = await postDataToURL(
-        hashURL,
-        300000, // 5 mins
-        coverages,
-        "json"
-      );
-
-      hashs = res.data;
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
-
-      hashs = {};
-    }
-
     /* Open PostgreSQL database */
-    source = await openPostgreSQLDB(
-      `${process.env.POSTGRESQL_BASE_URI}/${id}`,
-      true
-    );
+    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+    source = await openPostgreSQLDB(filePath, true);
+
+    /* Get hashs */
+    let targetHashs;
+    let hashs;
+
+    if (refreshTimestamp === true) {
+      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+
+      try {
+        printLog(
+          "info",
+          `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
+        );
+
+        targetHashs = await postDataToURL(
+          hashURL,
+          300000, // 5 mins
+          coverages,
+          "json"
+        );
+
+        targetHashs = res.data;
+        hashs = getPostgreSQLTileHashFromCoverages(source, coverages);
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get target hashs from "${hashURL}" and hashs from "${filePath}": ${error}`
+        );
+
+        targetHashs = {};
+        hashs = {};
+      }
+    }
 
     /* Update PostgreSQL metadata */
     printLog("info", "Updating metadata...");
@@ -421,18 +439,11 @@ async function seedPostgreSQLTiles(
         let needDownload = false;
 
         if (refreshTimestamp === true) {
-          try {
-            const md5 = await getPostgreSQLTileMD5(source, z, x, y);
-
-            if (md5 !== hashs[tileName]) {
-              needDownload = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile MD5 does not exist") {
-              needDownload = true;
-            } else {
-              throw error;
-            }
+          if (
+            hashs[tileName] === undefined ||
+            hashs[tileName] !== targetHashs[tileName]
+          ) {
+            needDownload = true;
           }
         } else if (refreshTimestamp !== undefined) {
           try {
@@ -587,33 +598,47 @@ async function seedXYZTiles(
 
     printLog("info", log);
 
-    /* Get hashs */
-    let hashs;
-    const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
-
-    try {
-      printLog("info", `Get hashs from "${hashURL}"...`);
-
-      const res = await postDataToURL(
-        hashURL,
-        300000, // 5 mins
-        coverages,
-        "json"
-      );
-
-      hashs = res.data;
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${hashURL}": ${error}`);
-
-      hashs = {};
-    }
-
     /* Open MD5 SQLite database */
+    const filePath = `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`;
+
     source = await openXYZMD5DB(
-      `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
+      filePath,
       true,
       30000 // 30 secs
     );
+
+    /* Get hashs */
+    let targetHashs;
+    let hashs;
+
+    if (refreshTimestamp === true) {
+      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+
+      try {
+        printLog(
+          "info",
+          `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
+        );
+
+        targetHashs = await postDataToURL(
+          hashURL,
+          300000, // 5 mins
+          coverages,
+          "json"
+        );
+
+        targetHashs = res.data;
+        hashs = getXYZTileHashFromCoverages(source, coverages);
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get target hashs from "${hashURL}" and hashs from "${filePath}": ${error}`
+        );
+
+        targetHashs = {};
+        hashs = {};
+      }
+    }
 
     /* Update XYZ metadata */
     printLog("info", "Updating metadata...");
@@ -640,18 +665,11 @@ async function seedXYZTiles(
         let needDownload = false;
 
         if (refreshTimestamp === true) {
-          try {
-            const md5 = getXYZTileMD5(source, z, x, y);
-
-            if (md5 !== hashs[tileName]) {
-              needDownload = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile MD5 does not exist") {
-              needDownload = true;
-            } else {
-              throw error;
-            }
+          if (
+            hashs[tileName] === undefined ||
+            hashs[tileName] !== targetHashs[tileName]
+          ) {
+            needDownload = true;
           }
         } else if (refreshTimestamp !== undefined) {
           try {
