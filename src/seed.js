@@ -172,7 +172,7 @@ async function seedMBTilesTiles(
           `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
         );
 
-        targetHashs = await postDataToURL(
+        const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
           coverages,
@@ -394,7 +394,7 @@ async function seedPostgreSQLTiles(
           `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
         );
 
-        targetHashs = await postDataToURL(
+        const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
           coverages,
@@ -620,7 +620,7 @@ async function seedXYZTiles(
           `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
         );
 
-        targetHashs = await postDataToURL(
+        const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
           coverages,
