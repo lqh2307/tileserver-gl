@@ -19,6 +19,7 @@ import {
 } from "./tile_postgresql.js";
 import {
   getMBTilesTileHashFromCoverages,
+  calculateMBTilesTileHash,
   updateMBTilesMetadata,
   getMBTilesTileFromURL,
   getMBTilesTileCreated,
@@ -933,6 +934,10 @@ export async function renderMBTilesTiles(
       const commandOutput = await runCommand(command);
 
       printLog("info", `Gdal command output: ${commandOutput}`);
+
+      printLog("info", "Calculating MD5 tile hashs...");
+
+      await calculateMBTilesTileHash(source);
     }
 
     printLog(

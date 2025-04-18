@@ -14,7 +14,18 @@ RUN \
     wget \
     cmake \
     build-essential \
-    libproj-dev;
+		libproj-dev \
+		libsqlite3-dev \
+		librasterlite2-dev \
+		libspatialite-dev \
+		libpng-dev \
+		libjpeg-dev \
+		libgif-dev \
+		libwebp-dev \
+		libtiff-dev; \
+	apt-get -y --purge autoremove; \
+	apt-get clean; \
+	rm -rf /var/lib/apt/lists/*;
 
 RUN \
   wget -q http://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz; \
@@ -22,7 +33,11 @@ RUN \
   cd ./gdal-${GDAL_VERSION}; \
   mkdir -p build; \
   cd build; \
-  cmake .. -DCMAKE_BUILD_TYPE=Release; \
+	cmake .. \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_RPATH=/usr/local/opt/gdal \
+		-DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal \
+		-DCMAKE_INSTALL_LIBDIR=/usr/local/opt/gdal; \
   cmake --build .; \
   cmake --build . --target install; \
   cd ../..; \
@@ -31,8 +46,10 @@ RUN \
 RUN \
   wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
   tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
-  cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/; \
+  cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
   rm -rf node-v${NODEJS_VERSION}-linux-x64*;
+
+ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
 
 WORKDIR /tile-server
 
@@ -43,8 +60,7 @@ RUN \
   rm -rf package-lock.json; \
   apt-get -y --purge autoremove; \
   apt-get clean; \
-  rm -rf /var/lib/apt/lists/*; \
-  ldconfig;
+  rm -rf /var/lib/apt/lists/*;
 
 
 FROM ${TARGET_IMAGE} AS final
@@ -56,6 +72,7 @@ RUN \
     xvfb \
     libglfw3 \
     libuv1 \
+    libproj22 \
     libjpeg-turbo8 \
     libicu70 \
     libgif7 \
@@ -63,18 +80,22 @@ RUN \
     libpng16-16 \
     libwebp7 \
     libcurl4 \
-    libproj22;
+    libsqlite3-0 \
+		librasterlite2-1 \
+		libspatialite7 \
+		libtiff5;
 
 WORKDIR /tile-server
 
 COPY --from=builder /tile-server .
-COPY --from=builder /usr/local /usr/local
+COPY --from=builder /usr/local/opt /usr/local/opt
 
 RUN \
   apt-get -y --purge autoremove; \
   apt-get clean; \
-  rm -rf /var/lib/apt/lists/*; \
-  ldconfig;
+  rm -rf /var/lib/apt/lists/*;
+
+  ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
 
 VOLUME /tile-server/data
 
