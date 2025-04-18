@@ -46,6 +46,7 @@ RUN \
 RUN \
   wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
   tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
+  mkdir -p /usr/local/opt/nodejs; \
   cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
   rm -rf node-v${NODEJS_VERSION}-linux-x64*;
 
