@@ -410,9 +410,24 @@ function calculateDataTileMD5sHandler() {
     }
 
     /* Calculate data tile MD5s */
+    printLog("info", `Calculating data tile md5s "${id}"...`);
+
     try {
       if (item.sourceType === "mbtiles") {
-        setTimeout(() => calculateMBTilesTileHash(item.source), 0);
+        setTimeout(
+          () =>
+            calculateMBTilesTileHash(item.source)
+              .then(() => {
+                printLog("info", `Done to calculate data tile md5s "${id}"!`);
+              })
+              .catch((error) => {
+                printLog(
+                  "error",
+                  `Failed to calculate data tile md5s "${id}": ${error}$`
+                );
+              }),
+          0
+        );
       } else if (item.sourceType === "pmtiles") {
       } else if (item.sourceType === "xyz") {
         setTimeout(
@@ -421,11 +436,33 @@ function calculateDataTileMD5sHandler() {
               item.source,
               item.md5Source,
               item.tileJSON.format
-            ),
+            )
+              .then(() => {
+                printLog("info", `Done to calculate data tile md5s "${id}"!`);
+              })
+              .catch((error) => {
+                printLog(
+                  "error",
+                  `Failed to calculate data tile md5s "${id}": ${error}$`
+                );
+              }),
           0
         );
       } else if (item.sourceType === "pg") {
-        setTimeout(() => calculatePostgreSQLTileHash(item.source), 0);
+        setTimeout(
+          () =>
+            calculatePostgreSQLTileHash(item.source)
+              .then(() => {
+                printLog("info", `Done to calculate data tile md5s "${id}"!`);
+              })
+              .catch((error) => {
+                printLog(
+                  "error",
+                  `Failed to calculate data tile md5s "${id}": ${error}$`
+                );
+              }),
+          0
+        );
       }
 
       return res.status(StatusCodes.OK).send("OK");
