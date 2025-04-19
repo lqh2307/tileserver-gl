@@ -825,7 +825,10 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
           getGeoJSON(filePath, false),
         ]);
 
-        if (response.headers["etag"] !== calculateMD5(geoJSONData)) {
+        if (
+          response.headers["etag"] === undefined ||
+          response.headers["etag"] !== calculateMD5(geoJSONData)
+        ) {
           needDownload = true;
         }
       } catch (error) {
@@ -1145,7 +1148,10 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
           getStyle(filePath, false),
         ]);
 
-        if (response.headers["etag"] !== calculateMD5(styleData)) {
+        if (
+          response.headers["etag"] === undefined ||
+          response.headers["etag"] !== calculateMD5(styleData)
+        ) {
           needDownload = true;
         }
       } catch (error) {
