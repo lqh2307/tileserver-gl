@@ -66,7 +66,7 @@ cmake --build .; \
 cmake --build . --target install; \
 cd ../..; \
 rm -rf ./gdal-${GDAL_VERSION}*; \
-grep -q '/usr/local/opt/gdal/bin' ~/.bashrc || echo 'PATH=/usr/local/opt/gdal/bin:${PATH}' >> ~/.bashrc; \ 
+grep -q '/usr/local/opt/gdal/bin' ~/.bashrc || echo 'export PATH="/usr/local/opt/nodejs/bin:${PATH}"' >> ~/.bashrc; \ 
 source ~/.bashrc;
 ```
 
@@ -80,7 +80,7 @@ tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
 mkdir -p /usr/local/opt/nodejs; \
 cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
 rm -rf node-v${NODEJS_VERSION}-linux-x64*; \
-grep -q '/usr/local/opt/nodejs/bin' ~/.bashrc || echo 'PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc; \ 
+grep -q '/usr/local/opt/nodejs/bin' ~/.bashrc || echo 'export PATH="/usr/local/opt/nodejs/bin:${PATH}"' >> ~/.bashrc; \ 
 source ~/.bashrc;
 ```
 
