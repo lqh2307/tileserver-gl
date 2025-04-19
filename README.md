@@ -65,9 +65,8 @@ cmake .. \
 cmake --build .; \
 cmake --build . --target install; \
 cd ../..; \
-rm -rf ./gdal-${GDAL_VERSION}*;
-
-grep -q ~/.bashrc '/usr/local/opt/gdal/bin' || echo 'PATH=/usr/local/opt/gdal/bin:${PATH}' >> ~/.bashrc
+rm -rf ./gdal-${GDAL_VERSION}*; \
+grep -q ~/.bashrc '/usr/local/opt/gdal/bin' || echo 'PATH=/usr/local/opt/gdal/bin:${PATH}' >> ~/.bashrc;
 ```
 
 Install nodejs:
@@ -79,9 +78,8 @@ wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VE
 tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
 mkdir -p /usr/local/opt/nodejs; \
 cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
-rm -rf node-v${NODEJS_VERSION}-linux-x64*;
-
-grep -q ~/.bashrc '/usr/local/opt/nodejs/bin' || echo 'PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc
+rm -rf node-v${NODEJS_VERSION}-linux-x64*; \
+grep -q ~/.bashrc '/usr/local/opt/nodejs/bin' || echo 'PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc;
 ```
 
 Reload ENVs:
