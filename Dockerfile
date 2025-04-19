@@ -96,7 +96,7 @@ RUN \
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;
 
-  ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
+ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
 
 VOLUME /tile-server/data
 
