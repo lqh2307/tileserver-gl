@@ -34,7 +34,6 @@ apt-get -y install \
   wget \
   cmake \
   build-essential \
-  libproj-dev \
   libproj22 \
   xvfb \
   libglfw3 \
@@ -58,12 +57,17 @@ tar -xzf ./gdal-${GDAL_VERSION}.tar.gz; \
 cd ./gdal-${GDAL_VERSION}; \
 mkdir -p build; \
 cd build; \
-cmake .. -DCMAKE_BUILD_TYPE=Release; \
+cmake .. \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_RPATH=/usr/local/opt/gdal \
+  -DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal \
+  -DCMAKE_INSTALL_LIBDIR=/usr/local/opt/gdal; \
 cmake --build .; \
 cmake --build . --target install; \
 cd ../..; \
-rm -rf ./gdal-${GDAL_VERSION}*; \
-ldconfig;
+rm -rf ./gdal-${GDAL_VERSION}*;
+
+grep -q ~/.bashrc '/usr/local/opt/gdal/bin' || echo 'PATH=/usr/local/opt/gdal/bin:${PATH}' >> ~/.bashrc
 ```
 
 Install nodejs:
@@ -73,9 +77,17 @@ export NODEJS_VERSION=22.14.0
 
 wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
 tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
-cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/; \
-rm -rf node-v${NODEJS_VERSION}-linux-x64*; \
-ldconfig;
+mkdir -p /usr/local/opt/nodejs; \
+cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
+rm -rf node-v${NODEJS_VERSION}-linux-x64*;
+
+grep -q ~/.bashrc '/usr/local/opt/nodejs/bin' || echo 'PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc
+```
+
+Reload ENVs:
+
+```bash
+source ~/.bashrc
 ```
 
 Clean:
@@ -84,7 +96,6 @@ Clean:
 apt-get -y remove \
   wget \
   cmake \
-  libproj-dev \
   build-essential; \
 apt-get -y --purge autoremove; \
 apt-get clean; \
