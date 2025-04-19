@@ -1,7 +1,7 @@
 "use strict";
 
+import { downloadStyleFile, getStyle, getStyleCreated } from "./style.js";
 import { downloadSpriteFile, getSpriteCreated } from "./sprite.js";
-import { downloadStyleFile, getStyleCreated } from "./style.js";
 import { downloadFontFile, getFontCreated } from "./font.js";
 import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
@@ -818,7 +818,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
       try {
         const [response, geoJSONData] = await Promise.all([
           getDataFromURL(
-            url.replace(`${id}.geojson`, `${id}/md5`),
+            `${url.slice(0, url.indexOf(`/${id}.geojson`))}/md5`,
             timeout,
             "arraybuffer"
           ),
@@ -1120,6 +1120,10 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
+  } else if (typeof refreshBefore === "boolean") {
+    refreshTimestamp = true;
+
+    log += `\n\tRefresh before: check MD5`;
   }
 
   printLog("info", log);
@@ -1129,6 +1133,45 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
 
   try {
     let needDownload = false;
+
+    if (refreshTimestamp === true) {
+      try {
+        const [response, styleData] = await Promise.all([
+          getDataFromURL(
+            `${url.slice(0, url.indexOf(`/${id}/style.json?raw=true`))}/md5`,
+            timeout,
+            "arraybuffer"
+          ),
+          getStyle(filePath, false),
+        ]);
+
+        if (response.headers["etag"] !== calculateMD5(styleData)) {
+          needDownload = true;
+        }
+      } catch (error) {
+        if (error.message === "Style does not exist") {
+          needDownload = true;
+        } else {
+          throw error;
+        }
+      }
+    } else if (refreshTimestamp !== undefined) {
+      try {
+        const created = await getStyleCreated(filePath);
+
+        if (!created || created < refreshTimestamp) {
+          needDownload = true;
+        }
+      } catch (error) {
+        if (error.message === "Style created does not exist") {
+          needDownload = true;
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      needDownload = true;
+    }
 
     if (refreshTimestamp !== undefined) {
       try {

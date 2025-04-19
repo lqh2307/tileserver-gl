@@ -305,7 +305,7 @@ function getGeoJSONMD5Handler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get md5 GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
+        `Failed to get md5 of GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
       );
 
       if (error.message === "GeoJSON does not exist") {

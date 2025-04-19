@@ -12,6 +12,7 @@ import {
   getRequestHost,
   getJSONSchema,
   validateJSON,
+  calculateMD5,
   isExistFile,
 } from "./utils.js";
 import {
@@ -575,6 +576,44 @@ function getRenderedHandler() {
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get Style MD5 handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getStyleMD5Handler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.styles[id];
+
+      /* Check style is used? */
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
+      }
+
+      /* Get style MD5 and Add to header */
+      const styleData = await getStyle(item.path, false);
+
+      res.set({
+        etag: calculateMD5(styleData),
+      });
+
+      return res.status(StatusCodes.OK).send();
+    } catch (error) {
+      printLog("error", `Failed to get md5 of style "${id}": ${error}`);
+
+      if (error.message === "Style does not exist") {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
     }
   };
 }
@@ -1180,6 +1219,52 @@ export const serve_style = {
        *         description: Internal server error
        */
       app.get("/styles/:id.json", getRenderedHandler());
+
+      /**
+       * @swagger
+       * tags:
+       *   - name: Style
+       *     description: Style related endpoints
+       * /styles/{id}/md5:
+       *   get:
+       *     tags:
+       *       - Style
+       *     summary: Get style md5
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         schema:
+       *           type: string
+       *           example: id
+       *         required: true
+       *         description: ID of the style
+       *     responses:
+       *       200:
+       *         description: Style md5
+       *         content:
+       *           application/json:
+       *             schema:
+       *               type: object
+       *               properties:
+       *                 tileJSON:
+       *                   type: object
+       *                 tiles:
+       *                   type: array
+       *                   items:
+       *                     type: string
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/styles/:id/md5", getStyleMD5Handler());
 
       /**
        * @swagger
