@@ -34,6 +34,7 @@ apt-get -y install \
   wget \
   cmake \
   build-essential \
+  libproj-dev \
   libproj22 \
   xvfb \
   libglfw3 \
@@ -90,7 +91,8 @@ Clean:
 apt-get -y remove \
   wget \
   cmake \
-  build-essential; \
+  build-essential \
+  libproj-dev; \
 apt-get -y --purge autoremove; \
 apt-get clean; \
 rm -rf /var/lib/apt/lists/*;
