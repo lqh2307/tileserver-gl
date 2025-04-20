@@ -382,7 +382,17 @@ function getDataTileMD5sHandler() {
         md5s = await getPostgreSQLTileHashFromCoverages(item.source, req.body);
       }
 
-      res.header("content-type", "application/json");
+      const headers = {
+        "content-type": "application/json",
+      };
+
+      if (req.query.compression === "true") {
+        md5s = await gzipAsync(JSON.stringify(md5s));
+
+        headers["content-encoding"] = "gzip";
+      }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(md5s);
     } catch (error) {
@@ -667,48 +677,6 @@ export const serve_data = {
      *   - name: Data
      *     description: Data related endpoints
      * /datas/{id}/md5s:
-     *   post:
-     *     tags:
-     *       - Data
-     *     summary: Get data tile MD5s
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         required: true
-     *         schema:
-     *           type: string
-     *           example: id
-     *         description: Data ID
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
-     *       description: Coverages object
-     *     responses:
-     *       200:
-     *         description: Data tile MD5s
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *       204:
-     *         description: No content
-     *       400:
-     *         description: Invalid params
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
      *   get:
      *     tags:
      *       - Data
@@ -745,6 +713,84 @@ export const serve_data = {
      *         description: Internal server error
      */
     app.get("/datas/:id/md5s", calculateDataTileMD5sHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/{id}/md5s:
+     *   post:
+     *     tags:
+     *       - Data
+     *     summary: Get data tile MD5s
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
+     *       - in: query
+     *         name: compression
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Compressed response
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *             schema:
+     *               type: object
+     *               example: {}
+     *       description: Coverages object
+     *     responses:
+     *       200:
+     *         description: Data tile MD5s
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       204:
+     *         description: No content
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     *     responses:
+     *       200:
+     *         description: Data tile MD5s
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       204:
+     *         description: No content
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
     app.post("/datas/:id/md5s", getDataTileMD5sHandler());
 
     /**

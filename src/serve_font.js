@@ -26,7 +26,7 @@ function getFontHandler() {
       if (headers["content-encoding"] === undefined) {
         data = await gzipAsync(data);
 
-        res.header("content-encoding", "gzip");
+        headers["content-encoding"] = "gzip";
       }
 
       res.set(headers);
