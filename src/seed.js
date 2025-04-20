@@ -165,7 +165,10 @@ async function seedMBTilesTiles(
     let hashs;
 
     if (refreshTimestamp === true) {
-      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+      const hashURL = `${url.slice(
+        0,
+        url.indexOf("/{z}/{x}/{y}")
+      )}/md5s?compression=true`;
 
       try {
         printLog(
@@ -392,7 +395,10 @@ async function seedPostgreSQLTiles(
     let hashs;
 
     if (refreshTimestamp === true) {
-      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+      const hashURL = `${url.slice(
+        0,
+        url.indexOf("/{z}/{x}/{y}")
+      )}/md5s?compression=true`;
 
       try {
         printLog(
@@ -623,7 +629,10 @@ async function seedXYZTiles(
     let hashs;
 
     if (refreshTimestamp === true) {
-      const hashURL = `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/md5s`;
+      const hashURL = `${url.slice(
+        0,
+        url.indexOf("/{z}/{x}/{y}")
+      )}/md5s?compression=true`;
 
       try {
         printLog(
