@@ -1,7 +1,7 @@
 "use strict";
 
-import { DatabaseSync } from "node:sqlite";
 import fsPromise from "node:fs/promises";
+import { Database } from "better-sqlite3";
 import { delay } from "./utils.js";
 import path from "node:path";
 
@@ -10,7 +10,7 @@ import path from "node:path";
  * @param {string} filePath File path
  * @param {boolean} isCreate Is create database?
  * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<DatabaseSync>} SQLite database instance
+ * @returns {Promise<Database>} SQLite database instance
  */
 export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
   if (isCreate === true) {
@@ -25,7 +25,7 @@ export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
 
   while (Date.now() - startTime <= timeout) {
     try {
-      source = new DatabaseSync(filePath);
+      source = new Database(filePath);
 
       source.exec("PRAGMA journal_mode = DELETE;"); // Disable WAL mode
       source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
@@ -50,7 +50,7 @@ export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
 
 /**
  * Run a SQL command in SQLite with timeout
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {string} sql SQL command to execute
  * @param {any[]} params Parameters for the SQL command
  * @param {number} timeout Timeout in milliseconds
@@ -61,7 +61,7 @@ export async function runSQLWithTimeout(source, sql, params, timeout) {
 
   while (Date.now() - startTime <= timeout) {
     try {
-      source.prepare(sql).run(...params);
+      source.prepare(sql).run(params);
 
       return;
     } catch (error) {
@@ -78,7 +78,7 @@ export async function runSQLWithTimeout(source, sql, params, timeout) {
 
 /**
  * Exec a SQL command in SQLite with timeout
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {string} sql SQL command to execute
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
@@ -105,7 +105,7 @@ export async function execSQLWithTimeout(source, sql, timeout) {
 
 /**
  * Close SQLite database
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {void}
  */
 export function closeSQLite(source) {

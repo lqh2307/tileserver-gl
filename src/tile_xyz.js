@@ -180,7 +180,7 @@ async function getXYZFormatFromTiles(sourcePath) {
 /**
  * Create XYZ tile
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -227,7 +227,7 @@ async function createXYZTile(
 
 /**
  * Get XYZ tile hash from coverages
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @returns {Object<string, string>} Hash object
  */
@@ -261,7 +261,7 @@ export function getXYZTileHashFromCoverages(source, coverages) {
 /**
  * Calculate XYZ tile hash
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<void>}
  */
@@ -324,7 +324,7 @@ export async function calculatXYZTileHash(sourcePath, source, format) {
 /**
  * Remove XYZ tile data file
  * @param {string} id XYZ ID
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -357,7 +357,7 @@ export async function removeXYZTile(id, source, z, x, y, format, timeout) {
  * @param {string} filePath MD5 filepath
  * @param {boolean} isCreate Is create database?
  * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<DatabaseSync>}
+ * @returns {Promise<Database>}
  */
 export async function openXYZMD5DB(filePath, isCreate, timeout) {
   const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
@@ -471,7 +471,7 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
 
 /**
  * Get XYZ metadata
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {string} sourcePath XYZ folder path
  * @returns {Promise<Object>}
  */
@@ -623,7 +623,7 @@ export async function getXYZMetadata(source, sourcePath) {
 
 /**
  * Compact XYZ
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {void}
  */
 export function compactXYZ(source) {
@@ -632,7 +632,7 @@ export function compactXYZ(source) {
 
 /**
  * Close the XYZ MD5 SQLite database
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {void}
  */
 export function closeXYZMD5DB(source) {
@@ -643,7 +643,7 @@ export function closeXYZMD5DB(source) {
  * Download XYZ tile data file
  * @param {string} url The URL to download the file from
  * @param {string} id XYZ ID
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -705,7 +705,7 @@ export async function downloadXYZTile(
 
 /**
  * Update MBTiles metadata table
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
@@ -771,7 +771,7 @@ export async function getXYZTileFromURL(url, timeout) {
 /**
  * Cache XYZ tile data file
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -811,7 +811,7 @@ export async function cacheXYZTileFile(
 
 /**
  * Get MD5 hash of XYZ tile
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -829,7 +829,7 @@ export function getXYZTileMD5(source, z, x, y) {
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `
     )
-    .get(z, x, y);
+    .get([z, x, y]);
 
   if (data === undefined || data.hash === null) {
     throw new Error("Tile MD5 does not exist");
@@ -840,7 +840,7 @@ export function getXYZTileMD5(source, z, x, y) {
 
 /**
  * Get created of MBTiles tile
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -858,7 +858,7 @@ export function getXYZTileCreated(source, z, x, y) {
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `
     )
-    .get(z, x, y);
+    .get([z, x, y]);
 
   if (data === undefined || data.created === null) {
     throw new Error("Tile created does not exist");
