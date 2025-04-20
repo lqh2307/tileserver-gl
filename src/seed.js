@@ -36,6 +36,7 @@ import {
   postDataToURL,
   validateJSON,
   calculateMD5,
+  unzipAsync,
   delay,
 } from "./utils.js";
 import {
@@ -176,10 +177,15 @@ async function seedMBTilesTiles(
           hashURL,
           300000, // 5 mins
           coverages,
-          "json"
+          "arraybuffer"
         );
 
-        targetHashs = res.data;
+        if (res.headers["content-encoding"] === "gzip") {
+          targetHashs = JSON.parse(await unzipAsync(res.data));
+        } else {
+          targetHashs = JSON.parse(res.data);
+        }
+
         hashs = getMBTilesTileHashFromCoverages(source, coverages);
       } catch (error) {
         printLog(
@@ -398,10 +404,15 @@ async function seedPostgreSQLTiles(
           hashURL,
           300000, // 5 mins
           coverages,
-          "json"
+          "arraybuffer"
         );
 
-        targetHashs = res.data;
+        if (res.headers["content-encoding"] === "gzip") {
+          targetHashs = JSON.parse(await unzipAsync(res.data));
+        } else {
+          targetHashs = JSON.parse(res.data);
+        }
+
         hashs = getPostgreSQLTileHashFromCoverages(source, coverages);
       } catch (error) {
         printLog(
@@ -624,10 +635,15 @@ async function seedXYZTiles(
           hashURL,
           300000, // 5 mins
           coverages,
-          "json"
+          "arraybuffer"
         );
 
-        targetHashs = res.data;
+        if (res.headers["content-encoding"] === "gzip") {
+          targetHashs = JSON.parse(await unzipAsync(res.data));
+        } else {
+          targetHashs = JSON.parse(res.data);
+        }
+
         hashs = getXYZTileHashFromCoverages(source, coverages);
       } catch (error) {
         printLog(
