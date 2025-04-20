@@ -234,6 +234,63 @@ export function getLonLatFromXYZ(
 }
 
 /**
+ * Get grids for specific coverage with optional lat/lon steps (Keeps both head and tail residuals)
+ * @param {{ zoom: number, bbox: [number, number, number, number] }} coverage
+ * @param {number} lonStep Step for longitude
+ * @param {number} latStep Step for latitude
+ * @returns {Array<{ zoom: number, bbox: [number, number, number, number] }>}
+ */
+export function getGridsFromCoverage(coverage, lonStep = 1, latStep = 1) {
+  const grids = [];
+
+  function splitStep(start, end, step) {
+    const ranges = [];
+
+    let cur = Math.ceil(start / step) * step;
+
+    if (cur > end) {
+      return [[start, end]];
+    }
+
+    if (start < cur) {
+      ranges.push([start, cur]);
+    }
+
+    while (cur + step <= end) {
+      ranges.push([cur, cur + step]);
+
+      cur += step;
+    }
+
+    if (cur < end) {
+      ranges.push([cur, end]);
+    }
+
+    return ranges;
+  }
+
+  const lonRanges =
+    typeof lonStep === "number"
+      ? splitStep(coverage.bbox[0], coverage.bbox[2], lonStep)
+      : [[coverage.bbox[0], coverage.bbox[2]]];
+  const latRanges =
+    typeof latStep === "number"
+      ? splitStep(coverage.bbox[1], coverage.bbox[3], latStep)
+      : [[coverage.bbox[1], coverage.bbox[3]]];
+
+  for (const [lonStart, lonEnd] of lonRanges) {
+    for (const [latStart, latEnd] of latRanges) {
+      grids.push({
+        bbox: [lonStart, latStart, lonEnd, latEnd],
+        zoom: coverage.zoom,
+      });
+    }
+  }
+
+  return grids;
+}
+
+/**
  * Get tile bound for specific coverage
  * @param {{ zoom: number, bbox: [number, number, number, number]}} coverage Specific coverage
  * @param {"xyz"|"tms"} scheme Tile scheme
