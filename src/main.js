@@ -5,6 +5,7 @@ process.env.DATA_DIR = process.env.DATA_DIR || "data"; // Data dir
 process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
 process.env.RESTART_AFTER_CONFIG_CHANGE =
   process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
+process.env.LOGGING_TO_FILE = process.env.LOGGING_TO_FILE || "true"; // Logging to file
 
 import { removeOldCacheLocks, runCommand } from "./utils.js";
 import { readConfigFile } from "./config.js";
@@ -27,7 +28,7 @@ async function startClusterServer() {
   if (cluster.isPrimary === true) {
     printLog(
       "info",
-      `Starting server with:\n\tData dir: ${process.env.DATA_DIR}\n\tService name: ${process.env.SERVICE_NAME}\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}`
+      `Starting server with:\n\tData dir: ${process.env.DATA_DIR}\n\tService name: ${process.env.SERVICE_NAME}\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}\n\tLogging to file: ${process.env.LOGGING_TO_FILE}`
     );
 
     /* Read config.json file */

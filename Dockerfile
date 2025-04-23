@@ -58,10 +58,7 @@ ADD . .
 
 RUN \
   npm install --omit=dev; \
-  rm -rf package-lock.json; \
-  apt-get -y --purge autoremove; \
-  apt-get clean; \
-  rm -rf /var/lib/apt/lists/*;
+  rm -rf package-lock.json;
 
 
 FROM ${TARGET_IMAGE} AS final
@@ -84,17 +81,15 @@ RUN \
     libsqlite3-0 \
     librasterlite2-1 \
     libspatialite7 \
-    libtiff5;
+    libtiff5; \
+  apt-get -y --purge autoremove; \
+  apt-get clean; \
+  rm -rf /var/lib/apt/lists/*;
 
 WORKDIR /tile-server
 
 COPY --from=builder /tile-server .
 COPY --from=builder /usr/local/opt /usr/local/opt
-
-RUN \
-  apt-get -y --purge autoremove; \
-  apt-get clean; \
-  rm -rf /var/lib/apt/lists/*;
 
 ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
 

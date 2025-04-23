@@ -7,7 +7,7 @@
 Clone source:
 
 ```bash
-git clone --single-branch -b 0.0.24 https://github.com/lqh2307/tileserver-gl.git
+git clone --single-branch -b 0.0.25 https://github.com/lqh2307/tileserver-gl.git
 ```
 
 Jump to folder:
@@ -16,10 +16,10 @@ Jump to folder:
 cd tile-server
 ```
 
-Switch to 0.0.24 branch:
+Switch to 0.0.25 branch:
 
 ```bash
-git checkout 0.0.24
+git checkout 0.0.25
 ```
 
 ### Run with nodejs - native (on ubuntu 22.04 x86_64 amd)
@@ -36,6 +36,7 @@ apt-get -y install \
   build-essential \
   libproj-dev \
   libproj22 \
+  libexpat1 \
   xvfb \
   libglfw3 \
   libuv1 \
@@ -60,14 +61,13 @@ mkdir -p build; \
 cd build; \
 cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_RPATH=/usr/local/opt/gdal \
-  -DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal \
-  -DCMAKE_INSTALL_LIBDIR=/usr/local/opt/gdal; \
+  -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib' \
+  -DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal; \
 cmake --build .; \
 cmake --build . --target install; \
 cd ../..; \
 rm -rf ./gdal-${GDAL_VERSION}*; \
-grep -q '/usr/local/opt/gdal/bin' ~/.bashrc || echo 'export PATH="/usr/local/opt/nodejs/bin:${PATH}"' >> ~/.bashrc; \ 
+grep -q '/usr/local/opt/gdal/bin' ~/.bashrc || echo 'export PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc; \
 source ~/.bashrc;
 ```
 
@@ -81,7 +81,7 @@ tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
 mkdir -p /usr/local/opt/nodejs; \
 cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
 rm -rf node-v${NODEJS_VERSION}-linux-x64*; \
-grep -q '/usr/local/opt/nodejs/bin' ~/.bashrc || echo 'export PATH="/usr/local/opt/nodejs/bin:${PATH}"' >> ~/.bashrc; \ 
+grep -q '/usr/local/opt/nodejs/bin' ~/.bashrc || echo 'export PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc; \
 source ~/.bashrc;
 ```
 
@@ -116,6 +116,7 @@ ENVs:
 DATA_DIR: path_to_data_folder (default: data)
 SERVICE_NAME: service_name (default: tile-server)
 RESTART_AFTER_CONFIG_CHANGE: true/false (default: true)
+LOGGING_TO_FILE: true/false (default: true)
 ```
 
 ### Run with docker
@@ -123,13 +124,13 @@ RESTART_AFTER_CONFIG_CHANGE: true/false (default: true)
 Build image:
 
 ```bash
-docker build -t tile-server:0.0.24 .
+docker build -t tile-server:0.0.25 .
 ```
 
 Run container:
 
 ```bash
-docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.24
+docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.25
 ```
 
 ## Example config.json

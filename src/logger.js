@@ -7,6 +7,22 @@ let logger;
 
 /* Init pino logger */
 if (logger === undefined) {
+  const streams = [
+    {
+      stream: process.stdout,
+    },
+  ];
+
+  if (process.env.LOGGING_TO_FILE === "true") {
+    streams.push({
+      stream: FileStreamRotator.getStream({
+        filename: `${process.env.DATA_DIR}/logs/%DATE%.log`,
+        frequency: "daily",
+        date_format: "YYYY-MM-DD",
+      }),
+    });
+  }
+
   logger = pino(
     {
       level: "info",
@@ -18,18 +34,7 @@ if (logger === undefined) {
       },
       timestamp: pino.stdTimeFunctions.isoTime,
     },
-    pino.multistream([
-      {
-        stream: process.stdout,
-      },
-      {
-        stream: FileStreamRotator.getStream({
-          filename: `${process.env.DATA_DIR}/logs/%DATE%.log`,
-          frequency: "daily",
-          date_format: "YYYY-MM-DD",
-        }),
-      },
-    ])
+    pino.multistream(streams)
   );
 }
 
