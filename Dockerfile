@@ -15,6 +15,8 @@ RUN \
     cmake \
     build-essential \
 		libproj-dev \
+		libcurl4-openssl-dev \
+		libexpat-dev \
 		libsqlite3-dev \
 		librasterlite2-dev \
 		libspatialite-dev \
@@ -35,9 +37,8 @@ RUN \
   cd build; \
 	cmake .. \
 		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_RPATH=/usr/local/opt/gdal \
-		-DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal \
-		-DCMAKE_INSTALL_LIBDIR=/usr/local/opt/gdal; \
+		-DCMAKE_INSTALL_RPATH='$ORIGIN/../lib' \
+		-DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal; \
   cmake --build .; \
   cmake --build . --target install; \
   cd ../..; \
@@ -74,6 +75,7 @@ RUN \
     libglfw3 \
     libuv1 \
     libproj22 \
+		libexpat1 \
     libjpeg-turbo8 \
     libicu70 \
     libgif7 \
