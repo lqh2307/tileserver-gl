@@ -1,7 +1,7 @@
 {
   "name": "@huylq2307/tile-server",
   "description": "Vector/Raster tile server for serving/caching xyz/wmts tiles",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "license": "MIT",
   "author": "Huy Le <lqh23072000@gmail.com>",
   "keywords": ["tile-server"],
@@ -19,7 +19,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-style-spec": "23.1.0",
+    "@maplibre/maplibre-gl-style-spec": "23.2.0",
     "@maplibre/maplibre-gl-native": "6.0.0",
     "file-stream-rotator": "1.0.0",
     "swagger-ui-express": "5.0.1",
@@ -40,11 +40,11 @@
     "cors": "2.8.5",
     "pino": "9.6.0",
     "ajv": "8.17.1",
-    "pg": "8.14.1"
+    "pg": "8.15.1"
   },
   "devDependencies": {
     "prettier": "3.5.3",
-    "eslint": "9.25.0"
+    "eslint": "9.25.1"
   },
   "engines": {
     "node": ">=22 <23"

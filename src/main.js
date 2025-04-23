@@ -1,5 +1,11 @@
 "use strict";
 
+// Store init ENVs
+process.env.DATA_DIR = process.env.DATA_DIR || "data"; // Data dir
+process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
+process.env.RESTART_AFTER_CONFIG_CHANGE =
+  process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
+
 import { removeOldCacheLocks, runCommand } from "./utils.js";
 import { readConfigFile } from "./config.js";
 import { printLog } from "./logger.js";
@@ -18,12 +24,6 @@ import os from "os";
  * @returns {Promise<void>}
  */
 async function startClusterServer() {
-  // Store ENVs
-  process.env.DATA_DIR = process.env.DATA_DIR || "data"; // Data dir
-  process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
-  process.env.RESTART_AFTER_CONFIG_CHANGE =
-    process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
-
   if (cluster.isPrimary === true) {
     printLog(
       "info",
