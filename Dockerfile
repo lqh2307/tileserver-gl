@@ -13,20 +13,20 @@ RUN \
     wget \
     cmake \
     build-essential \
-		libproj-dev \
-		libcurl4-openssl-dev \
-		libexpat-dev \
-		libsqlite3-dev \
-		librasterlite2-dev \
-		libspatialite-dev \
-		libpng-dev \
-		libjpeg-dev \
-		libgif-dev \
-		libwebp-dev \
-		libtiff-dev; \
-	apt-get -y --purge autoremove; \
-	apt-get clean; \
-	rm -rf /var/lib/apt/lists/*;
+    libproj-dev \
+    libcurl4-openssl-dev \
+    libexpat-dev \
+    libsqlite3-dev \
+    librasterlite2-dev \
+    libspatialite-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libgif-dev \
+    libwebp-dev \
+    libtiff-dev; \
+  apt-get -y --purge autoremove; \
+  apt-get clean; \
+  rm -rf /var/lib/apt/lists/*;
 
 RUN \
   wget -q http://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz; \
