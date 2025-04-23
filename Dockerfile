@@ -34,10 +34,10 @@ RUN \
   cd ./gdal-${GDAL_VERSION}; \
   mkdir -p build; \
   cd build; \
-	cmake .. \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_RPATH='$ORIGIN/../lib' \
-		-DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal; \
+  cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib' \
+    -DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal; \
   cmake --build .; \
   cmake --build . --target install; \
   cd ../..; \
@@ -73,7 +73,7 @@ RUN \
     libglfw3 \
     libuv1 \
     libproj22 \
-		libexpat1 \
+    libexpat1 \
     libjpeg-turbo8 \
     libicu70 \
     libgif7 \
@@ -82,9 +82,9 @@ RUN \
     libwebp7 \
     libcurl4 \
     libsqlite3-0 \
-		librasterlite2-1 \
-		libspatialite7 \
-		libtiff5;
+    librasterlite2-1 \
+    libspatialite7 \
+    libtiff5;
 
 WORKDIR /tile-server
 
