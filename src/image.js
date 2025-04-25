@@ -38,7 +38,6 @@ import {
   calculateMD5,
   unzipAsync,
   runCommand,
-  deepClone,
   delay,
 } from "./utils.js";
 import {
@@ -697,8 +696,7 @@ export async function renderImage(
  * @param {Object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
- * @param {[number, number, number, number]} bbox Bounding box in format [lonMin, latMin, lonMax, latMax] in EPSG:4326
- * @param {number} maxzoom Max zoom level
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
@@ -710,8 +708,7 @@ export async function renderMBTilesTiles(
   metadata,
   tileScale,
   tileSize,
-  bbox,
-  maxzoom,
+  coverages,
   concurrency,
   storeTransparent,
   createOverview,
@@ -722,13 +719,6 @@ export async function renderMBTilesTiles(
   let source;
 
   try {
-    const coverages = [
-      {
-        bbox: bbox,
-        zoom: maxzoom,
-      },
-    ];
-
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
@@ -784,11 +774,7 @@ export async function renderMBTilesTiles(
 
     await updateMBTilesMetadata(
       source,
-      {
-        ...metadata,
-        maxzoom: maxzoom,
-        minzoom: maxzoom,
-      },
+      metadata,
       30000 // 30 secs
     );
 
@@ -969,8 +955,7 @@ export async function renderMBTilesTiles(
  * @param {Object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
- * @param {number[]} bbox Bounding box in format [lonMin, latMin, lonMax, latMax] in EPSG:4326
- * @param {number} maxzoom Max zoom level
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
@@ -982,8 +967,7 @@ export async function renderXYZTiles(
   metadata,
   tileScale,
   tileSize,
-  bbox,
-  maxzoom,
+  coverages,
   concurrency,
   storeTransparent,
   createOverview,
@@ -994,13 +978,6 @@ export async function renderXYZTiles(
   let source;
 
   try {
-    const coverages = [
-      {
-        bbox: bbox,
-        zoom: maxzoom,
-      },
-    ];
-
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
@@ -1056,11 +1033,7 @@ export async function renderXYZTiles(
 
     await updateXYZMetadata(
       source,
-      {
-        ...metadata,
-        maxzoom: maxzoom,
-        minzoom: maxzoom,
-      },
+      metadata,
       30000 // 30 secs
     );
 
@@ -1245,8 +1218,7 @@ export async function renderXYZTiles(
  * @param {Object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
- * @param {number[]} bbox Bounding box in format [lonMin, latMin, lonMax, latMax] in EPSG:4326
- * @param {number} maxzoom Max zoom level
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
@@ -1258,8 +1230,7 @@ export async function renderPostgreSQLTiles(
   metadata,
   tileScale,
   tileSize,
-  bbox,
-  maxzoom,
+  coverages,
   concurrency,
   storeTransparent,
   createOverview,
@@ -1270,13 +1241,6 @@ export async function renderPostgreSQLTiles(
   let source;
 
   try {
-    const coverages = [
-      {
-        bbox: bbox,
-        zoom: maxzoom,
-      },
-    ];
-
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
@@ -1328,11 +1292,7 @@ export async function renderPostgreSQLTiles(
 
     await updatePostgreSQLMetadata(
       source,
-      {
-        ...metadata,
-        maxzoom: maxzoom,
-        minzoom: maxzoom,
-      },
+      metadata,
       30000 // 30 secs
     );
 

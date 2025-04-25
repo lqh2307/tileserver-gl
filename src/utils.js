@@ -346,6 +346,48 @@ export function getTileBoundsFromCoverages(coverages, scheme) {
 }
 
 /**
+ * Get minzoom, maxzoom, bbox for specific coverages
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
+ * @returns {{ minZoom: number, maxZoom: number, bbox: [number, number, number, number] }}
+ */
+export function getZoomsAndBBoxFromCoverages(coverages) {
+  let minZoom = coverages[0].zoom;
+  let maxZoom = coverages[0].zoom;
+  let [minX, minY, maxX, maxY] = coverages[0].bbox;
+
+  for (let i = 1; i < coverages.length; i++) {
+    const { zoom, bbox } = coverages[i];
+    const [xMin, yMin, xMax, yMax] = bbox;
+
+    if (zoom < minZoom) {
+      minZoom = zoom;
+    }
+    if (zoom > maxZoom) {
+      maxZoom = zoom;
+    }
+
+    if (xMin < minX) {
+      minX = xMin;
+    }
+    if (yMin < minY) {
+      minY = yMin;
+    }
+    if (xMax > maxX) {
+      maxX = xMax;
+    }
+    if (yMax > maxY) {
+      maxY = yMax;
+    }
+  }
+
+  return {
+    minZoom,
+    maxZoom,
+    bbox: [minX, minY, maxX, maxY],
+  };
+}
+
+/**
  * Convert tile indices to a bounding box that intersects the outer tiles
  * @param {number} xMin Minimum x tile index
  * @param {number} yMin Minimum y tile index
