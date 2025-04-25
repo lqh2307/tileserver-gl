@@ -767,14 +767,16 @@ export async function renderMBTilesTiles(
     /* Get hashs */
     let hashs;
 
-    try {
-      printLog("info", `Get hashs from "${filePath}"...`);
+    if (refreshTimestamp === true) {
+      try {
+        printLog("info", `Get hashs from "${filePath}"...`);
 
-      hashs = getMBTilesTileHashFromCoverages(source, coverages);
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
+        hashs = getMBTilesTileHashFromCoverages(source, coverages);
+      } catch (error) {
+        printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 
-      hashs = {};
+        hashs = {};
+      }
     }
 
     /* Update metadata */
@@ -1037,14 +1039,16 @@ export async function renderXYZTiles(
     /* Get hashs */
     let hashs;
 
-    try {
-      printLog("info", `Get hashs from "${filePath}"...`);
+    if (refreshTimestamp === true) {
+      try {
+        printLog("info", `Get hashs from "${filePath}"...`);
 
-      hashs = getXYZTileHashFromCoverages(source, coverages);
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
+        hashs = getXYZTileHashFromCoverages(source, coverages);
+      } catch (error) {
+        printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 
-      hashs = {};
+        hashs = {};
+      }
     }
 
     /* Update metadata */
@@ -1307,14 +1311,16 @@ export async function renderPostgreSQLTiles(
     /* Get hashs */
     let hashs;
 
-    try {
-      printLog("info", `Get hashs from "${filePath}"...`);
+    if (refreshTimestamp === true) {
+      try {
+        printLog("info", `Get hashs from "${filePath}"...`);
 
-      hashs = await getPostgreSQLTileHashFromCoverages(source, coverages);
-    } catch (error) {
-      printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
+        hashs = await getPostgreSQLTileHashFromCoverages(source, coverages);
+      } catch (error) {
+        printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 
-      hashs = {};
+        hashs = {};
+      }
     }
 
     /* Update metadata */
