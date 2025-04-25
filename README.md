@@ -74,7 +74,7 @@ source ~/.bashrc;
 Install nodejs:
 
 ```bash
-export NODEJS_VERSION=22.14.0
+export NODEJS_VERSION=22.15.0
 
 wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
 tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
