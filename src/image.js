@@ -75,418 +75,431 @@ if (cluster.isPrimary !== true) {
 }
 
 /**
- * Render tile callback
- * @param {Object} req
- * @param {Function} callback
- * @returns {Promise<void>}
+ * Create tile render
+ * @param {number} tileScale Tile scale
+ * @param {Object} styleJSON StyleJSON
+ * @returns {object}
  */
-async function renderTileCallback(req, callback) {
-  const url = decodeURIComponent(req.url);
-  const parts = url.split("/");
-  let data = null;
-  let err = null;
+function createTileRenderer(tileScale, styleJSON) {
+  const renderer = new mlgl.Map({
+    mode: "tile",
+    ratio: tileScale,
+    request: async (req, callback) => {
+      const url = decodeURIComponent(req.url);
+      const parts = url.split("/");
+      let data = null;
+      let err = null;
 
-  switch (parts[0]) {
-    /* Get sprite */
-    case "sprites:": {
-      try {
-        const item = config.sprites[parts[2]];
+      switch (parts[0]) {
+        /* Get sprite */
+        case "sprites:": {
+          try {
+            const item = config.sprites[parts[2]];
 
-        try {
-          data = await getSprite(parts[2], parts[3]);
-        } catch (error) {
-          if (
-            item.sourceURL !== undefined &&
-            error.message === "Sprite does not exist"
-          ) {
-            const targetURL = item.sourceURL.replace("/sprite", `/${parts[3]}`);
+            try {
+              data = await getSprite(parts[2], parts[3]);
+            } catch (error) {
+              if (
+                item.sourceURL !== undefined &&
+                error.message === "Sprite does not exist"
+              ) {
+                const targetURL = item.sourceURL.replace(
+                  "/sprite",
+                  `/${parts[3]}`
+                );
 
-            printLog(
-              "info",
-              `Forwarding sprite "${parts[2]}" - Filename "${parts[3]}" - To "${targetURL}"...`
-            );
-
-            data = await getSpriteFromURL(
-              targetURL,
-              30000 // 30 secs
-            );
-
-            if (item.storeCache === true) {
-              printLog(
-                "info",
-                `Caching sprite "${parts[2]}" - Filename "${parts[3]}"...`
-              );
-
-              cacheSpriteFile(item.source, parts[3], data).catch((error) =>
                 printLog(
-                  "error",
-                  `Failed to cache sprite "${parts[2]}" - Filename "${parts[3]}": ${error}`
-                )
-              );
+                  "info",
+                  `Forwarding sprite "${parts[2]}" - Filename "${parts[3]}" - To "${targetURL}"...`
+                );
+
+                data = await getSpriteFromURL(
+                  targetURL,
+                  30000 // 30 secs
+                );
+
+                if (item.storeCache === true) {
+                  printLog(
+                    "info",
+                    `Caching sprite "${parts[2]}" - Filename "${parts[3]}"...`
+                  );
+
+                  cacheSpriteFile(item.source, parts[3], data).catch((error) =>
+                    printLog(
+                      "error",
+                      `Failed to cache sprite "${parts[2]}" - Filename "${parts[3]}": ${error}`
+                    )
+                  );
+                }
+              } else {
+                throw error;
+              }
             }
-          } else {
-            throw error;
-          }
-        }
-      } catch (error) {
-        printLog(
-          "warn",
-          `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty sprite...`
-        );
-
-        err = error;
-      }
-
-      break;
-    }
-
-    /* Get font */
-    case "fonts:": {
-      try {
-        data = await getFonts(parts[2], parts[3]);
-
-        const headers = detectFormatAndHeaders(data).headers;
-
-        if (
-          headers["content-type"] === "application/x-protobuf" &&
-          headers["content-encoding"] !== undefined
-        ) {
-          data = await unzipAsync(data);
-        }
-      } catch (error) {
-        printLog(
-          "warn",
-          `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty font...`
-        );
-
-        err = error;
-      }
-
-      break;
-    }
-
-    /* Get pmtiles tile */
-    case "pmtiles:": {
-      const z = Number(parts[3]);
-      const x = Number(parts[4]);
-      const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-      const tileName = `${z}/${x}/${y}`;
-      const item = config.datas[parts[2]];
-
-      try {
-        const dataTile = await getPMTilesTile(item.source, z, x, y);
-
-        if (
-          dataTile.headers["content-type"] === "application/x-protobuf" &&
-          dataTile.headers["content-encoding"] !== undefined
-        ) {
-          data = await unzipAsync(dataTile.data);
-        }
-      } catch (error) {
-        printLog(
-          "warn",
-          `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
-        );
-
-        data = createFallbackTileData(item.tileJSON.format);
-        err = error;
-      }
-
-      break;
-    }
-
-    /* Get mbtiles tile */
-    case "mbtiles:": {
-      const z = Number(parts[3]);
-      const x = Number(parts[4]);
-      const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-      const tileName = `${z}/${x}/${y}`;
-      const item = config.datas[parts[2]];
-
-      try {
-        let dataTile;
-
-        try {
-          dataTile = getMBTilesTile(item.source, z, x, y);
-        } catch (error) {
-          if (
-            item.sourceURL !== undefined &&
-            error.message === "Tile does not exist"
-          ) {
-            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-            const targetURL = item.sourceURL
-              .replace("{z}", `${z}`)
-              .replace("{x}", `${x}`)
-              .replace("{y}", `${tmpY}`);
-
+          } catch (error) {
             printLog(
-              "info",
-              `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
+              "warn",
+              `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty sprite...`
             );
 
-            dataTile = await getMBTilesTileFromURL(
-              targetURL,
-              30000 // 30 secs
+            err = error;
+          }
+
+          break;
+        }
+
+        /* Get font */
+        case "fonts:": {
+          try {
+            data = await getFonts(parts[2], parts[3]);
+
+            const headers = detectFormatAndHeaders(data).headers;
+
+            if (
+              headers["content-type"] === "application/x-protobuf" &&
+              headers["content-encoding"] !== undefined
+            ) {
+              data = await unzipAsync(data);
+            }
+          } catch (error) {
+            printLog(
+              "warn",
+              `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty font...`
             );
 
-            if (item.storeCache === true) {
-              printLog(
-                "info",
-                `Caching data "${parts[2]}" - Tile "${tileName}"...`
-              );
+            err = error;
+          }
 
-              cacheMBtilesTileData(
+          break;
+        }
+
+        /* Get pmtiles tile */
+        case "pmtiles:": {
+          const z = Number(parts[3]);
+          const x = Number(parts[4]);
+          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+          const tileName = `${z}/${x}/${y}`;
+          const item = config.datas[parts[2]];
+
+          try {
+            const dataTile = await getPMTilesTile(item.source, z, x, y);
+
+            if (
+              dataTile.headers["content-type"] === "application/x-protobuf" &&
+              dataTile.headers["content-encoding"] !== undefined
+            ) {
+              data = await unzipAsync(dataTile.data);
+            }
+          } catch (error) {
+            printLog(
+              "warn",
+              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+            );
+
+            data = createFallbackTileData(item.tileJSON.format);
+            err = error;
+          }
+
+          break;
+        }
+
+        /* Get mbtiles tile */
+        case "mbtiles:": {
+          const z = Number(parts[3]);
+          const x = Number(parts[4]);
+          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+          const tileName = `${z}/${x}/${y}`;
+          const item = config.datas[parts[2]];
+
+          try {
+            let dataTile;
+
+            try {
+              dataTile = getMBTilesTile(item.source, z, x, y);
+            } catch (error) {
+              if (
+                item.sourceURL !== undefined &&
+                error.message === "Tile does not exist"
+              ) {
+                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+                const targetURL = item.sourceURL
+                  .replace("{z}", `${z}`)
+                  .replace("{x}", `${x}`)
+                  .replace("{y}", `${tmpY}`);
+
+                printLog(
+                  "info",
+                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
+                );
+
+                dataTile = await getMBTilesTileFromURL(
+                  targetURL,
+                  30000 // 30 secs
+                );
+
+                if (item.storeCache === true) {
+                  printLog(
+                    "info",
+                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
+                  );
+
+                  cacheMBtilesTileData(
+                    item.source,
+                    z,
+                    x,
+                    tmpY,
+                    dataTile.data,
+                    item.storeTransparent
+                  ).catch((error) =>
+                    printLog(
+                      "error",
+                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
+                    )
+                  );
+                }
+              } else {
+                throw error;
+              }
+            }
+
+            if (
+              dataTile.headers["content-type"] === "application/x-protobuf" &&
+              dataTile.headers["content-encoding"] !== undefined
+            ) {
+              data = await unzipAsync(dataTile.data);
+            }
+          } catch (error) {
+            printLog(
+              "warn",
+              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+            );
+
+            data = createFallbackTileData(item.tileJSON.format);
+            err = error;
+          }
+
+          break;
+        }
+
+        /* Get xyz tile */
+        case "xyz:": {
+          const z = Number(parts[3]);
+          const x = Number(parts[4]);
+          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+          const tileName = `${z}/${x}/${y}`;
+          const item = config.datas[parts[2]];
+
+          try {
+            let dataTile;
+
+            try {
+              dataTile = await getXYZTile(
                 item.source,
                 z,
                 x,
-                tmpY,
-                dataTile.data,
-                item.storeTransparent
-              ).catch((error) =>
-                printLog(
-                  "error",
-                  `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                )
+                y,
+                item.tileJSON.format
               );
+            } catch (error) {
+              if (
+                item.sourceURL !== undefined &&
+                error.message === "Tile does not exist"
+              ) {
+                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+                const targetURL = item.sourceURL
+                  .replace("{z}", `${z}`)
+                  .replace("{x}", `${x}`)
+                  .replace("{y}", `${tmpY}`);
+
+                printLog(
+                  "info",
+                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
+                );
+
+                dataTile = await getXYZTileFromURL(
+                  targetURL,
+                  30000 // 30 secs
+                );
+
+                if (item.storeCache === true) {
+                  printLog(
+                    "info",
+                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
+                  );
+
+                  cacheXYZTileFile(
+                    item.source,
+                    item.md5Source,
+                    z,
+                    x,
+                    tmpY,
+                    item.tileJSON.format,
+                    dataTile.data,
+                    item.storeTransparent
+                  ).catch((error) =>
+                    printLog(
+                      "error",
+                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
+                    )
+                  );
+                }
+              } else {
+                throw error;
+              }
             }
-          } else {
-            throw error;
-          }
-        }
 
-        if (
-          dataTile.headers["content-type"] === "application/x-protobuf" &&
-          dataTile.headers["content-encoding"] !== undefined
-        ) {
-          data = await unzipAsync(dataTile.data);
-        }
-      } catch (error) {
-        printLog(
-          "warn",
-          `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
-        );
-
-        data = createFallbackTileData(item.tileJSON.format);
-        err = error;
-      }
-
-      break;
-    }
-
-    /* Get xyz tile */
-    case "xyz:": {
-      const z = Number(parts[3]);
-      const x = Number(parts[4]);
-      const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-      const tileName = `${z}/${x}/${y}`;
-      const item = config.datas[parts[2]];
-
-      try {
-        let dataTile;
-
-        try {
-          dataTile = await getXYZTile(
-            item.source,
-            z,
-            x,
-            y,
-            item.tileJSON.format
-          );
-        } catch (error) {
-          if (
-            item.sourceURL !== undefined &&
-            error.message === "Tile does not exist"
-          ) {
-            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-            const targetURL = item.sourceURL
-              .replace("{z}", `${z}`)
-              .replace("{x}", `${x}`)
-              .replace("{y}", `${tmpY}`);
-
+            if (
+              dataTile.headers["content-type"] === "application/x-protobuf" &&
+              dataTile.headers["content-encoding"] !== undefined
+            ) {
+              data = await unzipAsync(dataTile.data);
+            }
+          } catch (error) {
             printLog(
-              "info",
-              `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
+              "warn",
+              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
             );
 
-            dataTile = await getXYZTileFromURL(
-              targetURL,
-              30000 // 30 secs
-            );
-
-            if (item.storeCache === true) {
-              printLog(
-                "info",
-                `Caching data "${parts[2]}" - Tile "${tileName}"...`
-              );
-
-              cacheXYZTileFile(
-                item.source,
-                item.md5Source,
-                z,
-                x,
-                tmpY,
-                item.tileJSON.format,
-                dataTile.data,
-                item.storeTransparent
-              ).catch((error) =>
-                printLog(
-                  "error",
-                  `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                )
-              );
-            }
-          } else {
-            throw error;
+            data = createFallbackTileData(item.tileJSON.format);
+            err = error;
           }
+
+          break;
         }
 
-        if (
-          dataTile.headers["content-type"] === "application/x-protobuf" &&
-          dataTile.headers["content-encoding"] !== undefined
-        ) {
-          data = await unzipAsync(dataTile.data);
-        }
-      } catch (error) {
-        printLog(
-          "warn",
-          `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
-        );
+        /* Get pg tile */
+        case "pg:": {
+          const z = Number(parts[3]);
+          const x = Number(parts[4]);
+          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+          const tileName = `${z}/${x}/${y}`;
+          const item = config.datas[parts[2]];
 
-        data = createFallbackTileData(item.tileJSON.format);
-        err = error;
-      }
+          try {
+            let dataTile;
 
-      break;
-    }
+            try {
+              dataTile = await getPostgreSQLTile(item.source, z, x, y);
+            } catch (error) {
+              if (
+                item.sourceURL !== undefined &&
+                error.message === "Tile does not exist"
+              ) {
+                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
-    /* Get pg tile */
-    case "pg:": {
-      const z = Number(parts[3]);
-      const x = Number(parts[4]);
-      const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-      const tileName = `${z}/${x}/${y}`;
-      const item = config.datas[parts[2]];
+                const targetURL = item.sourceURL
+                  .replace("{z}", `${z}`)
+                  .replace("{x}", `${x}`)
+                  .replace("{y}", `${tmpY}`);
 
-      try {
-        let dataTile;
+                printLog(
+                  "info",
+                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
+                );
 
-        try {
-          dataTile = await getPostgreSQLTile(item.source, z, x, y);
-        } catch (error) {
-          if (
-            item.sourceURL !== undefined &&
-            error.message === "Tile does not exist"
-          ) {
-            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+                dataTile = await getPostgreSQLTileFromURL(
+                  targetURL,
+                  30000 // 30 secs
+                );
 
-            const targetURL = item.sourceURL
-              .replace("{z}", `${z}`)
-              .replace("{x}", `${x}`)
-              .replace("{y}", `${tmpY}`);
+                if (item.storeCache === true) {
+                  printLog(
+                    "info",
+                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
+                  );
 
+                  cachePostgreSQLTileData(
+                    item.source,
+                    z,
+                    x,
+                    tmpY,
+                    dataTile.data,
+                    item.storeTransparent
+                  ).catch((error) =>
+                    printLog(
+                      "error",
+                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
+                    )
+                  );
+                }
+              } else {
+                throw error;
+              }
+            }
+
+            if (
+              dataTile.headers["content-type"] === "application/x-protobuf" &&
+              dataTile.headers["content-encoding"] !== undefined
+            ) {
+              data = await unzipAsync(dataTile.data);
+            }
+          } catch (error) {
             printLog(
-              "info",
-              `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
+              "warn",
+              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
             );
 
-            dataTile = await getPostgreSQLTileFromURL(
-              targetURL,
-              30000 // 30 secs
-            );
-
-            if (item.storeCache === true) {
-              printLog(
-                "info",
-                `Caching data "${parts[2]}" - Tile "${tileName}"...`
-              );
-
-              cachePostgreSQLTileData(
-                item.source,
-                z,
-                x,
-                tmpY,
-                dataTile.data,
-                item.storeTransparent
-              ).catch((error) =>
-                printLog(
-                  "error",
-                  `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                )
-              );
-            }
-          } else {
-            throw error;
+            data = createFallbackTileData(item.tileJSON.format);
+            err = error;
           }
+
+          break;
         }
 
-        if (
-          dataTile.headers["content-type"] === "application/x-protobuf" &&
-          dataTile.headers["content-encoding"] !== undefined
-        ) {
-          data = await unzipAsync(dataTile.data);
-        }
-      } catch (error) {
-        printLog(
-          "warn",
-          `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
-        );
+        /* Get tile from remote */
+        case "http:":
+        case "https:": {
+          try {
+            printLog("info", `Getting data tile from "${url}"...`);
 
-        data = createFallbackTileData(item.tileJSON.format);
-        err = error;
+            const dataTile = await getDataFromURL(
+              url,
+              30000, // 30 secs
+              "arraybuffer"
+            );
+
+            /* Unzip pbf data */
+            const headers = detectFormatAndHeaders(dataTile.data).headers;
+
+            if (
+              headers["content-type"] === "application/x-protobuf" &&
+              headers["content-encoding"] !== undefined
+            ) {
+              data = await unzipAsync(dataTile.data);
+            }
+          } catch (error) {
+            printLog(
+              "warn",
+              `Failed to get data tile from "${url}": ${error}. Serving empty tile...`
+            );
+
+            data = createFallbackTileData(url.slice(url.lastIndexOf(".") + 1));
+            err = error;
+          }
+
+          break;
+        }
+
+        /* Default */
+        default: {
+          err = new Error(`Unknown scheme: "${parts[0]}`);
+
+          printLog("warn", `Failed to render: ${err}. Skipping...`);
+
+          break;
+        }
       }
 
-      break;
-    }
-
-    /* Get tile from remote */
-    case "http:":
-    case "https:": {
-      try {
-        printLog("info", `Getting data tile from "${url}"...`);
-
-        const dataTile = await getDataFromURL(
-          url,
-          30000, // 30 secs
-          "arraybuffer"
-        );
-
-        /* Unzip pbf data */
-        const headers = detectFormatAndHeaders(dataTile.data).headers;
-
-        if (
-          headers["content-type"] === "application/x-protobuf" &&
-          headers["content-encoding"] !== undefined
-        ) {
-          data = await unzipAsync(dataTile.data);
-        }
-      } catch (error) {
-        printLog(
-          "warn",
-          `Failed to get data tile from "${url}": ${error}. Serving empty tile...`
-        );
-
-        data = createFallbackTileData(url.slice(url.lastIndexOf(".") + 1));
-        err = error;
-      }
-
-      break;
-    }
-
-    /* Default */
-    default: {
-      err = new Error(`Unknown scheme: "${parts[0]}`);
-
-      printLog("warn", `Failed to render: ${err}. Skipping...`);
-
-      break;
-    }
-  }
-
-  callback(err, {
-    data: data,
+      callback(err, {
+        data: data,
+      });
+    },
   });
+
+  renderer.load(styleJSON);
+
+  return renderer;
 }
 
 /**
@@ -513,13 +526,7 @@ export async function renderImage(
   const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
 
   const data = await new Promise((resolve, reject) => {
-    const renderer = new mlgl.Map({
-      mode: "tile",
-      ratio: tileScale,
-      request: renderTileCallback,
-    });
-
-    renderer.load(styleJSON);
+    const renderer = createTileRenderer(tileScale, styleJSON);
 
     renderer.render(
       {
