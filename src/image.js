@@ -746,7 +746,7 @@ export async function renderMBTilesTiles(
     printLog("info", log);
 
     /* Open MBTiles SQLite database */
-    const filePath = `${process.env.DATA_DIR}/exports/mbtiles/${id}/${id}.mbtiles`;
+    const filePath = `${process.env.DATA_DIR}/exports/styles/mbtiles/${id}/${id}.mbtiles`;
 
     source = await openMBTilesDB(
       filePath,
@@ -789,8 +789,8 @@ export async function renderMBTilesTiles(
 
     async function renderMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
+      let data;
 
       try {
         let needRender = false;
@@ -802,8 +802,7 @@ export async function renderMBTilesTiles(
               `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
             );
 
-            // Rendered data
-            const data = await renderImage(
+            data = await renderImage(
               tileScale,
               tileSize,
               rendered.styleJSON,
@@ -814,15 +813,7 @@ export async function renderMBTilesTiles(
             );
 
             if (calculateMD5(data) !== hashs[tileName]) {
-              // Store data
-              await cacheMBtilesTileData(
-                source,
-                z,
-                x,
-                y,
-                data,
-                storeTransparent
-              );
+              needRender = true;
             }
           } catch (error) {
             if (error.message === "Tile MD5 does not exist") {
@@ -856,15 +847,17 @@ export async function renderMBTilesTiles(
           );
 
           // Rendered data
-          const data = await renderImage(
-            tileScale,
-            tileSize,
-            rendered.styleJSON,
-            z,
-            x,
-            y,
-            metadata.format
-          );
+          if (data === undefined) {
+            data = await renderImage(
+              tileScale,
+              tileSize,
+              rendered.styleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+          }
 
           // Store data
           await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
@@ -1005,7 +998,7 @@ export async function renderXYZTiles(
     printLog("info", log);
 
     /* Open MD5 SQLite database */
-    const filePath = `${process.env.DATA_DIR}/exports/xyzs/${id}/${id}.sqlite`;
+    const filePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${id}/${id}.sqlite`;
 
     const source = await openXYZMD5DB(
       filePath,
@@ -1045,11 +1038,12 @@ export async function renderXYZTiles(
     };
 
     const rendered = config.styles[id].rendered;
+    const sourcePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${id}`;
 
     async function renderXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
+      let data;
 
       try {
         let needRender = false;
@@ -1061,8 +1055,7 @@ export async function renderXYZTiles(
               `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
             );
 
-            // Rendered data
-            const data = await renderImage(
+            data = await renderImage(
               tileScale,
               tileSize,
               rendered.styleJSON,
@@ -1073,17 +1066,7 @@ export async function renderXYZTiles(
             );
 
             if (calculateMD5(data) !== hashs[tileName]) {
-              // Store data
-              await cacheXYZTileFile(
-                `${process.env.DATA_DIR}/exports/xyzs/${id}`,
-                source,
-                z,
-                x,
-                y,
-                metadata.format,
-                data,
-                storeTransparent
-              );
+              needRender = true;
             }
           } catch (error) {
             if (error.message === "Tile MD5 does not exist") {
@@ -1117,19 +1100,21 @@ export async function renderXYZTiles(
           );
 
           // Rendered data
-          const data = await renderImage(
-            tileScale,
-            tileSize,
-            rendered.styleJSON,
-            z,
-            x,
-            y,
-            metadata.format
-          );
+          if (data === undefined) {
+            data = await renderImage(
+              tileScale,
+              tileSize,
+              rendered.styleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+          }
 
           // Store data
           await cacheXYZTileFile(
-            `${process.env.DATA_DIR}/exports/xyzs/${id}`,
+            sourcePath,
             source,
             z,
             x,
@@ -1307,8 +1292,8 @@ export async function renderPostgreSQLTiles(
 
     async function renderPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
+      let data;
 
       try {
         let needRender = false;
@@ -1320,8 +1305,7 @@ export async function renderPostgreSQLTiles(
               `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
             );
 
-            // Rendered data
-            const data = await renderImage(
+            data = await renderImage(
               tileScale,
               tileSize,
               rendered.styleJSON,
@@ -1332,15 +1316,7 @@ export async function renderPostgreSQLTiles(
             );
 
             if (calculateMD5(data) !== hashs[tileName]) {
-              // Store data
-              await cachePostgreSQLTileData(
-                source,
-                z,
-                x,
-                y,
-                data,
-                storeTransparent
-              );
+              needRender = true;
             }
           } catch (error) {
             if (error.message === "Tile MD5 does not exist") {
@@ -1374,15 +1350,17 @@ export async function renderPostgreSQLTiles(
           );
 
           // Rendered data
-          const data = await renderImage(
-            tileScale,
-            tileSize,
-            rendered.styleJSON,
-            z,
-            x,
-            y,
-            metadata.format
-          );
+          if (data === undefined) {
+            data = await renderImage(
+              tileScale,
+              tileSize,
+              rendered.styleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+          }
 
           // Store data
           await cachePostgreSQLTileData(
