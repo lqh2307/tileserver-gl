@@ -134,6 +134,10 @@
       },
       "minItems": 1
     },
+    "maxPoolSize": {
+      "type": "integer",
+      "minimum": 1
+    },
     "concurrency": {
       "type": "integer",
       "minimum": 1
