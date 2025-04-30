@@ -1054,14 +1054,19 @@ export async function isFullTransparentPNGImage(buffer) {
 }
 
 /**
- * Render PNG image
- * @param {Buffer} data PNG image data
- * @param {number} originSize PNG image origin size
- * @param {number} targetSize PNG image target size
+ * Render image tile data
+ * @param {Buffer} data Image data
+ * @param {number} originSize Image origin size
+ * @param {number} targetSize Image target size
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<Buffer>}
  */
-export async function renderImageData(data, originSize, targetSize, format) {
+export async function renderImageTileData(
+  data,
+  originSize,
+  targetSize,
+  format
+) {
   const image = sharp(data, {
     raw: {
       premultiplied: true,

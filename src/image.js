@@ -34,7 +34,7 @@ import {
   createFallbackTileData,
   removeEmptyFolders,
   getLonLatFromXYZ,
-  renderImageData,
+  renderImageTileData,
   getDataFromURL,
   calculateMD5,
   unzipAsync,
@@ -503,7 +503,7 @@ function createTileRenderer(tileScale, styleJSON) {
 }
 
 /**
- * Render image
+ * Render image tile
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {Object} styleJSON StyleJSON
@@ -513,7 +513,7 @@ function createTileRenderer(tileScale, styleJSON) {
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<Buffer>}
  */
-export async function renderImage(
+export async function renderImageTile(
   tileScale,
   tileSize,
   styleJSON,
@@ -549,7 +549,7 @@ export async function renderImage(
     );
   });
 
-  return await renderImageData(
+  return await renderImageTileData(
     data,
     hackTileSize * tileScale,
     isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
@@ -669,7 +669,7 @@ export async function renderMBTilesTiles(
               `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
             );
 
-            data = await renderImage(
+            data = await renderImageTile(
               tileScale,
               tileSize,
               rendered.styleJSON,
@@ -715,7 +715,7 @@ export async function renderMBTilesTiles(
 
           // Rendered data
           if (data === undefined) {
-            data = await renderImage(
+            data = await renderImageTile(
               tileScale,
               tileSize,
               rendered.styleJSON,
@@ -922,7 +922,7 @@ export async function renderXYZTiles(
               `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
             );
 
-            data = await renderImage(
+            data = await renderImageTile(
               tileScale,
               tileSize,
               rendered.styleJSON,
@@ -968,7 +968,7 @@ export async function renderXYZTiles(
 
           // Rendered data
           if (data === undefined) {
-            data = await renderImage(
+            data = await renderImageTile(
               tileScale,
               tileSize,
               rendered.styleJSON,
@@ -1172,7 +1172,7 @@ export async function renderPostgreSQLTiles(
               `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
             );
 
-            data = await renderImage(
+            data = await renderImageTile(
               tileScale,
               tileSize,
               rendered.styleJSON,
@@ -1218,7 +1218,7 @@ export async function renderPostgreSQLTiles(
 
           // Rendered data
           if (data === undefined) {
-            data = await renderImage(
+            data = await renderImageTile(
               tileScale,
               tileSize,
               rendered.styleJSON,

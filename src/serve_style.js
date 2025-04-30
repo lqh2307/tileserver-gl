@@ -25,8 +25,8 @@ import {
 import {
   renderPostgreSQLTiles,
   renderMBTilesTiles,
+  renderImageTile,
   renderXYZTiles,
-  renderImage,
 } from "./image.js";
 import os from "os";
 
@@ -467,7 +467,7 @@ function getRenderedTileHandler() {
 
     /* Render tile */
     try {
-      const image = await renderImage(
+      const image = await renderImageTile(
         tileScale,
         tileSize,
         item.rendered.styleJSON,
