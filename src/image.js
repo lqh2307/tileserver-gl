@@ -31,6 +31,7 @@ import {
 import {
   getTileBoundsFromCoverages,
   detectFormatAndHeaders,
+  createFallbackTileData,
   removeEmptyFolders,
   getLonLatFromXYZ,
   renderImageData,
@@ -60,7 +61,7 @@ if (cluster.isPrimary !== true) {
 
       printLog(
         "info",
-        `Success to import "@maplibre/maplibre-gl-native". Enable backend render`
+        `Success to import "@maplibre/maplibre-gl-native". Enable backend render!`
       );
 
       config.enableBackendRender = true;
@@ -68,7 +69,7 @@ if (cluster.isPrimary !== true) {
     .catch((error) => {
       printLog(
         "error",
-        `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render`
+        `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render!`
       );
     });
 }
@@ -82,15 +83,14 @@ if (cluster.isPrimary !== true) {
 async function renderTileCallback(req, callback) {
   const url = decodeURIComponent(req.url);
   const parts = url.split("/");
-  let tileFormat = "other";
+  let data = null;
+  let err = null;
 
   switch (parts[0]) {
+    /* Get sprite */
     case "sprites:": {
       try {
         const item = config.sprites[parts[2]];
-
-        /* Get sprite */
-        let data;
 
         try {
           data = await getSprite(parts[2], parts[3]);
@@ -106,13 +106,11 @@ async function renderTileCallback(req, callback) {
               `Forwarding sprite "${parts[2]}" - Filename "${parts[3]}" - To "${targetURL}"...`
             );
 
-            /* Get sprite */
             data = await getSpriteFromURL(
               targetURL,
               30000 // 30 secs
             );
 
-            /* Cache */
             if (item.storeCache === true) {
               printLog(
                 "info",
@@ -130,30 +128,23 @@ async function renderTileCallback(req, callback) {
             throw error;
           }
         }
-
-        callback(null, {
-          data: data,
-        });
       } catch (error) {
         printLog(
           "warn",
           `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty sprite...`
         );
 
-        callback(error, {
-          data: null,
-        });
+        err = error;
       }
 
       break;
     }
 
+    /* Get font */
     case "fonts:": {
       try {
-        /* Get font */
-        let data = await getFonts(parts[2], parts[3]);
+        data = await getFonts(parts[2], parts[3]);
 
-        /* Unzip pbf font */
         const headers = detectFormatAndHeaders(data).headers;
 
         if (
@@ -162,24 +153,19 @@ async function renderTileCallback(req, callback) {
         ) {
           data = await unzipAsync(data);
         }
-
-        callback(null, {
-          data: data,
-        });
       } catch (error) {
         printLog(
           "warn",
           `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty font...`
         );
 
-        callback(error, {
-          data: null,
-        });
+        err = error;
       }
 
       break;
     }
 
+    /* Get pmtiles tile */
     case "pmtiles:": {
       const z = Number(parts[3]);
       const x = Number(parts[4]);
@@ -188,32 +174,28 @@ async function renderTileCallback(req, callback) {
       const item = config.datas[parts[2]];
 
       try {
-        /* Get rendered tile */
         const dataTile = await getPMTilesTile(item.source, z, x, y);
 
-        /* Unzip pbf rendered tile */
         if (
           dataTile.headers["content-type"] === "application/x-protobuf" &&
           dataTile.headers["content-encoding"] !== undefined
         ) {
-          dataTile.data = await unzipAsync(dataTile.data);
+          data = await unzipAsync(dataTile.data);
         }
-
-        callback(null, {
-          data: dataTile.data,
-        });
       } catch (error) {
         printLog(
           "warn",
           `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
         );
 
-        tileFormat = item.tileJSON.format;
+        data = createFallbackTileData(item.tileJSON.format);
+        err = error;
       }
 
       break;
     }
 
+    /* Get mbtiles tile */
     case "mbtiles:": {
       const z = Number(parts[3]);
       const x = Number(parts[4]);
@@ -222,7 +204,6 @@ async function renderTileCallback(req, callback) {
       const item = config.datas[parts[2]];
 
       try {
-        /* Get rendered tile */
         let dataTile;
 
         try {
@@ -244,13 +225,11 @@ async function renderTileCallback(req, callback) {
               `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
             );
 
-            /* Get data */
             dataTile = await getMBTilesTileFromURL(
               targetURL,
               30000 // 30 secs
             );
 
-            /* Cache */
             if (item.storeCache === true) {
               printLog(
                 "info",
@@ -276,29 +255,26 @@ async function renderTileCallback(req, callback) {
           }
         }
 
-        /* Unzip pbf rendered tile */
         if (
           dataTile.headers["content-type"] === "application/x-protobuf" &&
           dataTile.headers["content-encoding"] !== undefined
         ) {
-          dataTile.data = await unzipAsync(dataTile.data);
+          data = await unzipAsync(dataTile.data);
         }
-
-        callback(null, {
-          data: dataTile.data,
-        });
       } catch (error) {
         printLog(
           "warn",
           `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
         );
 
-        tileFormat = item.tileJSON.format;
+        data = createFallbackTileData(item.tileJSON.format);
+        err = error;
       }
 
       break;
     }
 
+    /* Get xyz tile */
     case "xyz:": {
       const z = Number(parts[3]);
       const x = Number(parts[4]);
@@ -307,7 +283,6 @@ async function renderTileCallback(req, callback) {
       const item = config.datas[parts[2]];
 
       try {
-        /* Get rendered tile */
         let dataTile;
 
         try {
@@ -335,13 +310,11 @@ async function renderTileCallback(req, callback) {
               `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
             );
 
-            /* Get data */
             dataTile = await getXYZTileFromURL(
               targetURL,
               30000 // 30 secs
             );
 
-            /* Cache */
             if (item.storeCache === true) {
               printLog(
                 "info",
@@ -369,29 +342,26 @@ async function renderTileCallback(req, callback) {
           }
         }
 
-        /* Unzip pbf rendered tile */
         if (
           dataTile.headers["content-type"] === "application/x-protobuf" &&
           dataTile.headers["content-encoding"] !== undefined
         ) {
-          dataTile.data = await unzipAsync(dataTile.data);
+          data = await unzipAsync(dataTile.data);
         }
-
-        callback(null, {
-          data: dataTile.data,
-        });
       } catch (error) {
         printLog(
           "warn",
           `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
         );
 
-        tileFormat = item.tileJSON.format;
+        data = createFallbackTileData(item.tileJSON.format);
+        err = error;
       }
 
       break;
     }
 
+    /* Get pg tile */
     case "pg:": {
       const z = Number(parts[3]);
       const x = Number(parts[4]);
@@ -400,7 +370,6 @@ async function renderTileCallback(req, callback) {
       const item = config.datas[parts[2]];
 
       try {
-        /* Get rendered tile */
         let dataTile;
 
         try {
@@ -422,13 +391,11 @@ async function renderTileCallback(req, callback) {
               `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
             );
 
-            /* Get data */
             dataTile = await getPostgreSQLTileFromURL(
               targetURL,
               30000 // 30 secs
             );
 
-            /* Cache */
             if (item.storeCache === true) {
               printLog(
                 "info",
@@ -454,29 +421,26 @@ async function renderTileCallback(req, callback) {
           }
         }
 
-        /* Unzip pbf rendered tile */
         if (
           dataTile.headers["content-type"] === "application/x-protobuf" &&
           dataTile.headers["content-encoding"] !== undefined
         ) {
-          dataTile.data = await unzipAsync(dataTile.data);
+          data = await unzipAsync(dataTile.data);
         }
-
-        callback(null, {
-          data: dataTile.data,
-        });
       } catch (error) {
         printLog(
           "warn",
           `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
         );
 
-        tileFormat = item.tileJSON.format;
+        data = createFallbackTileData(item.tileJSON.format);
+        err = error;
       }
 
       break;
     }
 
+    /* Get tile from remote */
     case "http:":
     case "https:": {
       try {
@@ -495,138 +459,34 @@ async function renderTileCallback(req, callback) {
           headers["content-type"] === "application/x-protobuf" &&
           headers["content-encoding"] !== undefined
         ) {
-          dataTile.data = await unzipAsync(dataTile.data);
+          data = await unzipAsync(dataTile.data);
         }
-
-        callback(null, {
-          data: dataTile.data,
-        });
       } catch (error) {
         printLog(
           "warn",
           `Failed to get data tile from "${url}": ${error}. Serving empty tile...`
         );
 
-        tileFormat = url.slice(url.lastIndexOf(".") + 1);
+        data = createFallbackTileData(url.slice(url.lastIndexOf(".") + 1));
+        err = error;
       }
 
       break;
     }
 
+    /* Default */
     default: {
-      printLog("warn", `Unknown scheme: "${parts[0]}". Skipping...`);
+      err = new Error(`Unknown scheme: "${parts[0]}`);
+
+      printLog("warn", `Failed to render: ${err}. Skipping...`);
 
       break;
     }
   }
 
-  switch (tileFormat) {
-    case "other": {
-      break;
-    }
-
-    case "gif": {
-      callback(null, {
-        data: Buffer.from([
-          0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80,
-          0x00, 0x00, 0x4c, 0x69, 0x71, 0x00, 0x00, 0x00, 0x21, 0xff, 0x0b,
-          0x4e, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30,
-          0x03, 0x01, 0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x05, 0x00, 0x00,
-          0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
-          0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3b,
-        ]),
-      });
-
-      break;
-    }
-
-    case "png": {
-      callback(null, {
-        data: Buffer.from([
-          0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00,
-          0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-          0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89,
-          0x00, 0x00, 0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x03,
-          0xe8, 0x00, 0x00, 0x03, 0xe8, 0x01, 0xb5, 0x7b, 0x52, 0x6b, 0x00,
-          0x00, 0x00, 0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x60,
-          0x60, 0x60, 0x60, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0xa5, 0xf6,
-          0x45, 0x40, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
-          0x42, 0x60, 0x82,
-        ]),
-      });
-
-      break;
-    }
-
-    case "jpg":
-    case "jpeg": {
-      callback(null, {
-        data: Buffer.from([
-          0xff, 0xd8, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x06, 0x04, 0x05, 0x06,
-          0x05, 0x04, 0x06, 0x06, 0x05, 0x06, 0x07, 0x07, 0x06, 0x08, 0x0a,
-          0x10, 0x0a, 0x0a, 0x09, 0x09, 0x0a, 0x14, 0x0e, 0x0f, 0x0c, 0x10,
-          0x17, 0x14, 0x18, 0x18, 0x17, 0x14, 0x16, 0x16, 0x1a, 0x1d, 0x25,
-          0x1f, 0x1a, 0x1b, 0x23, 0x1c, 0x16, 0x16, 0x20, 0x2c, 0x20, 0x23,
-          0x26, 0x27, 0x29, 0x2a, 0x29, 0x19, 0x1f, 0x2d, 0x30, 0x2d, 0x28,
-          0x30, 0x25, 0x28, 0x29, 0x28, 0xff, 0xdb, 0x00, 0x43, 0x01, 0x07,
-          0x07, 0x07, 0x0a, 0x08, 0x0a, 0x13, 0x0a, 0x0a, 0x13, 0x28, 0x1a,
-          0x16, 0x1a, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28,
-          0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0xff, 0xc0, 0x00,
-          0x11, 0x08, 0x00, 0x01, 0x00, 0x01, 0x03, 0x01, 0x22, 0x00, 0x02,
-          0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xc4, 0x00, 0x15, 0x00, 0x01,
-          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0xff, 0xc4, 0x00, 0x14, 0x10,
-          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x01,
-          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x11,
-          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03,
-          0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3f, 0x00, 0x95, 0x00,
-          0x07, 0xff, 0xd9,
-        ]),
-      });
-
-      break;
-    }
-
-    case "webp": {
-      callback(null, {
-        data: Buffer.from([
-          0x52, 0x49, 0x46, 0x46, 0x40, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42,
-          0x50, 0x56, 0x50, 0x38, 0x58, 0x0a, 0x00, 0x00, 0x00, 0x10, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x41, 0x4c, 0x50,
-          0x48, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x56, 0x50, 0x38, 0x20,
-          0x18, 0x00, 0x00, 0x00, 0x30, 0x01, 0x00, 0x9d, 0x01, 0x2a, 0x01,
-          0x00, 0x01, 0x00, 0x01, 0x40, 0x26, 0x25, 0xa4, 0x00, 0x03, 0x70,
-          0x00, 0xfe, 0xfd, 0x36, 0x68, 0x00,
-        ]),
-      });
-
-      break;
-    }
-
-    case "pbf": {
-      callback(null, {
-        data: Buffer.from([]),
-      });
-
-      break;
-    }
-
-    default: {
-      printLog("warn", `Unknown tile format: "${tileFormat}". Skipping...`);
-
-      callback(null, {
-        data: Buffer.from([]),
-      });
-
-      break;
-    }
-  }
+  callback(err, {
+    data: data,
+  });
 }
 
 /**

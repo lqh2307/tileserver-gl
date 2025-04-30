@@ -52,13 +52,13 @@ async function startClusterServer() {
 
       printLog(
         "info",
-        `Found gdal version "${gdalVersion.trim()}". Enable export render`
+        `Found gdal version "${gdalVersion.trim()}". Enable export render!`
       );
 
       process.env.ENABLE_EXPORT = "true";
       process.env.GDAL_NUM_THREADS = "ALL_CPUS";
     } catch (error) {
-      printLog("info", "Not found gdal. Disable export render");
+      printLog("info", "Not found gdal. Disable export render!");
     }
 
     /* Remove old cache locks */

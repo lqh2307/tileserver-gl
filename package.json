@@ -1,7 +1,7 @@
 {
   "name": "@huylq2307/tile-server",
   "description": "Vector/Raster tile server for serving/caching xyz/wmts tiles",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "license": "MIT",
   "author": "Huy Le <lqh23072000@gmail.com>",
   "keywords": ["tile-server"],

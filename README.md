@@ -7,7 +7,7 @@
 Clone source:
 
 ```bash
-git clone --single-branch -b 0.0.26 https://github.com/lqh2307/tileserver-gl.git
+git clone --single-branch -b 0.0.27 https://github.com/lqh2307/tileserver-gl.git
 ```
 
 Jump to folder:
@@ -16,10 +16,10 @@ Jump to folder:
 cd tile-server
 ```
 
-Switch to 0.0.26 branch:
+Switch to 0.0.27 branch:
 
 ```bash
-git checkout 0.0.26
+git checkout 0.0.27
 ```
 
 ### Run with nodejs - native (on ubuntu 22.04 x86_64 amd)
@@ -67,7 +67,7 @@ cmake --build .; \
 cmake --build . --target install; \
 cd ../..; \
 rm -rf ./gdal-${GDAL_VERSION}*; \
-grep -q '/usr/local/opt/gdal/bin' ~/.bashrc || echo 'export PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc; \
+grep -q '/usr/local/opt/gdal/bin' ~/.bashrc || echo 'export PATH=/usr/local/opt/gdal/bin:${PATH}' >> ~/.bashrc; \
 source ~/.bashrc;
 ```
 
@@ -124,13 +124,13 @@ LOGGING_TO_FILE: true/false (default: true)
 Build image:
 
 ```bash
-docker build -t tile-server:0.0.26 .
+docker build -t tile-server:0.0.27 .
 ```
 
 Run container:
 
 ```bash
-docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.26
+docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.27
 ```
 
 ## Example config.json
