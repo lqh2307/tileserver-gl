@@ -617,7 +617,7 @@ export async function renderMBTilesTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshTimestamp === true) {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -849,7 +849,7 @@ export async function renderXYZTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshTimestamp === true) {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -1086,7 +1086,7 @@ export async function renderPostgreSQLTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshTimestamp === true) {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
