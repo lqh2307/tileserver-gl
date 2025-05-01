@@ -162,7 +162,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
           cleanUpTimestamp === undefined ||
           (cleanUpTimestamp !== undefined &&
             (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
+              tileExtraInfo[tileName] < cleanUpTimestamp))
         ) {
           printLog(
             "info",
@@ -313,7 +313,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
           cleanUpTimestamp === undefined ||
           (cleanUpTimestamp !== undefined &&
             (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
+              tileExtraInfo[tileName] < cleanUpTimestamp))
         ) {
           printLog(
             "info",
@@ -463,7 +463,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
           cleanUpTimestamp === undefined ||
           (cleanUpTimestamp !== undefined &&
             (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
+              tileExtraInfo[tileName] < cleanUpTimestamp))
         ) {
           printLog(
             "info",
