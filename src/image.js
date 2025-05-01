@@ -11,7 +11,6 @@ import {
   getPostgreSQLTileExtraInfoFromCoverages,
   updatePostgreSQLMetadata,
   getPostgreSQLTileFromURL,
-  getPostgreSQLTileCreated,
   cachePostgreSQLTileData,
   getPostgreSQLTile,
   closePostgreSQLDB,
@@ -22,7 +21,6 @@ import {
   calculateMBTilesTileExtraInfo,
   updateMBTilesMetadata,
   getMBTilesTileFromURL,
-  getMBTilesTileCreated,
   cacheMBtilesTileData,
   getMBTilesTile,
   closeMBTilesDB,
@@ -44,7 +42,6 @@ import {
 import {
   getXYZTileExtraInfoFromCoverages,
   updateXYZMetadata,
-  getXYZTileCreated,
   getXYZTileFromURL,
   cacheXYZTileFile,
   closeXYZMD5DB,
@@ -605,23 +602,23 @@ export async function renderMBTilesTiles(
       coverages
     )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
-    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (refreshType === "string") {
+    if (typeof refreshBefore === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (refreshType === "number") {
+    } else if (typeof refreshBefore === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (typeof refreshBefore === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
+    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -634,18 +631,25 @@ export async function renderMBTilesTiles(
       30000 // 30 secs
     );
 
-    /* Get hashs */
-    let hashs;
+    /* Get tile extra info */
+    let tileExtraInfo;
 
-    if (refreshTimestamp === true) {
+    if (refreshTimestamp !== undefined) {
       try {
-        printLog("info", `Get hashs from "${filePath}"...`);
+        printLog("info", `Get tile extra info from "${filePath}"...`);
 
-        hashs = getMBTilesTileExtraInfoFromCoverages(source, coverages);
+        tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          refreshTimestampType === "number"
+        );
       } catch (error) {
-        printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
 
-        hashs = {};
+        tileExtraInfo = {};
       }
     }
 
@@ -670,37 +674,21 @@ export async function renderMBTilesTiles(
     async function renderMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
       const completeTasks = tasks.completeTasks;
-      let data;
 
       try {
-        let needRender = false;
-
-        if (typeof refreshTimestamp === "number") {
-          try {
-            const created = getMBTilesTileCreated(source, z, x, y);
-
-            if (!created || created < refreshTimestamp) {
-              needRender = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needRender = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needRender = true;
-        }
-
-        if (needRender === true) {
+        if (
+          refreshTimestampType !== "number" ||
+          (refreshTimestampType === "number" &&
+            tileExtraInfo[tileName] &&
+            tileExtraInfo[tileName] < refreshTimestamp)
+        ) {
           printLog(
             "info",
             `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
           );
 
           // Rendered data
-          data = await renderImageTile(
+          const data = await renderImageTile(
             tileScale,
             tileSize,
             rendered.styleJSON,
@@ -711,13 +699,14 @@ export async function renderMBTilesTiles(
           );
 
           if (
-            refreshTimestamp === true &&
-            calculateMD5(data) === hashs[tileName]
+            refreshTimestampType === "boolean" &&
+            tileExtraInfo[tileName] === calculateMD5(data)
           ) {
             return;
-          } else {
-            await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
           }
+
+          // Store
+          await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
         }
       } catch (error) {
         printLog(
@@ -773,7 +762,7 @@ export async function renderMBTilesTiles(
 
       printLog("info", `Gdal command output: ${commandOutput}`);
 
-      printLog("info", "Calculating MD5 tile hashs...");
+      printLog("info", "Creating tile extra info...");
 
       await calculateMBTilesTileExtraInfo(source);
     }
@@ -837,23 +826,23 @@ export async function renderXYZTiles(
       coverages
     )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
-    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (refreshType === "string") {
+    if (typeof refreshBefore === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (refreshType === "number") {
+    } else if (typeof refreshBefore === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (typeof refreshBefore === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
+    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -866,18 +855,25 @@ export async function renderXYZTiles(
       30000 // 30 secs
     );
 
-    /* Get hashs */
-    let hashs;
+    /* Get tile extra info */
+    let tileExtraInfo;
 
     if (refreshTimestamp === true) {
       try {
-        printLog("info", `Get hashs from "${filePath}"...`);
+        printLog("info", `Get tile extra info from "${filePath}"...`);
 
-        hashs = getXYZTileExtraInfoFromCoverages(source, coverages);
+        tileExtraInfo = getXYZTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          refreshTimestampType === "number"
+        );
       } catch (error) {
-        printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
 
-        hashs = {};
+        tileExtraInfo = {};
       }
     }
 
@@ -903,37 +899,21 @@ export async function renderXYZTiles(
     async function renderXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
       const completeTasks = tasks.completeTasks;
-      let data;
 
       try {
-        let needRender = false;
-
-        if (typeof refreshTimestamp === "number") {
-          try {
-            const created = getXYZTileCreated(source, z, x, y);
-
-            if (!created || created < refreshTimestamp) {
-              needRender = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needRender = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needRender = true;
-        }
-
-        if (needRender === true) {
+        if (
+          refreshTimestampType !== "number" ||
+          (refreshTimestampType === "number" &&
+            tileExtraInfo[tileName] &&
+            tileExtraInfo[tileName] < refreshTimestamp)
+        ) {
           printLog(
             "info",
             `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
           );
 
           // Rendered data
-          data = await renderImageTile(
+          const data = await renderImageTile(
             tileScale,
             tileSize,
             rendered.styleJSON,
@@ -943,24 +923,24 @@ export async function renderXYZTiles(
             metadata.format
           );
 
-          // Store data
           if (
-            refreshTimestamp === true &&
-            calculateMD5(data) === hashs[tileName]
+            refreshTimestampType === "boolean" &&
+            tileExtraInfo[tileName] === calculateMD5(data)
           ) {
             return;
-          } else {
-            await cacheXYZTileFile(
-              sourcePath,
-              source,
-              z,
-              x,
-              y,
-              metadata.format,
-              data,
-              storeTransparent
-            );
           }
+
+          // Store
+          await cacheXYZTileFile(
+            sourcePath,
+            source,
+            z,
+            x,
+            y,
+            metadata.format,
+            data,
+            storeTransparent
+          );
         }
       } catch (error) {
         printLog(
@@ -1074,23 +1054,23 @@ export async function renderPostgreSQLTiles(
       coverages
     )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
-    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (refreshType === "string") {
+    if (typeof refreshBefore === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (refreshType === "number") {
+    } else if (typeof refreshBefore === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (typeof refreshBefore === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
+    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -1099,18 +1079,25 @@ export async function renderPostgreSQLTiles(
 
     source = await openPostgreSQLDB(filePath, true);
 
-    /* Get hashs */
-    let hashs;
+    /* Get tile extra info */
+    let tileExtraInfo;
 
     if (refreshTimestamp === true) {
       try {
-        printLog("info", `Get hashs from "${filePath}"...`);
+        printLog("info", `Get tile extra info from "${filePath}"...`);
 
-        hashs = await getPostgreSQLTileExtraInfoFromCoverages(source, coverages);
+        tileExtraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          refreshTimestampType === "number"
+        );
       } catch (error) {
-        printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
 
-        hashs = {};
+        tileExtraInfo = {};
       }
     }
 
@@ -1135,37 +1122,21 @@ export async function renderPostgreSQLTiles(
     async function renderPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
       const completeTasks = tasks.completeTasks;
-      let data;
 
       try {
-        let needRender = false;
-
-        if (typeof refreshTimestamp === "number") {
-          try {
-            const created = await getPostgreSQLTileCreated(source, z, x, y);
-
-            if (!created || created < refreshTimestamp) {
-              needRender = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needRender = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needRender = true;
-        }
-
-        if (needRender === true) {
+        if (
+          refreshTimestampType !== "number" ||
+          (refreshTimestampType === "number" &&
+            tileExtraInfo[tileName] &&
+            tileExtraInfo[tileName] < refreshTimestamp)
+        ) {
           printLog(
             "info",
             `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
           );
 
           // Rendered data
-          data = await renderImageTile(
+          const data = await renderImageTile(
             tileScale,
             tileSize,
             rendered.styleJSON,
@@ -1175,22 +1146,22 @@ export async function renderPostgreSQLTiles(
             metadata.format
           );
 
-          // Store data
           if (
-            refreshTimestamp === true &&
-            calculateMD5(data) === hashs[tileName]
+            refreshTimestampType === "boolean" &&
+            tileExtraInfo[tileName] === calculateMD5(data)
           ) {
             return;
-          } else {
-            await cachePostgreSQLTileData(
-              source,
-              z,
-              x,
-              y,
-              data,
-              storeTransparent
-            );
           }
+
+          // Store
+          await cachePostgreSQLTileData(
+            source,
+            z,
+            x,
+            y,
+            data,
+            storeTransparent
+          );
         }
       } catch (error) {
         printLog(
