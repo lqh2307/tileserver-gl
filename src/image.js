@@ -634,7 +634,7 @@ export async function renderMBTilesTiles(
     /* Get tile extra info */
     let tileExtraInfo;
 
-    if (refreshTimestamp !== undefined) {
+    if (refreshTimestampType !== "undefined") {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -679,8 +679,8 @@ export async function renderMBTilesTiles(
         if (
           refreshTimestampType !== "number" ||
           (refreshTimestampType === "number" &&
-            tileExtraInfo[tileName] &&
-            tileExtraInfo[tileName] < refreshTimestamp)
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
         ) {
           printLog(
             "info",
@@ -762,7 +762,7 @@ export async function renderMBTilesTiles(
 
       printLog("info", `Gdal command output: ${commandOutput}`);
 
-      printLog("info", "Creating tile extra info...");
+      printLog("info", "Calculating tile extra info...");
 
       await calculateMBTilesTileExtraInfo(source);
     }
@@ -858,7 +858,7 @@ export async function renderXYZTiles(
     /* Get tile extra info */
     let tileExtraInfo;
 
-    if (refreshTimestamp === true) {
+    if (refreshTimestampType !== "undefined") {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -904,8 +904,8 @@ export async function renderXYZTiles(
         if (
           refreshTimestampType !== "number" ||
           (refreshTimestampType === "number" &&
-            tileExtraInfo[tileName] &&
-            tileExtraInfo[tileName] < refreshTimestamp)
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
         ) {
           printLog(
             "info",
@@ -1082,7 +1082,7 @@ export async function renderPostgreSQLTiles(
     /* Get tile extra info */
     let tileExtraInfo;
 
-    if (refreshTimestamp === true) {
+    if (refreshTimestampType !== "undefined") {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -1127,8 +1127,8 @@ export async function renderPostgreSQLTiles(
         if (
           refreshTimestampType !== "number" ||
           (refreshTimestampType === "number" &&
-            tileExtraInfo[tileName] &&
-            tileExtraInfo[tileName] < refreshTimestamp)
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
         ) {
           printLog(
             "info",

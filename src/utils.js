@@ -927,10 +927,9 @@ export function validateJSON(schema, jsonData) {
   try {
     const validate = new Ajv({
       allErrors: true,
-      useDefaults: true,
     }).compile(schema);
 
-    if (!validate(jsonData)) {
+    if (validate(jsonData) === false) {
       throw validate.errors
         .map((error) => `\n\t${error.instancePath} ${error.message}`)
         .join();

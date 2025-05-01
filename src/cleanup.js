@@ -8,14 +8,14 @@ import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
 import {
-  getXYZTileCreated,
+  getXYZTileExtraInfoFromCoverages,
   removeXYZTile,
   closeXYZMD5DB,
   openXYZMD5DB,
   compactXYZ,
 } from "./tile_xyz.js";
 import {
-  getMBTilesTileCreated,
+  getMBTilesTileExtraInfoFromCoverages,
   removeMBTilesTile,
   compactMBTiles,
   closeMBTilesDB,
@@ -30,7 +30,7 @@ import {
   delay,
 } from "./utils.js";
 import {
-  getPostgreSQLTileCreated,
+  getPostgreSQLTileExtraInfoFromCoverages,
   removePostgreSQLTile,
   closePostgreSQLDB,
   openPostgreSQLDB,
@@ -102,13 +102,12 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
       coverages
     )}`;
 
-    const cleanUpType = typeof cleanUpBefore;
     let cleanUpTimestamp;
-    if (cleanUpType === "string") {
+    if (typeof cleanUpBefore === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
       log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (cleanUpType === "number") {
+    } else if (typeof cleanUpBefore === "number") {
       const now = new Date();
 
       cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -125,6 +124,28 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
       30000 // 30 secs
     );
 
+    /* Get tile extra info */
+    let tileExtraInfo;
+
+    if (cleanUpTimestamp !== undefined) {
+      try {
+        printLog("info", `Get tile extra info from "${filePath}"...`);
+
+        tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          true
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
+
+        tileExtraInfo = {};
+      }
+    }
+
     /* Remove tiles */
     const tasks = {
       mutex: new Mutex(),
@@ -134,31 +155,15 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     async function cleanUpMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
 
       try {
-        let needRemove = false;
-
-        if (cleanUpTimestamp !== undefined) {
-          try {
-            const created = getMBTilesTileCreated(source, z, x, y);
-
-            if (!created || created < cleanUpTimestamp) {
-              needRemove = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needRemove = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needRemove = true;
-        }
-
-        if (needRemove === true) {
+        if (
+          cleanUpTimestamp === undefined ||
+          (cleanUpTimestamp !== undefined &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
+        ) {
           printLog(
             "info",
             `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
@@ -249,13 +254,12 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
       coverages
     )}`;
 
-    const cleanUpType = typeof cleanUpBefore;
     let cleanUpTimestamp;
-    if (cleanUpType === "string") {
+    if (typeof cleanUpBefore === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
       log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (cleanUpType === "number") {
+    } else if (typeof cleanUpBefore === "number") {
       const now = new Date();
 
       cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -271,6 +275,28 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
       true
     );
 
+    /* Get tile extra info */
+    let tileExtraInfo;
+
+    if (cleanUpTimestamp !== undefined) {
+      try {
+        printLog("info", `Get tile extra info from "${filePath}"...`);
+
+        tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          true
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
+
+        tileExtraInfo = {};
+      }
+    }
+
     /* Remove tiles */
     const tasks = {
       mutex: new Mutex(),
@@ -280,31 +306,15 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
     async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
 
       try {
-        let needRemove = false;
-
-        if (cleanUpTimestamp !== undefined) {
-          try {
-            const created = await getPostgreSQLTileCreated(source, z, x, y);
-
-            if (!created || created < cleanUpTimestamp) {
-              needRemove = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needRemove = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needRemove = true;
-        }
-
-        if (needRemove === true) {
+        if (
+          cleanUpTimestamp === undefined ||
+          (cleanUpTimestamp !== undefined &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
+        ) {
           printLog(
             "info",
             `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
@@ -393,13 +403,12 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
       coverages
     )}`;
 
-    const cleanUpType = typeof cleanUpBefore;
     let cleanUpTimestamp;
-    if (cleanUpType === "string") {
+    if (typeof cleanUpBefore === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
       log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (cleanUpType === "number") {
+    } else if (typeof cleanUpBefore === "number") {
       const now = new Date();
 
       cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -416,6 +425,28 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
       30000 // 30 secs
     );
 
+    /* Get tile extra info */
+    let tileExtraInfo;
+
+    if (cleanUpTimestamp !== undefined) {
+      try {
+        printLog("info", `Get tile extra info from "${filePath}"...`);
+
+        tileExtraInfo = getXYZTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          true
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
+
+        tileExtraInfo = {};
+      }
+    }
+
     /* Remove tile files */
     const tasks = {
       mutex: new Mutex(),
@@ -425,31 +456,15 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
     async function cleanUpXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
 
       try {
-        let needRemove = false;
-
-        if (cleanUpTimestamp !== undefined) {
-          try {
-            const created = getXYZTileCreated(source, z, x, y);
-
-            if (!created || created < cleanUpTimestamp) {
-              needRemove = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needRemove = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needRemove = true;
-        }
-
-        if (needRemove === true) {
+        if (
+          cleanUpTimestamp === undefined ||
+          (cleanUpTimestamp !== undefined &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
+        ) {
           printLog(
             "info",
             `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
@@ -539,13 +554,12 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
   let log = `Cleaning up geojson "${id}" with:`;
 
-  const cleanUpType = typeof cleanUpBefore;
   let cleanUpTimestamp;
-  if (cleanUpType === "string") {
+  if (typeof cleanUpBefore === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
     log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (cleanUpType === "number") {
+  } else if (typeof cleanUpBefore === "number") {
     const now = new Date();
 
     cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -565,7 +579,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
       try {
         const created = await getGeoJSONCreated(filePath);
 
-        if (!created || created < cleanUpTimestamp) {
+        if (created === undefined || created < cleanUpTimestamp) {
           needRemove = true;
         }
       } catch (error) {
@@ -618,13 +632,12 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   let log = `Cleaning up sprite "${id}" with:`;
 
-  const cleanUpType = typeof cleanUpBefore;
   let cleanUpTimestamp;
-  if (cleanUpType === "string") {
+  if (typeof cleanUpBefore === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
     log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (cleanUpType === "number") {
+  } else if (typeof cleanUpBefore === "number") {
     const now = new Date();
 
     cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -645,7 +658,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
         try {
           const created = await getSpriteCreated(filePath);
 
-          if (!created || created < cleanUpTimestamp) {
+          if (created === undefined || created < cleanUpTimestamp) {
             needRemove = true;
           }
         } catch (error) {
@@ -710,13 +723,12 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   let log = `Cleaning up ${total} fonts of font "${id}" with:`;
 
-  const cleanUpType = typeof cleanUpBefore;
   let cleanUpTimestamp;
-  if (cleanUpType === "string") {
+  if (typeof cleanUpBefore === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
     log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (cleanUpType === "number") {
+  } else if (typeof cleanUpBefore === "number") {
     const now = new Date();
 
     cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -738,7 +750,7 @@ async function cleanUpFont(id, cleanUpBefore) {
         try {
           const created = await getFontCreated(filePath);
 
-          if (!created || created < cleanUpTimestamp) {
+          if (created === undefined || created < cleanUpTimestamp) {
             needRemove = true;
           }
         } catch (error) {
@@ -801,13 +813,12 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
   let log = `Cleaning up style "${id}" with:`;
 
-  const cleanUpType = typeof cleanUpBefore;
   let cleanUpTimestamp;
-  if (cleanUpType === "string") {
+  if (typeof cleanUpBefore === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
     log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (cleanUpType === "number") {
+  } else if (typeof cleanUpBefore === "number") {
     const now = new Date();
 
     cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -827,7 +838,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
       try {
         const created = await getStyleCreated(filePath);
 
-        if (!created || created < cleanUpTimestamp) {
+        if (created === undefined || created < cleanUpTimestamp) {
           needRemove = true;
         }
       } catch (error) {

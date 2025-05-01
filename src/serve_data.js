@@ -347,7 +347,7 @@ function getDataHandler() {
 }
 
 /**
- * Get data tile extra info handler
+ * Get tile extra info handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
 function getDataTileExtraInfoHandler() {
@@ -360,7 +360,7 @@ function getDataTileExtraInfoHandler() {
       return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
     }
 
-    /* Get data tile extra info */
+    /* Get tile extra info */
     try {
       try {
         validateJSON(await getJSONSchema("coverages"), req.body);
@@ -376,7 +376,7 @@ function getDataTileExtraInfoHandler() {
         extraInfo = getMBTilesTileExtraInfoFromCoverages(
           item.source,
           req.body,
-          req.query.type === "created"
+          false
         );
       } else if (item.sourceType === "pmtiles") {
         extraInfo = {};
@@ -384,13 +384,13 @@ function getDataTileExtraInfoHandler() {
         extraInfo = getXYZTileExtraInfoFromCoverages(
           item.md5Source,
           req.body,
-          req.query.type === "created"
+          false
         );
       } else if (item.sourceType === "pg") {
         extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
           item.source,
           req.body,
-          req.query.type === "created"
+          false
         );
       }
 
@@ -408,7 +408,7 @@ function getDataTileExtraInfoHandler() {
 
       return res.status(StatusCodes.OK).send(extraInfo);
     } catch (error) {
-      printLog("error", `Failed to get data tile extra info "${id}": ${error}`);
+      printLog("error", `Failed to get tile extra info "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -418,7 +418,7 @@ function getDataTileExtraInfoHandler() {
 }
 
 /**
- * Calculate data tile extra info handler
+ * Calculate tile extra info handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
 function calculateDataExtraInfoHandler() {
@@ -431,8 +431,8 @@ function calculateDataExtraInfoHandler() {
       return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
     }
 
-    /* Calculate data tile extra info */
-    printLog("info", `Calculating data tile extra info "${id}"...`);
+    /* Calculate tile extra info */
+    printLog("info", `Calculating tile extra info "${id}"...`);
 
     try {
       if (item.sourceType === "mbtiles") {
@@ -440,15 +440,12 @@ function calculateDataExtraInfoHandler() {
           () =>
             calculateMBTilesTileExtraInfo(item.source)
               .then(() => {
-                printLog(
-                  "info",
-                  `Done to calculate data tile extra info "${id}"!`
-                );
+                printLog("info", `Done to calculate tile extra info "${id}"!`);
               })
               .catch((error) => {
                 printLog(
                   "error",
-                  `Failed to calculate data tile extra info "${id}": ${error}$`
+                  `Failed to calculate tile extra info "${id}": ${error}`
                 );
               }),
           0
@@ -464,15 +461,12 @@ function calculateDataExtraInfoHandler() {
               item.tileJSON.format
             )
               .then(() => {
-                printLog(
-                  "info",
-                  `Done to calculate data tile extra info "${id}"!`
-                );
+                printLog("info", `Done to calculate tile extra info "${id}"!`);
               })
               .catch((error) => {
                 printLog(
                   "error",
-                  `Failed to calculate data tile extra info "${id}": ${error}$`
+                  `Failed to calculate tile extra info "${id}": ${error}`
                 );
               }),
           0
@@ -482,15 +476,12 @@ function calculateDataExtraInfoHandler() {
           () =>
             calculatePostgreSQLTileExtraInfo(item.source)
               .then(() => {
-                printLog(
-                  "info",
-                  `Done to calculate data tile extra info "${id}"!`
-                );
+                printLog("info", `Done to calculate tile extra info "${id}"!`);
               })
               .catch((error) => {
                 printLog(
                   "error",
-                  `Failed to calculate data tile extra info "${id}": ${error}$`
+                  `Failed to calculate tile extra info "${id}": ${error}`
                 );
               }),
           0
@@ -501,7 +492,7 @@ function calculateDataExtraInfoHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to calculate data tile extra info "${id}": ${error}`
+        `Failed to calculate tile extra info "${id}": ${error}`
       );
 
       return res
@@ -705,7 +696,7 @@ export const serve_data = {
      *   get:
      *     tags:
      *       - Data
-     *     summary: Calculate data tile extra info
+     *     summary: Calculate tile extra info
      *     parameters:
      *       - in: path
      *         name: id
@@ -716,7 +707,7 @@ export const serve_data = {
      *         description: Data ID
      *     responses:
      *       200:
-     *         description: Data tile extra info
+     *         description: Tile extra info
      *         content:
      *           application/json:
      *             schema:
@@ -748,7 +739,7 @@ export const serve_data = {
      *   post:
      *     tags:
      *       - Data
-     *     summary: Get data tile extra info
+     *     summary: Get tile extra info
      *     parameters:
      *       - in: path
      *         name: id
@@ -757,14 +748,6 @@ export const serve_data = {
      *           type: string
      *           example: id
      *         description: Data ID
-     *       - in: query
-     *         name: type
-     *         schema:
-     *           type: string
-     *           enum: [md5, created]
-     *           example: md5
-     *         required: false
-     *         description: Extra info type
      *       - in: query
      *         name: compression
      *         schema:
@@ -781,7 +764,7 @@ export const serve_data = {
      *       description: Coverages object
      *     responses:
      *       200:
-     *         description: Data tile extra info
+     *         description: Tile extra info
      *         content:
      *           application/json:
      *             schema:

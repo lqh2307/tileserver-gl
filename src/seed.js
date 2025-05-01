@@ -13,7 +13,6 @@ import {
 } from "./geojson.js";
 import {
   getXYZTileExtraInfoFromCoverages,
-  getXYZTileCreated,
   updateXYZMetadata,
   downloadXYZTile,
   closeXYZMD5DB,
@@ -21,7 +20,6 @@ import {
 } from "./tile_xyz.js";
 import {
   getMBTilesTileExtraInfoFromCoverages,
-  getMBTilesTileCreated,
   updateMBTilesMetadata,
   downloadMBTilesTile,
   closeMBTilesDB,
@@ -41,7 +39,6 @@ import {
 } from "./utils.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
-  getPostgreSQLTileCreated,
   updatePostgreSQLMetadata,
   downloadPostgreSQLTile,
   closePostgreSQLDB,
@@ -132,23 +129,23 @@ async function seedMBTilesTiles(
       coverages
     )}`;
 
-    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (refreshType === "string") {
+    if (typeof refreshBefore === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (refreshType === "number") {
+    } else if (typeof refreshBefore === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (typeof refreshBefore === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
+    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -161,11 +158,11 @@ async function seedMBTilesTiles(
       30000 // 30 secs
     );
 
-    /* Get hashs */
-    let targetHashs;
-    let hashs;
+    /* Get tile extra info */
+    let targetTileExtraInfo;
+    let tileExtraInfo;
 
-    if (refreshTimestamp === true) {
+    if (refreshTimestampType === "boolean") {
       const hashURL = `${url.slice(
         0,
         url.indexOf("/{z}/{x}/{y}")
@@ -174,7 +171,7 @@ async function seedMBTilesTiles(
       try {
         printLog(
           "info",
-          `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
+          `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
         );
 
         const res = await postDataToURL(
@@ -185,20 +182,41 @@ async function seedMBTilesTiles(
         );
 
         if (res.headers["content-encoding"] === "gzip") {
-          targetHashs = JSON.parse(await unzipAsync(res.data));
+          targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
         } else {
-          targetHashs = JSON.parse(res.data);
+          targetTileExtraInfo = JSON.parse(res.data);
         }
 
-        hashs = getMBTilesTileExtraInfoFromCoverages(source, coverages);
+        tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          false
+        );
       } catch (error) {
         printLog(
           "error",
-          `Failed to get target hashs from "${hashURL}" and hashs from "${filePath}": ${error}`
+          `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
         );
 
-        targetHashs = {};
-        hashs = {};
+        targetTileExtraInfo = {};
+        tileExtraInfo = {};
+      }
+    } else if (refreshTimestampType === "number") {
+      try {
+        printLog("info", `Get tile extra info from "${filePath}"...`);
+
+        tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          true
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
+
+        tileExtraInfo = {};
       }
     }
 
@@ -220,38 +238,18 @@ async function seedMBTilesTiles(
 
     async function seedMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
 
       try {
-        let needDownload = false;
-
-        if (refreshTimestamp === true) {
-          if (
-            hashs[tileName] === undefined ||
-            hashs[tileName] !== targetHashs[tileName]
-          ) {
-            needDownload = true;
-          }
-        } else if (refreshTimestamp !== undefined) {
-          try {
-            const created = getMBTilesTileCreated(source, z, x, y);
-
-            if (!created || created < refreshTimestamp) {
-              needDownload = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needDownload = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needDownload = true;
-        }
-
-        if (needDownload === true) {
+        if (
+          refreshTimestampType === "undefined" ||
+          (refreshTimestampType === "boolean" &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
+          (refreshTimestampType === "number" &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
+        ) {
           const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
           const targetURL = url
@@ -367,23 +365,23 @@ async function seedPostgreSQLTiles(
       coverages
     )}`;
 
-    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (refreshType === "string") {
+    if (typeof refreshBefore === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (refreshType === "number") {
+    } else if (typeof refreshBefore === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (typeof refreshBefore === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
+    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -392,11 +390,11 @@ async function seedPostgreSQLTiles(
 
     source = await openPostgreSQLDB(filePath, true);
 
-    /* Get hashs */
-    let targetHashs;
-    let hashs;
+    /* Get tile extra info */
+    let targetTileExtraInfo;
+    let tileExtraInfo;
 
-    if (refreshTimestamp === true) {
+    if (refreshTimestampType === "boolean") {
       const hashURL = `${url.slice(
         0,
         url.indexOf("/{z}/{x}/{y}")
@@ -405,7 +403,7 @@ async function seedPostgreSQLTiles(
       try {
         printLog(
           "info",
-          `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
+          `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
         );
 
         const res = await postDataToURL(
@@ -416,20 +414,41 @@ async function seedPostgreSQLTiles(
         );
 
         if (res.headers["content-encoding"] === "gzip") {
-          targetHashs = JSON.parse(await unzipAsync(res.data));
+          targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
         } else {
-          targetHashs = JSON.parse(res.data);
+          targetTileExtraInfo = JSON.parse(res.data);
         }
 
-        hashs = getPostgreSQLTileExtraInfoFromCoverages(source, coverages);
+        tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          false
+        );
       } catch (error) {
         printLog(
           "error",
-          `Failed to get target hashs from "${hashURL}" and hashs from "${filePath}": ${error}`
+          `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
         );
 
-        targetHashs = {};
-        hashs = {};
+        targetTileExtraInfo = {};
+        tileExtraInfo = {};
+      }
+    } else if (refreshTimestampType === "number") {
+      try {
+        printLog("info", `Get tile extra info from "${filePath}"...`);
+
+        tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          true
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
+
+        tileExtraInfo = {};
       }
     }
 
@@ -451,38 +470,18 @@ async function seedPostgreSQLTiles(
 
     async function seedPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
 
       try {
-        let needDownload = false;
-
-        if (refreshTimestamp === true) {
-          if (
-            hashs[tileName] === undefined ||
-            hashs[tileName] !== targetHashs[tileName]
-          ) {
-            needDownload = true;
-          }
-        } else if (refreshTimestamp !== undefined) {
-          try {
-            const created = await getPostgreSQLTileCreated(source, z, x, y);
-
-            if (!created || created < refreshTimestamp) {
-              needDownload = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needDownload = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needDownload = true;
-        }
-
-        if (needDownload === true) {
+        if (
+          refreshTimestampType === "undefined" ||
+          (refreshTimestampType === "boolean" &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
+          (refreshTimestampType === "number" &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
+        ) {
           const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
           const targetURL = url
@@ -598,23 +597,23 @@ async function seedXYZTiles(
       coverages
     )}`;
 
-    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (refreshType === "string") {
+    if (typeof refreshBefore === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (refreshType === "number") {
+    } else if (typeof refreshBefore === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (typeof refreshBefore === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
+    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -627,11 +626,11 @@ async function seedXYZTiles(
       30000 // 30 secs
     );
 
-    /* Get hashs */
-    let targetHashs;
-    let hashs;
+    /* Get tile extra info */
+    let targetTileExtraInfo;
+    let tileExtraInfo;
 
-    if (refreshTimestamp === true) {
+    if (refreshTimestampType === "boolean") {
       const hashURL = `${url.slice(
         0,
         url.indexOf("/{z}/{x}/{y}")
@@ -640,7 +639,7 @@ async function seedXYZTiles(
       try {
         printLog(
           "info",
-          `Get target hashs from "${hashURL}" and hashs from "${filePath}"...`
+          `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
         );
 
         const res = await postDataToURL(
@@ -651,20 +650,41 @@ async function seedXYZTiles(
         );
 
         if (res.headers["content-encoding"] === "gzip") {
-          targetHashs = JSON.parse(await unzipAsync(res.data));
+          targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
         } else {
-          targetHashs = JSON.parse(res.data);
+          targetTileExtraInfo = JSON.parse(res.data);
         }
 
-        hashs = getXYZTileExtraInfoFromCoverages(source, coverages);
+        tileExtraInfo = getXYZTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          false
+        );
       } catch (error) {
         printLog(
           "error",
-          `Failed to get target hashs from "${hashURL}" and hashs from "${filePath}": ${error}`
+          `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
         );
 
-        targetHashs = {};
-        hashs = {};
+        targetTileExtraInfo = {};
+        tileExtraInfo = {};
+      }
+    } else if (refreshTimestampType === "number") {
+      try {
+        printLog("info", `Get tile extra info from "${filePath}"...`);
+
+        tileExtraInfo = getXYZTileExtraInfoFromCoverages(
+          source,
+          coverages,
+          true
+        );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get tile extra info from "${filePath}": ${error}`
+        );
+
+        tileExtraInfo = {};
       }
     }
 
@@ -686,38 +706,18 @@ async function seedXYZTiles(
 
     async function seedXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-
       const completeTasks = tasks.completeTasks;
 
       try {
-        let needDownload = false;
-
-        if (refreshTimestamp === true) {
-          if (
-            hashs[tileName] === undefined ||
-            hashs[tileName] !== targetHashs[tileName]
-          ) {
-            needDownload = true;
-          }
-        } else if (refreshTimestamp !== undefined) {
-          try {
-            const created = getXYZTileCreated(source, z, x, y);
-
-            if (!created || created < refreshTimestamp) {
-              needDownload = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile created does not exist") {
-              needDownload = true;
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          needDownload = true;
-        }
-
-        if (needDownload === true) {
+        if (
+          refreshTimestampType === "undefined" ||
+          (refreshTimestampType === "boolean" &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
+          (refreshTimestampType === "number" &&
+            (tileExtraInfo[tileName] === undefined ||
+              tileExtraInfo[tileName] < refreshTimestamp))
+        ) {
           const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
           const targetURL = url
@@ -817,19 +817,18 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding geojson "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-  const refreshType = typeof refreshBefore;
   let refreshTimestamp;
-  if (refreshType === "string") {
+  if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (refreshType === "number") {
+  } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (refreshType === "boolean") {
+  } else if (typeof refreshBefore === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
@@ -871,7 +870,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
       try {
         const created = await getGeoJSONCreated(filePath);
 
-        if (!created || created < refreshTimestamp) {
+        if (created === undefined || created < refreshTimestamp) {
           needDownload = true;
         }
       } catch (error) {
@@ -925,13 +924,12 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding sprite "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-  const refreshType = typeof refreshBefore;
   let refreshTimestamp;
-  if (refreshType === "string") {
+  if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (refreshType === "number") {
+  } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
@@ -952,7 +950,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
         try {
           const created = await getSpriteCreated(filePath);
 
-          if (!created || created < refreshTimestamp) {
+          if (created === undefined || created < refreshTimestamp) {
             needDownload = true;
           }
         } catch (error) {
@@ -974,7 +972,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
           `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`
         );
 
-        await downloadSpriteFile(url, id, fileName, maxTry, timeout);
+        await downloadSpriteFile(targetURL, id, fileName, maxTry, timeout);
       }
     } catch (error) {
       printLog(
@@ -1021,13 +1019,12 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding ${total} fonts of font "${id}" with:\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-  const refreshType = typeof refreshBefore;
   let refreshTimestamp;
-  if (refreshType === "string") {
+  if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (refreshType === "number") {
+  } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
@@ -1047,7 +1044,6 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
   async function seedFontData(start, end, tasks) {
     const range = `${start}-${end}`;
     const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
-
     const completeTasks = tasks.completeTasks;
 
     try {
@@ -1057,7 +1053,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
         try {
           const created = await getFontCreated(filePath);
 
-          if (!created || created < refreshTimestamp) {
+          if (created === undefined || created < refreshTimestamp) {
             needDownload = true;
           }
         } catch (error) {
@@ -1143,19 +1139,18 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding style "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
-  const refreshType = typeof refreshBefore;
   let refreshTimestamp;
-  if (refreshType === "string") {
+  if (typeof refreshBefore === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (refreshType === "number") {
+  } else if (typeof refreshBefore === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (refreshType === "boolean") {
+  } else if (typeof refreshBefore === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
@@ -1197,7 +1192,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
       try {
         const created = await getStyleCreated(filePath);
 
-        if (!created || created < refreshTimestamp) {
+        if (created === undefined || created < refreshTimestamp) {
           needDownload = true;
         }
       } catch (error) {
@@ -1215,7 +1210,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
       try {
         const created = await getStyleCreated(filePath);
 
-        if (!created || created < refreshTimestamp) {
+        if (created === undefined || created < refreshTimestamp) {
           needDownload = true;
         }
       } catch (error) {
