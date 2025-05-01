@@ -2,6 +2,7 @@
 
 import { cacheSpriteFile, getSprite, getSpriteFromURL } from "./sprite.js";
 import { getPMTilesTile } from "./tile_pmtiles.js";
+import { createPool } from "generic-pool";
 import { printLog } from "./logger.js";
 import { getFonts } from "./font.js";
 import { config } from "./config.js";
@@ -669,7 +670,18 @@ export async function renderMBTilesTiles(
       completeTasks: 0,
     };
 
+    /* Create renderer pool */
     const rendered = config.styles[id].rendered;
+    const rendererPool = createPool(
+      {
+        create: () => createTileRenderer(tileScale, rendered.styleJSON),
+        destroy: (renderer) => renderer.release(),
+      },
+      {
+        min: 1,
+        max: maxRendererPoolSize,
+      }
+    );
 
     async function renderMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
@@ -688,13 +700,37 @@ export async function renderMBTilesTiles(
           );
 
           // Rendered data
-          const data = await renderImageTile(
-            tileScale,
-            tileSize,
-            rendered.styleJSON,
-            z,
-            x,
-            y,
+          const isNeedHack = z === 0 && tileSize === 256;
+          const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+
+          const renderer = await rendererPool.acquire();
+
+          const dataRaw = await new Promise((resolve, reject) => {
+            renderer.render(
+              {
+                zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+                center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+                width: hackTileSize,
+                height: hackTileSize,
+              },
+              (error, dataRaw) => {
+                if (renderer !== undefined) {
+                  rendererPool.release(renderer);
+                }
+
+                if (error) {
+                  return reject(error);
+                }
+
+                resolve(dataRaw);
+              }
+            );
+          });
+
+          const data = await renderImageTileData(
+            dataRaw,
+            hackTileSize * tileScale,
+            isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
             metadata.format
           );
 
@@ -749,6 +785,10 @@ export async function renderMBTilesTiles(
     while (tasks.activeTasks > 0) {
       await delay(50);
     }
+
+    /* Destroy renderer pool */
+    await rendererPool.drain();
+    await rendererPool.clear();
 
     /* Create overviews */
     if (createOverview === true) {
@@ -893,8 +933,19 @@ export async function renderXYZTiles(
       completeTasks: 0,
     };
 
-    const rendered = config.styles[id].rendered;
+    /* Create renderer pool */
     const sourcePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${id}`;
+    const rendered = config.styles[id].rendered;
+    const rendererPool = createPool(
+      {
+        create: () => createTileRenderer(tileScale, rendered.styleJSON),
+        destroy: (renderer) => renderer.release(),
+      },
+      {
+        min: 1,
+        max: maxRendererPoolSize,
+      }
+    );
 
     async function renderXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
@@ -913,13 +964,37 @@ export async function renderXYZTiles(
           );
 
           // Rendered data
-          const data = await renderImageTile(
-            tileScale,
-            tileSize,
-            rendered.styleJSON,
-            z,
-            x,
-            y,
+          const isNeedHack = z === 0 && tileSize === 256;
+          const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+
+          const renderer = await rendererPool.acquire();
+
+          const dataRaw = await new Promise((resolve, reject) => {
+            renderer.render(
+              {
+                zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+                center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+                width: hackTileSize,
+                height: hackTileSize,
+              },
+              (error, dataRaw) => {
+                if (renderer !== undefined) {
+                  rendererPool.release(renderer);
+                }
+
+                if (error) {
+                  return reject(error);
+                }
+
+                resolve(dataRaw);
+              }
+            );
+          });
+
+          const data = await renderImageTileData(
+            dataRaw,
+            hackTileSize * tileScale,
+            isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
             metadata.format
           );
 
@@ -983,6 +1058,10 @@ export async function renderXYZTiles(
     while (tasks.activeTasks > 0) {
       await delay(50);
     }
+
+    /* Destroy renderer pool */
+    await rendererPool.drain();
+    await rendererPool.clear();
 
     /* Remove parent folders if empty */
     await removeEmptyFolders(
@@ -1117,7 +1196,18 @@ export async function renderPostgreSQLTiles(
       completeTasks: 0,
     };
 
+    /* Create renderer pool */
     const rendered = config.styles[id].rendered;
+    const rendererPool = createPool(
+      {
+        create: () => createTileRenderer(tileScale, rendered.styleJSON),
+        destroy: (renderer) => renderer.release(),
+      },
+      {
+        min: 1,
+        max: maxRendererPoolSize,
+      }
+    );
 
     async function renderPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
@@ -1136,13 +1226,37 @@ export async function renderPostgreSQLTiles(
           );
 
           // Rendered data
-          const data = await renderImageTile(
-            tileScale,
-            tileSize,
-            rendered.styleJSON,
-            z,
-            x,
-            y,
+          const isNeedHack = z === 0 && tileSize === 256;
+          const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+
+          const renderer = await rendererPool.acquire();
+
+          const dataRaw = await new Promise((resolve, reject) => {
+            renderer.render(
+              {
+                zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+                center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+                width: hackTileSize,
+                height: hackTileSize,
+              },
+              (error, dataRaw) => {
+                if (renderer !== undefined) {
+                  rendererPool.release(renderer);
+                }
+
+                if (error) {
+                  return reject(error);
+                }
+
+                resolve(dataRaw);
+              }
+            );
+          });
+
+          const data = await renderImageTileData(
+            dataRaw,
+            hackTileSize * tileScale,
+            isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
             metadata.format
           );
 
@@ -1204,6 +1318,10 @@ export async function renderPostgreSQLTiles(
     while (tasks.activeTasks > 0) {
       await delay(50);
     }
+
+    /* Destroy renderer pool */
+    await rendererPool.drain();
+    await rendererPool.clear();
 
     /* Create overviews */
     if (createOverview === true) {
