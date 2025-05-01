@@ -617,7 +617,7 @@ export async function renderMBTilesTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (refreshTimestamp === true) {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -637,7 +637,7 @@ export async function renderMBTilesTiles(
     /* Get hashs */
     let hashs;
 
-    if (refreshType === "boolean") {
+    if (refreshTimestamp === true) {
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
@@ -711,7 +711,7 @@ export async function renderMBTilesTiles(
           );
 
           if (
-            refreshType === "boolean" &&
+            refreshTimestamp === true &&
             calculateMD5(data) === hashs[tileName]
           ) {
             return;
@@ -849,7 +849,7 @@ export async function renderXYZTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (refreshTimestamp === true) {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -869,7 +869,7 @@ export async function renderXYZTiles(
     /* Get hashs */
     let hashs;
 
-    if (refreshType === "boolean") {
+    if (refreshTimestamp === true) {
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
@@ -945,7 +945,7 @@ export async function renderXYZTiles(
 
           // Store data
           if (
-            refreshType === "boolean" &&
+            refreshTimestamp === true &&
             calculateMD5(data) === hashs[tileName]
           ) {
             return;
@@ -1086,7 +1086,7 @@ export async function renderPostgreSQLTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshType === "boolean") {
+    } else if (refreshTimestamp === true) {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -1102,7 +1102,7 @@ export async function renderPostgreSQLTiles(
     /* Get hashs */
     let hashs;
 
-    if (refreshType === "boolean") {
+    if (refreshTimestamp === true) {
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
@@ -1177,7 +1177,7 @@ export async function renderPostgreSQLTiles(
 
           // Store data
           if (
-            refreshType === "boolean" &&
+            refreshTimestamp === true &&
             calculateMD5(data) === hashs[tileName]
           ) {
             return;

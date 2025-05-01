@@ -132,18 +132,19 @@ async function seedMBTilesTiles(
       coverages
     )}`;
 
+    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
+    if (refreshType === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
+    } else if (refreshType === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -366,18 +367,19 @@ async function seedPostgreSQLTiles(
       coverages
     )}`;
 
+    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
+    if (refreshType === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
+    } else if (refreshType === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -596,18 +598,19 @@ async function seedXYZTiles(
       coverages
     )}`;
 
+    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
+    if (refreshType === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
+    } else if (refreshType === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -814,18 +817,19 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding geojson "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
+  const refreshType = typeof refreshBefore;
   let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
+  if (refreshType === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
+  } else if (refreshType === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
+  } else if (refreshType === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;
@@ -921,12 +925,13 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding sprite "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
+  const refreshType = typeof refreshBefore;
   let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
+  if (refreshType === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
+  } else if (refreshType === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
@@ -1016,12 +1021,13 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding ${total} fonts of font "${id}" with:\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
+  const refreshType = typeof refreshBefore;
   let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
+  if (refreshType === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
+  } else if (refreshType === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
@@ -1137,18 +1143,19 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding style "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
 
+  const refreshType = typeof refreshBefore;
   let refreshTimestamp;
-  if (typeof refreshBefore === "string") {
+  if (refreshType === "string") {
     refreshTimestamp = new Date(refreshBefore).getTime();
 
     log += `\n\tRefresh before: ${refreshBefore}`;
-  } else if (typeof refreshBefore === "number") {
+  } else if (refreshType === "number") {
     const now = new Date();
 
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
-  } else if (typeof refreshBefore === "boolean") {
+  } else if (refreshType === "boolean") {
     refreshTimestamp = true;
 
     log += `\n\tRefresh before: check MD5`;

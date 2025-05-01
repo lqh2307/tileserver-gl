@@ -102,12 +102,13 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
       coverages
     )}`;
 
+    const cleanUpType = typeof cleanUpBefore;
     let cleanUpTimestamp;
-    if (typeof cleanUpBefore === "string") {
+    if (cleanUpType === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
       log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (typeof cleanUpBefore === "number") {
+    } else if (cleanUpType === "number") {
       const now = new Date();
 
       cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -248,12 +249,13 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
       coverages
     )}`;
 
+    const cleanUpType = typeof cleanUpBefore;
     let cleanUpTimestamp;
-    if (typeof cleanUpBefore === "string") {
+    if (cleanUpType === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
       log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (typeof cleanUpBefore === "number") {
+    } else if (cleanUpType === "number") {
       const now = new Date();
 
       cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -391,12 +393,13 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
       coverages
     )}`;
 
+    const cleanUpType = typeof cleanUpBefore;
     let cleanUpTimestamp;
-    if (typeof cleanUpBefore === "string") {
+    if (cleanUpType === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
       log += `\n\tClean up before: ${cleanUpBefore}`;
-    } else if (typeof cleanUpBefore === "number") {
+    } else if (cleanUpType === "number") {
       const now = new Date();
 
       cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -536,12 +539,13 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
   let log = `Cleaning up geojson "${id}" with:`;
 
+  const cleanUpType = typeof cleanUpBefore;
   let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
+  if (cleanUpType === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
     log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
+  } else if (cleanUpType === "number") {
     const now = new Date();
 
     cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -614,12 +618,13 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   let log = `Cleaning up sprite "${id}" with:`;
 
+  const cleanUpType = typeof cleanUpBefore;
   let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
+  if (cleanUpType === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
     log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
+  } else if (cleanUpType === "number") {
     const now = new Date();
 
     cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -705,12 +710,13 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   let log = `Cleaning up ${total} fonts of font "${id}" with:`;
 
+  const cleanUpType = typeof cleanUpBefore;
   let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
+  if (cleanUpType === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
     log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
+  } else if (cleanUpType === "number") {
     const now = new Date();
 
     cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
@@ -795,12 +801,13 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
   let log = `Cleaning up style "${id}" with:`;
 
+  const cleanUpType = typeof cleanUpBefore;
   let cleanUpTimestamp;
-  if (typeof cleanUpBefore === "string") {
+  if (cleanUpType === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
     log += `\n\tClean up before: ${cleanUpBefore}`;
-  } else if (typeof cleanUpBefore === "number") {
+  } else if (cleanUpType === "number") {
     const now = new Date();
 
     cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
