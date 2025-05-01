@@ -1121,7 +1121,7 @@ export async function renderImageTileData(
 
 /**
  * Create fallback tile data
- * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
+ * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"|"pbf"} format Tile format
  * @returns {Buffer}
  */
 export function createFallbackTileData(format) {
@@ -1190,13 +1190,7 @@ export function createFallbackTileData(format) {
       ]);
     }
 
-    case "pbf": {
-      return Buffer.from([]);
-    }
-
     default: {
-      printLog("warn", `Unknown tile format: "${format}". Skipping...`);
-
       return Buffer.from([]);
     }
   }

@@ -32,9 +32,9 @@ import {
   getTileBoundsFromCoverages,
   detectFormatAndHeaders,
   createFallbackTileData,
+  renderImageTileData,
   removeEmptyFolders,
   getLonLatFromXYZ,
-  renderImageTileData,
   getDataFromURL,
   calculateMD5,
   unzipAsync,
@@ -188,6 +188,8 @@ function createTileRenderer(tileScale, styleJSON) {
               dataTile.headers["content-encoding"] !== undefined
             ) {
               data = await unzipAsync(dataTile.data);
+            } else {
+              data = dataTile.data;
             }
           } catch (error) {
             printLog(
@@ -267,6 +269,8 @@ function createTileRenderer(tileScale, styleJSON) {
               dataTile.headers["content-encoding"] !== undefined
             ) {
               data = await unzipAsync(dataTile.data);
+            } else {
+              data = dataTile.data;
             }
           } catch (error) {
             printLog(
@@ -354,6 +358,8 @@ function createTileRenderer(tileScale, styleJSON) {
               dataTile.headers["content-encoding"] !== undefined
             ) {
               data = await unzipAsync(dataTile.data);
+            } else {
+              data = dataTile.data;
             }
           } catch (error) {
             printLog(
@@ -433,6 +439,8 @@ function createTileRenderer(tileScale, styleJSON) {
               dataTile.headers["content-encoding"] !== undefined
             ) {
               data = await unzipAsync(dataTile.data);
+            } else {
+              data = dataTile.data;
             }
           } catch (error) {
             printLog(
@@ -447,31 +455,33 @@ function createTileRenderer(tileScale, styleJSON) {
           break;
         }
 
-        /* Get tile from remote */
+        /* Get data from remote */
         case "http:":
         case "https:": {
           try {
-            printLog("info", `Getting data tile from "${url}"...`);
+            printLog("info", `Getting data from "${url}"...`);
 
-            const dataTile = await getDataFromURL(
+            const dataRemote = await getDataFromURL(
               url,
               30000, // 30 secs
               "arraybuffer"
             );
 
             /* Unzip pbf data */
-            const headers = detectFormatAndHeaders(dataTile.data).headers;
+            const headers = detectFormatAndHeaders(dataRemote.data).headers;
 
             if (
               headers["content-type"] === "application/x-protobuf" &&
               headers["content-encoding"] !== undefined
             ) {
-              data = await unzipAsync(dataTile.data);
+              data = await unzipAsync(dataRemote.data);
+            } else {
+              data = dataRemote.data;
             }
           } catch (error) {
             printLog(
               "warn",
-              `Failed to get data tile from "${url}": ${error}. Serving empty tile...`
+              `Failed to get data from "${url}": ${error}. Serving empty data...`
             );
 
             data = createFallbackTileData(url.slice(url.lastIndexOf(".") + 1));
@@ -564,6 +574,7 @@ export async function renderImageTile(
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
+ * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
@@ -576,6 +587,7 @@ export async function renderMBTilesTiles(
   tileScale,
   tileSize,
   coverages,
+  maxRendererPoolSize,
   concurrency,
   storeTransparent,
   createOverview,
@@ -589,22 +601,23 @@ export async function renderMBTilesTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
+    let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:\n\tStore transparent: ${storeTransparent}\n\tMax renderer pool size: ${maxRendererPoolSize}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
       coverages
     )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
+    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
+    if (refreshType === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
+    } else if (refreshType === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -624,7 +637,7 @@ export async function renderMBTilesTiles(
     /* Get hashs */
     let hashs;
 
-    if (refreshTimestamp === true) {
+    if (refreshType === "boolean") {
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
@@ -662,34 +675,7 @@ export async function renderMBTilesTiles(
       try {
         let needRender = false;
 
-        if (refreshTimestamp === true) {
-          try {
-            printLog(
-              "info",
-              `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-            );
-
-            data = await renderImageTile(
-              tileScale,
-              tileSize,
-              rendered.styleJSON,
-              z,
-              x,
-              y,
-              metadata.format
-            );
-
-            if (calculateMD5(data) !== hashs[tileName]) {
-              needRender = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile MD5 does not exist") {
-              needRender = true;
-            } else {
-              throw error;
-            }
-          }
-        } else if (refreshTimestamp !== undefined) {
+        if (typeof refreshTimestamp === "number") {
           try {
             const created = getMBTilesTileCreated(source, z, x, y);
 
@@ -714,20 +700,24 @@ export async function renderMBTilesTiles(
           );
 
           // Rendered data
-          if (data === undefined) {
-            data = await renderImageTile(
-              tileScale,
-              tileSize,
-              rendered.styleJSON,
-              z,
-              x,
-              y,
-              metadata.format
-            );
-          }
+          data = await renderImageTile(
+            tileScale,
+            tileSize,
+            rendered.styleJSON,
+            z,
+            x,
+            y,
+            metadata.format
+          );
 
-          // Store data
-          await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
+          if (
+            refreshType === "boolean" &&
+            calculateMD5(data) === hashs[tileName]
+          ) {
+            return;
+          } else {
+            await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
+          }
         }
       } catch (error) {
         printLog(
@@ -816,6 +806,7 @@ export async function renderMBTilesTiles(
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
+ * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
@@ -828,6 +819,7 @@ export async function renderXYZTiles(
   tileScale,
   tileSize,
   coverages,
+  maxRendererPoolSize,
   concurrency,
   storeTransparent,
   createOverview,
@@ -841,22 +833,23 @@ export async function renderXYZTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Rendering ${total} tiles of style "${id}" to xyz with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
+    let log = `Rendering ${total} tiles of style "${id}" to xyz with:\n\tStore transparent: ${storeTransparent}\n\tMax renderer pool size: ${maxRendererPoolSize}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
       coverages
     )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
+    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
+    if (refreshType === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
+    } else if (refreshType === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -876,7 +869,7 @@ export async function renderXYZTiles(
     /* Get hashs */
     let hashs;
 
-    if (refreshTimestamp === true) {
+    if (refreshType === "boolean") {
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
@@ -915,34 +908,7 @@ export async function renderXYZTiles(
       try {
         let needRender = false;
 
-        if (refreshTimestamp === true) {
-          try {
-            printLog(
-              "info",
-              `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-            );
-
-            data = await renderImageTile(
-              tileScale,
-              tileSize,
-              rendered.styleJSON,
-              z,
-              x,
-              y,
-              metadata.format
-            );
-
-            if (calculateMD5(data) !== hashs[tileName]) {
-              needRender = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile MD5 does not exist") {
-              needRender = true;
-            } else {
-              throw error;
-            }
-          }
-        } else if (refreshTimestamp !== undefined) {
+        if (typeof refreshTimestamp === "number") {
           try {
             const created = getXYZTileCreated(source, z, x, y);
 
@@ -967,29 +933,34 @@ export async function renderXYZTiles(
           );
 
           // Rendered data
-          if (data === undefined) {
-            data = await renderImageTile(
-              tileScale,
-              tileSize,
-              rendered.styleJSON,
-              z,
-              x,
-              y,
-              metadata.format
-            );
-          }
-
-          // Store data
-          await cacheXYZTileFile(
-            sourcePath,
-            source,
+          data = await renderImageTile(
+            tileScale,
+            tileSize,
+            rendered.styleJSON,
             z,
             x,
             y,
-            metadata.format,
-            data,
-            storeTransparent
+            metadata.format
           );
+
+          // Store data
+          if (
+            refreshType === "boolean" &&
+            calculateMD5(data) === hashs[tileName]
+          ) {
+            return;
+          } else {
+            await cacheXYZTileFile(
+              sourcePath,
+              source,
+              z,
+              x,
+              y,
+              metadata.format,
+              data,
+              storeTransparent
+            );
+          }
         }
       } catch (error) {
         printLog(
@@ -1041,6 +1012,7 @@ export async function renderXYZTiles(
 
     /* Create overviews */
     if (createOverview === true) {
+      // Do nothing
     }
 
     printLog(
@@ -1071,6 +1043,7 @@ export async function renderXYZTiles(
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
+ * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
@@ -1083,6 +1056,7 @@ export async function renderPostgreSQLTiles(
   tileScale,
   tileSize,
   coverages,
+  maxRendererPoolSize,
   concurrency,
   storeTransparent,
   createOverview,
@@ -1096,22 +1070,23 @@ export async function renderPostgreSQLTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Rendering ${total} tiles of style "${id}" to postgresql with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
+    let log = `Rendering ${total} tiles of style "${id}" to postgresql with:\n\tStore transparent: ${storeTransparent}\n\tMax renderer pool size: ${maxRendererPoolSize}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
       coverages
     )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
 
+    const refreshType = typeof refreshBefore;
     let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
+    if (refreshType === "string") {
       refreshTimestamp = new Date(refreshBefore).getTime();
 
       log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
+    } else if (refreshType === "number") {
       const now = new Date();
 
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshType === "boolean") {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
@@ -1127,7 +1102,7 @@ export async function renderPostgreSQLTiles(
     /* Get hashs */
     let hashs;
 
-    if (refreshTimestamp === true) {
+    if (refreshType === "boolean") {
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
@@ -1165,34 +1140,7 @@ export async function renderPostgreSQLTiles(
       try {
         let needRender = false;
 
-        if (refreshTimestamp === true) {
-          try {
-            printLog(
-              "info",
-              `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-            );
-
-            data = await renderImageTile(
-              tileScale,
-              tileSize,
-              rendered.styleJSON,
-              z,
-              x,
-              y,
-              metadata.format
-            );
-
-            if (calculateMD5(data) !== hashs[tileName]) {
-              needRender = true;
-            }
-          } catch (error) {
-            if (error.message === "Tile MD5 does not exist") {
-              needRender = true;
-            } else {
-              throw error;
-            }
-          }
-        } else if (refreshTimestamp !== undefined) {
+        if (typeof refreshTimestamp === "number") {
           try {
             const created = await getPostgreSQLTileCreated(source, z, x, y);
 
@@ -1217,27 +1165,32 @@ export async function renderPostgreSQLTiles(
           );
 
           // Rendered data
-          if (data === undefined) {
-            data = await renderImageTile(
-              tileScale,
-              tileSize,
-              rendered.styleJSON,
-              z,
-              x,
-              y,
-              metadata.format
-            );
-          }
-
-          // Store data
-          await cachePostgreSQLTileData(
-            source,
+          data = await renderImageTile(
+            tileScale,
+            tileSize,
+            rendered.styleJSON,
             z,
             x,
             y,
-            data,
-            storeTransparent
+            metadata.format
           );
+
+          // Store data
+          if (
+            refreshType === "boolean" &&
+            calculateMD5(data) === hashs[tileName]
+          ) {
+            return;
+          } else {
+            await cachePostgreSQLTileData(
+              source,
+              z,
+              x,
+              y,
+              data,
+              storeTransparent
+            );
+          }
         }
       } catch (error) {
         printLog(
@@ -1283,6 +1236,7 @@ export async function renderPostgreSQLTiles(
 
     /* Create overviews */
     if (createOverview === true) {
+      // Do nothing
     }
 
     printLog(

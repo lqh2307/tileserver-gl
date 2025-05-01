@@ -134,7 +134,7 @@
       },
       "minItems": 1
     },
-    "maxPoolSize": {
+    "maxRendererPoolSize": {
       "type": "integer",
       "minimum": 1
     },

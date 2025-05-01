@@ -19,7 +19,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-style-spec": "23.2.1",
+    "@maplibre/maplibre-gl-style-spec": "23.2.2",
     "@maplibre/maplibre-gl-native": "6.1.0",
     "file-stream-rotator": "1.0.0",
     "swagger-ui-express": "5.0.1",
