@@ -45,7 +45,7 @@ async function loadConfigFile() {
 
 /**
  * Update config.json file content with lock
- * @param {Object} config Config object
+ * @param {object} config Config object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */

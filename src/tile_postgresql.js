@@ -836,7 +836,7 @@ export async function countPostgreSQLTiles(uri) {
 
 /**
  * Validate PostgreSQL metadata (no validate json field)
- * @param {Object} metadata PostgreSQL metadata
+ * @param {object} metadata PostgreSQL metadata
  * @returns {void}
  */
 export function validatePostgreSQL(metadata) {

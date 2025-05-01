@@ -912,7 +912,7 @@ export async function getXYZSize(sourcePath) {
 
 /**
  * Validate XYZ metadata (no validate json field)
- * @param {Object} metadata XYZ metadata
+ * @param {object} metadata XYZ metadata
  * @returns {void}
  */
 export function validateXYZ(metadata) {

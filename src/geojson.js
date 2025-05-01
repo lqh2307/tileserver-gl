@@ -163,7 +163,7 @@ export async function getGeoJSONSize(filePath) {
 
 /**
  * Validate GeoJSON and get geometry types
- * @param {Object} geoJSON GeoJSON
+ * @param {object} geoJSON GeoJSON
  * @returns {string[]} List of geometry types
  */
 export function validateAndGetGeometryTypes(geoJSON) {

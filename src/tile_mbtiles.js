@@ -424,7 +424,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Object}
+ * @returns {object}
  */
 export function getMBTilesTile(source, z, x, y) {
   let data = source
@@ -933,7 +933,7 @@ export async function getMBTilesSize(filePath) {
 
 /**
  * Validate MBTiles metadata (no validate json field)
- * @param {Object} metadata MBTiles metadata
+ * @param {object} metadata MBTiles metadata
  * @returns {void}
  */
 export function validateMBTiles(metadata) {

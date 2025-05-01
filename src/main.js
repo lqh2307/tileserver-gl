@@ -157,19 +157,7 @@ async function startClusterServer() {
               `Received "startTask" message from worker with PID = ${worker.process.pid}. Starting task...`
             );
 
-            startTaskInWorker({
-              restart: message.restart,
-              cleanUpSprites: message.cleanUpSprites,
-              cleanUpFonts: message.cleanUpFonts,
-              cleanUpStyles: message.cleanUpStyles,
-              cleanUpGeoJSONs: message.cleanUpGeoJSONs,
-              cleanUpDatas: message.cleanUpDatas,
-              seedSprites: message.seedSprites,
-              seedFonts: message.seedFonts,
-              seedStyles: message.seedStyles,
-              seedGeoJSONs: message.seedGeoJSONs,
-              seedDatas: message.seedDatas,
-            });
+            startTaskInWorker(message);
 
             break;
           }

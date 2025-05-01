@@ -79,7 +79,7 @@ async function loadSeedFile() {
 
 /**
  * Update seed.json file content with lock
- * @param {Object} seed Seed object
+ * @param {object} seed Seed object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
@@ -94,7 +94,7 @@ async function updateSeedFile(seed, timeout) {
 /**
  * Seed MBTiles tiles
  * @param {string} id Cache MBTiles ID
- * @param {Object} metadata Metadata object
+ * @param {object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -330,7 +330,7 @@ async function seedMBTilesTiles(
 /**
  * Seed PostgreSQL tiles
  * @param {string} id Cache PostgreSQL ID
- * @param {Object} metadata Metadata object
+ * @param {object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -562,7 +562,7 @@ async function seedPostgreSQLTiles(
 /**
  * Seed XYZ tiles
  * @param {string} id Cache XYZ ID
- * @param {Object} metadata Metadata object
+ * @param {object} metadata Metadata object
  * @param {string} url Tile URL
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages

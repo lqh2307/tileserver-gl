@@ -75,7 +75,7 @@ if (cluster.isPrimary !== true) {
 /**
  * Create tile render
  * @param {number} tileScale Tile scale
- * @param {Object} styleJSON StyleJSON
+ * @param {object} styleJSON StyleJSON
  * @returns {object}
  */
 function createTileRenderer(tileScale, styleJSON) {
@@ -514,7 +514,7 @@ function createTileRenderer(tileScale, styleJSON) {
  * Render image tile
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
- * @param {Object} styleJSON StyleJSON
+ * @param {object} styleJSON StyleJSON
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -568,7 +568,7 @@ export async function renderImageTile(
 /**
  * Render MBTiles tiles
  * @param {string} id Style ID
- * @param {Object} metadata Metadata object
+ * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -741,7 +741,7 @@ export async function renderMBTilesTiles(
             return;
           }
 
-          // Store
+          // Store data
           await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
         }
       } catch (error) {
@@ -831,7 +831,7 @@ export async function renderMBTilesTiles(
 /**
  * Render XYZ tiles
  * @param {string} id Style ID
- * @param {Object} metadata Metadata object
+ * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -1005,7 +1005,7 @@ export async function renderXYZTiles(
             return;
           }
 
-          // Store
+          // Store data
           await cacheXYZTileFile(
             sourcePath,
             source,
@@ -1098,7 +1098,7 @@ export async function renderXYZTiles(
 /**
  * Render PostgreSQL tiles
  * @param {string} id Style ID
- * @param {Object} metadata Metadata object
+ * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
@@ -1267,7 +1267,7 @@ export async function renderPostgreSQLTiles(
             return;
           }
 
-          // Store
+          // Store data
           await cachePostgreSQLTileData(
             source,
             z,

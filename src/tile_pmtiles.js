@@ -34,7 +34,7 @@ class PMTilesFileSource {
 /**
  * Open PMTiles
  * @param {string} filePath PMTiles filepath
- * @returns {Object}
+ * @returns {object}
  */
 export function openPMTiles(filePath) {
   let source;
@@ -53,7 +53,7 @@ export function openPMTiles(filePath) {
 
 /**
  * Get PMTiles metadata
- * @param {Object} pmtilesSource
+ * @param {object} pmtilesSource
  * @returns {Promise<Object>}
  */
 export async function getPMTilesMetadata(pmtilesSource) {
@@ -163,7 +163,7 @@ export async function getPMTilesMetadata(pmtilesSource) {
 
 /**
  * Get PMTiles tile
- * @param {Object} pmtilesSource
+ * @param {object} pmtilesSource
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -196,7 +196,7 @@ export async function getPMTilesSize(filePath) {
 
 /**
  * Validate PMTiles metadata (no validate json field)
- * @param {Object} metadata PMTiles metadata
+ * @param {object} metadata PMTiles metadata
  * @returns {void}
  */
 export function validatePMTiles(metadata) {

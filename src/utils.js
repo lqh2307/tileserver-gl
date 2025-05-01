@@ -21,7 +21,7 @@ sharp.cache(false);
 /**
  * Compile template
  * @param {"index"|"viewer"|"vector_data"|"raster_data"|"geojson_group"|"geojson"|"wmts"} template
- * @param {Object} data
+ * @param {object} data
  * @returns {Promise<string>}
  */
 export async function compileTemplate(template, data) {
@@ -77,7 +77,7 @@ export async function getDataFromURL(
  * Post data to URL
  * @param {string} url URL to post data
  * @param {number} timeout Timeout in milliseconds
- * @param {Object} body Body
+ * @param {object} body Body
  * @param {"arraybuffer"|"json"|"text"|"stream"|"blob"|"document"|"formdata"} responseType Response type
  * @param {boolean} keepAlive Whether to keep the connection alive
  * @returns {Promise<axios.AxiosResponse>}
@@ -828,7 +828,7 @@ export function getRequestHost(req) {
  * Return either a format as an extension: png, pbf, jpg, webp, gif and
  * headers - Content-Type and Content-Encoding - for a response containing this kind of image
  * @param {Buffer} buffer Input data
- * @returns {Object}
+ * @returns {object}
  */
 export function detectFormatAndHeaders(buffer) {
   let format;
@@ -919,8 +919,8 @@ export const inflateAsync = util.promisify(zlib.inflate);
 
 /**
  * Validate tileJSON
- * @param {Object} schema JSON schema
- * @param {Object} jsonData JSON data
+ * @param {object} schema JSON schema
+ * @param {object} jsonData JSON data
  * @returns {void}
  */
 export function validateJSON(schema, jsonData) {
@@ -941,8 +941,8 @@ export function validateJSON(schema, jsonData) {
 
 /**
  * Deep clone an object using JSON serialization
- * @param {Object} obj The object to clone
- * @returns {Object} The deep-cloned object
+ * @param {object} obj The object to clone
+ * @returns {object} The deep-cloned object
  */
 export function deepClone(obj) {
   if (obj !== undefined) {
@@ -1314,8 +1314,8 @@ export async function removeFileWithLock(filePath, timeout) {
 
 /**
  * Create tile metadata from template
- * @param {Object} metadata Metadata object
- * @returns {Object}
+ * @param {object} metadata Metadata object
+ * @returns {object}
  */
 export function createTileMetadataFromTemplate(metadata) {
   const data = {};

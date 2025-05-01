@@ -70,7 +70,7 @@ async function loadCleanUpFile() {
 
 /**
  * Update cleanup.json file content with lock
- * @param {Object} cleanUp Clean up object
+ * @param {object} cleanUp Clean up object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
