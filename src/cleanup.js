@@ -118,8 +118,10 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     printLog("info", log);
 
     /* Open MBTiles SQLite database */
+    const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
+
     source = await openMBTilesDB(
-      `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
+      filePath,
       true,
       30000 // 30 secs
     );
@@ -270,10 +272,9 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     printLog("info", log);
 
     /* Open PostgreSQL database */
-    source = await openPostgreSQLDB(
-      `${process.env.POSTGRESQL_BASE_URI}/${id}`,
-      true
-    );
+    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+    source = await openPostgreSQLDB(filePath, true);
 
     /* Get tile extra info */
     let tileExtraInfo;
@@ -419,8 +420,10 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     printLog("info", log);
 
     /* Open XYZ MD5 SQLite database */
+    const filePath = `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`;
+
     source = await openXYZMD5DB(
-      `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`,
+      filePath,
       true,
       30000 // 30 secs
     );
