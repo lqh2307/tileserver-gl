@@ -5,8 +5,8 @@ import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
-  getXYZTileHashFromCoverages,
-  calculatXYZTileHash,
+  getXYZTileExtraInfoFromCoverages,
+  calculatXYZTileExtraInfo,
   getXYZTileFromURL,
   cacheXYZTileFile,
   getXYZMetadata,
@@ -15,8 +15,8 @@ import {
   getXYZTile,
 } from "./tile_xyz.js";
 import {
-  getMBTilesTileHashFromCoverages,
-  calculateMBTilesTileHash,
+  getMBTilesTileExtraInfoFromCoverages,
+  calculateMBTilesTileExtraInfo,
   getMBTilesTileFromURL,
   cacheMBtilesTileData,
   downloadMBTilesFile,
@@ -41,8 +41,8 @@ import {
   openPMTiles,
 } from "./tile_pmtiles.js";
 import {
-  getPostgreSQLTileHashFromCoverages,
-  calculatePostgreSQLTileHash,
+  getPostgreSQLTileExtraInfoFromCoverages,
+  calculatePostgreSQLTileExtraInfo,
   getPostgreSQLTileFromURL,
   cachePostgreSQLTileData,
   getPostgreSQLMetadata,
@@ -347,10 +347,10 @@ function getDataHandler() {
 }
 
 /**
- * Get data tile MD5s handler
+ * Get data tile extra info handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
-function getDataTileMD5sHandler() {
+function getDataTileExtraInfoHandler() {
   return async (req, res, next) => {
     const id = req.params.id;
     const item = config.datas[id];
@@ -360,7 +360,7 @@ function getDataTileMD5sHandler() {
       return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
     }
 
-    /* Get data tile MD5s */
+    /* Get data tile extra info */
     try {
       try {
         validateJSON(await getJSONSchema("coverages"), req.body);
@@ -370,16 +370,28 @@ function getDataTileMD5sHandler() {
           .send(`Coverages is invalid: ${error}`);
       }
 
-      let md5s;
+      let extraInfo;
 
       if (item.sourceType === "mbtiles") {
-        md5s = getMBTilesTileHashFromCoverages(item.source, req.body);
+        extraInfo = getMBTilesTileExtraInfoFromCoverages(
+          item.source,
+          req.body,
+          req.query.type === "created"
+        );
       } else if (item.sourceType === "pmtiles") {
-        md5s = {};
+        extraInfo = {};
       } else if (item.sourceType === "xyz") {
-        md5s = getXYZTileHashFromCoverages(item.md5Source, req.body);
+        extraInfo = getXYZTileExtraInfoFromCoverages(
+          item.md5Source,
+          req.body,
+          req.query.type === "created"
+        );
       } else if (item.sourceType === "pg") {
-        md5s = await getPostgreSQLTileHashFromCoverages(item.source, req.body);
+        extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
+          item.source,
+          req.body,
+          req.query.type === "created"
+        );
       }
 
       const headers = {
@@ -387,16 +399,16 @@ function getDataTileMD5sHandler() {
       };
 
       if (req.query.compression === "true") {
-        md5s = await gzipAsync(JSON.stringify(md5s));
+        extraInfo = await gzipAsync(JSON.stringify(extraInfo));
 
         headers["content-encoding"] = "gzip";
       }
 
       res.set(headers);
 
-      return res.status(StatusCodes.OK).send(md5s);
+      return res.status(StatusCodes.OK).send(extraInfo);
     } catch (error) {
-      printLog("error", `Failed to get data tile md5s "${id}": ${error}`);
+      printLog("error", `Failed to get data tile extra info "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -406,10 +418,10 @@ function getDataTileMD5sHandler() {
 }
 
 /**
- * Calculate data tile MD5s handler
+ * Calculate data tile extra info handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
-function calculateDataTileMD5sHandler() {
+function calculateDataExtraInfoHandler() {
   return async (req, res, next) => {
     const id = req.params.id;
     const item = config.datas[id];
@@ -419,41 +431,48 @@ function calculateDataTileMD5sHandler() {
       return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
     }
 
-    /* Calculate data tile MD5s */
-    printLog("info", `Calculating data tile md5s "${id}"...`);
+    /* Calculate data tile extra info */
+    printLog("info", `Calculating data tile extra info "${id}"...`);
 
     try {
       if (item.sourceType === "mbtiles") {
         setTimeout(
           () =>
-            calculateMBTilesTileHash(item.source)
+            calculateMBTilesTileExtraInfo(item.source)
               .then(() => {
-                printLog("info", `Done to calculate data tile md5s "${id}"!`);
+                printLog(
+                  "info",
+                  `Done to calculate data tile extra info "${id}"!`
+                );
               })
               .catch((error) => {
                 printLog(
                   "error",
-                  `Failed to calculate data tile md5s "${id}": ${error}$`
+                  `Failed to calculate data tile extra info "${id}": ${error}$`
                 );
               }),
           0
         );
       } else if (item.sourceType === "pmtiles") {
+        // Do nothing
       } else if (item.sourceType === "xyz") {
         setTimeout(
           () =>
-            calculatXYZTileHash(
+            calculatXYZTileExtraInfo(
               item.source,
               item.md5Source,
               item.tileJSON.format
             )
               .then(() => {
-                printLog("info", `Done to calculate data tile md5s "${id}"!`);
+                printLog(
+                  "info",
+                  `Done to calculate data tile extra info "${id}"!`
+                );
               })
               .catch((error) => {
                 printLog(
                   "error",
-                  `Failed to calculate data tile md5s "${id}": ${error}$`
+                  `Failed to calculate data tile extra info "${id}": ${error}$`
                 );
               }),
           0
@@ -461,14 +480,17 @@ function calculateDataTileMD5sHandler() {
       } else if (item.sourceType === "pg") {
         setTimeout(
           () =>
-            calculatePostgreSQLTileHash(item.source)
+            calculatePostgreSQLTileExtraInfo(item.source)
               .then(() => {
-                printLog("info", `Done to calculate data tile md5s "${id}"!`);
+                printLog(
+                  "info",
+                  `Done to calculate data tile extra info "${id}"!`
+                );
               })
               .catch((error) => {
                 printLog(
                   "error",
-                  `Failed to calculate data tile md5s "${id}": ${error}$`
+                  `Failed to calculate data tile extra info "${id}": ${error}$`
                 );
               }),
           0
@@ -477,7 +499,10 @@ function calculateDataTileMD5sHandler() {
 
       return res.status(StatusCodes.OK).send("OK");
     } catch (error) {
-      printLog("error", `Failed to calculate data tile md5s "${id}": ${error}`);
+      printLog(
+        "error",
+        `Failed to calculate data tile extra info "${id}": ${error}`
+      );
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -676,11 +701,11 @@ export const serve_data = {
      * tags:
      *   - name: Data
      *     description: Data related endpoints
-     * /datas/{id}/md5s:
+     * /datas/{id}/extra-info:
      *   get:
      *     tags:
      *       - Data
-     *     summary: Calculate data tile MD5s
+     *     summary: Calculate data tile extra info
      *     parameters:
      *       - in: path
      *         name: id
@@ -691,7 +716,7 @@ export const serve_data = {
      *         description: Data ID
      *     responses:
      *       200:
-     *         description: Data tile MD5s
+     *         description: Data tile extra info
      *         content:
      *           application/json:
      *             schema:
@@ -712,18 +737,18 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/datas/:id/md5s", calculateDataTileMD5sHandler());
+    app.get("/datas/:id/extra-info", calculateDataExtraInfoHandler());
 
     /**
      * @swagger
      * tags:
      *   - name: Data
      *     description: Data related endpoints
-     * /datas/{id}/md5s:
+     * /datas/{id}/extra-info:
      *   post:
      *     tags:
      *       - Data
-     *     summary: Get data tile MD5s
+     *     summary: Get data tile extra info
      *     parameters:
      *       - in: path
      *         name: id
@@ -732,6 +757,14 @@ export const serve_data = {
      *           type: string
      *           example: id
      *         description: Data ID
+     *       - in: query
+     *         name: type
+     *         schema:
+     *           type: string
+     *           enum: [md5, created]
+     *           example: md5
+     *         required: false
+     *         description: Extra info type
      *       - in: query
      *         name: compression
      *         schema:
@@ -748,29 +781,7 @@ export const serve_data = {
      *       description: Coverages object
      *     responses:
      *       200:
-     *         description: Data tile MD5s
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *       204:
-     *         description: No content
-     *       400:
-     *         description: Invalid params
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     *     responses:
-     *       200:
-     *         description: Data tile MD5s
+     *         description: Data tile extra info
      *         content:
      *           application/json:
      *             schema:
@@ -791,7 +802,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.post("/datas/:id/md5s", getDataTileMD5sHandler());
+    app.post("/datas/:id/extra-info", getDataTileExtraInfoHandler());
 
     /**
      * @swagger

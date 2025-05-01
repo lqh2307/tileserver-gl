@@ -226,22 +226,24 @@ async function createXYZTile(
 }
 
 /**
- * Get XYZ tile hash from coverages
+ * Get XYZ tile extra info from coverages
  * @param {Database} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @returns {Object<string, string>} Hash object
+ * @param {boolean} isCreated Tile created extra info
+ * @returns {Object<string, string>} Extra info object
  */
-export function getXYZTileHashFromCoverages(source, coverages) {
+export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   let query = "";
+  const extraInfoType = isCreated === true ? "created" : "hash";
 
   tileBounds.forEach((tileBound, idx) => {
     if (idx > 0) {
       query += " UNION ALL ";
     }
 
-    query += `SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
+    query += `SELECT zoom_level, tile_column, tile_row, ${extraInfoType} FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
   });
 
   query += ";";
@@ -250,8 +252,9 @@ export function getXYZTileHashFromCoverages(source, coverages) {
   const rows = source.prepare(query).all();
 
   rows.forEach((row) => {
-    if (row.hash !== null) {
-      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
+    if (row[extraInfoType] !== null) {
+      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] =
+        row[extraInfoType];
     }
   });
 
@@ -259,13 +262,13 @@ export function getXYZTileHashFromCoverages(source, coverages) {
 }
 
 /**
- * Calculate XYZ tile hash
+ * Calculate XYZ tile extra info
  * @param {string} sourcePath XYZ folder path
  * @param {Database} source SQLite database instance
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<void>}
  */
-export async function calculatXYZTileHash(sourcePath, source, format) {
+export async function calculatXYZTileExtraInfo(sourcePath, source, format) {
   const sql = source.prepare(
     `
     SELECT

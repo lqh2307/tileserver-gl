@@ -204,22 +204,28 @@ async function createPostgreSQLTile(source, z, x, y, data, timeout) {
 }
 
 /**
- * Get PostgreSQL tile hash from coverages
+ * Get PostgreSQL tile extra info from coverages
  * @param {pg.Client} source PostgreSQL database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @returns {Promise<Object<string, string>>} Hash object
+ * @param {boolean} isCreated Tile created extra info
+ * @returns {Promise<Object<string, string>>} Extra info object
  */
-export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
+export async function getPostgreSQLTileExtraInfoFromCoverages(
+  source,
+  coverages,
+  isCreated
+) {
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   let query = "";
+  const extraInfoType = isCreated === true ? "created" : "hash";
 
   tileBounds.forEach((tileBound, idx) => {
     if (idx > 0) {
       query += " UNION ALL ";
     }
 
-    query += `SELECT zoom_level, tile_column, tile_row, hash FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
+    query += `SELECT zoom_level, tile_column, tile_row, ${extraInfoType} FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
   });
 
   query += ";";
@@ -228,8 +234,9 @@ export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
   const data = await source.query(query);
 
   data.rows.forEach((row) => {
-    if (row.hash !== null) {
-      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] = row.hash;
+    if (row[extraInfoType] !== null) {
+      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] =
+        row[extraInfoType];
     }
   });
 
@@ -237,11 +244,11 @@ export async function getPostgreSQLTileHashFromCoverages(source, coverages) {
 }
 
 /**
- * Calculate PostgreSQL tile hash
+ * Calculate PostgreSQL tile extra info
  * @param {pg.Client} source PostgreSQL database instance
  * @returns {Promise<void>}
  */
-export async function calculatePostgreSQLTileHash(source) {
+export async function calculatePostgreSQLTileExtraInfo(source) {
   while (true) {
     const data = await source.query(
       `

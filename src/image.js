@@ -8,7 +8,7 @@ import { config } from "./config.js";
 import { Mutex } from "async-mutex";
 import cluster from "cluster";
 import {
-  getPostgreSQLTileHashFromCoverages,
+  getPostgreSQLTileExtraInfoFromCoverages,
   updatePostgreSQLMetadata,
   getPostgreSQLTileFromURL,
   getPostgreSQLTileCreated,
@@ -18,8 +18,8 @@ import {
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 import {
-  getMBTilesTileHashFromCoverages,
-  calculateMBTilesTileHash,
+  getMBTilesTileExtraInfoFromCoverages,
+  calculateMBTilesTileExtraInfo,
   updateMBTilesMetadata,
   getMBTilesTileFromURL,
   getMBTilesTileCreated,
@@ -42,7 +42,7 @@ import {
   delay,
 } from "./utils.js";
 import {
-  getXYZTileHashFromCoverages,
+  getXYZTileExtraInfoFromCoverages,
   updateXYZMetadata,
   getXYZTileCreated,
   getXYZTileFromURL,
@@ -641,7 +641,7 @@ export async function renderMBTilesTiles(
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
-        hashs = getMBTilesTileHashFromCoverages(source, coverages);
+        hashs = getMBTilesTileExtraInfoFromCoverages(source, coverages);
       } catch (error) {
         printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 
@@ -775,7 +775,7 @@ export async function renderMBTilesTiles(
 
       printLog("info", "Calculating MD5 tile hashs...");
 
-      await calculateMBTilesTileHash(source);
+      await calculateMBTilesTileExtraInfo(source);
     }
 
     printLog(
@@ -873,7 +873,7 @@ export async function renderXYZTiles(
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
-        hashs = getXYZTileHashFromCoverages(source, coverages);
+        hashs = getXYZTileExtraInfoFromCoverages(source, coverages);
       } catch (error) {
         printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 
@@ -1106,7 +1106,7 @@ export async function renderPostgreSQLTiles(
       try {
         printLog("info", `Get hashs from "${filePath}"...`);
 
-        hashs = await getPostgreSQLTileHashFromCoverages(source, coverages);
+        hashs = await getPostgreSQLTileExtraInfoFromCoverages(source, coverages);
       } catch (error) {
         printLog("error", `Failed to get hashs from "${filePath}": ${error}`);
 

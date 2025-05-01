@@ -12,7 +12,7 @@ import {
   getGeoJSON,
 } from "./geojson.js";
 import {
-  getXYZTileHashFromCoverages,
+  getXYZTileExtraInfoFromCoverages,
   getXYZTileCreated,
   updateXYZMetadata,
   downloadXYZTile,
@@ -20,7 +20,7 @@ import {
   openXYZMD5DB,
 } from "./tile_xyz.js";
 import {
-  getMBTilesTileHashFromCoverages,
+  getMBTilesTileExtraInfoFromCoverages,
   getMBTilesTileCreated,
   updateMBTilesMetadata,
   downloadMBTilesTile,
@@ -40,7 +40,7 @@ import {
   delay,
 } from "./utils.js";
 import {
-  getPostgreSQLTileHashFromCoverages,
+  getPostgreSQLTileExtraInfoFromCoverages,
   getPostgreSQLTileCreated,
   updatePostgreSQLMetadata,
   downloadPostgreSQLTile,
@@ -169,7 +169,7 @@ async function seedMBTilesTiles(
       const hashURL = `${url.slice(
         0,
         url.indexOf("/{z}/{x}/{y}")
-      )}/md5s?compression=true`;
+      )}/extra-info?compression=true`;
 
       try {
         printLog(
@@ -190,7 +190,7 @@ async function seedMBTilesTiles(
           targetHashs = JSON.parse(res.data);
         }
 
-        hashs = getMBTilesTileHashFromCoverages(source, coverages);
+        hashs = getMBTilesTileExtraInfoFromCoverages(source, coverages);
       } catch (error) {
         printLog(
           "error",
@@ -400,7 +400,7 @@ async function seedPostgreSQLTiles(
       const hashURL = `${url.slice(
         0,
         url.indexOf("/{z}/{x}/{y}")
-      )}/md5s?compression=true`;
+      )}/extra-info?compression=true`;
 
       try {
         printLog(
@@ -421,7 +421,7 @@ async function seedPostgreSQLTiles(
           targetHashs = JSON.parse(res.data);
         }
 
-        hashs = getPostgreSQLTileHashFromCoverages(source, coverages);
+        hashs = getPostgreSQLTileExtraInfoFromCoverages(source, coverages);
       } catch (error) {
         printLog(
           "error",
@@ -635,7 +635,7 @@ async function seedXYZTiles(
       const hashURL = `${url.slice(
         0,
         url.indexOf("/{z}/{x}/{y}")
-      )}/md5s?compression=true`;
+      )}/extra-info?compression=true`;
 
       try {
         printLog(
@@ -656,7 +656,7 @@ async function seedXYZTiles(
           targetHashs = JSON.parse(res.data);
         }
 
-        hashs = getXYZTileHashFromCoverages(source, coverages);
+        hashs = getXYZTileExtraInfoFromCoverages(source, coverages);
       } catch (error) {
         printLog(
           "error",
