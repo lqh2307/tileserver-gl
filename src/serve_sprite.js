@@ -1,7 +1,7 @@
 "use strict";
 
+import { getRequestHost, gzipAsync } from "./utils.js";
 import { StatusCodes } from "http-status-codes";
-import { getRequestHost } from "./utils.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
@@ -113,6 +113,14 @@ function getSpritesListHandler() {
         })
       );
 
+      if (req.query.compression === "true") {
+        result = await gzipAsync(JSON.stringify(result));
+
+        res.set({
+          "content-encoding": "gzip",
+        });
+      }
+
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
       printLog("error", `Failed to get sprites": ${error}`);
@@ -141,6 +149,13 @@ export const serve_sprite = {
      *     tags:
      *       - Sprite
      *     summary: Get all sprites
+     *     parameters:
+     *       - in: query
+     *         name: compression
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Compressed response
      *     responses:
      *       200:
      *         description: List of all sprites

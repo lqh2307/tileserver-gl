@@ -61,6 +61,14 @@ function getFontsListHandler() {
         })
       );
 
+      if (req.query.compression === "true") {
+        result = await gzipAsync(JSON.stringify(result));
+
+        res.set({
+          "content-encoding": "gzip",
+        });
+      }
+
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
       printLog("error", `Failed to get fonts": ${error}`);
@@ -89,6 +97,13 @@ export const serve_font = {
      *     tags:
      *       - Font
      *     summary: Get all fonts
+     *     parameters:
+     *       - in: query
+     *         name: compression
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Compressed response
      *     responses:
      *       200:
      *         description: List of fonts

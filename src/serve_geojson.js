@@ -349,6 +349,14 @@ function getGeoJSONGroupsListHandler() {
         })
       );
 
+      if (req.query.compression === "true") {
+        result = await gzipAsync(JSON.stringify(result));
+
+        res.set({
+          "content-encoding": "gzip",
+        });
+      }
+
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
       printLog("error", `Failed to get GeoJSON groups": ${error}`);
@@ -377,6 +385,13 @@ export const serve_geojson = {
      *     tags:
      *       - GeoJSON
      *     summary: Get all GeoJSON groups
+     *     parameters:
+     *       - in: query
+     *         name: compression
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Compressed response
      *     responses:
      *       200:
      *         description: List of all GeoJSON groups

@@ -424,6 +424,14 @@ function getStylesListHandler() {
         })
       );
 
+      if (req.query.compression === "true") {
+        result = await gzipAsync(JSON.stringify(result));
+
+        res.set({
+          "content-encoding": "gzip",
+        });
+      }
+
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
       printLog("error", `Failed to get styles": ${error}`);
@@ -654,6 +662,14 @@ function getRenderedsListHandler() {
         }
       });
 
+      if (req.query.compression === "true") {
+        result = await gzipAsync(JSON.stringify(result));
+
+        res.set({
+          "content-encoding": "gzip",
+        });
+      }
+
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
       printLog("error", `Failed to get rendereds": ${error}`);
@@ -682,6 +698,13 @@ export const serve_style = {
      *     tags:
      *       - Style
      *     summary: Get all styles
+     *     parameters:
+     *       - in: query
+     *         name: compression
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Compressed response
      *     responses:
      *       200:
      *         description: List of all styles
@@ -888,6 +911,13 @@ export const serve_style = {
        *     tags:
        *       - Rendered
        *     summary: Get all style rendereds
+       *     parameters:
+       *       - in: query
+       *         name: compression
+       *         schema:
+       *           type: boolean
+       *         required: false
+       *         description: Compressed response
        *     responses:
        *       200:
        *         description: List of all style rendereds

@@ -521,6 +521,14 @@ function getDatasListHandler() {
         })
       );
 
+      if (req.query.compression === "true") {
+        result = await gzipAsync(JSON.stringify(result));
+
+        res.set({
+          "content-encoding": "gzip",
+        });
+      }
+
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
       printLog("error", `Failed to get datas": ${error}`);
@@ -549,6 +557,13 @@ export const serve_data = {
      *     tags:
      *       - Data
      *     summary: Get all datas
+     *     parameters:
+     *       - in: query
+     *         name: compression
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Compressed response
      *     responses:
      *       200:
      *         description: List of all datas
