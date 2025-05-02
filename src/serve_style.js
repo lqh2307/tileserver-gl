@@ -241,7 +241,7 @@ function getStyleHandler() {
 
       if (req.query.compression === "true") {
         styleJSON = await gzipAsync(
-          req.query.raw !== "true" ? styleJSON : JSON.stringify(styleJSON)
+          req.query.raw !== "true" ? JSON.stringify(styleJSON) : styleJSON
         );
 
         headers["content-encoding"] = "gzip";
