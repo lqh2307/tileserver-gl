@@ -532,42 +532,6 @@ function getDatasListHandler() {
   };
 }
 
-/**
- * Get data tileJSON list handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
- */
-function getDataTileJSONsListHandler() {
-  return async (req, res, next) => {
-    try {
-      const requestHost = getRequestHost(req);
-
-      const result = await Promise.all(
-        Object.keys(config.datas).map(async (id) => {
-          const item = config.datas[id];
-
-          return {
-            ...item.tileJSON,
-            tilejson: "2.2.0",
-            scheme: "xyz",
-            id: id,
-            tiles: [
-              `${requestHost}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format}`,
-            ],
-          };
-        })
-      );
-
-      return res.status(StatusCodes.OK).send(result);
-    } catch (error) {
-      printLog("error", `Failed to get data tileJSONs": ${error}`);
-
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .send("Internal server error");
-    }
-  };
-}
-
 export const serve_data = {
   /**
    * Register data handlers
@@ -614,37 +578,6 @@ export const serve_data = {
      *         description: Internal server error
      */
     app.get("/datas/datas.json", getDatasListHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Data
-     *     description: Data related endpoints
-     * /datas/tilejsons.json:
-     *   get:
-     *     tags:
-     *       - Data
-     *     summary: Get all data tileJSONs
-     *     responses:
-     *       200:
-     *         description: List of all data tileJSONs
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/datas/tilejsons.json", getDataTileJSONsListHandler());
 
     /**
      * @swagger
