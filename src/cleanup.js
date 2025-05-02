@@ -98,9 +98,8 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}`;
+    let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -251,9 +250,8 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Cleaning up ${total} tiles of postgresql "${id}" with:\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}`;
+    let log = `Cleaning up ${total} tiles of postgresql "${id}" with:`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -398,9 +396,8 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Cleaning up ${total} tiles of xyz "${id}" with:\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}`;
+    let log = `Cleaning up ${total} tiles of xyz "${id}" with:`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {

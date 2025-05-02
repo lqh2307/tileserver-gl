@@ -26,10 +26,13 @@ import os from "os";
  */
 async function startClusterServer() {
   if (cluster.isPrimary === true) {
-    printLog(
-      "info",
-      `Starting server with:\n\tData dir: ${process.env.DATA_DIR}\n\tService name: ${process.env.SERVICE_NAME}\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}\n\tLogging to file: ${process.env.LOGGING_TO_FILE}`
-    );
+    let log = `Starting server with:`;
+    log += `\n\tData dir: ${process.env.DATA_DIR}`;
+    log += `\n\tService name: ${process.env.SERVICE_NAME}`;
+    log += `\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}`;
+    log += `\n\tLogging to file: ${process.env.LOGGING_TO_FILE}`;
+
+    printLog("info", log);
 
     /* Read config.json file */
     printLog("info", "Reading config.json file...");

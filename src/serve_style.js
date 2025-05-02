@@ -307,7 +307,7 @@ function renderStyleHandler() {
         } else {
           /* Render style */
           try {
-            validateJSON(await getJSONSchema("render"), req.body);
+            validateJSON(await getJSONSchema("style_render"), req.body);
           } catch (error) {
             return res
               .status(StatusCodes.BAD_REQUEST)

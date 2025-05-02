@@ -960,7 +960,7 @@ export async function getVersion() {
 
 /**
  * Get JSON schema
- * @param {"delete"|"cleanup"|"config"|"seed"|"render"|"coverages"|"sprite"} schema
+ * @param {"delete"|"cleanup"|"config"|"seed"|"style_render"|"data_export"|"coverages"|"sprite"} schema
  * @returns {Promise<Object>}
  */
 export async function getJSONSchema(schema) {

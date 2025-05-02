@@ -599,9 +599,15 @@ export async function renderMBTilesTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:\n\tStore transparent: ${storeTransparent}\n\tMax renderer pool size: ${maxRendererPoolSize}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
+    let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:`;
+    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tStore transparent: ${storeTransparent}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
+    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTile size: ${tileSize}`;
+    log += `\n\tTile scale: ${tileScale}`;
+    log += `\n\tCreate overview: ${createOverview}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -624,7 +630,7 @@ export async function renderMBTilesTiles(
     printLog("info", log);
 
     /* Open MBTiles SQLite database */
-    const filePath = `${process.env.DATA_DIR}/exports/styles/mbtiles/${id}/${id}.mbtiles`;
+    const filePath = `${process.env.DATA_DIR}/exports/styles/mbtiles/${metadata.id}/${metadata.id}.mbtiles`;
 
     source = await openMBTilesDB(
       filePath,
@@ -861,9 +867,15 @@ export async function renderXYZTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Rendering ${total} tiles of style "${id}" to xyz with:\n\tStore transparent: ${storeTransparent}\n\tMax renderer pool size: ${maxRendererPoolSize}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
+    let log = `Rendering ${total} tiles of style "${id}" to xyz with:`;
+    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tStore transparent: ${storeTransparent}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
+    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTile size: ${tileSize}`;
+    log += `\n\tTile scale: ${tileScale}`;
+    log += `\n\tCreate overview: ${createOverview}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -886,7 +898,7 @@ export async function renderXYZTiles(
     printLog("info", log);
 
     /* Open MD5 SQLite database */
-    const filePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${id}/${id}.sqlite`;
+    const filePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${metadata.id}/${metadata.id}.sqlite`;
 
     const source = await openXYZMD5DB(
       filePath,
@@ -933,7 +945,7 @@ export async function renderXYZTiles(
     };
 
     /* Create renderer pool */
-    const sourcePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${id}`;
+    const sourcePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${metadata.id}`;
     const rendered = config.styles[id].rendered;
     const rendererPool = createPool(
       {
@@ -1062,10 +1074,7 @@ export async function renderXYZTiles(
     await rendererPool.clear();
 
     /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-      /^.*\.(gif|png|jpg|jpeg|webp)$/
-    );
+    await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp)$/);
 
     /* Create overviews */
     if (createOverview === true) {
@@ -1127,9 +1136,15 @@ export async function renderPostgreSQLTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Rendering ${total} tiles of style "${id}" to postgresql with:\n\tStore transparent: ${storeTransparent}\n\tMax renderer pool size: ${maxRendererPoolSize}\n\tConcurrency: ${concurrency}\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}\n\tTile size: ${tileSize}\n\tTile scale: ${tileScale}\n\tCreate overview: ${createOverview}`;
+    let log = `Rendering ${total} tiles of style "${id}" to postgresql with:`;
+    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tStore transparent: ${storeTransparent}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
+    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTile size: ${tileSize}`;
+    log += `\n\tTile scale: ${tileScale}`;
+    log += `\n\tCreate overview: ${createOverview}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -1152,7 +1167,7 @@ export async function renderPostgreSQLTiles(
     printLog("info", log);
 
     /* Open PostgreSQL database */
-    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${metadata.id}`;
 
     source = await openPostgreSQLDB(filePath, true);
 

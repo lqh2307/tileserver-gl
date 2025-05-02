@@ -1,6 +1,10 @@
 {
   "type": "object",
   "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
     "metadata": {
       "type": "object",
       "properties": {
@@ -174,5 +178,5 @@
       "enum": ["xyz", "mbtiles", "pg"]
     }
   },
-  "required": ["metadata", "storeType", "coverages"]
+  "required": ["id", "metadata", "storeType", "coverages"]
 }

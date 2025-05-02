@@ -125,9 +125,12 @@ async function seedMBTilesTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Seeding ${total} tiles of mbtiles "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}`;
+    let log = `Seeding ${total} tiles of mbtiles "${id}" with:`;
+    log += `\n\tStore transparent: ${storeTransparent}`;
+    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tMax try: ${maxTry}`;
+    log += `\n\tTimeout: ${timeout}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -361,9 +364,12 @@ async function seedPostgreSQLTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Seeding ${total} tiles of postgresql "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}`;
+    let log = `Seeding ${total} tiles of postgresql "${id}" with:`;
+    log += `\n\tStore transparent: ${storeTransparent}`;
+    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tMax try: ${maxTry}`;
+    log += `\n\tTimeout: ${timeout}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -593,9 +599,12 @@ async function seedXYZTiles(
     /* Calculate summary */
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
-    let log = `Seeding ${total} tiles of xyz "${id}" with:\n\tStore transparent: ${storeTransparent}\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}\n\tCoverages: ${JSON.stringify(
-      coverages
-    )}`;
+    let log = `Seeding ${total} tiles of xyz "${id}" with:`;
+    log += `\n\tStore transparent: ${storeTransparent}`;
+    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tMax try: ${maxTry}`;
+    log += `\n\tTimeout: ${timeout}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -815,7 +824,9 @@ async function seedXYZTiles(
 async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  let log = `Seeding geojson "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  let log = `Seeding geojson "${id}" with:`;
+  log += `\n\tMax try: ${maxTry}`;
+  log += `\n\tTimeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
@@ -922,7 +933,9 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
 async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  let log = `Seeding sprite "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  let log = `Seeding sprite "${id}" with:`;
+  log += `\n\tMax try: ${maxTry}`;
+  log += `\n\tTimeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
@@ -1017,7 +1030,10 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   const total = 256;
 
-  let log = `Seeding ${total} fonts of font "${id}" with:\n\tConcurrency: ${concurrency}\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  let log = `Seeding ${total} fonts of font "${id}" with:`;
+  log += `\n\tConcurrency: ${concurrency}`;
+  log += `\n\tMax try: ${maxTry}`;
+  log += `\n\tTimeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
@@ -1137,7 +1153,9 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
-  let log = `Seeding style "${id}" with:\n\tMax try: ${maxTry}\n\tTimeout: ${timeout}`;
+  let log = `Seeding style "${id}" with:`;
+  log += `\n\tMax try: ${maxTry}`;
+  log += `\n\tTimeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
