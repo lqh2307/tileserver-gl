@@ -14,6 +14,7 @@ import {
   validateJSON,
   calculateMD5,
   isExistFile,
+  gzipAsync,
 } from "./utils.js";
 import {
   getStyleJSONFromURL,
@@ -234,7 +235,19 @@ function getStyleHandler() {
         );
       }
 
-      res.header("content-type", "application/json");
+      const headers = {
+        "content-type": "application/json",
+      };
+
+      if (req.query.compression === "true") {
+        styleJSON = await gzipAsync(
+          req.query.raw !== "true" ? styleJSON : JSON.stringify(styleJSON)
+        );
+
+        headers["content-encoding"] = "gzip";
+      }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(styleJSON);
     } catch (error) {
@@ -923,7 +936,9 @@ export const serve_style = {
      */
     app.get("/styles/stylejsons.json", getStyleJSONsListHandler());
 
+    /* Serve backend render */
     if (config.enableBackendRender === true) {
+      /* Serve export render */
       if (process.env.ENABLE_EXPORT !== "false") {
         /**
          * @swagger
@@ -1021,6 +1036,12 @@ export const serve_style = {
        *           type: boolean
        *         required: false
        *         description: Use raw
+       *       - in: query
+       *         name: compression
+       *         schema:
+       *           type: boolean
+       *         required: false
+       *         description: Compressed response
        *     responses:
        *       200:
        *         description: StyleJSON

@@ -690,9 +690,8 @@ export async function renderMBTilesTiles(
       try {
         if (
           refreshTimestampType !== "number" ||
-          (refreshTimestampType === "number" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
         ) {
           printLog(
             "info",
@@ -954,9 +953,8 @@ export async function renderXYZTiles(
       try {
         if (
           refreshTimestampType !== "number" ||
-          (refreshTimestampType === "number" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
         ) {
           printLog(
             "info",
@@ -1216,9 +1214,8 @@ export async function renderPostgreSQLTiles(
       try {
         if (
           refreshTimestampType !== "number" ||
-          (refreshTimestampType === "number" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
         ) {
           printLog(
             "info",

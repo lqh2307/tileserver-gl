@@ -41,6 +41,7 @@ export const serve_swagger = {
    * @returns {void}
    */
   init: (app) => {
+    /* Serve swagger */
     if (process.env.SERVE_SWAGGER !== "false") {
       app.use("/swagger/index.html", swaggerUi.serve, serveSwagger());
     }

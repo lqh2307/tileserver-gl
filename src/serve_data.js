@@ -376,7 +376,7 @@ function getDataTileExtraInfoHandler() {
         extraInfo = getMBTilesTileExtraInfoFromCoverages(
           item.source,
           req.body,
-          false
+          req.query.type === "created"
         );
       } else if (item.sourceType === "pmtiles") {
         extraInfo = {};
@@ -384,13 +384,13 @@ function getDataTileExtraInfoHandler() {
         extraInfo = getXYZTileExtraInfoFromCoverages(
           item.md5Source,
           req.body,
-          false
+          req.query.type === "created"
         );
       } else if (item.sourceType === "pg") {
         extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
           item.source,
           req.body,
-          false
+          req.query.type === "created"
         );
       }
 
@@ -727,15 +727,6 @@ export const serve_data = {
      *               example: Starting...
      *       500:
      *         description: Internal server error
-     */
-    app.get("/datas/:id/extra-info", calculateDataExtraInfoHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Data
-     *     description: Data related endpoints
-     * /datas/{id}/extra-info:
      *   post:
      *     tags:
      *       - Data
@@ -748,6 +739,14 @@ export const serve_data = {
      *           type: string
      *           example: id
      *         description: Data ID
+     *       - in: query
+     *         name: type
+     *         schema:
+     *           type: string
+     *           enum: [hash, created]
+     *           example: hash
+     *         required: false
+     *         description: Tile extra info type
      *       - in: query
      *         name: compression
      *         schema:
@@ -785,6 +784,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
+    app.get("/datas/:id/extra-info", calculateDataExtraInfoHandler());
     app.post("/datas/:id/extra-info", getDataTileExtraInfoHandler());
 
     /**
@@ -858,8 +858,8 @@ export const serve_data = {
      */
     app.get("/datas/:id/:z/:x/:y.:format", getDataTileHandler());
 
+    /* Serve data */
     if (process.env.SERVE_FRONT_PAGE !== "false") {
-      /* Serve data */
       /**
        * @swagger
        * tags:

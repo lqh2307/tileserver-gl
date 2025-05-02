@@ -16,6 +16,7 @@ import {
   getRequestHost,
   calculateMD5,
   isExistFile,
+  gzipAsync,
 } from "./utils.js";
 
 /**
@@ -247,7 +248,17 @@ function getGeoJSONHandler() {
         }
       }
 
-      res.header("content-type", "application/json");
+      const headers = {
+        "content-type": "application/json",
+      };
+
+      if (req.query.compression === "true") {
+        geoJSON = await gzipAsync(geoJSON);
+
+        headers["content-encoding"] = "gzip";
+      }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(geoJSON);
     } catch (error) {
@@ -506,6 +517,12 @@ export const serve_geojson = {
      *           example: layer
      *         required: true
      *         description: Layer of the GeoJSON
+     *       - in: query
+     *         name: compression
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Compressed response
      *     responses:
      *       200:
      *         description: GeoJSON
@@ -573,6 +590,7 @@ export const serve_geojson = {
      */
     app.get("/geojsons/:id/:layer/md5", getGeoJSONMD5Handler());
 
+    /* Serve GeoJSON */
     if (process.env.SERVE_FRONT_PAGE !== "false") {
       /**
        * @swagger
