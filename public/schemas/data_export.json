@@ -160,6 +160,9 @@
       "type": "integer",
       "minimum": 1
     },
+    "storeTransparent": {
+      "type": "boolean"
+    },
     "refreshBefore": {
       "type": "object",
       "properties": {

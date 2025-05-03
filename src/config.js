@@ -3,22 +3,27 @@
 import { createFileWithLock, getJSONSchema, validateJSON } from "./utils.js";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
+import { printLog } from "./logger.js";
 
 let config = {};
 
 /* Load config.json */
 if (config === undefined) {
-  config = JSON.parse(
-    readFileSync(`${process.env.DATA_DIR}/config.json`, "utf8")
-  );
+  try {
+    config = JSON.parse(
+      readFileSync(`${process.env.DATA_DIR}/config.json`, "utf8")
+    );
 
-  config.repo = {
-    styles: {},
-    geojsons: {},
-    datas: {},
-    fonts: {},
-    sprites: {},
-  };
+    config.repo = {
+      styles: {},
+      geojsons: {},
+      datas: {},
+      fonts: {},
+      sprites: {},
+    };
+  } catch (error) {
+    printLog("error", `Failed to load config.json file: ${error}`);
+  }
 }
 
 /**

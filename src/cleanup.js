@@ -42,9 +42,13 @@ let cleanUp = {};
 
 /* Load cleanup.json */
 if (cleanUp === undefined) {
-  cleanUp = JSON.parse(
-    readFileSync(`${process.env.DATA_DIR}/cleanup.json`, "utf8")
-  );
+  try {
+    cleanUp = JSON.parse(
+      readFileSync(`${process.env.DATA_DIR}/cleanup.json`, "utf8")
+    );
+  } catch (error) {
+    printLog("error", `Failed to load cleanup.json file: ${error}`);
+  }
 }
 
 /**

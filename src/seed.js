@@ -51,7 +51,13 @@ let seed = {};
 
 /* Load seed.json */
 if (seed === undefined) {
-  seed = JSON.parse(readFileSync(`${process.env.DATA_DIR}/seed.json`, "utf8"));
+  try {
+    seed = JSON.parse(
+      readFileSync(`${process.env.DATA_DIR}/seed.json`, "utf8")
+    );
+  } catch (error) {
+    printLog("error", `Failed to load seed.json file: ${error}`);
+  }
 }
 
 /**
@@ -98,7 +104,7 @@ async function updateSeedFile(seed, timeout) {
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency download
+ * @param {number} concurrency Concurrency to download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -342,7 +348,7 @@ async function seedMBTilesTiles(
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency download
+ * @param {number} concurrency Concurrency to download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -1029,7 +1035,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
  * Seed font
  * @param {string} id Cache font ID
  * @param {string} url Font URL
- * @param {number} concurrency Concurrency download
+ * @param {number} concurrency Concurrency to download
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed

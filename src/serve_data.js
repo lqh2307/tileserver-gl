@@ -4,6 +4,7 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
+import os from "os";
 import {
   getXYZTileExtraInfoFromCoverages,
   calculatXYZTileExtraInfo,
@@ -49,6 +50,11 @@ import {
   getPostgreSQLTile,
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
+import {
+  exportPostgreSQLTiles,
+  exportMBTilesTiles,
+  exportXYZTiles,
+} from "./image.js";
 
 /**
  * Serve data handler
@@ -346,6 +352,132 @@ function getDataHandler() {
 }
 
 /**
+ * Export data handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function exportDataHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.datas[id];
+
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+      }
+
+      if (req.query.cancel === "true") {
+        /* Check export is not running? (export === true is not running) */
+        if (item.export === true) {
+          printLog(
+            "warn",
+            "No export is currently running. Skipping cancel export..."
+          );
+
+          return res.status(StatusCodes.NOT_FOUND).send("OK");
+        } else {
+          printLog("info", "Canceling export...");
+
+          item.export = true;
+
+          return res.status(StatusCodes.OK).send("OK");
+        }
+      } else {
+        /* Check export is running? (export === false is not running) */
+        if (item.export === false) {
+          printLog("warn", "A export is already running. Skipping export...");
+
+          return res.status(StatusCodes.CONFLICT).send("OK");
+        } else {
+          /* Export data */
+          try {
+            validateJSON(await getJSONSchema("data_export"), req.body);
+          } catch (error) {
+            return res
+              .status(StatusCodes.BAD_REQUEST)
+              .send(`Options is invalid: ${error}`);
+          }
+
+          const defaultConcurrency = os.cpus().length;
+          const defaultStoreTransparent = false;
+
+          setTimeout(() => {
+            item.export = false;
+
+            if (req.body.storeType === "xyz") {
+              exportXYZTiles(
+                id,
+                req.body.metadata,
+                req.body.coverages,
+                req.body.concurrency || defaultConcurrency,
+                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.refreshBefore?.time ||
+                  req.body.refreshBefore?.day ||
+                  req.body.refreshBefore?.md5
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to export data "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+            } else if (req.body.storeType === "mbtiles") {
+              exportMBTilesTiles(
+                id,
+                req.body.metadata,
+                req.body.coverages,
+                req.body.concurrency || defaultConcurrency,
+                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.refreshBefore?.time ||
+                  req.body.refreshBefore?.day ||
+                  req.body.refreshBefore?.md5
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to export data "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+            } else if (req.body.storeType === "pg") {
+              exportPostgreSQLTiles(
+                id,
+                req.body.metadata,
+                req.body.coverages,
+                req.body.concurrency || defaultConcurrency,
+                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.refreshBefore?.time ||
+                  req.body.refreshBefore?.day ||
+                  req.body.refreshBefore?.md5
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to export data "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+            }
+          }, 0);
+
+          return res.status(StatusCodes.CREATED).send("OK");
+        }
+      }
+    } catch (error) {
+      printLog("error", `Failed to export data "${id}": ${error}`);
+
+      if (error instanceof SyntaxError) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send("option parameter is invalid");
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
  * Get tile extra info handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
@@ -593,6 +725,77 @@ export const serve_data = {
      *         description: Internal server error
      */
     app.get("/datas/datas.json", getDatasListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/{id}/export:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Cancel export data
+     *     parameters:
+     *       - in: query
+     *         name: cancel
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Cancel export
+     *     responses:
+     *       200:
+     *         description: Data export is canceled
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: OK
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     *   post:
+     *     tags:
+     *       - Data
+     *     summary: Export data
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *             schema:
+     *               type: object
+     *               example: {}
+     *       description: Data export options
+     *     responses:
+     *       201:
+     *         description: Data export is started
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: OK
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/datas/:id/export", exportDataHandler());
+    app.post("/datas/:id/export", exportDataHandler());
 
     /**
      * @swagger
