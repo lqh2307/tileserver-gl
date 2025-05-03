@@ -74,6 +74,36 @@ export async function getDataFromURL(
 }
 
 /**
+ * Get data tile from a URL
+ * @param {string} url The URL to fetch data tile from
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<Object>}
+ */
+export async function getDataTileFromURL(url, timeout) {
+  try {
+    const response = await getDataFromURL(url, timeout, "arraybuffer");
+
+    return {
+      data: response.data,
+      headers: detectFormatAndHeaders(response.data).headers,
+    };
+  } catch (error) {
+    if (error.statusCode !== undefined) {
+      if (
+        error.statusCode === StatusCodes.NO_CONTENT ||
+        error.statusCode === StatusCodes.NOT_FOUND
+      ) {
+        throw new Error("Tile does not exist");
+      } else {
+        throw new Error(`Failed to get data tile from "${url}": ${error}`);
+      }
+    } else {
+      throw new Error(`Failed to get data tile from "${url}": ${error}`);
+    }
+  }
+}
+
+/**
  * Post data to URL
  * @param {string} url URL to post data
  * @param {number} timeout Timeout in milliseconds

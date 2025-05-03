@@ -11,7 +11,6 @@ import cluster from "cluster";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   updatePostgreSQLMetadata,
-  getPostgreSQLTileFromURL,
   cachePostgreSQLTileData,
   getPostgreSQLTile,
   closePostgreSQLDB,
@@ -21,7 +20,6 @@ import {
   getMBTilesTileExtraInfoFromCoverages,
   calculateMBTilesTileExtraInfo,
   updateMBTilesMetadata,
-  getMBTilesTileFromURL,
   cacheMBtilesTileData,
   getMBTilesTile,
   closeMBTilesDB,
@@ -33,6 +31,7 @@ import {
   createFallbackTileData,
   renderImageTileData,
   removeEmptyFolders,
+  getDataTileFromURL,
   getLonLatFromXYZ,
   getDataFromURL,
   calculateMD5,
@@ -43,7 +42,6 @@ import {
 import {
   getXYZTileExtraInfoFromCoverages,
   updateXYZMetadata,
-  getXYZTileFromURL,
   cacheXYZTileFile,
   closeXYZMD5DB,
   openXYZMD5DB,
@@ -232,7 +230,7 @@ function createTileRenderer(tileScale, styleJSON) {
                   `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
                 );
 
-                dataTile = await getMBTilesTileFromURL(
+                dataTile = await getDataTileFromURL(
                   targetURL,
                   30000 // 30 secs
                 );
@@ -319,7 +317,7 @@ function createTileRenderer(tileScale, styleJSON) {
                   `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
                 );
 
-                dataTile = await getXYZTileFromURL(
+                dataTile = await getDataTileFromURL(
                   targetURL,
                   30000 // 30 secs
                 );
@@ -402,7 +400,7 @@ function createTileRenderer(tileScale, styleJSON) {
                   `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
                 );
 
-                dataTile = await getPostgreSQLTileFromURL(
+                dataTile = await getDataTileFromURL(
                   targetURL,
                   30000 // 30 secs
                 );

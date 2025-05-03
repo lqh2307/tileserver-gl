@@ -84,19 +84,26 @@ async function getPostgreSQLBBoxFromTiles(source) {
 
   let bbox = [-180, -85.051129, 180, 85.051129];
 
-  for (let index = 0; index < data.rows.length; index++) {
-    const _bbox = getBBoxFromTiles(
-      data.rows[index].xMin,
-      data.rows[index].yMin,
-      data.rows[index].xMax,
-      data.rows[index].yMax,
-      data.rows[index].zoom_level,
+  if (data.rows.length > 0) {
+    bbox = getBBoxFromTiles(
+      data.rows[0].xMin,
+      data.rows[0].yMin,
+      data.rows[0].xMax,
+      data.rows[0].yMax,
+      data.rows[0].zoom_level,
       "xyz"
     );
 
-    if (index === 0) {
-      bbox = _bbox;
-    } else {
+    for (let index = 1; index < data.rows.length; index++) {
+      const _bbox = getBBoxFromTiles(
+        data.rows[index].xMin,
+        data.rows[index].yMin,
+        data.rows[index].xMax,
+        data.rows[index].yMax,
+        data.rows[index].zoom_level,
+        "xyz"
+      );
+
       if (_bbox[0] < bbox[0]) {
         bbox[0] = _bbox[0];
       }
@@ -113,30 +120,30 @@ async function getPostgreSQLBBoxFromTiles(source) {
         bbox[3] = _bbox[3];
       }
     }
-  }
 
-  if (bbox[0] > 180) {
-    bbox[0] = 180;
-  } else if (bbox[0] < -180) {
-    bbox[0] = -180;
-  }
+    if (bbox[0] > 180) {
+      bbox[0] = 180;
+    } else if (bbox[0] < -180) {
+      bbox[0] = -180;
+    }
 
-  if (bbox[1] > 180) {
-    bbox[1] = 180;
-  } else if (bbox[1] < -180) {
-    bbox[1] = -180;
-  }
+    if (bbox[1] > 180) {
+      bbox[1] = 180;
+    } else if (bbox[1] < -180) {
+      bbox[1] = -180;
+    }
 
-  if (bbox[2] > 85.051129) {
-    bbox[2] = 85.051129;
-  } else if (bbox[2] < -85.051129) {
-    bbox[2] = -85.051129;
-  }
+    if (bbox[2] > 85.051129) {
+      bbox[2] = 85.051129;
+    } else if (bbox[2] < -85.051129) {
+      bbox[2] = -85.051129;
+    }
 
-  if (bbox[3] > 85.051129) {
-    bbox[3] = 85.051129;
-  } else if (bbox[3] < -85.051129) {
-    bbox[3] = -85.051129;
+    if (bbox[3] > 85.051129) {
+      bbox[3] = 85.051129;
+    } else if (bbox[3] < -85.051129) {
+      bbox[3] = -85.051129;
+    }
   }
 
   return bbox;
@@ -623,36 +630,6 @@ export async function updatePostgreSQLMetadata(source, metadataAdds, timeout) {
 }
 
 /**
- * Get PostgreSQL tile from a URL
- * @param {string} url The URL to fetch data from
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<Object>}
- */
-export async function getPostgreSQLTileFromURL(url, timeout) {
-  try {
-    const response = await getDataFromURL(url, timeout, "arraybuffer");
-
-    return {
-      data: response.data,
-      headers: detectFormatAndHeaders(response.data).headers,
-    };
-  } catch (error) {
-    if (error.statusCode !== undefined) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("Tile does not exist");
-      } else {
-        throw new Error(`Failed to get data tile from "${url}": ${error}`);
-      }
-    } else {
-      throw new Error(`Failed to get data tile from "${url}": ${error}`);
-    }
-  }
-}
-
-/**
  * Download PostgreSQL tile data
  * @param {string} url The URL to download the file from
  * @param {pg.Client} source PostgreSQL database instance
@@ -689,11 +666,6 @@ export async function downloadPostgreSQLTile(
         storeTransparent
       );
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to download tile data "${z}/${x}/${y}" - From "${url}": ${error}`
-      );
-
       if (error.statusCode !== undefined) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
@@ -743,62 +715,6 @@ export async function cachePostgreSQLTileData(
       30000 // 30 secs
     );
   }
-}
-
-/**
- * Get MD5 hash of PostgreSQL tile
- * @param {pg.Client} source PostgreSQL database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @returns {Promise<string>} Returns the MD5 hash as a string
- */
-export async function getPostgreSQLTileMD5(source, z, x, y) {
-  const data = await source.query(
-    `
-    SELECT
-      hash
-    FROM
-      tiles
-    WHERE
-      zoom_level = $1 AND tile_column = $2 AND tile_row = $3;
-    `,
-    [z, x, y]
-  );
-
-  if (data.rows.length === 0) {
-    throw new Error("Tile MD5 does not exist");
-  }
-
-  return data.rows[0].hash;
-}
-
-/**
- * Get created of PostgreSQL tile
- * @param {pg.Client} source PostgreSQL database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @returns {Promise<number>} Returns the created as a number
- */
-export async function getPostgreSQLTileCreated(source, z, x, y) {
-  const data = await source.query(
-    `
-    SELECT
-      created
-    FROM
-      tiles
-    WHERE
-      zoom_level = $1 AND tile_column = $2 AND tile_row = $3;
-    `,
-    [z, x, y]
-  );
-
-  if (data.rows.length === 0) {
-    throw new Error("Tile created does not exist");
-  }
-
-  return data.rows[0].created;
 }
 
 /**

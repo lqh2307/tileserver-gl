@@ -7,8 +7,8 @@ import path from "node:path";
 
 /**
  * Open SQLite database with timeout
- * @param {string} filePath File path
- * @param {boolean} isCreate Is create database?
+ * @param {string} filePath SQLite database file path
+ * @param {boolean} isCreate Is create SQLite database?
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<Database>} SQLite database instance
  */
@@ -27,9 +27,10 @@ export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
     try {
       source = new Database(filePath);
 
-      source.exec("PRAGMA journal_mode = DELETE;"); // Disable WAL mode
+      source.exec("PRAGMA synchronous = FULL;"); // Set synchronous mode
+      source.exec("PRAGMA journal_mode = TRUNCATE;"); // Set truncate mode
       source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
-      source.exec("PRAGMA busy_timeout = 30000;"); // 30s
+      source.exec("PRAGMA busy_timeout = 30000;"); // Set timeout is 30s
 
       return source;
     } catch (error) {
@@ -49,7 +50,7 @@ export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
 }
 
 /**
- * Run a SQL command in SQLite with timeout
+ * Run a SQL command in SQLite database with timeout
  * @param {Database} source SQLite database instance
  * @param {string} sql SQL command to execute
  * @param {any[]} params Parameters for the SQL command
@@ -77,7 +78,7 @@ export async function runSQLWithTimeout(source, sql, params, timeout) {
 }
 
 /**
- * Exec a SQL command in SQLite with timeout
+ * Exec a SQL command in SQLite database with timeout
  * @param {Database} source SQLite database instance
  * @param {string} sql SQL command to execute
  * @param {number} timeout Timeout in milliseconds

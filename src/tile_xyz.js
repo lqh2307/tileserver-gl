@@ -685,11 +685,6 @@ export async function downloadXYZTile(
         storeTransparent
       );
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to download tile data file "${z}/${x}/${y}" - From "${url}": ${error}`
-      );
-
       if (error.statusCode !== undefined) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
@@ -742,36 +737,6 @@ export async function updateXYZMetadata(source, metadataAdds, timeout) {
 }
 
 /**
- * Get XYZ tile from a URL
- * @param {string} url The URL to fetch data from
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<Object>}
- */
-export async function getXYZTileFromURL(url, timeout) {
-  try {
-    const response = await getDataFromURL(url, timeout, "arraybuffer");
-
-    return {
-      data: response.data,
-      headers: detectFormatAndHeaders(response.data).headers,
-    };
-  } catch (error) {
-    if (error.statusCode !== undefined) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("Tile does not exist");
-      } else {
-        throw new Error(`Failed to get data tile from "${url}": ${error}`);
-      }
-    } else {
-      throw new Error(`Failed to get data tile from "${url}": ${error}`);
-    }
-  }
-}
-
-/**
  * Cache XYZ tile data file
  * @param {string} sourcePath XYZ folder path
  * @param {Database} source SQLite database instance
@@ -810,64 +775,6 @@ export async function cacheXYZTileFile(
       30000 // 30 secs
     );
   }
-}
-
-/**
- * Get MD5 hash of XYZ tile
- * @param {Database} source SQLite database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @returns {string} Returns the MD5 hash as a string
- */
-export function getXYZTileMD5(source, z, x, y) {
-  const data = source
-    .prepare(
-      `
-    SELECT
-      hash
-    FROM
-      md5s
-    WHERE
-      zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `
-    )
-    .get([z, x, y]);
-
-  if (data === undefined || data.hash === null) {
-    throw new Error("Tile MD5 does not exist");
-  }
-
-  return data.hash;
-}
-
-/**
- * Get created of MBTiles tile
- * @param {Database} source SQLite database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @returns {number} Returns the created as a number
- */
-export function getXYZTileCreated(source, z, x, y) {
-  const data = source
-    .prepare(
-      `
-    SELECT
-      created
-    FROM
-      md5s
-    WHERE
-      zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `
-    )
-    .get([z, x, y]);
-
-  if (data === undefined || data.created === null) {
-    throw new Error("Tile created does not exist");
-  }
-
-  return data.created;
 }
 
 /**

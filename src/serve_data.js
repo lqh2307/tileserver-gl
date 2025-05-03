@@ -7,7 +7,6 @@ import { seed } from "./seed.js";
 import {
   getXYZTileExtraInfoFromCoverages,
   calculatXYZTileExtraInfo,
-  getXYZTileFromURL,
   cacheXYZTileFile,
   getXYZMetadata,
   openXYZMD5DB,
@@ -17,7 +16,6 @@ import {
 import {
   getMBTilesTileExtraInfoFromCoverages,
   calculateMBTilesTileExtraInfo,
-  getMBTilesTileFromURL,
   cacheMBtilesTileData,
   downloadMBTilesFile,
   getMBTilesMetadata,
@@ -27,6 +25,7 @@ import {
 } from "./tile_mbtiles.js";
 import {
   createTileMetadataFromTemplate,
+  getDataTileFromURL,
   compileTemplate,
   getRequestHost,
   getJSONSchema,
@@ -43,7 +42,6 @@ import {
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   calculatePostgreSQLTileExtraInfo,
-  getPostgreSQLTileFromURL,
   cachePostgreSQLTileData,
   getPostgreSQLMetadata,
   validatePostgreSQL,
@@ -143,7 +141,7 @@ function getDataTileHandler() {
             );
 
             /* Get data */
-            dataTile = await getMBTilesTileFromURL(
+            dataTile = await getDataTileFromURL(
               targetURL,
               30000 // 30 secs
             );
@@ -199,7 +197,7 @@ function getDataTileHandler() {
             );
 
             /* Get data */
-            dataTile = await getXYZTileFromURL(
+            dataTile = await getDataTileFromURL(
               targetURL,
               30000 // 30 secs
             );
@@ -249,7 +247,7 @@ function getDataTileHandler() {
             );
 
             /* Get data */
-            dataTile = await getPostgreSQLTileFromURL(
+            dataTile = await getDataTileFromURL(
               targetURL,
               30000 // 30 secs
             );

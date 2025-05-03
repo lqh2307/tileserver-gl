@@ -279,7 +279,7 @@ async function seedMBTilesTiles(
       } catch (error) {
         printLog(
           "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
@@ -514,7 +514,7 @@ async function seedPostgreSQLTiles(
       } catch (error) {
         printLog(
           "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
@@ -755,7 +755,7 @@ async function seedXYZTiles(
       } catch (error) {
         printLog(
           "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }

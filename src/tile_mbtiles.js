@@ -78,35 +78,42 @@ function getMBTilesBBoxFromTiles(source) {
   const rows = source
     .prepare(
       `
-    SELECT
-      zoom_level,
-      MIN(tile_column) AS xMin,
-      MAX(tile_column) AS xMax,
-      MIN(tile_row) AS yMin,
-      MAX(tile_row) AS yMax
-    FROM
-      tiles
-    GROUP BY
-      zoom_level;
-    `
+      SELECT
+        zoom_level,
+        MIN(tile_column) AS xMin,
+        MAX(tile_column) AS xMax,
+        MIN(tile_row) AS yMin,
+        MAX(tile_row) AS yMax
+      FROM
+        tiles
+      GROUP BY
+        zoom_level;
+      `
     )
     .all();
 
   let bbox = [-180, -85.051129, 180, 85.051129];
 
-  for (let index = 0; index < rows.length; index++) {
-    const _bbox = getBBoxFromTiles(
-      rows[index].xMin,
-      rows[index].yMin,
-      rows[index].xMax,
-      rows[index].yMax,
-      rows[index].zoom_level,
+  if (rows.length > 0) {
+    bbox = getBBoxFromTiles(
+      rows[0].xMin,
+      rows[0].yMin,
+      rows[0].xMax,
+      rows[0].yMax,
+      rows[0].zoom_level,
       "tms"
     );
 
-    if (index === 0) {
-      bbox = _bbox;
-    } else {
+    for (let index = 1; index < rows.length; index++) {
+      const _bbox = getBBoxFromTiles(
+        rows[index].xMin,
+        rows[index].yMin,
+        rows[index].xMax,
+        rows[index].yMax,
+        rows[index].zoom_level,
+        "tms"
+      );
+
       if (_bbox[0] < bbox[0]) {
         bbox[0] = _bbox[0];
       }
@@ -123,30 +130,30 @@ function getMBTilesBBoxFromTiles(source) {
         bbox[3] = _bbox[3];
       }
     }
-  }
 
-  if (bbox[0] > 180) {
-    bbox[0] = 180;
-  } else if (bbox[0] < -180) {
-    bbox[0] = -180;
-  }
+    if (bbox[0] > 180) {
+      bbox[0] = 180;
+    } else if (bbox[0] < -180) {
+      bbox[0] = -180;
+    }
 
-  if (bbox[1] > 180) {
-    bbox[1] = 180;
-  } else if (bbox[1] < -180) {
-    bbox[1] = -180;
-  }
+    if (bbox[1] > 180) {
+      bbox[1] = 180;
+    } else if (bbox[1] < -180) {
+      bbox[1] = -180;
+    }
 
-  if (bbox[2] > 85.051129) {
-    bbox[2] = 85.051129;
-  } else if (bbox[2] < -85.051129) {
-    bbox[2] = -85.051129;
-  }
+    if (bbox[2] > 85.051129) {
+      bbox[2] = 85.051129;
+    } else if (bbox[2] < -85.051129) {
+      bbox[2] = -85.051129;
+    }
 
-  if (bbox[3] > 85.051129) {
-    bbox[3] = 85.051129;
-  } else if (bbox[3] < -85.051129) {
-    bbox[3] = -85.051129;
+    if (bbox[3] > 85.051129) {
+      bbox[3] = 85.051129;
+    } else if (bbox[3] < -85.051129) {
+      bbox[3] = -85.051129;
+    }
   }
 
   return bbox;
@@ -721,36 +728,6 @@ export async function updateMBTilesMetadata(source, metadataAdds, timeout) {
 }
 
 /**
- * Get MBTiles tile from a URL
- * @param {string} url The URL to fetch data from
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<Object>}
- */
-export async function getMBTilesTileFromURL(url, timeout) {
-  try {
-    const response = await getDataFromURL(url, timeout, "arraybuffer");
-
-    return {
-      data: response.data,
-      headers: detectFormatAndHeaders(response.data).headers,
-    };
-  } catch (error) {
-    if (error.statusCode !== undefined) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("Tile does not exist");
-      } else {
-        throw new Error(`Failed to get data tile from "${url}": ${error}`);
-      }
-    } else {
-      throw new Error(`Failed to get data tile from "${url}": ${error}`);
-    }
-  }
-}
-
-/**
  * Download MBTiles tile data
  * @param {string} url The URL to download the file from
  * @param {Database} source SQLite database instance
@@ -787,11 +764,6 @@ export async function downloadMBTilesTile(
         storeTransparent
       );
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to download tile data "${z}/${x}/${y}" - From "${url}": ${error}`
-      );
-
       if (error.statusCode !== undefined) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
@@ -841,64 +813,6 @@ export async function cacheMBtilesTileData(
       30000 // 30 secs
     );
   }
-}
-
-/**
- * Get MD5 hash of MBTiles tile
- * @param {Database} source SQLite database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @returns {string} Returns the MD5 hash as a string
- */
-export function getMBTilesTileMD5(source, z, x, y) {
-  const data = source
-    .prepare(
-      `
-      SELECT
-        hash
-      FROM
-        tiles
-      WHERE
-        zoom_level = ? AND tile_column = ? AND tile_row = ?;
-      `
-    )
-    .get([z, x, (1 << z) - 1 - y]);
-
-  if (data === undefined || data.hash === null) {
-    throw new Error("Tile MD5 does not exist");
-  }
-
-  return data.hash;
-}
-
-/**
- * Get created of MBTiles tile
- * @param {Database} source SQLite database instance
- * @param {number} z Zoom level
- * @param {number} x X tile index
- * @param {number} y Y tile index
- * @returns {number} Returns the created as a number
- */
-export function getMBTilesTileCreated(source, z, x, y) {
-  const data = source
-    .prepare(
-      `
-      SELECT
-        created
-      FROM
-        tiles
-      WHERE
-        zoom_level = ? AND tile_column = ? AND tile_row = ?;
-      `
-    )
-    .get([z, x, (1 << z) - 1 - y]);
-
-  if (data === undefined || data.created === null) {
-    throw new Error("Tile created does not exist");
-  }
-
-  return data.created;
 }
 
 /**
