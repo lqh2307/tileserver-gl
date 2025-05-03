@@ -103,7 +103,7 @@
           }
         }
       },
-      "required": ["format"]
+      "required": ["format", "bounds"]
     },
     "coverages": {
       "type": "array",

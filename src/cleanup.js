@@ -25,6 +25,7 @@ import {
   getTileBoundsFromCoverages,
   createFileWithLock,
   removeEmptyFolders,
+  processCoverages,
   getJSONSchema,
   validateJSON,
   delay,
@@ -96,10 +97,15 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -134,7 +140,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           true
         );
       } catch (error) {
@@ -156,19 +162,20 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     async function cleanUpMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          cleanUpTimestamp === undefined ||
-          tileExtraInfo[tileName] === undefined ||
-          tileExtraInfo[tileName] < cleanUpTimestamp
-        ) {
-          printLog(
-            "info",
-            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-          );
+      if (
+        cleanUpTimestamp === undefined ||
+        tileExtraInfo[tileName] === undefined ||
+        tileExtraInfo[tileName] < cleanUpTimestamp
+      ) {
+        const completeTasks = tasks.completeTasks;
 
+        printLog(
+          "info",
+          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+        );
+
+        try {
           await removeMBTilesTile(
             source,
             z,
@@ -176,12 +183,12 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
             y,
             30000 // 30 secs
           );
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 
@@ -248,10 +255,15 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Cleaning up ${total} tiles of postgresql "${id}" with:`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -282,7 +294,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
         tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           true
         );
       } catch (error) {
@@ -304,19 +316,20 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
     async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          cleanUpTimestamp === undefined ||
-          tileExtraInfo[tileName] === undefined ||
-          tileExtraInfo[tileName] < cleanUpTimestamp
-        ) {
-          printLog(
-            "info",
-            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-          );
+      if (
+        cleanUpTimestamp === undefined ||
+        tileExtraInfo[tileName] === undefined ||
+        tileExtraInfo[tileName] < cleanUpTimestamp
+      ) {
+        const completeTasks = tasks.completeTasks;
 
+        printLog(
+          "info",
+          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+        );
+
+        try {
           await removePostgreSQLTile(
             source,
             z,
@@ -324,12 +337,12 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
             y,
             30000 // 30 secs
           );
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 
@@ -394,10 +407,15 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Cleaning up ${total} tiles of xyz "${id}" with:`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -432,7 +450,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           true
         );
       } catch (error) {
@@ -454,19 +472,20 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
     async function cleanUpXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          cleanUpTimestamp === undefined ||
-          tileExtraInfo[tileName] === undefined ||
-          tileExtraInfo[tileName] < cleanUpTimestamp
-        ) {
-          printLog(
-            "info",
-            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-          );
+      if (
+        cleanUpTimestamp === undefined ||
+        tileExtraInfo[tileName] === undefined ||
+        tileExtraInfo[tileName] < cleanUpTimestamp
+      ) {
+        const completeTasks = tasks.completeTasks;
 
+        printLog(
+          "info",
+          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+        );
+
+        try {
           await removeXYZTile(
             id,
             source,
@@ -476,12 +495,12 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
             format,
             30000 // 30 secs
           );
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 

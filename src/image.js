@@ -33,6 +33,7 @@ import {
   removeEmptyFolders,
   getDataTileFromURL,
   getLonLatFromXYZ,
+  processCoverages,
   getDataFromURL,
   calculateMD5,
   unzipAsync,
@@ -595,17 +596,22 @@ export async function renderMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:`;
     log += `\n\tID: ${metadata.id}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
     log += `\n\tTile size: ${tileSize}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tCreate overview: ${createOverview}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -645,7 +651,7 @@ export async function renderMBTilesTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           refreshTimestampType === "number"
         );
       } catch (error) {
@@ -689,19 +695,20 @@ export async function renderMBTilesTiles(
 
     async function renderMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
-          tileExtraInfo[tileName] < refreshTimestamp
-        ) {
-          printLog(
-            "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-          );
+      if (
+        refreshTimestampType !== "number" ||
+        tileExtraInfo[tileName] === undefined ||
+        tileExtraInfo[tileName] < refreshTimestamp
+      ) {
+        const completeTasks = tasks.completeTasks;
 
+        printLog(
+          "info",
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+        );
+
+        try {
           // Rendered data
           const isNeedHack = z === 0 && tileSize === 256;
           const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
@@ -746,12 +753,12 @@ export async function renderMBTilesTiles(
 
           // Store data
           await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 
@@ -863,17 +870,22 @@ export async function renderXYZTiles(
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Rendering ${total} tiles of style "${id}" to xyz with:`;
     log += `\n\tID: ${metadata.id}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
     log += `\n\tTile size: ${tileSize}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tCreate overview: ${createOverview}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -913,7 +925,7 @@ export async function renderXYZTiles(
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           refreshTimestampType === "number"
         );
       } catch (error) {
@@ -958,19 +970,20 @@ export async function renderXYZTiles(
 
     async function renderXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
-          tileExtraInfo[tileName] < refreshTimestamp
-        ) {
-          printLog(
-            "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-          );
+      if (
+        refreshTimestampType !== "number" ||
+        tileExtraInfo[tileName] === undefined ||
+        tileExtraInfo[tileName] < refreshTimestamp
+      ) {
+        const completeTasks = tasks.completeTasks;
 
+        printLog(
+          "info",
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+        );
+
+        try {
           // Rendered data
           const isNeedHack = z === 0 && tileSize === 256;
           const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
@@ -1024,12 +1037,12 @@ export async function renderXYZTiles(
             data,
             storeTransparent
           );
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 
@@ -1132,17 +1145,22 @@ export async function renderPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Rendering ${total} tiles of style "${id}" to postgresql with:`;
     log += `\n\tID: ${metadata.id}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
     log += `\n\tTile size: ${tileSize}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tCreate overview: ${createOverview}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -1178,7 +1196,7 @@ export async function renderPostgreSQLTiles(
 
         tileExtraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           refreshTimestampType === "number"
         );
       } catch (error) {
@@ -1222,19 +1240,20 @@ export async function renderPostgreSQLTiles(
 
     async function renderPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
-          tileExtraInfo[tileName] < refreshTimestamp
-        ) {
-          printLog(
-            "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-          );
+      if (
+        refreshTimestampType !== "number" ||
+        tileExtraInfo[tileName] === undefined ||
+        tileExtraInfo[tileName] < refreshTimestamp
+      ) {
+        const completeTasks = tasks.completeTasks;
 
+        printLog(
+          "info",
+          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+        );
+
+        try {
           // Rendered data
           const isNeedHack = z === 0 && tileSize === 256;
           const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
@@ -1286,12 +1305,12 @@ export async function renderPostgreSQLTiles(
             data,
             storeTransparent
           );
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 

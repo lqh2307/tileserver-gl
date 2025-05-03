@@ -229,7 +229,7 @@
                 }
               }
             },
-            "required": ["format"]
+            "required": ["format", "bounds"]
           },
           "url": {
             "type": "string",

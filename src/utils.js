@@ -321,57 +321,47 @@ export function getGridsFromCoverage(coverage, lonStep = 1, latStep = 1) {
 }
 
 /**
- * Get tile bound for specific coverage
- * @param {{ zoom: number, bbox: [number, number, number, number]}} coverage Specific coverage
- * @param {"xyz"|"tms"} scheme Tile scheme
- * @returns {{ total: number, z: number x: [number, number], y: [number, number] }}
- */
-export function getTileBoundFromCoverage(coverage, scheme) {
-  let [xMin, yMin] = getXYZFromLonLatZ(
-    coverage.bbox[0],
-    coverage.bbox[3],
-    coverage.zoom,
-    scheme
-  );
-  let [xMax, yMax] = getXYZFromLonLatZ(
-    coverage.bbox[2],
-    coverage.bbox[1],
-    coverage.zoom,
-    scheme
-  );
-
-  if (yMin > yMax) {
-    [yMin, yMax] = [yMax, yMin];
-  }
-
-  return {
-    total: (xMax - xMin + 1) * (yMax - yMin + 1),
-    z: coverage.zoom,
-    x: [xMin, xMax],
-    y: [yMin, yMax],
-  };
-}
-
-/**
  * Get tile bounds and total count for specific coverages
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {"xyz"|"tms"} scheme Tile scheme
  * @returns {{ { z: number, x: [number, number], y: [number, number] }[] }}
  */
 export function getTileBoundsFromCoverages(coverages, scheme) {
-  let total = 0;
+  let totalTile = 0;
 
   const tileBounds = coverages.map((coverage) => {
-    const tileBound = getTileBoundFromCoverage(coverage, scheme);
+    let [xMin, yMin] = getXYZFromLonLatZ(
+      coverage.bbox[0],
+      coverage.bbox[3],
+      coverage.zoom,
+      scheme
+    );
+    let [xMax, yMax] = getXYZFromLonLatZ(
+      coverage.bbox[2],
+      coverage.bbox[1],
+      coverage.zoom,
+      scheme
+    );
 
-    total += tileBound.total;
+    if (yMin > yMax) {
+      [yMin, yMax] = [yMax, yMin];
+    }
+
+    const tileBound = {
+      total: (xMax - xMin + 1) * (yMax - yMin + 1),
+      z: coverage.zoom,
+      x: [xMin, xMax],
+      y: [yMin, yMax],
+    };
+
+    totalTile += tileBound.total;
 
     return tileBound;
   });
 
   return {
-    total,
-    tileBounds,
+    total: totalTile,
+    tileBounds: tileBounds,
   };
 }
 
@@ -415,6 +405,44 @@ export function getZoomsAndBBoxFromCoverages(coverages) {
     maxZoom,
     bbox: [minX, minY, maxX, maxY],
   };
+}
+
+/**
+ * Get minzoom, maxzoom, bbox for specific coverages
+ * @param {{ zoom: number, bbox: [number, number, number, number]}[], circle: { radius: number, center: [number, number] }} coverages Specific coverages
+ * @param {[number, number, number, number]} limitedBBox Limited bounding box
+ * @returns {{ minZoom: number, maxZoom: number, bbox: [number, number, number, number] }}
+ */
+export function processCoverages(coverages, limitedBBox) {
+  return coverages.map((coverage) => {
+    const bbox =
+      coverage.circle !== undefined
+        ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
+        : deepClone(coverage.bbox);
+
+    if (limitedBBox !== undefined) {
+      if (bbox[0] < limitedBBox[0]) {
+        bbox[0] = limitedBBox[0];
+      }
+
+      if (bbox[1] < limitedBBox[1]) {
+        bbox[1] = limitedBBox[1];
+      }
+
+      if (bbox[2] > limitedBBox[2]) {
+        bbox[2] = limitedBBox[2];
+      }
+
+      if (bbox[3] > limitedBBox[3]) {
+        bbox[3] = limitedBBox[3];
+      }
+    }
+
+    return {
+      zoom: coverage.zoom,
+      bbox: bbox,
+    };
+  });
 }
 
 /**
@@ -496,7 +524,7 @@ export function getBBoxFromCircle(center, radius) {
 export function getBBoxFromPoint(points) {
   let bbox = [-180, -85.051129, 180, 85.051129];
 
-  if (rows.length > 0) {
+  if (points.length > 0) {
     bbox = [points[0][0], points[0][1], points[0][0], points[0][1]];
 
     for (let index = 1; index < points.length; index++) {

@@ -29,6 +29,7 @@ import {
   getTileBoundsFromCoverages,
   createFileWithLock,
   removeEmptyFolders,
+  processCoverages,
   getDataFromURL,
   getJSONSchema,
   postDataToURL,
@@ -123,7 +124,11 @@ async function seedMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Seeding ${total} tiles of mbtiles "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
@@ -131,6 +136,7 @@ async function seedMBTilesTiles(
     log += `\n\tMax try: ${maxTry}`;
     log += `\n\tTimeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -180,7 +186,7 @@ async function seedMBTilesTiles(
         const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
-          coverages,
+          targetCoverages,
           "arraybuffer"
         );
 
@@ -192,7 +198,7 @@ async function seedMBTilesTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           false
         );
       } catch (error) {
@@ -210,7 +216,7 @@ async function seedMBTilesTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           true
         );
       } catch (error) {
@@ -241,30 +247,30 @@ async function seedMBTilesTiles(
 
     async function seedMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          refreshTimestampType === "undefined" ||
-          (refreshTimestampType === "boolean" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
-          (refreshTimestampType === "number" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
-        ) {
-          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
+      if (
+        refreshTimestampType === "undefined" ||
+        (refreshTimestampType === "boolean" &&
+          (tileExtraInfo[tileName] === undefined ||
+            tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
+        (refreshTimestampType === "number" &&
+          (tileExtraInfo[tileName] === undefined ||
+            tileExtraInfo[tileName] < refreshTimestamp))
+      ) {
+        const completeTasks = tasks.completeTasks;
+        const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
-          const targetURL = url
-            .replace("{z}", `${z}`)
-            .replace("{x}", `${x}`)
-            .replace("{y}", `${tmpY}`);
+        const targetURL = url
+          .replace("{z}", `${z}`)
+          .replace("{x}", `${x}`)
+          .replace("{y}", `${tmpY}`);
 
-          printLog(
-            "info",
-            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-          );
+        printLog(
+          "info",
+          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+        );
 
+        try {
           await downloadMBTilesTile(
             targetURL,
             source,
@@ -275,12 +281,12 @@ async function seedMBTilesTiles(
             timeout,
             storeTransparent
           );
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 
@@ -362,7 +368,11 @@ async function seedPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Seeding ${total} tiles of postgresql "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
@@ -370,6 +380,7 @@ async function seedPostgreSQLTiles(
     log += `\n\tMax try: ${maxTry}`;
     log += `\n\tTimeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -415,7 +426,7 @@ async function seedPostgreSQLTiles(
         const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
-          coverages,
+          targetCoverages,
           "arraybuffer"
         );
 
@@ -427,7 +438,7 @@ async function seedPostgreSQLTiles(
 
         tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           false
         );
       } catch (error) {
@@ -445,7 +456,7 @@ async function seedPostgreSQLTiles(
 
         tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           true
         );
       } catch (error) {
@@ -476,30 +487,30 @@ async function seedPostgreSQLTiles(
 
     async function seedPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          refreshTimestampType === "undefined" ||
-          (refreshTimestampType === "boolean" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
-          (refreshTimestampType === "number" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
-        ) {
-          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
+      if (
+        refreshTimestampType === "undefined" ||
+        (refreshTimestampType === "boolean" &&
+          (tileExtraInfo[tileName] === undefined ||
+            tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
+        (refreshTimestampType === "number" &&
+          (tileExtraInfo[tileName] === undefined ||
+            tileExtraInfo[tileName] < refreshTimestamp))
+      ) {
+        const completeTasks = tasks.completeTasks;
+        const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
-          const targetURL = url
-            .replace("{z}", `${z}`)
-            .replace("{x}", `${x}`)
-            .replace("{y}", `${tmpY}`);
+        const targetURL = url
+          .replace("{z}", `${z}`)
+          .replace("{x}", `${x}`)
+          .replace("{y}", `${tmpY}`);
 
-          printLog(
-            "info",
-            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-          );
+        printLog(
+          "info",
+          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+        );
 
+        try {
           await downloadPostgreSQLTile(
             targetURL,
             source,
@@ -510,12 +521,12 @@ async function seedPostgreSQLTiles(
             timeout,
             storeTransparent
           );
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 
@@ -597,7 +608,11 @@ async function seedXYZTiles(
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+    const targetCoverages = processCoverages(coverages);
+    const { total, tileBounds } = getTileBoundsFromCoverages(
+      targetCoverages,
+      "xyz"
+    );
 
     let log = `Seeding ${total} tiles of xyz "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
@@ -605,6 +620,7 @@ async function seedXYZTiles(
     log += `\n\tMax try: ${maxTry}`;
     log += `\n\tTimeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -654,7 +670,7 @@ async function seedXYZTiles(
         const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
-          coverages,
+          targetCoverages,
           "arraybuffer"
         );
 
@@ -666,7 +682,7 @@ async function seedXYZTiles(
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           false
         );
       } catch (error) {
@@ -684,7 +700,7 @@ async function seedXYZTiles(
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           true
         );
       } catch (error) {
@@ -715,30 +731,30 @@ async function seedXYZTiles(
 
     async function seedXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
-      const completeTasks = tasks.completeTasks;
 
-      try {
-        if (
-          refreshTimestampType === "undefined" ||
-          (refreshTimestampType === "boolean" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
-          (refreshTimestampType === "number" &&
-            (tileExtraInfo[tileName] === undefined ||
-              tileExtraInfo[tileName] < refreshTimestamp))
-        ) {
-          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
+      if (
+        refreshTimestampType === "undefined" ||
+        (refreshTimestampType === "boolean" &&
+          (tileExtraInfo[tileName] === undefined ||
+            tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
+        (refreshTimestampType === "number" &&
+          (tileExtraInfo[tileName] === undefined ||
+            tileExtraInfo[tileName] < refreshTimestamp))
+      ) {
+        const completeTasks = tasks.completeTasks;
+        const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
 
-          const targetURL = url
-            .replace("{z}", `${z}`)
-            .replace("{x}", `${x}`)
-            .replace("{y}", `${tmpY}`);
+        const targetURL = url
+          .replace("{z}", `${z}`)
+          .replace("{x}", `${x}`)
+          .replace("{y}", `${tmpY}`);
 
-          printLog(
-            "info",
-            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-          );
+        printLog(
+          "info",
+          `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+        );
 
+        try {
           await downloadXYZTile(
             targetURL,
             id,
@@ -751,12 +767,12 @@ async function seedXYZTiles(
             timeout,
             storeTransparent
           );
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+          );
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
-        );
       }
     }
 
