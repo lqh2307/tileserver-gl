@@ -459,10 +459,10 @@
                     <a class="btn" href="${baseURL}/styles/{{@key}}/?vector{{viewer_hash}}">Client Render</a>
                     {{#if thumbnail}}
                       <a class="btn" href="${baseURL}/styles/{{@key}}/?raster{{viewer_hash}}">Backend Render</a>
-                      {{#if export_render}}
-                      <a class="btn" href="#" onclick="handleExportRender(event, '{{@key}}', 'export')">Export Render</a>
-                      {{else if cancel_render}}
+                      {{#if cancel_render}}
                       <a class="btn" href="#" onclick="handleExportRender(event, '{{@key}}', 'cancel')">Cancel Render</a>
+                      {{else}}
+                      <a class="btn" href="#" onclick="handleExportRender(event, '{{@key}}', 'export')">Export Render</a>
                       {{/if}}
                     {{/if}}
                 </div>
@@ -537,8 +537,11 @@
                   {{else}}
                   <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">Inspect</a>
                   {{/if}}
+                  {{#if cancel_export}}
+                  <a class="btn" href="#" onclick="handleExportData(event, '{{@key}}', 'cancel')">Cancel Export</a>
+                  {{else}}
                   <a class="btn" href="#" onclick="handleExportData(event, '{{@key}}', 'export')">Export Data</a>
-                  <a class="btn" href="#" onclick="handleExportData(event, '{{@key}}', 'cancel')">Cancel Data</a>
+                  {{/if}}
                 </div>
               </div>
             {{/each}}

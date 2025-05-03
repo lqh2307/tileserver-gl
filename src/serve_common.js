@@ -52,9 +52,6 @@ function serveFrontPageHandler() {
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
               cache: style.storeCache === true,
-              export_render:
-                process.env.ENABLE_EXPORT === "true" &&
-                style.rendered.export !== false,
               cancel_render:
                 process.env.ENABLE_EXPORT === "true" &&
                 style.rendered.export === false,
@@ -100,6 +97,7 @@ function serveFrontPageHandler() {
               thumbnail: `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`,
               source_type: data.sourceType,
               cache: data.storeCache === true,
+              cancel_export: data.export === false,
             };
           } else {
             datas[id] = {
@@ -108,6 +106,7 @@ function serveFrontPageHandler() {
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               source_type: data.sourceType,
               cache: data.storeCache === true,
+              cancel_export: data.export === false,
             };
           }
         }),
