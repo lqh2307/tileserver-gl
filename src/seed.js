@@ -643,7 +643,8 @@ async function seedXYZTiles(
     printLog("info", log);
 
     /* Open MD5 SQLite database */
-    const filePath = `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`;
+    const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
+    const filePath = `${sourcePath}/${id}.sqlite`;
 
     source = await openXYZMD5DB(
       filePath,
@@ -807,10 +808,7 @@ async function seedXYZTiles(
     }
 
     /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-      /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/
-    );
+    await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
 
     printLog(
       "info",
@@ -864,7 +862,8 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
   printLog("info", log);
 
   /* Download GeoJSON file */
-  const filePath = `${process.env.DATA_DIR}/caches/geojsons/${id}/${id}.geojson`;
+  const sourcePath = `${process.env.DATA_DIR}/caches/geojsons/${id}`;
+  const filePath = `${sourcePath}/${id}.geojson`;
 
   try {
     let needDownload = false;
@@ -926,10 +925,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/geojsons/${id}`,
-    /^.*\.geojson$/
-  );
+  await removeEmptyFolders(sourcePath, /^.*\.geojson$/);
 
   printLog(
     "info",
@@ -969,8 +965,10 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
   printLog("info", log);
 
   /* Download sprite files */
+  const sourcePath = `${process.env.DATA_DIR}/caches/sprites/${id}`;
+
   async function seedSpriteData(fileName) {
-    const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
+    const filePath = `${sourcePath}/${fileName}`;
 
     try {
       let needDownload = false;
@@ -1020,10 +1018,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
   );
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/sprites/${id}`,
-    /^.*\.(json|png)$/
-  );
+  await removeEmptyFolders(sourcePath, /^.*\.(json|png)$/);
 
   printLog(
     "info",
@@ -1066,7 +1061,9 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   printLog("info", log);
 
-  /* Remove font files */
+  /* Download font files */
+  const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
+
   const tasks = {
     mutex: new Mutex(),
     activeTasks: 0,
@@ -1075,7 +1072,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   async function seedFontData(start, end, tasks) {
     const range = `${start}-${end}`;
-    const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
+    const filePath = `${sourcePath}/${range}.pbf`;
     const completeTasks = tasks.completeTasks;
 
     try {
@@ -1144,10 +1141,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/fonts/${id}`,
-    /^.*\.pbf$/
-  );
+  await removeEmptyFolders(sourcePath, /^.*\.pbf$/);
 
   printLog(
     "info",
@@ -1193,7 +1187,8 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
   printLog("info", log);
 
   /* Download style.json file */
-  const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
+  const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
+  const filePath = `${sourcePath}/style.json`;
 
   try {
     let needDownload = false;
@@ -1273,10 +1268,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/styles/${id}`,
-    /^.*\.json$/
-  );
+  await removeEmptyFolders(sourcePath, /^.*\.json$/);
 
   printLog(
     "info",

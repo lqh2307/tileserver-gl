@@ -908,7 +908,8 @@ export async function renderXYZTiles(
     printLog("info", log);
 
     /* Open MD5 SQLite database */
-    const filePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${metadata.id}/${metadata.id}.sqlite`;
+    const sourcePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${metadata.id}`;
+    const filePath = `${sourcePath}/${metadata.id}.sqlite`;
 
     const source = await openXYZMD5DB(
       filePath,
@@ -955,7 +956,6 @@ export async function renderXYZTiles(
     };
 
     /* Create renderer pool */
-    const sourcePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${metadata.id}`;
     const rendered = config.styles[id].rendered;
     const rendererPool = createPool(
       {

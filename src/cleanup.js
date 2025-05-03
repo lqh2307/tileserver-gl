@@ -433,7 +433,8 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     printLog("info", log);
 
     /* Open XYZ MD5 SQLite database */
-    const filePath = `${process.env.DATA_DIR}/caches/xyzs/${id}/${id}.sqlite`;
+    const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
+    const filePath = `${sourcePath}/${id}.sqlite`;
 
     source = await openXYZMD5DB(
       filePath,
@@ -538,10 +539,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     // compactXYZ(source);
 
     /* Remove parent folders if empty */
-    await removeEmptyFolders(
-      `${process.env.DATA_DIR}/caches/xyzs/${id}`,
-      /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/
-    );
+    await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
 
     printLog(
       "info",
@@ -586,7 +584,8 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove GeoJSON file */
-  const filePath = `${process.env.DATA_DIR}/caches/geojsons/${id}/${id}.geojson`;
+  const sourcePath = `${process.env.DATA_DIR}/caches/geojsons/${id}`;
+  const filePath = `${sourcePath}/${id}.geojson`;
 
   try {
     let needRemove = false;
@@ -624,10 +623,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/geojsons/${id}`,
-    /^.*\.geojson$/
-  );
+  await removeEmptyFolders(sourcePath, /^.*\.geojson$/);
 
   printLog(
     "info",
@@ -664,8 +660,10 @@ async function cleanUpSprite(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove sprite files */
+  const sourcePath = `${process.env.DATA_DIR}/caches/sprites/${id}`;
+
   async function cleanUpSpriteData(fileName) {
-    const filePath = `${process.env.DATA_DIR}/caches/sprites/${id}/${fileName}`;
+    const filePath = `${sourcePath}/${fileName}`;
 
     try {
       let needRemove = false;
@@ -713,10 +711,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
   );
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/sprites/${id}`,
-    /^.*\.(json|png)$/
-  );
+  await removeEmptyFolders(sourcePath, /^.*\.(json|png)$/);
 
   printLog(
     "info",
@@ -755,9 +750,11 @@ async function cleanUpFont(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove font files */
+  const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
+
   async function cleanUpFontData(start, end) {
     const range = `${start}-${end}`;
-    const filePath = `${process.env.DATA_DIR}/caches/fonts/${id}/${range}.pbf`;
+    const filePath = `${sourcePath}/${range}.pbf`;
 
     try {
       let needRemove = false;
@@ -805,10 +802,7 @@ async function cleanUpFont(id, cleanUpBefore) {
   );
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/fonts/${id}`,
-    /^.*\.pbf$/
-  );
+  await removeEmptyFolders(sourcePath, /^.*\.pbf$/);
 
   printLog(
     "info",
@@ -845,7 +839,8 @@ async function cleanUpStyle(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove style.json file */
-  const filePath = `${process.env.DATA_DIR}/caches/styles/${id}/style.json`;
+  const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
+  const filePath = `${sourcePath}/style.json`;
 
   try {
     let needRemove = false;
@@ -883,10 +878,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(
-    `${process.env.DATA_DIR}/caches/styles/${id}`,
-    /^.*\.json$/
-  );
+  await removeEmptyFolders(sourcePath, /^.*\.json$/);
 
   printLog(
     "info",
