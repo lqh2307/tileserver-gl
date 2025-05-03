@@ -494,63 +494,55 @@ export function getBBoxFromCircle(center, radius) {
  * @returns {[number, number, number, number]} Bounding box in the format [minLon, minLat, maxLon, maxLat]
  */
 export function getBBoxFromPoint(points) {
-  let minLon = -180;
-  let minLat = -85.051129;
-  let maxLon = 180;
-  let maxLat = 85.051129;
+  let bbox = [-180, -85.051129, 180, 85.051129];
 
-  for (let index = 0; index < points.length; index++) {
-    if (index === 0) {
-      minLon = points[index][0];
-      minLat = points[index][1];
-      maxLon = points[index][0];
-      maxLat = points[index][1];
-    } else {
-      if (points[index][0] < minLon) {
-        minLon = points[index][0];
+  if (rows.length > 0) {
+    bbox = [points[0][0], points[0][1], points[0][0], points[0][1]];
+
+    for (let index = 1; index < points.length; index++) {
+      if (points[index][0] < bbox[0]) {
+        bbox[0] = points[index][0];
       }
 
-      if (points[index][1] < minLat) {
-        minLat = points[index][1];
+      if (points[index][1] < bbox[1]) {
+        bbox[1] = points[index][1];
       }
 
-      if (points[index][0] > maxLon) {
-        maxLon = points[index][0];
+      if (points[index][0] > bbox[2]) {
+        bbox[2] = points[index][0];
       }
 
-      if (points[index][1] > maxLat) {
-        maxLat = points[index][1];
+      if (points[index][1] > bbox[3]) {
+        bbox[3] = points[index][1];
       }
+    }
+
+    if (bbox[0] > 180) {
+      bbox[0] = 180;
+    } else if (bbox[0] < -180) {
+      bbox[0] = -180;
+    }
+
+    if (bbox[1] > 180) {
+      bbox[1] = 180;
+    } else if (bbox[1] < -180) {
+      bbox[1] = -180;
+    }
+
+    if (bbox[2] > 85.051129) {
+      bbox[2] = 85.051129;
+    } else if (bbox[2] < -85.051129) {
+      bbox[2] = -85.051129;
+    }
+
+    if (bbox[3] > 85.051129) {
+      bbox[3] = 85.051129;
+    } else if (bbox[3] < -85.051129) {
+      bbox[3] = -85.051129;
     }
   }
 
-  // Limit longitude
-  if (minLon > 180) {
-    minLon = 180;
-  } else if (minLon < -180) {
-    minLon = -180;
-  }
-
-  if (maxLon > 180) {
-    maxLon = 180;
-  } else if (maxLon < -180) {
-    maxLon = -180;
-  }
-
-  // Limit latitude
-  if (minLat > 85.051129) {
-    minLat = 85.051129;
-  } else if (minLat < -85.051129) {
-    minLat = -85.051129;
-  }
-
-  if (maxLat > 85.051129) {
-    maxLat = 85.051129;
-  } else if (maxLat < -85.051129) {
-    maxLat = -85.051129;
-  }
-
-  return [minLon, minLat, maxLon, maxLat];
+  return bbox;
 }
 
 /**
