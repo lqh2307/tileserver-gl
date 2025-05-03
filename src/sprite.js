@@ -176,7 +176,7 @@ export async function getSpriteSize(spriteDirPath) {
  * Get sprite from a URL
  * @param {string} url The URL to fetch data from
  * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getSpriteFromURL(url, timeout) {
   try {

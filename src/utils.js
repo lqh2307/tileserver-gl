@@ -86,7 +86,7 @@ export async function getDataFromURL(
  * Get data tile from a URL
  * @param {string} url The URL to fetch data tile from
  * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getDataTileFromURL(url, timeout) {
   try {
@@ -1020,7 +1020,7 @@ export async function getVersion() {
 /**
  * Get JSON schema
  * @param {"delete"|"cleanup"|"config"|"seed"|"style_render"|"data_export"|"coverages"|"sprite"} schema
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getJSONSchema(schema) {
   return JSON.parse(await readFile(`public/schemas/${schema}.json`, "utf8"));
@@ -1063,7 +1063,7 @@ export async function runCommand(command) {
 /**
  * Get PNG image metadata
  * @param {string} filePath File path to store file
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getPNGImageMetadata(filePath) {
   return await sharp(filePath).metadata();

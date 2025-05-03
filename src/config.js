@@ -31,10 +31,17 @@ async function validateConfigFile() {
 
 /**
  * Read config.json file
- * @returns {Promise<Object>}
+ * @param {boolean} isParse Parse JSON?
+ * @returns {Promise<object>}
  */
-async function readConfigFile() {
-  return await readFile(`${process.env.DATA_DIR}/config.json`, "utf8");
+async function readConfigFile(isParse) {
+  const data = await readFile(`${process.env.DATA_DIR}/config.json`, "utf8");
+
+  if (isParse === true) {
+    return JSON.parse(data);
+  } else {
+    return data;
+  }
 }
 
 /**

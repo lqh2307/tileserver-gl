@@ -345,7 +345,7 @@ export async function removeMBTilesTile(source, z, x, y, timeout) {
  * @param {string} filePath MBTiles filepath
  * @param {boolean} isCreate Is create database?
  * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function openMBTilesDB(filePath, isCreate, timeout) {
   const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
@@ -462,7 +462,7 @@ export function getMBTilesTile(source, z, x, y) {
 /**
  * Get MBTiles metadata
  * @param {Database} source SQLite database instance
- * @returns {Promise<Promise<Object>>}
+ * @returns {Promise<Promise<object>>}
  */
 export async function getMBTilesMetadata(source) {
   /* Default metadata */

@@ -54,7 +54,7 @@ export function openPMTiles(filePath) {
 /**
  * Get PMTiles metadata
  * @param {object} pmtilesSource
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getPMTilesMetadata(pmtilesSource) {
   /* Default metadata */
@@ -167,7 +167,7 @@ export async function getPMTilesMetadata(pmtilesSource) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getPMTilesTile(pmtilesSource, z, x, y) {
   const zxyTile = await pmtilesSource.getZxy(z, x, y);

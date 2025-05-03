@@ -325,7 +325,7 @@ export async function removePostgreSQLTile(source, z, x, y, timeout) {
  * Open PostgreSQL database
  * @param {string} uri Database URI
  * @param {boolean} isCreate Is create database?
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function openPostgreSQLDB(uri, isCreate) {
   const source = await openPostgreSQL(uri, isCreate);
@@ -399,7 +399,7 @@ export async function openPostgreSQLDB(uri, isCreate) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getPostgreSQLTile(source, z, x, y) {
   let data = await source.query(
@@ -429,7 +429,7 @@ export async function getPostgreSQLTile(source, z, x, y) {
 /**
  * Get PostgreSQL metadata
  * @param {pg.Client} source PostgreSQL database instance
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getPostgreSQLMetadata(source) {
   /* Default metadata */

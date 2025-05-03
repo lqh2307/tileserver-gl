@@ -446,7 +446,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getXYZTile(sourcePath, z, x, y, format) {
   try {
@@ -474,7 +474,7 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
  * Get XYZ metadata
  * @param {Database} source SQLite database instance
  * @param {string} sourcePath XYZ folder path
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  */
 export async function getXYZMetadata(source, sourcePath) {
   /* Default metadata */

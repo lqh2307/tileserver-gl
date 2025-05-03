@@ -64,10 +64,17 @@ async function validateSeedFile() {
 
 /**
  * Read seed.json file
- * @returns {Promise<Object>}
+ * @param {boolean} isParse Parse JSON?
+ * @returns {Promise<object>}
  */
-async function readSeedFile() {
-  return await readFile(`${process.env.DATA_DIR}/seed.json`, "utf8");
+async function readSeedFile(isParse) {
+  const data = await readFile(`${process.env.DATA_DIR}/seed.json`, "utf8");
+
+  if (isParse === true) {
+    return JSON.parse(data);
+  } else {
+    return data;
+  }
 }
 
 /**

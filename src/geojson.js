@@ -76,7 +76,7 @@ export async function cacheGeoJSONFile(filePath, data) {
  * Get GeoJSON from a URL
  * @param {string} url The URL to fetch data from
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} isParse
+ * @param {boolean} isParse Parse JSON?
  * @returns {Promise<object|Buffer>}
  */
 export async function getGeoJSONFromURL(url, timeout, isParse) {
@@ -107,7 +107,7 @@ export async function getGeoJSONFromURL(url, timeout, isParse) {
 /**
  * Get GeoJSON
  * @param {string} filePath
- * @param {boolean} isParse
+ * @param {boolean} isParse Parse JSON?
  * @returns {Promise<object|Buffer>}
  */
 export async function getGeoJSON(filePath, isParse) {

@@ -79,7 +79,7 @@ export async function cacheStyleFile(filePath, data) {
  * Get styleJSON from a URL
  * @param {string} url The URL to fetch data from
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} isParse
+ * @param {boolean} isParse Parse JSON?
  * @returns {Promise<object|Buffer>}
  */
 export async function getStyleJSONFromURL(url, timeout, isParse) {
@@ -245,7 +245,7 @@ export async function validateStyle(styleJSON) {
 /**
  * Get style
  * @param {string} filePath
- * @param {boolean} isParse
+ * @param {boolean} isParse Parse JSON?
  * @returns {Promise<object|Buffer>}
  */
 export async function getStyle(filePath, isParse) {
