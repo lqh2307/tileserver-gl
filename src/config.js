@@ -4,7 +4,7 @@ import { createFileWithLock, getJSONSchema, validateJSON } from "./utils.js";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 
-let config;
+let config = {};
 
 /* Load config.json */
 if (config === undefined) {
