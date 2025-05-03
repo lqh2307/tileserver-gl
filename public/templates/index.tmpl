@@ -368,6 +368,17 @@
     </form>
   </dialog>
 
+  <dialog id="exportDataDialog">
+    <form id="exportDataForm" method="dialog">
+      <label for="exportDataInput">Enter JSON:</label>
+      <textarea id="exportDataInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">Export</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('exportDataDialog');">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
   <a href="#" class="back-to-top" onclick="scrollToTop(event)">Back to top</a>
 
   <script>
@@ -522,10 +533,12 @@
                 </div>
                 <div class="viewers">
                   {{#if thumbnail}}
-                      <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">View</a>
+                  <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">View</a>
                   {{else}}
-                      <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">Inspect</a>
+                  <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">Inspect</a>
                   {{/if}}
+                  <a class="btn" href="#" onclick="handleExportData(event, '{{@key}}', 'export')">Export Data</a>
+                  <a class="btn" href="#" onclick="handleExportData(event, '{{@key}}', 'cancel')">Cancel Data</a>
                 </div>
               </div>
             {{/each}}
@@ -1215,6 +1228,60 @@
             })
             .catch((error) => {
               alert(`Failed to cancel render style: ${error.message}`);
+            });
+        }
+
+        tryFetch();
+      }
+    }
+
+    function handleExportData(event, dataID, action) {
+      event.preventDefault();
+
+      if (action === "export") {
+        document.getElementById("exportDataDialog").showModal();
+
+        document.getElementById("exportDataForm").onsubmit = (event) => {
+          event.preventDefault();
+
+          fetch(`${baseURL}/datas/${dataID}/export`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: document.getElementById("exportDataInput").value
+          })
+            .then((response) => {
+              if (response.status === 201) {
+                alert("Exporting data...");
+
+                closeDialog("exportDataDialog");
+              } else {
+                alert(`Failed to export data: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to export data: ${error.message}`);
+            });
+        }
+      } else if (action === "cancel") {
+        let maxRetries = 5;
+
+        function tryFetch() {
+          fetch(`${baseURL}/datas/${dataID}/export?cancel=true`, {
+            method: "GET",
+          })
+            .then((response) => {
+              if (response.status === 200) {
+                alert("Canceling export data...");
+              } else if (response.status === 404 && maxRetries-- >= 0) {
+                tryFetch();
+              } else {
+                alert(`Failed to cancel export data: Status code: ${response.status} - ${response.statusText}`);
+              }
+            })
+            .catch((error) => {
+              alert(`Failed to cancel export data: ${error.message}`);
             });
         }
 
