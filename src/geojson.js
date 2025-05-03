@@ -1,7 +1,7 @@
 "use strict";
 
+import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
 import {
   removeFileWithLock,
@@ -112,7 +112,7 @@ export async function getGeoJSONFromURL(url, timeout, isParse) {
  */
 export async function getGeoJSON(filePath, isParse) {
   try {
-    const data = await fsPromise.readFile(filePath);
+    const data = await readFile(filePath);
     if (!data) {
       throw new Error("GeoJSON does not exist");
     }
@@ -138,7 +138,7 @@ export async function getGeoJSON(filePath, isParse) {
  */
 export async function getGeoJSONCreated(filePath) {
   try {
-    const stats = await fsPromise.stat(filePath);
+    const stats = await stat(filePath);
 
     return stats.ctimeMs;
   } catch (error) {
@@ -156,9 +156,9 @@ export async function getGeoJSONCreated(filePath) {
  * @returns {Promise<number>}
  */
 export async function getGeoJSONSize(filePath) {
-  const stat = await fsPromise.stat(filePath);
+  const stats = await stat(filePath);
 
-  return stat.size;
+  return stats.size;
 }
 
 /**

@@ -4,7 +4,8 @@ import { getGeoJSONCreated, removeGeoJSONFile } from "./geojson.js";
 import { getSpriteCreated, removeSpriteFile } from "./sprite.js";
 import { removeStyleFile, getStyleCreated } from "./style.js";
 import { getFontCreated, removeFontFile } from "./font.js";
-import fsPromise from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
 import {
@@ -37,36 +38,29 @@ import {
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 
-let cleanUp = {};
+let cleanUp;
 
-/**
- * Read cleanup.json file
- * @param {boolean} isValidate Is validate file content?
- * @returns {Promise<Object>}
- */
-async function readCleanUpFile(isValidate) {
-  /* Read cleanup.json file */
-  const data = await fsPromise.readFile(
-    `${process.env.DATA_DIR}/cleanup.json`,
-    "utf8"
+/* Load cleanup.json */
+if (cleanUp === undefined) {
+  cleanUp = JSON.parse(
+    readFileSync(`${process.env.DATA_DIR}/cleanup.json`, "utf8")
   );
-
-  const cleanUp = JSON.parse(data);
-
-  /* Validate cleanup.json file */
-  if (isValidate === true) {
-    validateJSON(await getJSONSchema("cleanup"), cleanUp);
-  }
-
-  return cleanUp;
 }
 
 /**
- * Load cleanup.json file content to global variable
+ * Validate cleanup.json file
  * @returns {Promise<void>}
  */
-async function loadCleanUpFile() {
-  Object.assign(cleanUp, await readCleanUpFile(true));
+async function validateCleanUpFile() {
+  validateJSON(await getJSONSchema("cleanup"), cleanUp);
+}
+
+/**
+ * Read cleanup.json file
+ * @returns {Promise<Object>}
+ */
+async function readCleanUpFile() {
+  return await readFile(`${process.env.DATA_DIR}/cleanup.json`, "utf8");
 }
 
 /**
@@ -890,10 +884,10 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
 export {
   cleanUpPostgreSQLTiles,
+  validateCleanUpFile,
   cleanUpMBTilesTiles,
   updateCleanUpFile,
   readCleanUpFile,
-  loadCleanUpFile,
   cleanUpXYZTiles,
   cleanUpGeoJSON,
   cleanUpSprite,

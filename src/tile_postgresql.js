@@ -2,7 +2,7 @@
 
 import { closePostgreSQL, openPostgreSQL } from "./postgresql.js";
 import { StatusCodes } from "http-status-codes";
-import fsPromise from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import {
@@ -26,7 +26,7 @@ async function getPostgreSQLLayersFromTiles(source) {
   let offset = 0;
 
   const vectorTileProto = protobuf(
-    await fsPromise.readFile("public/protos/vector_tile.proto")
+    await readFile("public/protos/vector_tile.proto")
   );
 
   while (true) {

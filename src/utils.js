@@ -1,7 +1,6 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
-import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
 import { exec } from "child_process";
 import handlebars from "handlebars";
@@ -15,6 +14,16 @@ import sharp from "sharp";
 import zlib from "zlib";
 import util from "util";
 import Ajv from "ajv";
+import {
+  writeFile,
+  readFile,
+  readdir,
+  rename,
+  mkdir,
+  stat,
+  open,
+  rm,
+} from "node:fs/promises";
 
 sharp.cache(false);
 
@@ -26,7 +35,7 @@ sharp.cache(false);
  */
 export async function compileTemplate(template, data) {
   return handlebars.compile(
-    await fsPromise.readFile(`public/templates/${template}.tmpl`, "utf8")
+    await readFile(`public/templates/${template}.tmpl`, "utf8")
   )(data);
 }
 
@@ -650,7 +659,7 @@ export async function retry(fn, maxTry, after = 0) {
  * @returns {Promise<void>}
  */
 export async function removeEmptyFolders(folderPath, regex) {
-  const entries = await fsPromise.readdir(folderPath, {
+  const entries = await readdir(folderPath, {
     withFileTypes: true,
   });
 
@@ -668,7 +677,7 @@ export async function removeEmptyFolders(folderPath, regex) {
       } else if (entry.isDirectory() === true) {
         await removeEmptyFolders(fullPath, regex);
 
-        const subEntries = await fsPromise.readdir(fullPath).catch(() => []);
+        const subEntries = await readdir(fullPath).catch(() => []);
         if (subEntries.length > 0) {
           hasMatchingFile = true;
         }
@@ -677,7 +686,7 @@ export async function removeEmptyFolders(folderPath, regex) {
   );
 
   if (hasMatchingFile === false) {
-    await fsPromise.rm(folderPath, {
+    await rm(folderPath, {
       recursive: true,
       force: true,
     });
@@ -698,7 +707,7 @@ export async function removeOldCacheLocks() {
 
   await Promise.all(
     fileNames.map((fileName) =>
-      fsPromise.rm(fileName, {
+      rm(fileName, {
         force: true,
       })
     )
@@ -712,9 +721,9 @@ export async function removeOldCacheLocks() {
  */
 export async function isExistFolder(dirPath) {
   try {
-    const stat = await fsPromise.stat(dirPath);
+    const stats = await stat(dirPath);
 
-    return stat.isDirectory();
+    return stats.isDirectory();
   } catch (error) {
     if (error.code === "ENOENT") {
       return false;
@@ -731,9 +740,9 @@ export async function isExistFolder(dirPath) {
  */
 export async function isExistFile(filePath) {
   try {
-    const stat = await fsPromise.stat(filePath);
+    const stats = await stat(filePath);
 
-    return stat.isFile();
+    return stats.isFile();
   } catch (error) {
     if (error.code === "ENOENT") {
       return false;
@@ -757,7 +766,7 @@ export async function findFiles(
   recurse = false,
   includeDirPath = false
 ) {
-  const entries = await fsPromise.readdir(dirPath, {
+  const entries = await readdir(dirPath, {
     withFileTypes: true,
   });
 
@@ -807,7 +816,7 @@ export async function findFolders(
   recurse = false,
   includeDirPath = false
 ) {
-  const entries = await fsPromise.readdir(dirPath, {
+  const entries = await readdir(dirPath, {
     withFileTypes: true,
   });
 
@@ -853,7 +862,7 @@ export async function findFolders(
 export async function removeFilesOrFolders(fileOrFolders) {
   await Promise.all(
     fileOrFolders.map((fileOrFolder) =>
-      fsPromise.rm(fileOrFolder, {
+      rm(fileOrFolder, {
         force: true,
         recursive: true,
       })
@@ -1005,7 +1014,7 @@ export function deepClone(obj) {
  * @returns {Promise<string>}
  */
 export async function getVersion() {
-  return JSON.parse(await fsPromise.readFile("package.json", "utf8")).version;
+  return JSON.parse(await readFile("package.json", "utf8")).version;
 }
 
 /**
@@ -1014,9 +1023,7 @@ export async function getVersion() {
  * @returns {Promise<Object>}
  */
 export async function getJSONSchema(schema) {
-  return JSON.parse(
-    await fsPromise.readFile(`public/schemas/${schema}.json`, "utf8")
-  );
+  return JSON.parse(await readFile(`public/schemas/${schema}.json`, "utf8"));
 }
 
 /**
@@ -1260,20 +1267,20 @@ export async function createFileWithLock(filePath, data, timeout) {
 
   while (Date.now() - startTime <= timeout) {
     try {
-      lockFileHandle = await fsPromise.open(lockFilePath, "wx");
+      lockFileHandle = await open(lockFilePath, "wx");
 
       const tempFilePath = `${filePath}.tmp`;
 
       try {
-        await fsPromise.mkdir(path.dirname(filePath), {
+        await mkdir(path.dirname(filePath), {
           recursive: true,
         });
 
-        await fsPromise.writeFile(tempFilePath, data);
+        await writeFile(tempFilePath, data);
 
-        await fsPromise.rename(tempFilePath, filePath);
+        await rename(tempFilePath, filePath);
       } catch (error) {
-        await fsPromise.rm(tempFilePath, {
+        await rm(tempFilePath, {
           force: true,
         });
 
@@ -1282,14 +1289,14 @@ export async function createFileWithLock(filePath, data, timeout) {
 
       await lockFileHandle.close();
 
-      await fsPromise.rm(lockFilePath, {
+      await rm(lockFilePath, {
         force: true,
       });
 
       return;
     } catch (error) {
       if (error.code === "ENOENT") {
-        await fsPromise.mkdir(path.dirname(filePath), {
+        await mkdir(path.dirname(filePath), {
           recursive: true,
         });
 
@@ -1300,7 +1307,7 @@ export async function createFileWithLock(filePath, data, timeout) {
         if (lockFileHandle !== undefined) {
           await lockFileHandle.close();
 
-          await fsPromise.rm(lockFilePath, {
+          await rm(lockFilePath, {
             force: true,
           });
         }
@@ -1327,15 +1334,15 @@ export async function removeFileWithLock(filePath, timeout) {
 
   while (Date.now() - startTime <= timeout) {
     try {
-      lockFileHandle = await fsPromise.open(lockFilePath, "wx");
+      lockFileHandle = await open(lockFilePath, "wx");
 
-      await fsPromise.rm(filePath, {
+      await rm(filePath, {
         force: true,
       });
 
       await lockFileHandle.close();
 
-      await fsPromise.rm(lockFilePath, {
+      await rm(lockFilePath, {
         force: true,
       });
 
@@ -1349,7 +1356,7 @@ export async function removeFileWithLock(filePath, timeout) {
         if (lockFileHandle !== undefined) {
           await lockFileHandle.close();
 
-          await fsPromise.rm(lockFilePath, {
+          await rm(lockFilePath, {
             force: true,
           });
         }

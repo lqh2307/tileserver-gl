@@ -3,7 +3,8 @@
 import { downloadStyleFile, getStyle, getStyleCreated } from "./style.js";
 import { downloadSpriteFile, getSpriteCreated } from "./sprite.js";
 import { downloadFontFile, getFontCreated } from "./font.js";
-import fsPromise from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
 import {
@@ -46,36 +47,27 @@ import {
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 
-let seed = {};
+let seed;
 
-/**
- * Read seed.json file
- * @param {boolean} isValidate Is validate file content?
- * @returns {Promise<Object>}
- */
-async function readSeedFile(isValidate) {
-  /* Read seed.json file */
-  const data = await fsPromise.readFile(
-    `${process.env.DATA_DIR}/seed.json`,
-    "utf8"
-  );
-
-  const seed = JSON.parse(data);
-
-  /* Validate seed.json file */
-  if (isValidate === true) {
-    validateJSON(await getJSONSchema("seed"), seed);
-  }
-
-  return seed;
+/* Load seed.json */
+if (seed === undefined) {
+  seed = JSON.parse(readFileSync(`${process.env.DATA_DIR}/seed.json`, "utf8"));
 }
 
 /**
- * Load seed.json file content to global variable
+ * Validate seed.json file
  * @returns {Promise<void>}
  */
-async function loadSeedFile() {
-  Object.assign(seed, await readSeedFile(true));
+async function validateSeedFile() {
+  validateJSON(await getJSONSchema("seed"), seed);
+}
+
+/**
+ * Read seed.json file
+ * @returns {Promise<Object>}
+ */
+async function readSeedFile() {
+  return await readFile(`${process.env.DATA_DIR}/seed.json`, "utf8");
 }
 
 /**
@@ -1279,10 +1271,10 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
 export {
   seedPostgreSQLTiles,
   seedMBTilesTiles,
+  validateSeedFile,
   updateSeedFile,
   readSeedFile,
   seedXYZTiles,
-  loadSeedFile,
   seedGeoJSON,
   seedSprite,
   seedStyle,

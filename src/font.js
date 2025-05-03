@@ -1,7 +1,7 @@
 "use strict";
 
+import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
@@ -17,8 +17,7 @@ import {
 let glyphsProto;
 
 if (cluster.isPrimary !== true) {
-  fsPromise
-    .readFile("public/protos/glyphs.proto")
+  readFile("public/protos/glyphs.proto")
     .then((data) => {
       glyphsProto = protobuf(data);
     })
@@ -105,7 +104,7 @@ export async function downloadFontFile(url, id, range, maxTry, timeout) {
  */
 export async function getFontCreated(filePath) {
   try {
-    const stats = await fsPromise.stat(filePath);
+    const stats = await stat(filePath);
 
     return stats.ctimeMs;
   } catch (error) {
@@ -151,7 +150,7 @@ export async function getFonts(ids, fileName) {
           throw new Error("Font does not exist");
         }
 
-        return await fsPromise.readFile(
+        return await readFile(
           `${process.env.DATA_DIR}/fonts/${font}/${fileName}`
         );
       } catch (error) {
@@ -160,7 +159,7 @@ export async function getFonts(ids, fileName) {
           `Failed to get font "${font}": ${error}. Using fallback font "Open Sans Regular"...`
         );
 
-        return await fsPromise.readFile(
+        return await readFile(
           `public/resources/fonts/Open Sans Regular/${fileName}`
         );
       }
@@ -215,9 +214,9 @@ export async function getFontSize(pbfDirPath) {
   let size = 0;
 
   for (const fileName of fileNames) {
-    const stat = await fsPromise.stat(fileName);
+    const stats = await stat(fileName);
 
-    size += stat.size;
+    size += stats.size;
   }
 
   return size;

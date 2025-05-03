@@ -1,7 +1,7 @@
 "use strict";
 
+import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import fsPromise from "node:fs/promises";
 import { printLog } from "./logger.js";
 import {
   getPNGImageMetadata,
@@ -89,7 +89,7 @@ export async function downloadSpriteFile(url, id, fileName, maxTry, timeout) {
  */
 export async function getSpriteCreated(filePath) {
   try {
-    const stats = await fsPromise.stat(filePath);
+    const stats = await stat(filePath);
 
     return stats.ctimeMs;
   } catch (error) {
@@ -125,7 +125,7 @@ export async function validateSprite(spriteDirPath) {
       /* Validate JSON sprite */
       validateJSON(
         await getJSONSchema("sprite"),
-        JSON.parse(await fsPromise.readFile(`${fileNameWoExt}.json`, "utf8"))
+        JSON.parse(await readFile(`${fileNameWoExt}.json`, "utf8"))
       );
 
       /* Validate PNG sprite */
@@ -145,9 +145,7 @@ export async function validateSprite(spriteDirPath) {
  * @returns {Promise<Buffer>}
  */
 export async function getSprite(id, fileName) {
-  return await fsPromise.readFile(
-    `${process.env.DATA_DIR}/sprites/${id}/${fileName}`
-  );
+  return await readFile(`${process.env.DATA_DIR}/sprites/${id}/${fileName}`);
 }
 
 /**
@@ -166,9 +164,9 @@ export async function getSpriteSize(spriteDirPath) {
   let size = 0;
 
   for (const fileName of fileNames) {
-    const stat = await fsPromise.stat(fileName);
+    const stats = await stat(fileName);
 
-    size += stat.size;
+    size += stats.size;
   }
 
   return size;

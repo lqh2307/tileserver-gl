@@ -1,38 +1,16 @@
 "use strict";
 
 import { createFileWithLock, getJSONSchema, validateJSON } from "./utils.js";
-import fsPromise from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 
-let config = {};
+let config;
 
-/**
- * Read config.json file
- * @param {boolean} isValidate Is validate file content?
- * @returns {Promise<Object>}
- */
-async function readConfigFile(isValidate) {
-  /* Read config.json file */
-  const data = await fsPromise.readFile(
-    `${process.env.DATA_DIR}/config.json`,
-    "utf8"
+/* Load config.json */
+if (config === undefined) {
+  config = JSON.parse(
+    readFileSync(`${process.env.DATA_DIR}/config.json`, "utf8")
   );
-
-  const config = JSON.parse(data);
-
-  /* Validate config.json file */
-  if (isValidate === true) {
-    validateJSON(await getJSONSchema("config"), config);
-  }
-
-  return config;
-}
-
-/**
- * Load config.json file content to global variable
- * @returns {Promise<void>}
- */
-async function loadConfigFile() {
-  Object.assign(config, await readConfigFile(true));
 
   config.repo = {
     styles: {},
@@ -41,6 +19,22 @@ async function loadConfigFile() {
     fonts: {},
     sprites: {},
   };
+}
+
+/**
+ * Validate config.json file
+ * @returns {Promise<void>}
+ */
+async function validateConfigFile() {
+  validateJSON(await getJSONSchema("config"), config);
+}
+
+/**
+ * Read config.json file
+ * @returns {Promise<Object>}
+ */
+async function readConfigFile() {
+  return await readFile(`${process.env.DATA_DIR}/config.json`, "utf8");
 }
 
 /**
@@ -57,4 +51,4 @@ async function updateConfigFile(config, timeout) {
   );
 }
 
-export { updateConfigFile, readConfigFile, loadConfigFile, config };
+export { validateConfigFile, updateConfigFile, readConfigFile, config };

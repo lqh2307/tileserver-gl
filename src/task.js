@@ -5,21 +5,21 @@ import {
   cleanUpPostgreSQLTiles,
   cleanUpMBTilesTiles,
   cleanUpXYZTiles,
-  readCleanUpFile,
   cleanUpGeoJSON,
   cleanUpSprite,
   cleanUpStyle,
   cleanUpFont,
+  cleanUp,
 } from "./cleanup.js";
 import {
   seedPostgreSQLTiles,
   seedMBTilesTiles,
-  readSeedFile,
   seedXYZTiles,
   seedGeoJSON,
   seedSprite,
   seedStyle,
   seedFont,
+  seed,
 } from "./seed.js";
 import os from "os";
 
@@ -44,14 +44,6 @@ export async function runTasks(opts) {
       opts.seedGeoJSONs === true ||
       opts.seedDatas === true
     ) {
-      /* Read cleanup.json and seed.json files */
-      printLog("info", "Loading seed.json and cleanup.json files...");
-
-      const [cleanUpData, seedData] = await Promise.all([
-        readCleanUpFile(true),
-        readSeedFile(true),
-      ]);
-
       const defaultTimeout = 60000;
       const defaultMaxTry = 5;
       const defaultConcurrency = os.cpus().length;
@@ -60,17 +52,17 @@ export async function runTasks(opts) {
       /* Clean up sprites */
       if (opts.cleanUpSprites === true) {
         try {
-          if (cleanUpData.sprites === undefined) {
+          if (cleanUp.sprites === undefined) {
             printLog("info", "No sprites in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUpData.sprites);
+            const ids = Object.keys(cleanUp.sprites);
 
             printLog("info", `Starting clean up ${ids.length} sprites...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const cleanUpSpriteItem = cleanUpData.sprites[id];
+              const cleanUpSpriteItem = cleanUp.sprites[id];
 
               if (cleanUpSpriteItem.skip === true) {
                 printLog("info", `Skipping clean up sprite "${id}"...`);
@@ -107,17 +99,17 @@ export async function runTasks(opts) {
       /* Clean up fonts */
       if (opts.cleanUpFonts === true) {
         try {
-          if (cleanUpData.fonts === undefined) {
+          if (cleanUp.fonts === undefined) {
             printLog("info", "No fonts in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUpData.fonts);
+            const ids = Object.keys(cleanUp.fonts);
 
             printLog("info", `Starting clean up ${ids.length} fonts...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const cleanUpFontItem = cleanUpData.fonts[id];
+              const cleanUpFontItem = cleanUp.fonts[id];
 
               if (cleanUpFontItem.skip === true) {
                 printLog("info", `Skipping clean up font "${id}"...`);
@@ -154,17 +146,17 @@ export async function runTasks(opts) {
       /* Clean up styles */
       if (opts.cleanUpStyles === true) {
         try {
-          if (cleanUpData.styles === undefined) {
+          if (cleanUp.styles === undefined) {
             printLog("info", "No styles in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUpData.styles);
+            const ids = Object.keys(cleanUp.styles);
 
             printLog("info", `Starting clean up ${ids.length} styles...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const cleanUpStyleItem = cleanUpData.styles[id];
+              const cleanUpStyleItem = cleanUp.styles[id];
 
               if (cleanUpStyleItem.skip === true) {
                 printLog("info", `Skipping clean up style "${id}"...`);
@@ -201,17 +193,17 @@ export async function runTasks(opts) {
       /* Clean up geojsons */
       if (opts.cleanUpGeoJSONs === true) {
         try {
-          if (cleanUpData.geojsons === undefined) {
+          if (cleanUp.geojsons === undefined) {
             printLog("info", "No geojsons in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUpData.geojsons);
+            const ids = Object.keys(cleanUp.geojsons);
 
             printLog("info", `Starting clean up ${ids.length} geojsons...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const cleanUpGeoJSONItem = cleanUpData.geojsons[id];
+              const cleanUpGeoJSONItem = cleanUp.geojsons[id];
 
               if (cleanUpGeoJSONItem.skip === true) {
                 printLog("info", `Skipping clean up geojson "${id}"...`);
@@ -248,18 +240,18 @@ export async function runTasks(opts) {
       /* Clean up datas */
       if (opts.cleanUpDatas === true) {
         try {
-          if (cleanUpData.datas === undefined) {
+          if (cleanUp.datas === undefined) {
             printLog("info", "No datas in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUpData.datas);
+            const ids = Object.keys(cleanUp.datas);
 
             printLog("info", `Starting clean up ${ids.length} datas...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedDataItem = seedData.datas[id];
-              const cleanUpDataItem = cleanUpData.datas[id];
+              const seedDataItem = seed.datas[id];
+              const cleanUpDataItem = cleanUp.datas[id];
 
               if (cleanUpDataItem.skip === true) {
                 printLog("info", `Skipping clean up data "${id}"...`);
@@ -314,17 +306,17 @@ export async function runTasks(opts) {
       /* Run seed sprites */
       if (opts.seedSprites === true) {
         try {
-          if (seedData.sprites === undefined) {
+          if (seed.sprites === undefined) {
             printLog("info", "No sprites in seed. Skipping...");
           } else {
-            const ids = Object.keys(seedData.sprites);
+            const ids = Object.keys(seed.sprites);
 
             printLog("info", `Starting seed ${ids.length} sprites...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedSpriteItem = seedData.sprites[id];
+              const seedSpriteItem = seed.sprites[id];
 
               if (seedSpriteItem.skip === true) {
                 printLog("info", `Skipping seed font "${id}"...`);
@@ -364,17 +356,17 @@ export async function runTasks(opts) {
       /* Run seed fonts */
       if (opts.seedFonts === true) {
         try {
-          if (seedData.fonts === undefined) {
+          if (seed.fonts === undefined) {
             printLog("info", "No fonts in seed. Skipping...");
           } else {
-            const ids = Object.keys(seedData.fonts);
+            const ids = Object.keys(seed.fonts);
 
             printLog("info", `Starting seed ${ids.length} fonts...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedFontItem = seedData.fonts[id];
+              const seedFontItem = seed.fonts[id];
 
               if (seedFontItem.skip === true) {
                 printLog("info", `Skipping seed font "${id}"...`);
@@ -415,17 +407,17 @@ export async function runTasks(opts) {
       /* Run seed styles */
       if (opts.seedStyles === true) {
         try {
-          if (seedData.styles === undefined) {
+          if (seed.styles === undefined) {
             printLog("info", "No styles in seed. Skipping...");
           } else {
-            const ids = Object.keys(seedData.styles);
+            const ids = Object.keys(seed.styles);
 
             printLog("info", `Starting seed ${ids.length} styles...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedStyleItem = seedData.styles[id];
+              const seedStyleItem = seed.styles[id];
 
               if (seedStyleItem.skip === true) {
                 printLog("info", `Skipping seed style "${id}"...`);
@@ -465,17 +457,17 @@ export async function runTasks(opts) {
       /* Run seed geojsons */
       if (opts.seedGeoJSONs === true) {
         try {
-          if (seedData.geojsons === undefined) {
+          if (seed.geojsons === undefined) {
             printLog("info", "No geojsons in seed. Skipping...");
           } else {
-            const ids = Object.keys(seedData.geojsons);
+            const ids = Object.keys(seed.geojsons);
 
             printLog("info", `Starting seed ${ids.length} geojsons...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedGeoJSONItem = seedData.geojsons[id];
+              const seedGeoJSONItem = seed.geojsons[id];
 
               if (seedGeoJSONItem.skip === true) {
                 printLog("info", `Skipping seed geojson "${id}"...`);
@@ -516,17 +508,17 @@ export async function runTasks(opts) {
       /* Run seed datas */
       if (opts.seedDatas === true) {
         try {
-          if (seedData.datas === undefined) {
+          if (seed.datas === undefined) {
             printLog("info", "No datas in seed. Skipping...");
           } else {
-            const ids = Object.keys(seedData.datas);
+            const ids = Object.keys(seed.datas);
 
             printLog("info", `Starting seed ${ids.length} datas...`);
 
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedDataItem = seedData.datas[id];
+              const seedDataItem = seed.datas[id];
 
               if (seedDataItem.skip === true) {
                 printLog("info", `Skipping seed data "${id}"...`);

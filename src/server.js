@@ -1,7 +1,6 @@
 "use strict";
 
 import { serve_prometheus } from "./serve_prometheus.js";
-import { config, loadConfigFile } from "./config.js";
 import { loggerMiddleware } from "./middleware.js";
 import { serve_summary } from "./serve_summary.js";
 import { serve_geojson } from "./serve_geojson.js";
@@ -13,8 +12,8 @@ import { Worker } from "node:worker_threads";
 import { serve_font } from "./serve_font.js";
 import { serve_data } from "./serve_data.js";
 import { serve_task } from "./serve_task.js";
-import { loadSeedFile } from "./seed.js";
 import { printLog } from "./logger.js";
+import { config } from "./config.js";
 import express from "express";
 import cors from "cors";
 
@@ -103,28 +102,11 @@ async function loadData() {
 }
 
 /**
- * Load configs
- * @returns {Promise<void>}
- */
-async function loadConfigs() {
-  try {
-    printLog("info", "Loading config.json and seed.json files...");
-
-    await Promise.all([loadConfigFile(), loadSeedFile()]);
-  } catch (error) {
-    throw new Error(`Failed to load config.json and seed.json files: ${error}`);
-  }
-}
-
-/**
  * Start server
  * @returns {Promise<void>}
  */
 export async function startServer() {
   try {
-    /* Load configs */
-    await loadConfigs();
-
     /* Start HTTP server */
     printLog("info", "Starting HTTP server...");
 

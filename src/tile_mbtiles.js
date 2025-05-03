@@ -1,11 +1,11 @@
 "use strict";
 
+import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import fsPromise from "node:fs/promises";
+import { createWriteStream } from "node:fs";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import path from "node:path";
-import fs from "node:fs";
 import {
   openSQLiteWithTimeout,
   execSQLWithTimeout,
@@ -33,7 +33,7 @@ async function getMBTilesLayersFromTiles(source) {
   let offset = 0;
 
   const vectorTileProto = protobuf(
-    await fsPromise.readFile("public/protos/vector_tile.proto")
+    await readFile("public/protos/vector_tile.proto")
   );
 
   const sql = source.prepare(
@@ -639,7 +639,7 @@ export function closeMBTilesDB(source) {
 export async function downloadMBTilesFile(url, filePath, maxTry, timeout) {
   await retry(async () => {
     try {
-      await fsPromise.mkdir(path.dirname(filePath), {
+      await mkdir(path.dirname(filePath), {
         recursive: true,
       });
 
@@ -647,19 +647,19 @@ export async function downloadMBTilesFile(url, filePath, maxTry, timeout) {
 
       const tempFilePath = `${filePath}.tmp`;
 
-      const writer = fs.createWriteStream(tempFilePath);
+      const writer = createWriteStream(tempFilePath);
 
       response.data.pipe(writer);
 
       return await new Promise((resolve, reject) => {
         writer
           .on("finish", async () => {
-            await fsPromise.rename(tempFilePath, filePath);
+            await rename(tempFilePath, filePath);
 
             resolve();
           })
           .on("error", async (error) => {
-            await fsPromise.rm(tempFilePath, {
+            await rm(tempFilePath, {
               force: true,
             });
 
@@ -840,9 +840,9 @@ export async function countMBTilesTiles(filePath) {
  * @returns {Promise<number>}
  */
 export async function getMBTilesSize(filePath) {
-  const stat = await fsPromise.stat(filePath);
+  const stats = await stat(filePath);
 
-  return stat.size;
+  return stats.size;
 }
 
 /**

@@ -156,11 +156,11 @@ function serveConfigHandler() {
       let data;
 
       if (req.query.type === "seed") {
-        data = await readSeedFile(false);
+        data = await readSeedFile();
       } else if (req.query.type === "cleanUp") {
-        data = await readCleanUpFile(false);
+        data = await readCleanUpFile();
       } else {
-        data = await readConfigFile(false);
+        data = await readConfigFile();
       }
 
       res.header("content-type", "application/json");
@@ -192,7 +192,7 @@ function serveConfigUpdateHandler() {
             .send(`Seed is invalid: ${error}`);
         }
 
-        const seedData = await readSeedFile(false);
+        const seedData = await readSeedFile();
 
         if (req.body.styles === undefined) {
           printLog("info", "No styles to update in seed. Skipping...");
@@ -264,7 +264,7 @@ function serveConfigUpdateHandler() {
             .send(`Cleanup is invalid: ${error}`);
         }
 
-        const cleanUpData = await readCleanUpFile(false);
+        const cleanUpData = await readCleanUpFile();
 
         if (req.body.styles === undefined) {
           printLog("info", "No styles to update in cleanup. Skipping...");
@@ -336,7 +336,7 @@ function serveConfigUpdateHandler() {
             .send(`Config is invalid: ${error}`);
         }
 
-        const configData = await readConfigFile(false);
+        const configData = await readConfigFile();
 
         if (req.body.styles === undefined) {
           printLog("info", "No styles to update in config. Skipping...");
@@ -444,7 +444,7 @@ function serveConfigDeleteHandler() {
       }
 
       if (req.query.type === "seed") {
-        const seedData = await readSeedFile(false);
+        const seedData = await readSeedFile();
 
         if (req.body.styles === undefined) {
           printLog("info", "No styles to remove in seed. Skipping...");
@@ -513,7 +513,7 @@ function serveConfigDeleteHandler() {
 
         await updateSeedFile(seedData, 60000);
       } else if (req.query.type === "cleanUp") {
-        const cleanUpData = await readCleanUpFile(false);
+        const cleanUpData = await readCleanUpFile();
 
         if (req.body.styles === undefined) {
           printLog("info", "No styles to remove in cleanup. Skipping...");
@@ -582,7 +582,7 @@ function serveConfigDeleteHandler() {
 
         await updateCleanUpFile(cleanUpData, 60000);
       } else {
-        const configData = await readConfigFile(false);
+        const configData = await readConfigFile();
 
         if (req.body.styles === undefined) {
           printLog("info", "No styles to remove in cleanup. Skipping...");

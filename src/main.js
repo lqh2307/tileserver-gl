@@ -8,7 +8,9 @@ process.env.RESTART_AFTER_CONFIG_CHANGE =
 process.env.LOGGING_TO_FILE = process.env.LOGGING_TO_FILE || "true"; // Logging to file
 
 import { removeOldCacheLocks, runCommand } from "./utils.js";
-import { readConfigFile } from "./config.js";
+import { config, validateConfigFile } from "./config.js";
+import { validateCleanUpFile } from "./cleanup.js";
+import { validateSeedFile } from "./seed.js";
 import { printLog } from "./logger.js";
 import chokidar from "chokidar";
 import cluster from "cluster";
@@ -34,10 +36,26 @@ async function startClusterServer() {
 
     printLog("info", log);
 
-    /* Read config.json file */
-    printLog("info", "Reading config.json file...");
+    /* Validate config.json, seed.json and cleanup.json files */
+    printLog(
+      "info",
+      "Validate config.json, seed.json and cleanup.json files..."
+    );
 
-    const config = await readConfigFile(true);
+    try {
+      await Promise.all([
+        validateConfigFile(),
+        validateSeedFile(),
+        validateCleanUpFile(),
+      ]);
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to validate config.json, seed.json and cleanup.json files: ${error}`
+      );
+
+      process.exit(1);
+    }
 
     const numOfProcess = config.options?.process || 1; // Number of process
     const numOfThread = config.options?.thread || os.cpus().length; // Number of thread

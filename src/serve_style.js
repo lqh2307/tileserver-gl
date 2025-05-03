@@ -1304,7 +1304,10 @@ export const serve_style = {
               };
 
               /* Fix center */
-              if (styleJSON.center?.length >= 2 && styleJSON.zoom) {
+              if (
+                styleJSON.center?.length >= 2 &&
+                styleJSON.zoom !== undefined
+              ) {
                 rendered.tileJSON.center = [
                   styleJSON.center[0],
                   styleJSON.center[1],

@@ -1,7 +1,7 @@
 "use strict";
 
+import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import fsPromise from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import { Mutex } from "async-mutex";
@@ -36,7 +36,7 @@ async function getXYZLayersFromTiles(sourcePath) {
   const layerNames = new Set();
 
   const vectorTileProto = protobuf(
-    await fsPromise.readFile("public/protos/vector_tile.proto")
+    await readFile("public/protos/vector_tile.proto")
   );
 
   const tasks = {
@@ -58,7 +58,7 @@ async function getXYZLayersFromTiles(sourcePath) {
     (async () => {
       try {
         vectorTileProto.tile
-          .decode(await fsPromise.readFile(pbfFilePath))
+          .decode(await readFile(pbfFilePath))
           .layers.map((layer) => layer.name)
           .forEach((layer) => layerNames.add(layer));
       } catch (error) {
@@ -450,9 +450,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
  */
 export async function getXYZTile(sourcePath, z, x, y, format) {
   try {
-    let data = await fsPromise.readFile(
-      `${sourcePath}/${z}/${x}/${y}.${format}`
-    );
+    let data = await readFile(`${sourcePath}/${z}/${x}/${y}.${format}`);
     if (!data) {
       throw new Error("Tile does not exist");
     }
@@ -809,9 +807,9 @@ export async function getXYZSize(sourcePath) {
   let size = 0;
 
   for (const fileName of fileNames) {
-    const stat = await fsPromise.stat(fileName);
+    const stats = await stat(fileName);
 
-    size += stat.size;
+    size += stats.size;
   }
 
   return size;

@@ -1,6 +1,6 @@
 "use strict";
 
-import fsPromise from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import Database from "better-sqlite3";
 import { delay } from "./utils.js";
 import path from "node:path";
@@ -14,7 +14,7 @@ import path from "node:path";
  */
 export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
   if (isCreate === true) {
-    await fsPromise.mkdir(path.dirname(filePath), {
+    await mkdir(path.dirname(filePath), {
       recursive: true,
     });
   }
