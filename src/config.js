@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { printLog } from "./logger.js";
 
-let config = {};
+let config;
 
 /* Load config.json */
 if (config === undefined) {
@@ -23,6 +23,8 @@ if (config === undefined) {
     };
   } catch (error) {
     printLog("error", `Failed to load config.json file: ${error}`);
+
+    config = {};
   }
 }
 

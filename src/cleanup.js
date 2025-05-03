@@ -38,7 +38,7 @@ import {
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 
-let cleanUp = {};
+let cleanUp;
 
 /* Load cleanup.json */
 if (cleanUp === undefined) {
@@ -48,6 +48,8 @@ if (cleanUp === undefined) {
     );
   } catch (error) {
     printLog("error", `Failed to load cleanup.json file: ${error}`);
+
+    cleanUp = {};
   }
 }
 

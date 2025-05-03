@@ -47,7 +47,7 @@ import {
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 
-let seed = {};
+let seed;
 
 /* Load seed.json */
 if (seed === undefined) {
@@ -57,6 +57,8 @@ if (seed === undefined) {
     );
   } catch (error) {
     printLog("error", `Failed to load seed.json file: ${error}`);
+
+    seed = {};
   }
 }
 
