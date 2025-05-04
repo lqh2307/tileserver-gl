@@ -2152,7 +2152,7 @@ export async function getAndCacheDataStyleJSON(id) {
  * @returns {Promise<object>}
  */
 export async function getAndCacheDataGeoJSON(id, layer) {
-  const item = config.styles[id];
+  const item = config.geojsons[id];
   const geoJSONLayer = item[layer];
 
   try {
@@ -2201,7 +2201,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
  * @returns {Promise<object>}
  */
 export async function getAndCacheDataSprite(id, fileName) {
-  const item = config.styles[id];
+  const item = config.sprites[id];
 
   try {
     return await getSprite(id, fileName);
