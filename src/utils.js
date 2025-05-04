@@ -10,7 +10,6 @@ import http from "node:http";
 import path from "node:path";
 import crypto from "crypto";
 import axios from "axios";
-import proj4 from "proj4";
 import sharp from "sharp";
 import zlib from "zlib";
 import util from "util";
@@ -572,44 +571,16 @@ export function getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme = "xyz") {
  * @returns {[number, number, number, number]} [minLon, minLat, maxLon, maxLat]
  */
 export function getBBoxFromCircle(center, radius) {
-  const [xCenter, yCenter] = proj4("EPSG:4326", "EPSG:3857", center);
+  const [xCenter, yCenter] = lonLat4326ToXY3857(
+    "EPSG:4326",
+    "EPSG:3857",
+    center
+  );
 
-  let [minLon, minLat] = proj4("EPSG:3857", "EPSG:4326", [
-    xCenter - radius,
-    yCenter - radius,
-  ]);
-  let [maxLon, maxLat] = proj4("EPSG:3857", "EPSG:4326", [
-    xCenter + radius,
-    yCenter + radius,
-  ]);
-
-  // Limit longitude
-  if (minLon > 180) {
-    minLon = 180;
-  } else if (minLon < -180) {
-    minLon = -180;
-  }
-
-  if (maxLon > 180) {
-    maxLon = 180;
-  } else if (maxLon < -180) {
-    maxLon = -180;
-  }
-
-  // Limit latitude
-  if (minLat > 85.051129) {
-    minLat = 85.051129;
-  } else if (minLat < -85.051129) {
-    minLat = -85.051129;
-  }
-
-  if (maxLat > 85.051129) {
-    maxLat = 85.051129;
-  } else if (maxLat < -85.051129) {
-    maxLat = -85.051129;
-  }
-
-  return [minLon, minLat, maxLon, maxLat];
+  return [
+    ...xy3857ToLonLat4326(xCenter - radius, yCenter - radius),
+    ...xy3857ToLonLat4326(xCenter + radius, yCenter + radius),
+  ];
 }
 
 /**
