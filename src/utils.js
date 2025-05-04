@@ -217,7 +217,7 @@ export function isLocalTileURL(url) {
  * @param {number} lat Latitude in degrees
  * @returns {[number, number]} Web Mercator x, y in meters
  */
-export function lonLat4326To3857(lon, lat) {
+export function lonLat4326ToXY3857(lon, lat) {
   // Limit longitude
   if (lon > 180) {
     lon = 180;
