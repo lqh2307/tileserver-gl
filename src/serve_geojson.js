@@ -655,6 +655,10 @@ export const serve_geojson = {
     }
   },
 
+  /**
+   * Add geojson
+   * @returns {void}
+   */
   add: async () => {
     if (config.geojsons === undefined) {
       printLog("info", "No GeoJSON groups in config. Skipping...");

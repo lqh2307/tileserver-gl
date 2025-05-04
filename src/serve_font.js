@@ -181,6 +181,10 @@ export const serve_font = {
     app.get("/fonts/:id/:range.pbf", getFontHandler());
   },
 
+  /**
+   * Add font
+   * @returns {void}
+   */
   add: async () => {
     if (config.fonts === undefined) {
       printLog("info", "No fonts in config. Skipping...");

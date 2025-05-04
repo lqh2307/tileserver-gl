@@ -208,6 +208,10 @@ export const serve_sprite = {
     );
   },
 
+  /**
+   * Add sprite
+   * @returns {void}
+   */
   add: async () => {
     if (config.sprites === undefined) {
       printLog("info", "No sprites in config. Skipping...");

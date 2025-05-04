@@ -16,6 +16,7 @@ import {
   calculateMBTilesTileExtraInfo,
   getMBTilesMetadata,
   openMBTilesDB,
+  getMBTiles,
 } from "./tile_mbtiles.js";
 import {
   createTileMetadataFromTemplate,
@@ -24,6 +25,7 @@ import {
   getRequestHost,
   getJSONSchema,
   validateJSON,
+  calculateMD5,
   gzipAsync,
 } from "./utils.js";
 import {
@@ -349,6 +351,76 @@ function exportDataHandler() {
 }
 
 /**
+ * Get data MD5 handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getDataMD5Handler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.datas[id];
+
+      /* Check data is used? */
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+      }
+
+      /* Get data MD5 and Add to header */
+      let data;
+
+      switch (item.sourceType) {
+        case "mbtiles": {
+          data = await getMBTiles(item.path);
+
+          break;
+        }
+
+        case "pmtiles": {
+          // Do nothing
+
+          data = Buffer.from([]);
+
+          break;
+        }
+
+        case "xyz": {
+          // Do nothing
+
+          data = Buffer.from([]);
+
+          break;
+        }
+
+        case "pg": {
+          // Do nothing
+
+          data = Buffer.from([]);
+
+          break;
+        }
+      }
+
+      res.set({
+        etag: calculateMD5(data),
+      });
+
+      return res.status(StatusCodes.OK).send();
+    } catch (error) {
+      printLog("error", `Failed to get md5 of data "${id}": ${error}`);
+
+      if (error.message === "Data does not exist") {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
  * Get tile extra info handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
@@ -624,6 +696,47 @@ export const serve_data = {
      * tags:
      *   - name: Data
      *     description: Data related endpoints
+     * /datas/{id}.json:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Get data by ID
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
+     *     responses:
+     *       200:
+     *         description: Data information
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       400:
+     *         description: Invalid params
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/datas/:id.json", getDataHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
      * /datas/{id}/export:
      *   get:
      *     tags:
@@ -689,47 +802,6 @@ export const serve_data = {
      */
     app.get("/datas/:id/export", exportDataHandler());
     app.post("/datas/:id/export", exportDataHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Data
-     *     description: Data related endpoints
-     * /datas/{id}.json:
-     *   get:
-     *     tags:
-     *       - Data
-     *     summary: Get data by ID
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         required: true
-     *         schema:
-     *           type: string
-     *           example: id
-     *         description: Data ID
-     *     responses:
-     *       200:
-     *         description: Data information
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *       400:
-     *         description: Invalid params
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/datas/:id.json", getDataHandler());
 
     /**
      * @swagger
@@ -830,6 +902,52 @@ export const serve_data = {
      */
     app.get("/datas/:id/extra-info", calculateDataExtraInfoHandler());
     app.post("/datas/:id/extra-info", getDataTileExtraInfoHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/{id}/md5:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Get data md5
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the data
+     *     responses:
+     *       200:
+     *         description: Data md5
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 tileJSON:
+     *                   type: object
+     *                 tiles:
+     *                   type: array
+     *                   items:
+     *                     type: string
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/datas/:id/md5", getDataMD5Handler());
 
     /**
      * @swagger

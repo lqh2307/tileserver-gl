@@ -1521,7 +1521,7 @@ export async function exportXYZTiles(
         );
 
         targetTileExtraInfo = getXYZTileExtraInfoFromCoverages(
-          item.source,
+          item.md5Source,
           targetCoverages,
           false
         );

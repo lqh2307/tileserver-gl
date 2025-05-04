@@ -1158,6 +1158,10 @@ export const serve_style = {
     }
   },
 
+  /**
+   * Add style
+   * @returns {void}
+   */
   add: async () => {
     if (config.styles === undefined) {
       printLog("info", "No styles in config. Skipping...");
