@@ -2152,8 +2152,7 @@ export async function getAndCacheDataStyleJSON(id) {
  * @returns {Promise<object>}
  */
 export async function getAndCacheDataGeoJSON(id, layer) {
-  const item = config.geojsons[id];
-  const geoJSONLayer = item[layer];
+  const geoJSONLayer = config.geojsons[id][layer];
 
   try {
     return await getGeoJSON(geoJSONLayer.path, false);

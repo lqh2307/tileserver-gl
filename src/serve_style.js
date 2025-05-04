@@ -18,7 +18,6 @@ import {
 } from "./utils.js";
 import {
   getAndCacheDataStyleJSON,
-  getAndCacheDataGeoJSON,
   renderPostgreSQLTiles,
   renderMBTilesTiles,
   renderImageTile,
@@ -1271,17 +1270,6 @@ export const serve_style = {
               await Promise.all(
                 Object.keys(styleJSON.sources).map(async (id) => {
                   const source = styleJSON.sources[id];
-
-                  if (source.data !== undefined) {
-                    if (isLocalTileURL(source.data) === true) {
-                      const parts = source.data.split("/");
-
-                      source.data = await getAndCacheDataGeoJSON(
-                        parts[2],
-                        parts[3]
-                      );
-                    }
-                  }
 
                   if (source.tiles !== undefined) {
                     const tiles = new Set(
