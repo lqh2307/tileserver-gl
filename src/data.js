@@ -604,7 +604,7 @@ export async function renderMBTilesTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.rendered.export === true) {
+          if (item.export === true) {
             return;
           }
 
@@ -891,7 +891,7 @@ export async function renderXYZTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.rendered.export === true) {
+          if (item.export === true) {
             return;
           }
 
@@ -1162,7 +1162,7 @@ export async function renderPostgreSQLTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.rendered.export === true) {
+          if (item.export === true) {
             return;
           }
 

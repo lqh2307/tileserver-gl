@@ -71,7 +71,7 @@ function serveWMTSHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.styles[id].rendered;
+      const item = config.styles[id].tileJSON;
 
       if (item === undefined) {
         return res.status(StatusCodes.NOT_FOUND).send("WMTS does not exist");
@@ -79,7 +79,7 @@ function serveWMTSHandler() {
 
       const compiled = await compileTemplate("wmts", {
         id: id,
-        name: item.tileJSON.name,
+        name: item.name,
         base_url: getRequestHost(req),
       });
 
@@ -240,7 +240,7 @@ function renderStyleHandler() {
       const item = config.styles[id];
 
       /* Check rendered is exist? */
-      if (item === undefined || item.rendered === undefined) {
+      if (item === undefined || item.tileJSON === undefined) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("Rendered does not exist");
@@ -248,7 +248,7 @@ function renderStyleHandler() {
 
       if (req.query.cancel === "true") {
         /* Check export is not running? (export === true is not running) */
-        if (item.rendered.export === true) {
+        if (item.export === true) {
           printLog(
             "warn",
             "No render is currently running. Skipping cancel render..."
@@ -258,13 +258,13 @@ function renderStyleHandler() {
         } else {
           printLog("info", "Canceling render...");
 
-          item.rendered.export = true;
+          item.export = true;
 
           return res.status(StatusCodes.OK).send("OK");
         }
       } else {
         /* Check export is running? (export === false is not running) */
-        if (item.rendered.export === false) {
+        if (item.export === false) {
           printLog("warn", "A render is already running. Skipping render...");
 
           return res.status(StatusCodes.CONFLICT).send("OK");
@@ -278,7 +278,7 @@ function renderStyleHandler() {
               .send(`Options is invalid: ${error}`);
           }
 
-          item.rendered.export = false;
+          item.export = false;
 
           switch (req.body.storeType) {
             case "xyz": {
@@ -301,7 +301,7 @@ function renderStyleHandler() {
                   printLog("error", `Failed to render style "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.rendered.export = true;
+                  item.export = true;
                 });
 
               break;
@@ -327,7 +327,7 @@ function renderStyleHandler() {
                   printLog("error", `Failed to render style "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.rendered.export = true;
+                  item.export = true;
                 });
 
               break;
@@ -353,7 +353,7 @@ function renderStyleHandler() {
                   printLog("error", `Failed to render style "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.rendered.export = true;
+                  item.export = true;
                 });
 
               break;
@@ -446,7 +446,7 @@ function getRenderedTileHandler() {
     const item = config.styles[id];
 
     /* Check rendered is exist? */
-    if (item === undefined || item.rendered === undefined) {
+    if (item === undefined || item.tileJSON === undefined) {
       return res.status(StatusCodes.NOT_FOUND).send("Rendered does not exist");
     }
 
@@ -542,7 +542,7 @@ function getRenderedHandler() {
       const item = config.styles[id];
 
       /* Check rendered is exist? */
-      if (item === undefined || item.rendered === undefined) {
+      if (item === undefined || item.tileJSON === undefined) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("Rendered does not exist");
@@ -554,7 +554,7 @@ function getRenderedHandler() {
 
       /* Get render info */
       return res.status(StatusCodes.OK).send({
-        ...item.rendered.tileJSON,
+        ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
         id: id,
@@ -622,12 +622,12 @@ function getRenderedsListHandler() {
       const result = [];
 
       Object.keys(config.styles).map((id) => {
-        const item = config.styles[id].rendered;
+        const item = config.styles[id].tileJSON;
 
         if (item !== undefined) {
           result.push({
             id: id,
-            name: item.tileJSON.name,
+            name: item.name,
             url: [
               `${requestHost}/styles/256/${id}.json`,
               `${requestHost}/styles/512/${id}.json`,
@@ -1253,19 +1253,17 @@ export const serve_style = {
           ) {
             try {
               /* Rendered info */
-              const rendered = {
-                tileJSON: createTileMetadataFromTemplate({
-                  name: styleInfo.name,
-                  description: styleInfo.name,
-                }),
-              };
+              const tileJSON = createTileMetadataFromTemplate({
+                name: styleInfo.name,
+                description: styleInfo.name,
+              });
 
               /* Fix center */
               if (
                 styleJSON.center?.length >= 2 &&
                 styleJSON.zoom !== undefined
               ) {
-                rendered.tileJSON.center = [
+                tileJSON.center = [
                   styleJSON.center[0],
                   styleJSON.center[1],
                   Math.floor(styleJSON.zoom),
@@ -1273,7 +1271,7 @@ export const serve_style = {
               }
 
               /* Add to repo */
-              repos[id].rendered = rendered;
+              repos[id].tileJSON = tileJSON;
             } catch (error) {
               printLog(
                 "error",

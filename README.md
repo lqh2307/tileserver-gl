@@ -816,3 +816,90 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
   }
 }
 ```
+
+
+## Example export
+
+```json
+{
+  "id": "osm_style_export",
+  "metadata": {
+    "name": "osm",
+    "description": "osm",
+    "format": "png",
+    "bounds": [
+      96,
+      4,
+      120,
+      28
+    ],
+    "center": [
+      108,
+      16,
+      10
+    ],
+    "minzoom": 9,
+    "maxzoom": 9
+  },
+  "refreshBefore": {
+    "time": "2024-10-10T00:00:00"
+  },
+  "tileScale": 1,
+  "tileSize": 256,
+  "coverages": [
+    {
+      "bbox": [
+        96,
+        4,
+        120,
+        28
+      ],
+      "zoom": 9
+    }
+  ],
+  "createOverview": true,
+  "maxRendererPoolSize": 40,
+  "concurrency": 50,
+  "storeType": "mbtiles",
+  "storeTransparent": false
+}
+
+{
+  "id": "osm_data_export",
+  "metadata": {
+    "name": "osm",
+    "description": "osm",
+    "format": "png",
+    "bounds": [
+      96,
+      4,
+      120,
+      28
+    ],
+    "center": [
+      108,
+      16,
+      10
+    ],
+    "minzoom": 9,
+    "maxzoom": 9
+  },
+  "refreshBefore": {
+    "time": "2024-10-10T00:00:00"
+  },
+  "coverages": [
+    {
+      "bbox": [
+        96,
+        4,
+        120,
+        28
+      ],
+      "zoom": 9
+    }
+  ],
+  "concurrency": 50,
+  "storeType": "mbtiles",
+  "storeTransparent": true
+}
+```

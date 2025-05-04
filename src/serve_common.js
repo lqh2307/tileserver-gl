@@ -38,8 +38,8 @@ function serveFrontPageHandler() {
         ...Object.keys(config.styles).map(async (id) => {
           const style = config.styles[id];
 
-          if (style.rendered !== undefined) {
-            const { name, center } = style.rendered.tileJSON;
+          if (style.tileJSON !== undefined) {
+            const { name, center } = style.tileJSON;
 
             const [x, y, z] = getXYZFromLonLatZ(
               center[0],
@@ -53,8 +53,7 @@ function serveFrontPageHandler() {
               thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
               cache: style.storeCache === true,
               cancel_render:
-                process.env.ENABLE_EXPORT === "true" &&
-                style.rendered.export === false,
+                process.env.ENABLE_EXPORT === "true" && style.export === false,
             };
           } else {
             const { name, zoom, center } = style;

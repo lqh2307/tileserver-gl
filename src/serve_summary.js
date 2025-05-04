@@ -228,7 +228,7 @@ function serveSummaryHandler() {
             result.styles.count += 1;
 
             // Rendereds info
-            if (item.rendered !== undefined) {
+            if (item.tileJSON !== undefined) {
               result.styles.rendereds.count += 1;
             }
           }),
