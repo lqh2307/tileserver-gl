@@ -401,6 +401,7 @@ export async function renderImageTile(
 /**
  * Render MBTiles tiles
  * @param {string} id Style ID
+ * @param {string} fileID Exported file id
  * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
@@ -414,6 +415,7 @@ export async function renderImageTile(
  */
 export async function renderMBTilesTiles(
   id,
+  fileID,
   metadata,
   tileScale,
   tileSize,
@@ -675,6 +677,7 @@ export async function renderMBTilesTiles(
 /**
  * Render XYZ tiles
  * @param {string} id Style ID
+ * @param {string} fileID Exported file id
  * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
@@ -688,6 +691,7 @@ export async function renderMBTilesTiles(
  */
 export async function renderXYZTiles(
   id,
+  fileID,
   metadata,
   tileScale,
   tileSize,
@@ -950,6 +954,7 @@ export async function renderXYZTiles(
 /**
  * Render PostgreSQL tiles
  * @param {string} id Style ID
+ * @param {string} fileID Exported file id
  * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
@@ -963,6 +968,7 @@ export async function renderXYZTiles(
  */
 export async function renderPostgreSQLTiles(
   id,
+  fileID,
   metadata,
   tileScale,
   tileSize,
@@ -1215,6 +1221,7 @@ export async function renderPostgreSQLTiles(
 /**
  * Export MBTiles tiles
  * @param {string} id Style ID
+ * @param {string} fileID Exported file id
  * @param {object} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency to download
@@ -1224,6 +1231,7 @@ export async function renderPostgreSQLTiles(
  */
 export async function exportMBTilesTiles(
   id,
+  fileID,
   metadata,
   coverages,
   concurrency,
@@ -1444,6 +1452,7 @@ export async function exportMBTilesTiles(
 /**
  * Export XYZ tiles
  * @param {string} id Style ID
+ * @param {string} fileID Exported file id
  * @param {object} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency to download
@@ -1453,6 +1462,7 @@ export async function exportMBTilesTiles(
  */
 export async function exportXYZTiles(
   id,
+  fileID,
   metadata,
   coverages,
   concurrency,
@@ -1679,6 +1689,7 @@ export async function exportXYZTiles(
 /**
  * Export PostgreSQL tiles
  * @param {string} id Style ID
+ * @param {string} fileID Exported file id
  * @param {object} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency to download
@@ -1688,6 +1699,7 @@ export async function exportXYZTiles(
  */
 export async function exportPostgreSQLTiles(
   id,
+  fileID,
   metadata,
   coverages,
   concurrency,
