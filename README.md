@@ -133,6 +133,12 @@ Run container:
 docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.27
 ```
 
+### Prepare data
+
+```bash
+wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zurich_switzerland.mbtiles
+```
+
 ## Example config.json
 
 ```json
@@ -279,7 +285,7 @@ docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile
       "pmtiles": "ODbL_firenze/ODbL_firenze.pmtiles"
     },
     "zurich_switzerland": {
-      "mbtiles": "https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zurich_switzerland.mbtiles"
+      "mbtiles": "zurich_switzerland/zurich_switzerland.mbtiles"
     },
     "osm": {
       "mbtiles": "osm_cache",
