@@ -462,10 +462,12 @@ function getRenderedTileHandler() {
 
     /* Render tile */
     try {
+      const renderedStyleJSON = await getRenderedStyleJSON(item.path);
+
       const image = await renderImageTile(
         tileScale,
         tileSize,
-        await getRenderedStyleJSON(item.path),
+        renderedStyleJSON,
         z,
         x,
         y,

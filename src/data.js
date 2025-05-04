@@ -518,9 +518,10 @@ export async function renderMBTilesTiles(
 
     /* Create renderer pool */
     const item = config.styles[id];
+    const renderedStyleJSON = await getRenderedStyleJSON(item.path);
     const rendererPool = createPool(
       {
-        create: async () => createTileRenderer(tileScale, item.path),
+        create: () => createTileRenderer(tileScale, renderedStyleJSON),
         destroy: (renderer) => renderer.release(),
       },
       {
@@ -795,9 +796,10 @@ export async function renderXYZTiles(
 
     /* Create renderer pool */
     const item = config.styles[id];
+    const renderedStyleJSON = await getRenderedStyleJSON(item.path);
     const rendererPool = createPool(
       {
-        create: async () => createTileRenderer(tileScale, item.path),
+        create: () => createTileRenderer(tileScale, renderedStyleJSON),
         destroy: (renderer) => renderer.release(),
       },
       {
@@ -1067,10 +1069,10 @@ export async function renderPostgreSQLTiles(
 
     /* Create renderer pool */
     const item = config.styles[id];
+    const renderedStyleJSON = await getRenderedStyleJSON(item.path);
     const rendererPool = createPool(
       {
-        create: async () =>
-          createTileRenderer(tileScale, await getRenderedStyleJSON(item.path)),
+        create: () => createTileRenderer(tileScale, renderedStyleJSON),
         destroy: (renderer) => renderer.release(),
       },
       {
