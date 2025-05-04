@@ -212,6 +212,33 @@ export function isLocalTileURL(url) {
 }
 
 /**
+ * Convert coordinates from EPSG:4326 (lon, lat) to EPSG:3857 (x, y in meters)
+ * @param {number} lon Longitude in degrees
+ * @param {number} lat Latitude in degrees
+ * @returns {[number, number]} Web Mercator x, y in meters
+ */
+export function lonLat4326To3857(lon, lat) {
+  // Limit longitude
+  if (lon > 180) {
+    lon = 180;
+  } else if (lon < -180) {
+    lon = -180;
+  }
+
+  // Limit latitude
+  if (lat > 85.051129) {
+    lat = 85.051129;
+  } else if (lat < -85.051129) {
+    lat = -85.051129;
+  }
+
+  return [
+    ((lon * Math.PI) / 180) * 6378137.0,
+    Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) * 6378137.0,
+  ];
+}
+
+/**
  * Get xyz tile indices from longitude, latitude, and zoom level (tile size = 256)
  * @param {number} lon Longitude in EPSG:4326
  * @param {number} lat Latitude in EPSG:4326
