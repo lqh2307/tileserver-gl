@@ -439,7 +439,7 @@ export async function renderMBTilesTiles(
     );
 
     let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:`;
-    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tID: ${fileID}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -470,7 +470,7 @@ export async function renderMBTilesTiles(
     printLog("info", log);
 
     /* Open MBTiles SQLite database */
-    const filePath = `${process.env.DATA_DIR}/exports/styles/mbtiles/${metadata.id}/${metadata.id}.mbtiles`;
+    const filePath = `${process.env.DATA_DIR}/exports/styles/mbtiles/${fileID}/${fileID}.mbtiles`;
 
     source = await openMBTilesDB(
       filePath,
@@ -715,7 +715,7 @@ export async function renderXYZTiles(
     );
 
     let log = `Rendering ${total} tiles of style "${id}" to xyz with:`;
-    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tID: ${fileID}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -746,8 +746,8 @@ export async function renderXYZTiles(
     printLog("info", log);
 
     /* Open MD5 SQLite database */
-    const sourcePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${metadata.id}`;
-    const filePath = `${sourcePath}/${metadata.id}.sqlite`;
+    const sourcePath = `${process.env.DATA_DIR}/exports/styles/xyzs/${fileID}`;
+    const filePath = `${sourcePath}/${fileID}.sqlite`;
 
     const source = await openXYZMD5DB(
       filePath,
@@ -992,7 +992,7 @@ export async function renderPostgreSQLTiles(
     );
 
     let log = `Rendering ${total} tiles of style "${id}" to postgresql with:`;
-    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tID: ${fileID}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -1023,7 +1023,7 @@ export async function renderPostgreSQLTiles(
     printLog("info", log);
 
     /* Open PostgreSQL database */
-    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${metadata.id}`;
+    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${fileID}`;
 
     source = await openPostgreSQLDB(filePath, true);
 
@@ -1251,7 +1251,7 @@ export async function exportMBTilesTiles(
     );
 
     let log = `Exporting ${total} tiles of data "${id}" to mbtiles with:`;
-    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tID: ${fileID}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -1279,7 +1279,7 @@ export async function exportMBTilesTiles(
 
     /* Open MBTiles SQLite database */
     const item = config.datas[id];
-    const filePath = `${process.env.DATA_DIR}/exports/datas/mbtiles/${metadata.id}/${metadata.id}.mbtiles`;
+    const filePath = `${process.env.DATA_DIR}/exports/datas/mbtiles/${fileID}/${fileID}.mbtiles`;
 
     source = await openMBTilesDB(
       filePath,
@@ -1482,7 +1482,7 @@ export async function exportXYZTiles(
     );
 
     let log = `Exporting ${total} tiles of data "${id}" to xyz with:`;
-    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tID: ${fileID}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -1510,8 +1510,8 @@ export async function exportXYZTiles(
 
     /* Open MD5 SQLite database */
     const item = config.datas[id];
-    const sourcePath = `${process.env.DATA_DIR}/exports/datas/xyzs/${metadata.id}`;
-    const filePath = `${sourcePath}/${metadata.id}.sqlite`;
+    const sourcePath = `${process.env.DATA_DIR}/exports/datas/xyzs/${fileID}`;
+    const filePath = `${sourcePath}/${fileID}.sqlite`;
 
     const source = await openXYZMD5DB(
       filePath,
@@ -1719,7 +1719,7 @@ export async function exportPostgreSQLTiles(
     );
 
     let log = `Exporting ${total} tiles of data "${id}" to postgresql with:`;
-    log += `\n\tID: ${metadata.id}`;
+    log += `\n\tID: ${fileID}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -1747,7 +1747,7 @@ export async function exportPostgreSQLTiles(
 
     /* Open PostgreSQL database */
     const item = config.datas[id];
-    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${metadata.id}`;
+    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${fileID}`;
 
     source = await openPostgreSQLDB(filePath, true);
 
