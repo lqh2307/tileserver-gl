@@ -1911,10 +1911,9 @@ export async function exportPostgreSQLTiles(
 export async function getAndCacheMBTilesDataTile(id, z, x, y) {
   const item = config.datas[id];
   const tileName = `${z}/${x}/${y}`;
-  let dataTile;
 
   try {
-    dataTile = getMBTilesTile(item.source, z, x, y);
+    return getMBTilesTile(item.source, z, x, y);
   } catch (error) {
     if (
       item.sourceURL !== undefined &&
@@ -1933,7 +1932,7 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
       );
 
       /* Get data */
-      dataTile = await getDataTileFromURL(
+      const dataTile = await getDataTileFromURL(
         targetURL,
         30000 // 30 secs
       );
@@ -1956,6 +1955,8 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
           )
         );
       }
+
+      return dataTile;
     } else {
       throw error;
     }
@@ -1973,10 +1974,9 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
 export async function getAndCacheXYZDataTile(id, z, x, y) {
   const item = config.datas[id];
   const tileName = `${z}/${x}/${y}`;
-  let dataTile;
 
   try {
-    dataTile = await getXYZTile(item.source, z, x, y, item.tileJSON.format);
+    return await getXYZTile(item.source, z, x, y, item.tileJSON.format);
   } catch (error) {
     if (
       item.sourceURL !== undefined &&
@@ -1995,7 +1995,7 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
       );
 
       /* Get data */
-      dataTile = await getDataTileFromURL(
+      const dataTile = await getDataTileFromURL(
         targetURL,
         30000 // 30 secs
       );
@@ -2020,6 +2020,8 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
           )
         );
       }
+
+      return dataTile;
     } else {
       throw error;
     }
@@ -2037,10 +2039,9 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
 export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
   const item = config.datas[id];
   const tileName = `${z}/${x}/${y}`;
-  let dataTile;
 
   try {
-    dataTile = await getPostgreSQLTile(item.source, z, x, y);
+    return await getPostgreSQLTile(item.source, z, x, y);
   } catch (error) {
     if (
       item.sourceURL !== undefined &&
@@ -2059,7 +2060,7 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
       );
 
       /* Get data */
-      dataTile = await getDataTileFromURL(
+      const dataTile = await getDataTileFromURL(
         targetURL,
         30000 // 30 secs
       );
@@ -2082,6 +2083,8 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
           )
         );
       }
+
+      return dataTile;
     } else {
       throw error;
     }
@@ -2095,10 +2098,9 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
  */
 export async function getAndCacheDataStyleJSON(id) {
   const item = config.styles[id];
-  let styleJSON;
 
   try {
-    styleJSON = await getStyle(item.path, false);
+    return await getStyle(item.path, false);
   } catch (error) {
     if (
       item.sourceURL !== undefined &&
@@ -2106,7 +2108,7 @@ export async function getAndCacheDataStyleJSON(id) {
     ) {
       printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
 
-      styleJSON = await getStyleJSONFromURL(
+      const styleJSON = await getStyleJSONFromURL(
         item.sourceURL,
         30000, // 30 secs
         false
@@ -2122,6 +2124,8 @@ export async function getAndCacheDataStyleJSON(id) {
           )
         );
       }
+
+      return styleJSON;
     } else {
       throw error;
     }
@@ -2137,10 +2141,9 @@ export async function getAndCacheDataStyleJSON(id) {
 export async function getAndCacheDataGeoJSON(id, layer) {
   const item = config.styles[id];
   const geoJSONLayer = item[layer];
-  let geoJSON;
 
   try {
-    geoJSON = await getGeoJSON(geoJSONLayer.path, false);
+    return await getGeoJSON(geoJSONLayer.path, false);
   } catch (error) {
     if (
       geoJSONLayer.sourceURL !== undefined &&
@@ -2151,7 +2154,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
         `Forwarding GeoJSON "${id}" - To "${geoJSONLayer.sourceURL}"...`
       );
 
-      geoJSON = await getGeoJSONFromURL(
+      const geoJSON = await getGeoJSONFromURL(
         geoJSONLayer.sourceURL,
         30000, // 30 secs
         false
@@ -2170,6 +2173,8 @@ export async function getAndCacheDataGeoJSON(id, layer) {
           )
         );
       }
+
+      return geoJSON;
     } else {
       throw error;
     }
@@ -2184,10 +2189,9 @@ export async function getAndCacheDataGeoJSON(id, layer) {
  */
 export async function getAndCacheDataSprite(id, fileName) {
   const item = config.styles[id];
-  let sprite;
 
   try {
-    sprite = await getSprite(id, fileName);
+    return await getSprite(id, fileName);
   } catch (error) {
     if (
       item.sourceURL !== undefined &&
@@ -2201,7 +2205,7 @@ export async function getAndCacheDataSprite(id, fileName) {
       );
 
       /* Get sprite */
-      sprite = await getSpriteFromURL(
+      const sprite = await getSpriteFromURL(
         targetURL,
         30000 // 30 secs
       );
@@ -2217,6 +2221,8 @@ export async function getAndCacheDataSprite(id, fileName) {
           )
         );
       }
+
+      return sprite;
     } else {
       throw error;
     }
