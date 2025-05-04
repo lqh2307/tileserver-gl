@@ -123,14 +123,30 @@ function getDataTileHandler() {
     try {
       let dataTile;
 
-      if (item.sourceType === "mbtiles") {
-        dataTile = await getAndCacheMBTilesDataTile(id, z, x, y);
-      } else if (item.sourceType === "pmtiles") {
-        dataTile = await getPMTilesTile(item.source, z, x, y);
-      } else if (item.sourceType === "xyz") {
-        dataTile = await getAndCacheXYZDataTile(id, z, x, y);
-      } else if (item.sourceType === "pg") {
-        dataTile = await getAndCachePostgreSQLDataTile(id, z, x, y);
+      switch (item.sourceType) {
+        case "mbtiles": {
+          dataTile = await getAndCacheMBTilesDataTile(id, z, x, y);
+
+          break;
+        }
+
+        case "pmtiles": {
+          dataTile = await getPMTilesTile(item.source, z, x, y);
+
+          break;
+        }
+
+        case "xyz": {
+          dataTile = await getAndCacheXYZDataTile(id, z, x, y);
+
+          break;
+        }
+
+        case "pg": {
+          dataTile = await getAndCachePostgreSQLDataTile(id, z, x, y);
+
+          break;
+        }
       }
 
       /* Gzip pbf data tile */
@@ -251,10 +267,10 @@ function exportDataHandler() {
           const defaultConcurrency = os.cpus().length;
           const defaultStoreTransparent = false;
 
-          setTimeout(() => {
-            item.export = false;
+          item.export = false;
 
-            if (req.body.storeType === "xyz") {
+          switch (req.body.storeType) {
+            case "xyz": {
               exportXYZTiles(
                 id,
                 req.body.metadata,
@@ -271,7 +287,11 @@ function exportDataHandler() {
                 .finally(() => {
                   item.export = true;
                 });
-            } else if (req.body.storeType === "mbtiles") {
+
+              break;
+            }
+
+            case "mbtiles": {
               exportMBTilesTiles(
                 id,
                 req.body.metadata,
@@ -288,7 +308,11 @@ function exportDataHandler() {
                 .finally(() => {
                   item.export = true;
                 });
-            } else if (req.body.storeType === "pg") {
+
+              break;
+            }
+
+            case "pg": {
               exportPostgreSQLTiles(
                 id,
                 req.body.metadata,
@@ -305,8 +329,10 @@ function exportDataHandler() {
                 .finally(() => {
                   item.export = true;
                 });
+
+              break;
             }
-          }, 0);
+          }
 
           return res.status(StatusCodes.CREATED).send("OK");
         }
@@ -354,26 +380,44 @@ function getDataTileExtraInfoHandler() {
       let extraInfo;
       const targetCoverages = processCoverages(req.body, item.tileJSON.bounds);
 
-      if (item.sourceType === "mbtiles") {
-        extraInfo = getMBTilesTileExtraInfoFromCoverages(
-          item.source,
-          targetCoverages,
-          req.query.type === "created"
-        );
-      } else if (item.sourceType === "pmtiles") {
-        extraInfo = {};
-      } else if (item.sourceType === "xyz") {
-        extraInfo = getXYZTileExtraInfoFromCoverages(
-          item.md5Source,
-          targetCoverages,
-          req.query.type === "created"
-        );
-      } else if (item.sourceType === "pg") {
-        extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
-          item.source,
-          targetCoverages,
-          req.query.type === "created"
-        );
+      switch (item.sourceType) {
+        case "mbtiles": {
+          extraInfo = getMBTilesTileExtraInfoFromCoverages(
+            item.source,
+            targetCoverages,
+            req.query.type === "created"
+          );
+
+          break;
+        }
+
+        case "pmtiles": {
+          // Do nothing
+
+          extraInfo = {};
+
+          break;
+        }
+
+        case "xyz": {
+          extraInfo = getXYZTileExtraInfoFromCoverages(
+            item.md5Source,
+            targetCoverages,
+            req.query.type === "created"
+          );
+
+          break;
+        }
+
+        case "pg": {
+          extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
+            item.source,
+            targetCoverages,
+            req.query.type === "created"
+          );
+
+          break;
+        }
       }
 
       const headers = {
@@ -417,57 +461,61 @@ function calculateDataExtraInfoHandler() {
     printLog("info", `Calculating tile extra info "${id}"...`);
 
     try {
-      if (item.sourceType === "mbtiles") {
-        setTimeout(
-          () =>
-            calculateMBTilesTileExtraInfo(item.source)
-              .then(() => {
-                printLog("info", `Done to calculate tile extra info "${id}"!`);
-              })
-              .catch((error) => {
-                printLog(
-                  "error",
-                  `Failed to calculate tile extra info "${id}": ${error}`
-                );
-              }),
-          0
-        );
-      } else if (item.sourceType === "pmtiles") {
-        // Do nothing
-      } else if (item.sourceType === "xyz") {
-        setTimeout(
-          () =>
-            calculatXYZTileExtraInfo(
-              item.source,
-              item.md5Source,
-              item.tileJSON.format
-            )
-              .then(() => {
-                printLog("info", `Done to calculate tile extra info "${id}"!`);
-              })
-              .catch((error) => {
-                printLog(
-                  "error",
-                  `Failed to calculate tile extra info "${id}": ${error}`
-                );
-              }),
-          0
-        );
-      } else if (item.sourceType === "pg") {
-        setTimeout(
-          () =>
-            calculatePostgreSQLTileExtraInfo(item.source)
-              .then(() => {
-                printLog("info", `Done to calculate tile extra info "${id}"!`);
-              })
-              .catch((error) => {
-                printLog(
-                  "error",
-                  `Failed to calculate tile extra info "${id}": ${error}`
-                );
-              }),
-          0
-        );
+      switch (item.sourceType) {
+        case "mbtiles": {
+          calculateMBTilesTileExtraInfo(item.source)
+            .then(() => {
+              printLog("info", `Done to calculate tile extra info "${id}"!`);
+            })
+            .catch((error) => {
+              printLog(
+                "error",
+                `Failed to calculate tile extra info "${id}": ${error}`
+              );
+            });
+
+          break;
+        }
+
+        case "pmtiles": {
+          // Do nothing
+
+          break;
+        }
+
+        case "xyz": {
+          calculatXYZTileExtraInfo(
+            item.source,
+            item.md5Source,
+            item.tileJSON.format
+          )
+            .then(() => {
+              printLog("info", `Done to calculate tile extra info "${id}"!`);
+            })
+            .catch((error) => {
+              printLog(
+                "error",
+                `Failed to calculate tile extra info "${id}": ${error}`
+              );
+            });
+
+          break;
+        }
+
+        case "pg": {
+          calculatePostgreSQLTileExtraInfo(item.source)
+            .then(() => {
+              printLog("info", `Done to calculate tile extra info "${id}"!`);
+            })
+            .catch((error) => {
+              printLog(
+                "error",
+                `Failed to calculate tile extra info "${id}": ${error}`
+              );
+            });
+
+          break;
+        }
       }
 
       return res.status(StatusCodes.OK).send("OK");

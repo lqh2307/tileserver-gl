@@ -90,18 +90,42 @@ export async function getPMTilesMetadata(pmtilesSource) {
     metadata.version = "1.0.0";
   }
 
-  if (pmtilesHeader.tileType === 1) {
-    metadata.format = "pbf";
-  } else if (pmtilesHeader.tileType === 2) {
-    metadata.format = "png";
-  } else if (pmtilesHeader.tileType === 3) {
-    metadata.format = "jpeg";
-  } else if (pmtilesHeader.tileType === 4) {
-    metadata.format = "webp";
-  } else if (pmtilesHeader.tileType === 5) {
-    metadata.format = "avif";
-  } else {
-    metadata.format = "png";
+  switch (pmtilesHeader.tileType) {
+    case 1: {
+      metadata.format = "pbf";
+
+      break;
+    }
+
+    case 2: {
+      metadata.format = "png";
+
+      break;
+    }
+
+    case 3: {
+      metadata.format = "jpeg";
+
+      break;
+    }
+
+    case 4: {
+      metadata.format = "webp";
+
+      break;
+    }
+
+    case 5: {
+      metadata.format = "avif";
+
+      break;
+    }
+
+    default: {
+      metadata.format = "png";
+
+      break;
+    }
   }
 
   if (pmtilesHeader.minZoom !== undefined) {

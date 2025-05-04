@@ -280,10 +280,10 @@ function renderStyleHandler() {
           const defaultStoreTransparent = false;
           const defaultCreateOverview = true;
 
-          setTimeout(() => {
-            item.rendered.export = false;
+          item.rendered.export = false;
 
-            if (req.body.storeType === "xyz") {
+          switch (req.body.storeType) {
+            case "xyz": {
               renderXYZTiles(
                 id,
                 req.body.metadata,
@@ -304,7 +304,11 @@ function renderStyleHandler() {
                 .finally(() => {
                   item.rendered.export = true;
                 });
-            } else if (req.body.storeType === "mbtiles") {
+
+              break;
+            }
+
+            case "mbtiles": {
               renderMBTilesTiles(
                 id,
                 req.body.metadata,
@@ -325,7 +329,11 @@ function renderStyleHandler() {
                 .finally(() => {
                   item.rendered.export = true;
                 });
-            } else if (req.body.storeType === "pg") {
+
+              break;
+            }
+
+            case "pg": {
               renderPostgreSQLTiles(
                 id,
                 req.body.metadata,
@@ -346,8 +354,10 @@ function renderStyleHandler() {
                 .finally(() => {
                   item.rendered.export = true;
                 });
+
+              break;
             }
-          }, 0);
+          }
 
           return res.status(StatusCodes.CREATED).send("OK");
         }

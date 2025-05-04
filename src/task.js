@@ -260,28 +260,40 @@ export async function runTasks(opts) {
               }
 
               try {
-                if (seedDataItem.storeType === "xyz") {
-                  await cleanUpXYZTiles(
-                    id,
-                    seedDataItem.metadata.format,
-                    cleanUpDataItem.coverages,
-                    cleanUpDataItem.cleanUpBefore?.time ||
-                      cleanUpDataItem.cleanUpBefore?.day
-                  );
-                } else if (seedDataItem.storeType === "mbtiles") {
-                  await cleanUpMBTilesTiles(
-                    id,
-                    cleanUpDataItem.coverages,
-                    cleanUpDataItem.cleanUpBefore?.time ||
-                      cleanUpDataItem.cleanUpBefore?.day
-                  );
-                } else if (seedDataItem.storeType === "pg") {
-                  await cleanUpPostgreSQLTiles(
-                    id,
-                    cleanUpDataItem.coverages,
-                    cleanUpDataItem.cleanUpBefore?.time ||
-                      cleanUpDataItem.cleanUpBefore?.day
-                  );
+                switch (seedDataItem.storeType) {
+                  case "xyz": {
+                    await cleanUpXYZTiles(
+                      id,
+                      seedDataItem.metadata.format,
+                      cleanUpDataItem.coverages,
+                      cleanUpDataItem.cleanUpBefore?.time ||
+                        cleanUpDataItem.cleanUpBefore?.day
+                    );
+
+                    break;
+                  }
+
+                  case "mbtiles": {
+                    await cleanUpMBTilesTiles(
+                      id,
+                      cleanUpDataItem.coverages,
+                      cleanUpDataItem.cleanUpBefore?.time ||
+                        cleanUpDataItem.cleanUpBefore?.day
+                    );
+
+                    break;
+                  }
+
+                  case "pg": {
+                    await cleanUpPostgreSQLTiles(
+                      id,
+                      cleanUpDataItem.coverages,
+                      cleanUpDataItem.cleanUpBefore?.time ||
+                        cleanUpDataItem.cleanUpBefore?.day
+                    );
+
+                    break;
+                  }
                 }
               } catch (error) {
                 printLog(
@@ -527,51 +539,63 @@ export async function runTasks(opts) {
               }
 
               try {
-                if (seedDataItem.storeType === "xyz") {
-                  await seedXYZTiles(
-                    id,
-                    seedDataItem.metadata,
-                    seedDataItem.url,
-                    seedDataItem.scheme,
-                    seedDataItem.coverages,
-                    seedDataItem.concurrency || defaultConcurrency,
-                    seedDataItem.maxTry || defaultMaxTry,
-                    seedDataItem.timeout || defaultTimeout,
-                    seedDataItem.storeTransparent || defaultStoreTransparent,
-                    seedDataItem.refreshBefore?.time ||
-                      seedDataItem.refreshBefore?.day ||
-                      seedDataItem.refreshBefore?.md5
-                  );
-                } else if (seedDataItem.storeType === "mbtiles") {
-                  await seedMBTilesTiles(
-                    id,
-                    seedDataItem.metadata,
-                    seedDataItem.url,
-                    seedDataItem.scheme,
-                    seedDataItem.coverages,
-                    seedDataItem.concurrency || defaultConcurrency,
-                    seedDataItem.maxTry || defaultMaxTry,
-                    seedDataItem.timeout || defaultTimeout,
-                    seedDataItem.storeTransparent || defaultStoreTransparent,
-                    seedDataItem.refreshBefore?.time ||
-                      seedDataItem.refreshBefore?.day ||
-                      seedDataItem.refreshBefore?.md5
-                  );
-                } else if (seedDataItem.storeType === "pg") {
-                  await seedPostgreSQLTiles(
-                    id,
-                    seedDataItem.metadata,
-                    seedDataItem.url,
-                    seedDataItem.scheme,
-                    seedDataItem.coverages,
-                    seedDataItem.concurrency || defaultConcurrency,
-                    seedDataItem.maxTry || defaultMaxTry,
-                    seedDataItem.timeout || defaultTimeout,
-                    seedDataItem.storeTransparent || defaultStoreTransparent,
-                    seedDataItem.refreshBefore?.time ||
-                      seedDataItem.refreshBefore?.day ||
-                      seedDataItem.refreshBefore?.md5
-                  );
+                switch (seedDataItem.storeType) {
+                  case "xyz": {
+                    await seedXYZTiles(
+                      id,
+                      seedDataItem.metadata,
+                      seedDataItem.url,
+                      seedDataItem.scheme,
+                      seedDataItem.coverages,
+                      seedDataItem.concurrency || defaultConcurrency,
+                      seedDataItem.maxTry || defaultMaxTry,
+                      seedDataItem.timeout || defaultTimeout,
+                      seedDataItem.storeTransparent || defaultStoreTransparent,
+                      seedDataItem.refreshBefore?.time ||
+                        seedDataItem.refreshBefore?.day ||
+                        seedDataItem.refreshBefore?.md5
+                    );
+
+                    break;
+                  }
+
+                  case "mbtiles": {
+                    await seedMBTilesTiles(
+                      id,
+                      seedDataItem.metadata,
+                      seedDataItem.url,
+                      seedDataItem.scheme,
+                      seedDataItem.coverages,
+                      seedDataItem.concurrency || defaultConcurrency,
+                      seedDataItem.maxTry || defaultMaxTry,
+                      seedDataItem.timeout || defaultTimeout,
+                      seedDataItem.storeTransparent || defaultStoreTransparent,
+                      seedDataItem.refreshBefore?.time ||
+                        seedDataItem.refreshBefore?.day ||
+                        seedDataItem.refreshBefore?.md5
+                    );
+
+                    break;
+                  }
+
+                  case "pg": {
+                    await seedPostgreSQLTiles(
+                      id,
+                      seedDataItem.metadata,
+                      seedDataItem.url,
+                      seedDataItem.scheme,
+                      seedDataItem.coverages,
+                      seedDataItem.concurrency || defaultConcurrency,
+                      seedDataItem.maxTry || defaultMaxTry,
+                      seedDataItem.timeout || defaultTimeout,
+                      seedDataItem.storeTransparent || defaultStoreTransparent,
+                      seedDataItem.refreshBefore?.time ||
+                        seedDataItem.refreshBefore?.day ||
+                        seedDataItem.refreshBefore?.md5
+                    );
+
+                    break;
+                  }
                 }
               } catch (error) {
                 printLog(
