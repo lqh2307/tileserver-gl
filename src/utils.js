@@ -571,15 +571,11 @@ export function getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme = "xyz") {
  * @returns {[number, number, number, number]} [minLon, minLat, maxLon, maxLat]
  */
 export function getBBoxFromCircle(center, radius) {
-  const [xCenter, yCenter] = lonLat4326ToXY3857(
-    "EPSG:4326",
-    "EPSG:3857",
-    center
-  );
+  const [xCenter, yCenter] = lonLat4326ToXY3857(center[0], center[1]);
 
   return [
-    xy3857ToLonLat4326(xCenter - radius, yCenter - radius)...,
-    xy3857ToLonLat4326(xCenter + radius, yCenter + radius)...,
+    ...xy3857ToLonLat4326(xCenter - radius, yCenter - radius),
+    ...xy3857ToLonLat4326(xCenter + radius, yCenter + radius),
   ];
 }
 
