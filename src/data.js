@@ -1,8 +1,8 @@
 "use strict";
 
-import { cacheGeoJSONFile, getGeoJSON, getGeoJSONFromURL } from "./geojson.js";
-import { cacheStyleFile, getStyle, getStyleJSONFromURL } from "./style.js";
 import { cacheSpriteFile, getSprite, getSpriteFromURL } from "./sprite.js";
+import { cacheGeoJSONFile, getGeoJSON } from "./geojson.js";
+import { cacheStyleFile, getStyle } from "./style.js";
 import { getPMTilesTile } from "./tile_pmtiles.js";
 import { createPool } from "generic-pool";
 import { printLog } from "./logger.js";
@@ -37,6 +37,7 @@ import {
   getLonLatFromXYZ,
   processCoverages,
   getDataFromURL,
+  getJSONFromURL,
   calculateMD5,
   unzipAsync,
   runCommand,
@@ -2104,11 +2105,11 @@ export async function getAndCacheDataStyleJSON(id) {
   } catch (error) {
     if (
       item.sourceURL !== undefined &&
-      error.message === "Style does not exist"
+      error.message === "JSON does not exist"
     ) {
       printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
 
-      const styleJSON = await getStyleJSONFromURL(
+      const styleJSON = await getJSONFromURL(
         item.sourceURL,
         30000, // 30 secs
         false
@@ -2147,14 +2148,14 @@ export async function getAndCacheDataGeoJSON(id, layer) {
   } catch (error) {
     if (
       geoJSONLayer.sourceURL !== undefined &&
-      error.message === "GeoJSON does not exist"
+      error.message === "JSON does not exist"
     ) {
       printLog(
         "info",
         `Forwarding GeoJSON "${id}" - To "${geoJSONLayer.sourceURL}"...`
       );
 
-      const geoJSON = await getGeoJSONFromURL(
+      const geoJSON = await getJSONFromURL(
         geoJSONLayer.sourceURL,
         30000, // 30 secs
         false

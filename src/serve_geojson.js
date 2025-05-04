@@ -228,7 +228,7 @@ function getGeoJSONHandler() {
         `Failed to get GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
       );
 
-      if (error.message === "GeoJSON does not exist") {
+      if (error.message === "JSON does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -280,7 +280,7 @@ function getGeoJSONMD5Handler() {
         `Failed to get md5 of GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
       );
 
-      if (error.message === "GeoJSON does not exist") {
+      if (error.message === "JSON does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -745,7 +745,7 @@ export const serve_geojson = {
                   } catch (error) {
                     if (
                       item.cache !== undefined &&
-                      error.message === "GeoJSON does not exist"
+                      error.message === "JSON does not exist"
                     ) {
                       geojsonInfo.geometryTypes = ["polygon", "line", "circle"];
 

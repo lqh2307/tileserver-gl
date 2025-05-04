@@ -213,7 +213,7 @@ function getStyleHandler() {
     } catch (error) {
       printLog("error", `Failed to get style "${id}": ${error}`);
 
-      if (error.message === "Style does not exist") {
+      if (error.message === "JSON does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -598,7 +598,7 @@ function getStyleMD5Handler() {
     } catch (error) {
       printLog("error", `Failed to get md5 of style "${id}": ${error}`);
 
-      if (error.message === "Style does not exist") {
+      if (error.message === "JSON does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -1236,7 +1236,7 @@ export const serve_style = {
             } catch (error) {
               if (
                 item.cache !== undefined &&
-                error.message === "Style does not exist"
+                error.message === "JSON does not exist"
               ) {
                 styleInfo.name =
                   seed.styles[item.style].metadata.name || "Unknown";

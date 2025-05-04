@@ -76,38 +76,6 @@ export async function cacheStyleFile(filePath, data) {
 }
 
 /**
- * Get styleJSON from a URL
- * @param {string} url The URL to fetch data from
- * @param {number} timeout Timeout in milliseconds
- * @param {boolean} isParse Parse JSON?
- * @returns {Promise<object|Buffer>}
- */
-export async function getStyleJSONFromURL(url, timeout, isParse) {
-  try {
-    const response = await getDataFromURL(
-      url,
-      timeout,
-      isParse === true ? "json" : "arraybuffer"
-    );
-
-    return response.data;
-  } catch (error) {
-    if (error.statusCode !== undefined) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("Style does not exist");
-      } else {
-        throw new Error(`Failed to get style from "${url}": ${error}`);
-      }
-    } else {
-      throw new Error(`Failed to get style from "${url}": ${error}`);
-    }
-  }
-}
-
-/**
  * Validate style
  * @param {object} styleJSON StyleJSON
  * @returns {Promise<void>}
@@ -252,7 +220,7 @@ export async function getStyle(filePath, isParse) {
   try {
     const data = await readFile(filePath);
     if (!data) {
-      throw new Error("Style does not exist");
+      throw new Error("JSON does not exist");
     }
 
     if (isParse === true) {
@@ -262,7 +230,7 @@ export async function getStyle(filePath, isParse) {
     }
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("Style does not exist");
+      throw new Error("JSON does not exist");
     } else {
       throw error;
     }

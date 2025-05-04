@@ -113,6 +113,38 @@ export async function getDataTileFromURL(url, timeout) {
 }
 
 /**
+ * Get JSON from a URL
+ * @param {string} url The URL to fetch data from
+ * @param {number} timeout Timeout in milliseconds
+ * @param {boolean} isParse Parse JSON?
+ * @returns {Promise<object|Buffer>}
+ */
+export async function getJSONFromURL(url, timeout, isParse) {
+  try {
+    const response = await getDataFromURL(
+      url,
+      timeout,
+      isParse === true ? "json" : "arraybuffer"
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error.statusCode !== undefined) {
+      if (
+        error.statusCode === StatusCodes.NO_CONTENT ||
+        error.statusCode === StatusCodes.NOT_FOUND
+      ) {
+        throw new Error("JSON does not exist");
+      } else {
+        throw new Error(`Failed to get JSON from "${url}": ${error}`);
+      }
+    } else {
+      throw new Error(`Failed to get JSON from "${url}": ${error}`);
+    }
+  }
+}
+
+/**
  * Post data to URL
  * @param {string} url URL to post data
  * @param {number} timeout Timeout in milliseconds

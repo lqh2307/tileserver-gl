@@ -73,38 +73,6 @@ export async function cacheGeoJSONFile(filePath, data) {
 }
 
 /**
- * Get GeoJSON from a URL
- * @param {string} url The URL to fetch data from
- * @param {number} timeout Timeout in milliseconds
- * @param {boolean} isParse Parse JSON?
- * @returns {Promise<object|Buffer>}
- */
-export async function getGeoJSONFromURL(url, timeout, isParse) {
-  try {
-    const response = await getDataFromURL(
-      url,
-      timeout,
-      isParse === true ? "json" : "arraybuffer"
-    );
-
-    return response.data;
-  } catch (error) {
-    if (error.statusCode !== undefined) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("GeoJSON does not exist");
-      } else {
-        throw new Error(`Failed to get GeoJSON from "${url}": ${error}`);
-      }
-    } else {
-      throw new Error(`Failed to get GeoJSON from "${url}": ${error}`);
-    }
-  }
-}
-
-/**
  * Get GeoJSON
  * @param {string} filePath
  * @param {boolean} isParse Parse JSON?
@@ -114,7 +82,7 @@ export async function getGeoJSON(filePath, isParse) {
   try {
     const data = await readFile(filePath);
     if (!data) {
-      throw new Error("GeoJSON does not exist");
+      throw new Error("JSON does not exist");
     }
 
     if (isParse === true) {
@@ -124,7 +92,7 @@ export async function getGeoJSON(filePath, isParse) {
     }
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("GeoJSON does not exist");
+      throw new Error("JSON does not exist");
     } else {
       throw error;
     }

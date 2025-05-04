@@ -893,7 +893,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
           needDownload = true;
         }
       } catch (error) {
-        if (error.message === "GeoJSON does not exist") {
+        if (error.message === "JSON does not exist") {
           needDownload = true;
         } else {
           throw error;
@@ -1218,7 +1218,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
           needDownload = true;
         }
       } catch (error) {
-        if (error.message === "Style does not exist") {
+        if (error.message === "JSON does not exist") {
           needDownload = true;
         } else {
           throw error;
