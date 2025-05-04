@@ -898,10 +898,8 @@ export const serve_style = {
        *                 properties:
        *                   id:
        *                     type: string
-       *                     example: style1
        *                   name:
        *                     type: string
-       *                     example: Style 1
        *                   url:
        *                     type: array
        *                     items:
@@ -960,13 +958,6 @@ export const serve_style = {
        *           application/json:
        *             schema:
        *               type: object
-       *               properties:
-       *                 tileJSON:
-       *                   type: object
-       *                 tiles:
-       *                   type: array
-       *                   items:
-       *                     type: string
        *       404:
        *         description: Not found
        *       503:
@@ -1002,17 +993,6 @@ export const serve_style = {
        *     responses:
        *       200:
        *         description: Style md5
-       *         content:
-       *           application/json:
-       *             schema:
-       *               type: object
-       *               properties:
-       *                 tileJSON:
-       *                   type: object
-       *                 tiles:
-       *                   type: array
-       *                   items:
-       *                     type: string
        *       404:
        *         description: Not found
        *       503:

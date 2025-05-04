@@ -923,17 +923,6 @@ export const serve_data = {
      *     responses:
      *       200:
      *         description: Data md5
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 tileJSON:
-     *                   type: object
-     *                 tiles:
-     *                   type: array
-     *                   items:
-     *                     type: string
      *       404:
      *         description: Not found
      *       503:

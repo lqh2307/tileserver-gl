@@ -114,6 +114,8 @@ export const serve_font = {
      *               items:
      *                 type: object
      *                 properties:
+     *                   id:
+     *                     type: string
      *                   name:
      *                     type: string
      *                   url:
