@@ -261,19 +261,17 @@ function exportDataHandler() {
               .send(`Options is invalid: ${error}`);
           }
 
-          const defaultConcurrency = os.cpus().length;
-          const defaultStoreTransparent = false;
-
           item.export = false;
 
           switch (req.body.storeType) {
             case "xyz": {
               exportXYZTiles(
                 id,
+                req.body.id,
                 req.body.metadata,
                 req.body.coverages,
-                req.body.concurrency || defaultConcurrency,
-                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5
@@ -291,10 +289,11 @@ function exportDataHandler() {
             case "mbtiles": {
               exportMBTilesTiles(
                 id,
+                req.body.id,
                 req.body.metadata,
                 req.body.coverages,
-                req.body.concurrency || defaultConcurrency,
-                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5
@@ -312,10 +311,11 @@ function exportDataHandler() {
             case "pg": {
               exportPostgreSQLTiles(
                 id,
+                req.body.id,
                 req.body.metadata,
                 req.body.coverages,
-                req.body.concurrency || defaultConcurrency,
-                req.body.storeTransparent || defaultStoreTransparent,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5

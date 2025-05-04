@@ -274,26 +274,21 @@ function renderStyleHandler() {
               .send(`Options is invalid: ${error}`);
           }
 
-          const defaultTileScale = 1;
-          const defaultTileSize = 256;
-          const defaultConcurrency = os.cpus().length;
-          const defaultStoreTransparent = false;
-          const defaultCreateOverview = true;
-
           item.rendered.export = false;
 
           switch (req.body.storeType) {
             case "xyz": {
               renderXYZTiles(
                 id,
+                req.body.id,
                 req.body.metadata,
-                req.body.tileScale || defaultTileScale,
-                req.body.tileSize || defaultTileSize,
+                req.body.tileScale || 1,
+                req.body.tileSize || 256,
                 req.body.coverages,
-                req.body.maxRendererPoolSize || defaultConcurrency,
-                req.body.concurrency || defaultConcurrency,
-                req.body.storeTransparent || defaultStoreTransparent,
-                req.body.createOverview || defaultCreateOverview,
+                req.body.maxRendererPoolSize || os.cpus().length,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent || false,
+                req.body.createOverview || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5
@@ -311,14 +306,15 @@ function renderStyleHandler() {
             case "mbtiles": {
               renderMBTilesTiles(
                 id,
+                req.body.id,
                 req.body.metadata,
-                req.body.tileScale || defaultTileScale,
-                req.body.tileSize || defaultTileSize,
+                req.body.tileScale || 1,
+                req.body.tileSize || 256,
                 req.body.coverages,
-                req.body.maxRendererPoolSize || defaultConcurrency,
-                req.body.concurrency || defaultConcurrency,
-                req.body.storeTransparent || defaultStoreTransparent,
-                req.body.createOverview || defaultCreateOverview,
+                req.body.maxRendererPoolSize || os.cpus().length,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent || false,
+                req.body.createOverview || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5
@@ -336,14 +332,15 @@ function renderStyleHandler() {
             case "pg": {
               renderPostgreSQLTiles(
                 id,
+                req.body.id,
                 req.body.metadata,
-                req.body.tileScale || defaultTileScale,
-                req.body.tileSize || defaultTileSize,
+                req.body.tileScale || 1,
+                req.body.tileSize || 256,
                 req.body.coverages,
-                req.body.maxRendererPoolSize || defaultConcurrency,
-                req.body.concurrency || defaultConcurrency,
-                req.body.storeTransparent || defaultStoreTransparent,
-                req.body.createOverview || defaultCreateOverview,
+                req.body.maxRendererPoolSize || os.cpus().length,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent || false,
+                req.body.createOverview || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5

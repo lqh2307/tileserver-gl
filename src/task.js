@@ -44,11 +44,6 @@ export async function runTasks(opts) {
       opts.seedGeoJSONs === true ||
       opts.seedDatas === true
     ) {
-      const defaultTimeout = 60000;
-      const defaultMaxTry = 5;
-      const defaultConcurrency = os.cpus().length;
-      const defaultStoreTransparent = false;
-
       /* Clean up sprites */
       if (opts.cleanUpSprites === true) {
         try {
@@ -340,8 +335,8 @@ export async function runTasks(opts) {
                 await seedSprite(
                   id,
                   seedSpriteItem.url,
-                  seedSpriteItem.maxTry || defaultMaxTry,
-                  seedSpriteItem.timeout || defaultTimeout,
+                  seedSpriteItem.maxTry || 5,
+                  seedSpriteItem.timeout || 60000,
                   seedSpriteItem.refreshBefore?.time ||
                     seedSpriteItem.refreshBefore?.day
                 );
@@ -390,9 +385,9 @@ export async function runTasks(opts) {
                 await seedFont(
                   id,
                   seedFontItem.url,
-                  seedFontItem.concurrency || defaultConcurrency,
-                  seedFontItem.maxTry || defaultMaxTry,
-                  seedFontItem.timeout || defaultTimeout,
+                  seedFontItem.concurrency || os.cpus().length,
+                  seedFontItem.maxTry || 5,
+                  seedFontItem.timeout || 60000,
                   seedFontItem.refreshBefore?.time ||
                     seedFontItem.refreshBefore?.day
                 );
@@ -441,8 +436,8 @@ export async function runTasks(opts) {
                 await seedStyle(
                   id,
                   seedStyleItem.url,
-                  seedStyleItem.maxTry || defaultMaxTry,
-                  seedStyleItem.timeout || defaultTimeout,
+                  seedStyleItem.maxTry || 5,
+                  seedStyleItem.timeout || 60000,
                   seedStyleItem.refreshBefore?.time ||
                     seedStyleItem.refreshBefore?.day
                 );
@@ -491,8 +486,8 @@ export async function runTasks(opts) {
                 await seedGeoJSON(
                   id,
                   seedGeoJSONItem.url,
-                  seedGeoJSONItem.maxTry || defaultMaxTry,
-                  seedGeoJSONItem.timeout || defaultTimeout,
+                  seedGeoJSONItem.maxTry || 5,
+                  seedGeoJSONItem.timeout || 60000,
                   seedGeoJSONItem.refreshBefore?.time ||
                     seedGeoJSONItem.refreshBefore?.day ||
                     seedGeoJSONItem.refreshBefore?.md5
@@ -547,10 +542,10 @@ export async function runTasks(opts) {
                       seedDataItem.url,
                       seedDataItem.scheme,
                       seedDataItem.coverages,
-                      seedDataItem.concurrency || defaultConcurrency,
-                      seedDataItem.maxTry || defaultMaxTry,
-                      seedDataItem.timeout || defaultTimeout,
-                      seedDataItem.storeTransparent || defaultStoreTransparent,
+                      seedDataItem.concurrency || os.cpus().length,
+                      seedDataItem.maxTry || 5,
+                      seedDataItem.timeout || 60000,
+                      seedDataItem.storeTransparent || false,
                       seedDataItem.refreshBefore?.time ||
                         seedDataItem.refreshBefore?.day ||
                         seedDataItem.refreshBefore?.md5
@@ -566,10 +561,10 @@ export async function runTasks(opts) {
                       seedDataItem.url,
                       seedDataItem.scheme,
                       seedDataItem.coverages,
-                      seedDataItem.concurrency || defaultConcurrency,
-                      seedDataItem.maxTry || defaultMaxTry,
-                      seedDataItem.timeout || defaultTimeout,
-                      seedDataItem.storeTransparent || defaultStoreTransparent,
+                      seedDataItem.concurrency || os.cpus().length,
+                      seedDataItem.maxTry || 5,
+                      seedDataItem.timeout || 60000,
+                      seedDataItem.storeTransparent || false,
                       seedDataItem.refreshBefore?.time ||
                         seedDataItem.refreshBefore?.day ||
                         seedDataItem.refreshBefore?.md5
@@ -585,10 +580,10 @@ export async function runTasks(opts) {
                       seedDataItem.url,
                       seedDataItem.scheme,
                       seedDataItem.coverages,
-                      seedDataItem.concurrency || defaultConcurrency,
-                      seedDataItem.maxTry || defaultMaxTry,
-                      seedDataItem.timeout || defaultTimeout,
-                      seedDataItem.storeTransparent || defaultStoreTransparent,
+                      seedDataItem.concurrency || os.cpus().length,
+                      seedDataItem.maxTry || 5,
+                      seedDataItem.timeout || 60000,
+                      seedDataItem.storeTransparent || false,
                       seedDataItem.refreshBefore?.time ||
                         seedDataItem.refreshBefore?.day ||
                         seedDataItem.refreshBefore?.md5
