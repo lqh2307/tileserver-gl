@@ -578,8 +578,8 @@ export function getBBoxFromCircle(center, radius) {
   );
 
   return [
-    ...xy3857ToLonLat4326(xCenter - radius, yCenter - radius),
-    ...xy3857ToLonLat4326(xCenter + radius, yCenter + radius),
+    xy3857ToLonLat4326(xCenter - radius, yCenter - radius)...,
+    xy3857ToLonLat4326(xCenter + radius, yCenter + radius)...,
   ];
 }
 
