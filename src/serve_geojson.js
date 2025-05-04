@@ -11,9 +11,9 @@ import {
   getGeoJSON,
 } from "./geojson.js";
 import {
+  calculateMD5OfFile,
   compileTemplate,
   getRequestHost,
-  calculateMD5,
   isExistFile,
   gzipAsync,
 } from "./utils.js";
@@ -266,11 +266,9 @@ function getGeoJSONMD5Handler() {
           .send("GeoJSON layer does not exist");
       }
 
-      /* Get geoJSON MD5 and Add to header */
-      const geoJSONData = await getGeoJSON(geoJSONLayer.path, false);
-
+      /* Calculate MD5 and Add to header */
       res.set({
-        etag: calculateMD5(geoJSONData),
+        etag: await calculateMD5OfFile(geoJSONLayer.path),
       });
 
       return res.status(StatusCodes.OK).send();
@@ -280,7 +278,7 @@ function getGeoJSONMD5Handler() {
         `Failed to get md5 of GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
       );
 
-      if (error.message === "JSON does not exist") {
+      if (error.message === "File does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res

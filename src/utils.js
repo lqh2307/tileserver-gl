@@ -1,6 +1,7 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
+import { createReadStream } from "node:fs";
 import { printLog } from "./logger.js";
 import { exec } from "child_process";
 import handlebars from "handlebars";
@@ -655,6 +656,30 @@ export async function delay(ms) {
  */
 export function calculateMD5(buffer) {
   return crypto.createHash("md5").update(buffer).digest("hex");
+}
+
+/**
+ * Calculate MD5 hash of a file
+ * @param {string} filePath The data file path
+ * @returns {Promise<string>} The MD5 hash
+ */
+export async function calculateMD5OfFile(filePath) {
+  try {
+    return new Promise((resolve, reject) => {
+      const hash = crypto.createHash("md5");
+
+      createReadStream(filePath)
+        .on("error", (error) => reject(error))
+        .on("data", (chunk) => hash.update(chunk))
+        .on("end", () => resolve(hash.digest("hex")));
+    });
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error("File does not exist");
+    } else {
+      throw error;
+    }
+  }
 }
 
 /**

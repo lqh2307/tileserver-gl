@@ -16,16 +16,15 @@ import {
   calculateMBTilesTileExtraInfo,
   getMBTilesMetadata,
   openMBTilesDB,
-  getMBTiles,
 } from "./tile_mbtiles.js";
 import {
   createTileMetadataFromTemplate,
+  calculateMD5OfFile,
   processCoverages,
   compileTemplate,
   getRequestHost,
   getJSONSchema,
   validateJSON,
-  calculateMD5,
   gzipAsync,
 } from "./utils.js";
 import {
@@ -366,12 +365,12 @@ function getDataMD5Handler() {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      /* Get data MD5 and Add to header */
-      let data;
+      /* Calculate MD5 and Add to header */
+      let md5;
 
       switch (item.sourceType) {
         case "mbtiles": {
-          data = await getMBTiles(item.path);
+          md5 = await calculateMD5OfFile(item.path);
 
           break;
         }
@@ -379,7 +378,7 @@ function getDataMD5Handler() {
         case "pmtiles": {
           // Do nothing
 
-          data = Buffer.from([]);
+          md5 = "";
 
           break;
         }
@@ -387,7 +386,7 @@ function getDataMD5Handler() {
         case "xyz": {
           // Do nothing
 
-          data = Buffer.from([]);
+          md5 = "";
 
           break;
         }
@@ -395,21 +394,21 @@ function getDataMD5Handler() {
         case "pg": {
           // Do nothing
 
-          data = Buffer.from([]);
+          md5 = "";
 
           break;
         }
       }
 
       res.set({
-        etag: calculateMD5(data),
+        etag: md5,
       });
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {
       printLog("error", `Failed to get md5 of data "${id}": ${error}`);
 
-      if (error.message === "Data does not exist") {
+      if (error.message === "File does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res

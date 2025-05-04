@@ -7,12 +7,12 @@ import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
   createTileMetadataFromTemplate,
+  calculateMD5OfFile,
   compileTemplate,
   isLocalTileURL,
   getRequestHost,
   getJSONSchema,
   validateJSON,
-  calculateMD5,
   isExistFile,
   gzipAsync,
 } from "./utils.js";
@@ -584,18 +584,16 @@ function getStyleMD5Handler() {
         return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
       }
 
-      /* Get style MD5 and Add to header */
-      const styleData = await getStyle(item.path, false);
-
+      /* Calculate MD5 and Add to header */
       res.set({
-        etag: calculateMD5(styleData),
+        etag: await calculateMD5OfFile(item.path),
       });
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {
       printLog("error", `Failed to get md5 of style "${id}": ${error}`);
 
-      if (error.message === "JSON does not exist") {
+      if (error.message === "File does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res

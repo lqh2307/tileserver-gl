@@ -844,25 +844,3 @@ export async function getMBTilesSize(filePath) {
 
   return stats.size;
 }
-
-/**
- * Get MBTiles
- * @param {string} filePath
- * @returns {Promise<Buffer>}
- */
-export async function getMBTiles(filePath) {
-  try {
-    const data = await readFile(filePath);
-    if (!data) {
-      throw new Error("Data does not exist");
-    }
-
-    return data;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("Data does not exist");
-    } else {
-      throw error;
-    }
-  }
-}
