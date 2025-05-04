@@ -1,5 +1,7 @@
 "use strict";
 
+import { cacheGeoJSONFile, getGeoJSON, getGeoJSONFromURL } from "./geojson.js";
+import { cacheStyleFile, getStyle, getStyleJSONFromURL } from "./style.js";
 import { cacheSpriteFile, getSprite, getSpriteFromURL } from "./sprite.js";
 import { getPMTilesTile } from "./tile_pmtiles.js";
 import { createPool } from "generic-pool";
@@ -91,47 +93,7 @@ function createTileRenderer(tileScale, styleJSON) {
         /* Get sprite */
         case "sprites:": {
           try {
-            const item = config.sprites[parts[2]];
-
-            try {
-              data = await getSprite(parts[2], parts[3]);
-            } catch (error) {
-              if (
-                item.sourceURL !== undefined &&
-                error.message === "Sprite does not exist"
-              ) {
-                const targetURL = item.sourceURL.replace(
-                  "/sprite",
-                  `/${parts[3]}`
-                );
-
-                printLog(
-                  "info",
-                  `Forwarding sprite "${parts[2]}" - Filename "${parts[3]}" - To "${targetURL}"...`
-                );
-
-                data = await getSpriteFromURL(
-                  targetURL,
-                  30000 // 30 secs
-                );
-
-                if (item.storeCache === true) {
-                  printLog(
-                    "info",
-                    `Caching sprite "${parts[2]}" - Filename "${parts[3]}"...`
-                  );
-
-                  cacheSpriteFile(item.source, parts[3], data).catch((error) =>
-                    printLog(
-                      "error",
-                      `Failed to cache sprite "${parts[2]}" - Filename "${parts[3]}": ${error}`
-                    )
-                  );
-                }
-              } else {
-                throw error;
-              }
-            }
+            data = await getAndCacheDataSprite(parts[2], parts[3]);
           } catch (error) {
             printLog(
               "warn",
@@ -161,6 +123,22 @@ function createTileRenderer(tileScale, styleJSON) {
             printLog(
               "warn",
               `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty font...`
+            );
+
+            err = error;
+          }
+
+          break;
+        }
+
+        /* Get geojson */
+        case "geojson:": {
+          try {
+            data = await getAndCacheDataGeoJSON(parts[2], parts[3]);
+          } catch (error) {
+            printLog(
+              "warn",
+              `Failed to get GeoJSON group "${parts[2]}" - Layer "${parts[3]}": ${error}. Serving empty geojson...`
             );
 
             err = error;
@@ -210,56 +188,12 @@ function createTileRenderer(tileScale, styleJSON) {
           const item = config.datas[parts[2]];
 
           try {
-            let dataTile;
-
-            try {
-              dataTile = getMBTilesTile(item.source, z, x, y);
-            } catch (error) {
-              if (
-                item.sourceURL !== undefined &&
-                error.message === "Tile does not exist"
-              ) {
-                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-                const targetURL = item.sourceURL
-                  .replace("{z}", `${z}`)
-                  .replace("{x}", `${x}`)
-                  .replace("{y}", `${tmpY}`);
-
-                printLog(
-                  "info",
-                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
-                );
-
-                dataTile = await getDataTileFromURL(
-                  targetURL,
-                  30000 // 30 secs
-                );
-
-                if (item.storeCache === true) {
-                  printLog(
-                    "info",
-                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
-                  );
-
-                  cacheMBtilesTileData(
-                    item.source,
-                    z,
-                    x,
-                    tmpY,
-                    dataTile.data,
-                    item.storeTransparent
-                  ).catch((error) =>
-                    printLog(
-                      "error",
-                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                    )
-                  );
-                }
-              } else {
-                throw error;
-              }
-            }
+            const dataTile = await getAndCacheMBTilesDataTile(
+              parts[2],
+              z,
+              x,
+              y
+            );
 
             if (
               dataTile.headers["content-type"] === "application/x-protobuf" &&
@@ -291,64 +225,7 @@ function createTileRenderer(tileScale, styleJSON) {
           const item = config.datas[parts[2]];
 
           try {
-            let dataTile;
-
-            try {
-              dataTile = await getXYZTile(
-                item.source,
-                z,
-                x,
-                y,
-                item.tileJSON.format
-              );
-            } catch (error) {
-              if (
-                item.sourceURL !== undefined &&
-                error.message === "Tile does not exist"
-              ) {
-                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-                const targetURL = item.sourceURL
-                  .replace("{z}", `${z}`)
-                  .replace("{x}", `${x}`)
-                  .replace("{y}", `${tmpY}`);
-
-                printLog(
-                  "info",
-                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
-                );
-
-                dataTile = await getDataTileFromURL(
-                  targetURL,
-                  30000 // 30 secs
-                );
-
-                if (item.storeCache === true) {
-                  printLog(
-                    "info",
-                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
-                  );
-
-                  cacheXYZTileFile(
-                    item.source,
-                    item.md5Source,
-                    z,
-                    x,
-                    tmpY,
-                    item.tileJSON.format,
-                    dataTile.data,
-                    item.storeTransparent
-                  ).catch((error) =>
-                    printLog(
-                      "error",
-                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                    )
-                  );
-                }
-              } else {
-                throw error;
-              }
-            }
+            const dataTile = await getAndCacheXYZDataTile(parts[2], z, x, y);
 
             if (
               dataTile.headers["content-type"] === "application/x-protobuf" &&
@@ -380,56 +257,12 @@ function createTileRenderer(tileScale, styleJSON) {
           const item = config.datas[parts[2]];
 
           try {
-            let dataTile;
-
-            try {
-              dataTile = await getPostgreSQLTile(item.source, z, x, y);
-            } catch (error) {
-              if (
-                item.sourceURL !== undefined &&
-                error.message === "Tile does not exist"
-              ) {
-                const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-                const targetURL = item.sourceURL
-                  .replace("{z}", `${z}`)
-                  .replace("{x}", `${x}`)
-                  .replace("{y}", `${tmpY}`);
-
-                printLog(
-                  "info",
-                  `Forwarding data "${parts[2]}" - Tile "${tileName}" - To "${targetURL}"...`
-                );
-
-                dataTile = await getDataTileFromURL(
-                  targetURL,
-                  30000 // 30 secs
-                );
-
-                if (item.storeCache === true) {
-                  printLog(
-                    "info",
-                    `Caching data "${parts[2]}" - Tile "${tileName}"...`
-                  );
-
-                  cachePostgreSQLTileData(
-                    item.source,
-                    z,
-                    x,
-                    tmpY,
-                    dataTile.data,
-                    item.storeTransparent
-                  ).catch((error) =>
-                    printLog(
-                      "error",
-                      `Failed to cache data "${parts[2]}" - Tile "${tileName}": ${error}`
-                    )
-                  );
-                }
-              } else {
-                throw error;
-              }
-            }
+            const dataTile = await getAndCachePostgreSQLDataTile(
+              parts[2],
+              z,
+              x,
+              y
+            );
 
             if (
               dataTile.headers["content-type"] === "application/x-protobuf" &&
@@ -1532,58 +1365,7 @@ export async function exportMBTilesTiles(
 
         try {
           // Export data
-          let dataTile;
-
-          try {
-            dataTile = getMBTilesTile(item.source, z, x, y);
-          } catch (error) {
-            if (
-              item.sourceURL !== undefined &&
-              error.message === "Tile does not exist"
-            ) {
-              const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-              const targetURL = item.sourceURL
-                .replace("{z}", `${z}`)
-                .replace("{x}", `${x}`)
-                .replace("{y}", `${tmpY}`);
-
-              printLog(
-                "info",
-                `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
-              );
-
-              /* Get data */
-              dataTile = await getDataTileFromURL(
-                targetURL,
-                30000 // 30 secs
-              );
-
-              /* Cache */
-              if (item.storeCache === true) {
-                printLog(
-                  "info",
-                  `Caching data "${id}" - Tile "${tileName}"...`
-                );
-
-                cacheMBtilesTileData(
-                  item.source,
-                  z,
-                  x,
-                  tmpY,
-                  dataTile.data,
-                  item.storeTransparent
-                ).catch((error) =>
-                  printLog(
-                    "error",
-                    `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-                  )
-                );
-              }
-            } else {
-              throw error;
-            }
-          }
+          const dataTile = await getAndCacheMBTilesDataTile(id, z, x, y);
 
           // Store data
           await cacheMBtilesTileData(
@@ -1813,66 +1595,7 @@ export async function exportXYZTiles(
 
         try {
           // Export data
-          let dataTile;
-
-          try {
-            dataTile = await getXYZTile(
-              item.source,
-              z,
-              x,
-              y,
-              item.tileJSON.format
-            );
-          } catch (error) {
-            if (
-              item.sourceURL !== undefined &&
-              error.message === "Tile does not exist"
-            ) {
-              const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-              const targetURL = item.sourceURL
-                .replace("{z}", `${z}`)
-                .replace("{x}", `${x}`)
-                .replace("{y}", `${tmpY}`);
-
-              printLog(
-                "info",
-                `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
-              );
-
-              /* Get data */
-              dataTile = await getDataTileFromURL(
-                targetURL,
-                30000 // 30 secs
-              );
-
-              /* Cache */
-              if (item.storeCache === true) {
-                printLog(
-                  "info",
-                  `Caching data "${id}" - Tile "${tileName}"...`
-                );
-
-                cacheXYZTileFile(
-                  item.source,
-                  item.md5Source,
-                  z,
-                  x,
-                  tmpY,
-                  item.tileJSON.format,
-                  dataTile.data,
-                  item.storeTransparent
-                ).catch((error) =>
-                  printLog(
-                    "error",
-                    `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-                  )
-                );
-              }
-            } else {
-              throw error;
-            }
-          }
+          const dataTile = await getAndCacheXYZDataTile(id, z, x, y);
 
           // Store data
           await cacheXYZTileFile(
@@ -2102,58 +1825,7 @@ export async function exportPostgreSQLTiles(
 
         try {
           // Export data
-          let dataTile;
-
-          try {
-            dataTile = await getPostgreSQLTile(item.source, z, x, y);
-          } catch (error) {
-            if (
-              item.sourceURL !== undefined &&
-              error.message === "Tile does not exist"
-            ) {
-              const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-              const targetURL = item.sourceURL
-                .replace("{z}", `${z}`)
-                .replace("{x}", `${x}`)
-                .replace("{y}", `${tmpY}`);
-
-              printLog(
-                "info",
-                `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
-              );
-
-              /* Get data */
-              dataTile = await getDataTileFromURL(
-                targetURL,
-                30000 // 30 secs
-              );
-
-              /* Cache */
-              if (item.storeCache === true) {
-                printLog(
-                  "info",
-                  `Caching data "${id}" - Tile "${tileName}"...`
-                );
-
-                cachePostgreSQLTileData(
-                  item.source,
-                  z,
-                  x,
-                  tmpY,
-                  dataTile.data,
-                  item.storeTransparent
-                ).catch((error) =>
-                  printLog(
-                    "error",
-                    `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-                  )
-                );
-              }
-            } else {
-              throw error;
-            }
-          }
+          const dataTile = await getAndCachePostgreSQLDataTile(id, z, x, y);
 
           // Store data
           await cachePostgreSQLTileData(
@@ -2224,6 +1896,329 @@ export async function exportPostgreSQLTiles(
     if (source !== undefined) {
       /* Close PostgreSQL database */
       await closePostgreSQLDB(source);
+    }
+  }
+}
+
+/**
+ * Get and cache MBTiles data tile
+ * @param {string} id Data id
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheMBTilesDataTile(id, z, x, y) {
+  const item = config.datas[id];
+  const tileName = `${z}/${x}/${y}`;
+  let dataTile;
+
+  try {
+    dataTile = getMBTilesTile(item.source, z, x, y);
+  } catch (error) {
+    if (
+      item.sourceURL !== undefined &&
+      error.message === "Tile does not exist"
+    ) {
+      const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+      const targetURL = item.sourceURL
+        .replace("{z}", `${z}`)
+        .replace("{x}", `${x}`)
+        .replace("{y}", `${tmpY}`);
+
+      printLog(
+        "info",
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+      );
+
+      /* Get data */
+      dataTile = await getDataTileFromURL(
+        targetURL,
+        30000 // 30 secs
+      );
+
+      /* Cache */
+      if (item.storeCache === true) {
+        printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+        cacheMBtilesTileData(
+          item.source,
+          z,
+          x,
+          tmpY,
+          dataTile.data,
+          item.storeTransparent
+        ).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+          )
+        );
+      }
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get and cache XYZ data tile
+ * @param {string} id Data id
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheXYZDataTile(id, z, x, y) {
+  const item = config.datas[id];
+  const tileName = `${z}/${x}/${y}`;
+  let dataTile;
+
+  try {
+    dataTile = await getXYZTile(item.source, z, x, y, item.tileJSON.format);
+  } catch (error) {
+    if (
+      item.sourceURL !== undefined &&
+      error.message === "Tile does not exist"
+    ) {
+      const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+      const targetURL = item.sourceURL
+        .replace("{z}", `${z}`)
+        .replace("{x}", `${x}`)
+        .replace("{y}", `${tmpY}`);
+
+      printLog(
+        "info",
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+      );
+
+      /* Get data */
+      dataTile = await getDataTileFromURL(
+        targetURL,
+        30000 // 30 secs
+      );
+
+      /* Cache */
+      if (item.storeCache === true) {
+        printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+        cacheXYZTileFile(
+          item.source,
+          item.md5Source,
+          z,
+          x,
+          tmpY,
+          item.tileJSON.format,
+          dataTile.data,
+          item.storeTransparent
+        ).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+          )
+        );
+      }
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get and cache PostgreSQL data tile
+ * @param {string} id Data id
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {Promise<object>}
+ */
+export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
+  const item = config.datas[id];
+  const tileName = `${z}/${x}/${y}`;
+  let dataTile;
+
+  try {
+    dataTile = await getPostgreSQLTile(item.source, z, x, y);
+  } catch (error) {
+    if (
+      item.sourceURL !== undefined &&
+      error.message === "Tile does not exist"
+    ) {
+      const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+      const targetURL = item.sourceURL
+        .replace("{z}", `${z}`)
+        .replace("{x}", `${x}`)
+        .replace("{y}", `${tmpY}`);
+
+      printLog(
+        "info",
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+      );
+
+      /* Get data */
+      dataTile = await getDataTileFromURL(
+        targetURL,
+        30000 // 30 secs
+      );
+
+      /* Cache */
+      if (item.storeCache === true) {
+        printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+        cachePostgreSQLTileData(
+          item.source,
+          z,
+          x,
+          tmpY,
+          dataTile.data,
+          item.storeTransparent
+        ).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+          )
+        );
+      }
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get and cache data StyleJSON
+ * @param {string} id StyleJSON id
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheDataStyleJSON(id) {
+  const item = config.styles[id];
+  let styleJSON;
+
+  try {
+    styleJSON = await getStyle(item.path, false);
+  } catch (error) {
+    if (
+      item.sourceURL !== undefined &&
+      error.message === "Style does not exist"
+    ) {
+      printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
+
+      styleJSON = await getStyleJSONFromURL(
+        item.sourceURL,
+        30000, // 30 secs
+        false
+      );
+
+      if (item.storeCache === true) {
+        printLog("info", `Caching style "${id}" - File "${item.path}"...`);
+
+        cacheStyleFile(item.path, styleJSON).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache style "${id}" - File "${item.path}": ${error}`
+          )
+        );
+      }
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get and cache data GeoJSON
+ * @param {string} id GeoJSON group id
+ * @param {string} layer GeoJSON group layer
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheDataGeoJSON(id, layer) {
+  const item = config.styles[id];
+  const geoJSONLayer = item[layer];
+  let geoJSON;
+
+  try {
+    geoJSON = await getGeoJSON(geoJSONLayer.path, false);
+  } catch (error) {
+    if (
+      geoJSONLayer.sourceURL !== undefined &&
+      error.message === "GeoJSON does not exist"
+    ) {
+      printLog(
+        "info",
+        `Forwarding GeoJSON "${id}" - To "${geoJSONLayer.sourceURL}"...`
+      );
+
+      geoJSON = await getGeoJSONFromURL(
+        geoJSONLayer.sourceURL,
+        30000, // 30 secs
+        false
+      );
+
+      if (geoJSONLayer.storeCache === true) {
+        printLog(
+          "info",
+          `Caching GeoJSON "${id}" - File "${geoJSONLayer.path}"...`
+        );
+
+        cacheGeoJSONFile(geoJSONLayer.path, geoJSON).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache GeoJSON "${id}" - File "${geoJSONLayer.path}": ${error}`
+          )
+        );
+      }
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get and cache data Sprite
+ * @param {string} id Sprite id
+ * @param {string} fileName Sprite file name
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheDataSprite(id, fileName) {
+  const item = config.styles[id];
+  let sprite;
+
+  try {
+    sprite = await getSprite(id, fileName);
+  } catch (error) {
+    if (
+      item.sourceURL !== undefined &&
+      error.message === "Sprite does not exist"
+    ) {
+      const targetURL = item.sourceURL.replace("/sprite", `/${fileName}`);
+
+      printLog(
+        "info",
+        `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
+      );
+
+      /* Get sprite */
+      sprite = await getSpriteFromURL(
+        targetURL,
+        30000 // 30 secs
+      );
+
+      /* Cache */
+      if (item.storeCache === true) {
+        printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
+
+        cacheSpriteFile(item.source, fileName, sprite).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
+          )
+        );
+      }
+    } else {
+      throw error;
     }
   }
 }

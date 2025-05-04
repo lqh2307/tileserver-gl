@@ -1,6 +1,6 @@
 "use strict";
 
-import { cacheGeoJSONFile, getGeoJSON, getGeoJSONFromURL } from "./geojson.js";
+import { downloadStyleFile, validateStyle, getStyle } from "./style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
@@ -17,18 +17,13 @@ import {
   gzipAsync,
 } from "./utils.js";
 import {
-  getStyleJSONFromURL,
-  downloadStyleFile,
-  cacheStyleFile,
-  validateStyle,
-  getStyle,
-} from "./style.js";
-import {
+  getAndCacheDataStyleJSON,
+  getAndCacheDataGeoJSON,
   renderPostgreSQLTiles,
   renderMBTilesTiles,
   renderImageTile,
   renderXYZTiles,
-} from "./image.js";
+} from "./data.js";
 import os from "os";
 
 /**
@@ -106,48 +101,13 @@ function getStyleHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.styles[id];
-
       /* Check style is used? */
-      if (item === undefined) {
+      if (config.styles[id] === undefined) {
         return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
       }
 
-      let styleJSON;
-
-      /* Get styleJSON and cache if not exist if use cache */
-      try {
-        styleJSON = await getStyle(item.path, false);
-      } catch (error) {
-        if (
-          item.sourceURL !== undefined &&
-          error.message === "Style does not exist"
-        ) {
-          printLog(
-            "info",
-            `Forwarding style "${id}" - To "${item.sourceURL}"...`
-          );
-
-          styleJSON = await getStyleJSONFromURL(
-            item.sourceURL,
-            30000, // 30 secs
-            false
-          );
-
-          if (item.storeCache === true) {
-            printLog("info", `Caching style "${id}" - File "${item.path}"...`);
-
-            cacheStyleFile(item.path, styleJSON).catch((error) =>
-              printLog(
-                "error",
-                `Failed to cache style "${id}" - File "${item.path}": ${error}`
-              )
-            );
-          }
-        } else {
-          throw error;
-        }
-      }
+      /* Get and cache StyleJSON */
+      let styleJSON = await getAndCacheDataStyleJSON(id);
 
       if (req.query.raw !== "true") {
         styleJSON = JSON.parse(styleJSON);
@@ -1325,50 +1285,12 @@ export const serve_style = {
 
                   if (source.data !== undefined) {
                     if (isLocalTileURL(source.data) === true) {
-                      const elements = source.data.split("/");
-                      const item = config.geojsons[elements[2]][elements[3]];
+                      const parts = source.data.split("/");
 
-                      let geoJSON;
-
-                      /* Get geoJSON and Cache if not exist (if use cache) */
-                      try {
-                        geoJSON = await getGeoJSON(item.path, false);
-                      } catch (error) {
-                        if (
-                          item.sourceURL !== undefined &&
-                          error.message === "GeoJSON does not exist"
-                        ) {
-                          printLog(
-                            "info",
-                            `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`
-                          );
-
-                          geoJSON = await getGeoJSONFromURL(
-                            item.sourceURL,
-                            30000, // 30 secs
-                            false
-                          );
-
-                          if (item.storeCache === true) {
-                            printLog(
-                              "info",
-                              `Caching GeoJSON "${id}" - File "${item.path}"...`
-                            );
-
-                            cacheGeoJSONFile(item.path, geoJSON).catch(
-                              (error) =>
-                                printLog(
-                                  "error",
-                                  `Failed to cache GeoJSON "${id}" - File "${item.path}": ${error}`
-                                )
-                            );
-                          }
-                        } else {
-                          throw error;
-                        }
-                      }
-
-                      source.data = geoJSON;
+                      source.data = await getAndCacheDataGeoJSON(
+                        parts[2],
+                        parts[3]
+                      );
                     }
                   }
 

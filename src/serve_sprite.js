@@ -1,16 +1,12 @@
 "use strict";
 
 import { getRequestHost, gzipAsync } from "./utils.js";
+import { getAndCacheDataSprite } from "./data.js";
 import { StatusCodes } from "http-status-codes";
+import { validateSprite } from "./sprite.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import {
-  getSpriteFromURL,
-  cacheSpriteFile,
-  validateSprite,
-  getSprite,
-} from "./sprite.js";
 
 /**
  * Get sprite handler
@@ -18,61 +14,26 @@ import {
  */
 function getSpriteHandler() {
   return async (req, res, next) => {
-    if (["png", "json"].includes(req.params.format) === false) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .send("Sprite format is not support");
-    }
-
     const id = req.params.id;
-    const item = config.sprites[id];
-
-    if (item === undefined) {
-      return res.status(StatusCodes.NOT_FOUND).send("Sprite does not exist");
-    }
 
     try {
-      let data;
-      const fileName = req.url.slice(req.url.lastIndexOf("/") + 1);
-
-      try {
-        data = await getSprite(id, fileName);
-      } catch (error) {
-        if (
-          item.sourceURL !== undefined &&
-          error.message === "Sprite does not exist"
-        ) {
-          const targetURL = item.sourceURL.replace("/sprite", `/${fileName}`);
-
-          printLog(
-            "info",
-            `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
-          );
-
-          /* Get sprite */
-          data = await getSpriteFromURL(
-            targetURL,
-            30000 // 30 secs
-          );
-
-          /* Cache */
-          if (item.storeCache === true) {
-            printLog(
-              "info",
-              `Caching sprite "${id}" - Filename "${fileName}"...`
-            );
-
-            cacheSpriteFile(item.source, fileName, data).catch((error) =>
-              printLog(
-                "error",
-                `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
-              )
-            );
-          }
-        } else {
-          throw error;
-        }
+      /* Check sprite format? */
+      if (["png", "json"].includes(req.params.format) === false) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send("Sprite format is not support");
       }
+
+      /* Check sprite is used? */
+      if (config.sprites[id] === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Sprite does not exist");
+      }
+
+      /* Get and cache Sprite */
+      const sprite = await getAndCacheDataSprite(
+        id,
+        req.url.slice(req.url.lastIndexOf("/") + 1)
+      );
 
       if (req.params.format === "json") {
         res.header("content-type", "application/json");
@@ -80,7 +41,7 @@ function getSpriteHandler() {
         res.header("content-type", "image/png");
       }
 
-      return res.status(StatusCodes.OK).send(data);
+      return res.status(StatusCodes.OK).send(sprite);
     } catch (error) {
       printLog("error", `Failed to get sprite "${id}": ${error}`);
 

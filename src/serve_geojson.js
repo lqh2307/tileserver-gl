@@ -1,5 +1,6 @@
 "use strict";
 
+import { getAndCacheDataGeoJSON } from "./data.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
@@ -7,8 +8,6 @@ import { seed } from "./seed.js";
 import {
   validateAndGetGeometryTypes,
   downloadGeoJSONFile,
-  getGeoJSONFromURL,
-  cacheGeoJSONFile,
   getGeoJSON,
 } from "./geojson.js";
 import {
@@ -28,9 +27,7 @@ function serveGeoJSONGroupHandler() {
     const id = req.params.id;
 
     try {
-      const item = config.geojsons[id];
-
-      if (item === undefined) {
+      if (config.geojsons[id] === undefined) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON group does not exist");
@@ -209,44 +206,8 @@ function getGeoJSONHandler() {
           .send("GeoJSON layer does not exist");
       }
 
-      let geoJSON;
-
-      /* Get geoJSON and Cache if not exist (if use cache) */
-      try {
-        geoJSON = await getGeoJSON(geoJSONLayer.path, false);
-      } catch (error) {
-        if (
-          geoJSONLayer.sourceURL !== undefined &&
-          error.message === "GeoJSON does not exist"
-        ) {
-          printLog(
-            "info",
-            `Forwarding GeoJSON "${id}" - To "${geoJSONLayer.sourceURL}"...`
-          );
-
-          geoJSON = await getGeoJSONFromURL(
-            geoJSONLayer.sourceURL,
-            30000, // 30 secs
-            false
-          );
-
-          if (geoJSONLayer.storeCache === true) {
-            printLog(
-              "info",
-              `Caching GeoJSON "${id}" - File "${geoJSONLayer.path}"...`
-            );
-
-            cacheGeoJSONFile(geoJSONLayer.path, geoJSON).catch((error) =>
-              printLog(
-                "error",
-                `Failed to cache GeoJSON "${id}" - File "${geoJSONLayer.path}": ${error}`
-              )
-            );
-          }
-        } else {
-          throw error;
-        }
-      }
+      /* Get and cache GeoJSON */
+      let geoJSON = await getAndCacheDataGeoJSON(id, req.params.layer);
 
       const headers = {
         "content-type": "application/json",

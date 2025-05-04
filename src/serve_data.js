@@ -8,25 +8,20 @@ import os from "os";
 import {
   getXYZTileExtraInfoFromCoverages,
   calculatXYZTileExtraInfo,
-  cacheXYZTileFile,
   getXYZMetadata,
   openXYZMD5DB,
   validateXYZ,
-  getXYZTile,
 } from "./tile_xyz.js";
 import {
   getMBTilesTileExtraInfoFromCoverages,
   calculateMBTilesTileExtraInfo,
-  cacheMBtilesTileData,
   downloadMBTilesFile,
   getMBTilesMetadata,
   validateMBTiles,
-  getMBTilesTile,
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
   createTileMetadataFromTemplate,
-  getDataTileFromURL,
   processCoverages,
   compileTemplate,
   getRequestHost,
@@ -44,17 +39,18 @@ import {
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   calculatePostgreSQLTileExtraInfo,
-  cachePostgreSQLTileData,
   getPostgreSQLMetadata,
   validatePostgreSQL,
-  getPostgreSQLTile,
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 import {
+  getAndCachePostgreSQLDataTile,
+  getAndCacheMBTilesDataTile,
+  getAndCacheXYZDataTile,
   exportPostgreSQLTiles,
   exportMBTilesTiles,
   exportXYZTiles,
-} from "./image.js";
+} from "./data.js";
 
 /**
  * Serve data handler
@@ -123,164 +119,18 @@ function getDataTileHandler() {
     const y = Number(req.params.y);
     const tileName = `${z}/${x}/${y}`;
 
-    /* Get tile data */
+    /* Get and cache tile data */
     try {
       let dataTile;
 
       if (item.sourceType === "mbtiles") {
-        try {
-          dataTile = getMBTilesTile(item.source, z, x, y);
-        } catch (error) {
-          if (
-            item.sourceURL !== undefined &&
-            error.message === "Tile does not exist"
-          ) {
-            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-            const targetURL = item.sourceURL
-              .replace("{z}", `${z}`)
-              .replace("{x}", `${x}`)
-              .replace("{y}", `${tmpY}`);
-
-            printLog(
-              "info",
-              `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
-            );
-
-            /* Get data */
-            dataTile = await getDataTileFromURL(
-              targetURL,
-              30000 // 30 secs
-            );
-
-            /* Cache */
-            if (item.storeCache === true) {
-              printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
-
-              cacheMBtilesTileData(
-                item.source,
-                z,
-                x,
-                tmpY,
-                dataTile.data,
-                item.storeTransparent
-              ).catch((error) =>
-                printLog(
-                  "error",
-                  `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-                )
-              );
-            }
-          } else {
-            throw error;
-          }
-        }
+        dataTile = await getAndCacheMBTilesDataTile(id, z, x, y);
       } else if (item.sourceType === "pmtiles") {
         dataTile = await getPMTilesTile(item.source, z, x, y);
       } else if (item.sourceType === "xyz") {
-        try {
-          dataTile = await getXYZTile(
-            item.source,
-            z,
-            x,
-            y,
-            item.tileJSON.format
-          );
-        } catch (error) {
-          if (
-            item.sourceURL !== undefined &&
-            error.message === "Tile does not exist"
-          ) {
-            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-            const targetURL = item.sourceURL
-              .replace("{z}", `${z}`)
-              .replace("{x}", `${x}`)
-              .replace("{y}", `${tmpY}`);
-
-            printLog(
-              "info",
-              `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
-            );
-
-            /* Get data */
-            dataTile = await getDataTileFromURL(
-              targetURL,
-              30000 // 30 secs
-            );
-
-            /* Cache */
-            if (item.storeCache === true) {
-              printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
-
-              cacheXYZTileFile(
-                item.source,
-                item.md5Source,
-                z,
-                x,
-                tmpY,
-                item.tileJSON.format,
-                dataTile.data,
-                item.storeTransparent
-              ).catch((error) =>
-                printLog(
-                  "error",
-                  `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-                )
-              );
-            }
-          } else {
-            throw error;
-          }
-        }
+        dataTile = await getAndCacheXYZDataTile(id, z, x, y);
       } else if (item.sourceType === "pg") {
-        try {
-          dataTile = await getPostgreSQLTile(item.source, z, x, y);
-        } catch (error) {
-          if (
-            item.sourceURL !== undefined &&
-            error.message === "Tile does not exist"
-          ) {
-            const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
-
-            const targetURL = item.sourceURL
-              .replace("{z}", `${z}`)
-              .replace("{x}", `${x}`)
-              .replace("{y}", `${tmpY}`);
-
-            printLog(
-              "info",
-              `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
-            );
-
-            /* Get data */
-            dataTile = await getDataTileFromURL(
-              targetURL,
-              30000 // 30 secs
-            );
-
-            /* Cache */
-            if (item.storeCache === true) {
-              printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
-
-              cachePostgreSQLTileData(
-                item.source,
-                z,
-                x,
-                tmpY,
-                dataTile.data,
-                item.storeTransparent
-              ).catch((error) =>
-                printLog(
-                  "error",
-                  `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-                )
-              );
-            }
-          } else {
-            throw error;
-          }
-        }
+        dataTile = await getAndCachePostgreSQLDataTile(id, z, x, y);
       }
 
       /* Gzip pbf data tile */
