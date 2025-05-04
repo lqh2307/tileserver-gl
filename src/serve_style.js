@@ -1,10 +1,15 @@
 "use strict";
 
-import { downloadStyleFile, validateStyle, getStyle } from "./style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
+import {
+  getRenderedStyleJSON,
+  downloadStyleFile,
+  validateStyle,
+  getStyle,
+} from "./style.js";
 import {
   createTileMetadataFromTemplate,
   calculateMD5OfFile,
@@ -460,7 +465,7 @@ function getRenderedTileHandler() {
       const image = await renderImageTile(
         tileScale,
         tileSize,
-        item.rendered.styleJSON,
+        await getRenderedStyleJSON(item.path),
         z,
         x,
         y,
@@ -1251,7 +1256,6 @@ export const serve_style = {
                   name: styleInfo.name,
                   description: styleInfo.name,
                 }),
-                styleJSON: {},
               };
 
               /* Fix center */
@@ -1265,112 +1269,6 @@ export const serve_style = {
                   Math.floor(styleJSON.zoom),
                 ];
               }
-
-              /* Fix sources */
-              await Promise.all(
-                Object.keys(styleJSON.sources).map(async (id) => {
-                  const source = styleJSON.sources[id];
-
-                  if (source.tiles !== undefined) {
-                    const tiles = new Set(
-                      source.tiles.map((tile) => {
-                        if (isLocalTileURL(tile) === true) {
-                          const sourceID = tile.split("/")[2];
-                          const sourceData = config.datas[sourceID];
-
-                          tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
-                        }
-
-                        return tile;
-                      })
-                    );
-
-                    source.tiles = Array.from(tiles);
-                  }
-
-                  if (source.urls !== undefined) {
-                    const otherUrls = [];
-
-                    source.urls.forEach((url) => {
-                      if (isLocalTileURL(url) === true) {
-                        const sourceID = url.split("/")[2];
-                        const sourceData = config.datas[sourceID];
-
-                        const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
-
-                        if (source.tiles !== undefined) {
-                          if (source.tiles.includes(tile) === false) {
-                            source.tiles.push(tile);
-                          }
-                        } else {
-                          source.tiles = [tile];
-                        }
-                      } else {
-                        if (otherUrls.includes(url) === false) {
-                          otherUrls.push(url);
-                        }
-                      }
-                    });
-
-                    if (otherUrls.length === 0) {
-                      delete source.urls;
-                    } else {
-                      source.urls = otherUrls;
-                    }
-                  }
-
-                  if (source.url !== undefined) {
-                    if (isLocalTileURL(source.url) === true) {
-                      const sourceID = source.url.split("/")[2];
-                      const sourceData = config.datas[sourceID];
-
-                      const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
-
-                      if (source.tiles !== undefined) {
-                        if (source.tiles.includes(tile) === false) {
-                          source.tiles.push(tile);
-                        }
-                      } else {
-                        source.tiles = [tile];
-                      }
-
-                      delete source.url;
-                    }
-                  }
-
-                  if (
-                    source.url === undefined &&
-                    source.urls === undefined &&
-                    source.tiles !== undefined
-                  ) {
-                    if (source.tiles.length === 1) {
-                      if (isLocalTileURL(source.tiles[0]) === true) {
-                        const sourceID = source.tiles[0].split("/")[2];
-                        const sourceData = config.datas[sourceID];
-
-                        styleJSON.sources[id] = {
-                          ...sourceData.tileJSON,
-                          ...source,
-                          tiles: [source.tiles[0]],
-                        };
-                      }
-                    }
-                  }
-
-                  // Add atribution
-                  if (
-                    source.attribution &&
-                    rendered.tileJSON.attribution.includes(
-                      source.attribution
-                    ) === false
-                  ) {
-                    rendered.tileJSON.attribution += ` | ${source.attribution}`;
-                  }
-                })
-              );
-
-              /* Add styleJSON */
-              rendered.styleJSON = styleJSON;
 
               /* Add to repo */
               repos[id].rendered = rendered;

@@ -1,8 +1,8 @@
 "use strict";
 
+import { cacheStyleFile, getRenderedStyleJSON, getStyle } from "./style.js";
 import { cacheSpriteFile, getSprite, getSpriteFromURL } from "./sprite.js";
 import { cacheGeoJSONFile, getGeoJSON } from "./geojson.js";
-import { cacheStyleFile, getStyle } from "./style.js";
 import { getPMTilesTile } from "./tile_pmtiles.js";
 import { createPool } from "generic-pool";
 import { printLog } from "./logger.js";
@@ -517,10 +517,10 @@ export async function renderMBTilesTiles(
     };
 
     /* Create renderer pool */
-    const rendered = config.styles[id].rendered;
+    const item = config.styles[id];
     const rendererPool = createPool(
       {
-        create: () => createTileRenderer(tileScale, rendered.styleJSON),
+        create: async () => createTileRenderer(tileScale, item.path),
         destroy: (renderer) => renderer.release(),
       },
       {
@@ -603,7 +603,7 @@ export async function renderMBTilesTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (rendered.export === true) {
+          if (item.rendered.export === true) {
             return;
           }
 
@@ -794,10 +794,10 @@ export async function renderXYZTiles(
     };
 
     /* Create renderer pool */
-    const rendered = config.styles[id].rendered;
+    const item = config.styles[id];
     const rendererPool = createPool(
       {
-        create: () => createTileRenderer(tileScale, rendered.styleJSON),
+        create: async () => createTileRenderer(tileScale, item.path),
         destroy: (renderer) => renderer.release(),
       },
       {
@@ -889,7 +889,7 @@ export async function renderXYZTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (rendered.export === true) {
+          if (item.rendered.export === true) {
             return;
           }
 
@@ -1066,10 +1066,11 @@ export async function renderPostgreSQLTiles(
     };
 
     /* Create renderer pool */
-    const rendered = config.styles[id].rendered;
+    const item = config.styles[id];
     const rendererPool = createPool(
       {
-        create: () => createTileRenderer(tileScale, rendered.styleJSON),
+        create: async () =>
+          createTileRenderer(tileScale, await getRenderedStyleJSON(item.path)),
         destroy: (renderer) => renderer.release(),
       },
       {
@@ -1159,7 +1160,7 @@ export async function renderPostgreSQLTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (rendered.export === true) {
+          if (item.rendered.export === true) {
             return;
           }
 

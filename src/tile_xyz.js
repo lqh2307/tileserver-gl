@@ -451,9 +451,6 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
 export async function getXYZTile(sourcePath, z, x, y, format) {
   try {
     let data = await readFile(`${sourcePath}/${z}/${x}/${y}.${format}`);
-    if (!data) {
-      throw new Error("Tile does not exist");
-    }
 
     data = Buffer.from(data);
 
