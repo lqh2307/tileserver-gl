@@ -239,6 +239,33 @@ export function lonLat4326To3857(lon, lat) {
 }
 
 /**
+ * Convert coordinates from EPSG:3857 (x, y in meters) to EPSG:4326 (lon, lat in degrees)
+ * @param {number} x X in meters (Web Mercator)
+ * @param {number} y Y in meters (Web Mercator)
+ * @returns {[number, number]} Longitude and latitude in degrees
+ */
+export function xy3857ToLonLat4326(x, y) {
+  let lon = (x / 6378137.0) * (180 / Math.PI);
+  let lat = Math.atan(Math.sinh(y / 6378137.0)) * (180 / Math.PI);
+
+  // Limit longitude
+  if (lon > 180) {
+    lon = 180;
+  } else if (lon < -180) {
+    lon = -180;
+  }
+
+  // Limit latitude
+  if (lat > 85.051129) {
+    lat = 85.051129;
+  } else if (lat < -85.051129) {
+    lat = -85.051129;
+  }
+
+  return [lon, lat];
+}
+
+/**
  * Get xyz tile indices from longitude, latitude, and zoom level (tile size = 256)
  * @param {number} lon Longitude in EPSG:4326
  * @param {number} lat Latitude in EPSG:4326
