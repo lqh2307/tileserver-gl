@@ -427,7 +427,7 @@ function getDataMD5Handler() {
  * Download data handler
  * @returns {(req: any, res: any, next: any) => Promise<any>}
  */
-function downloadDataMD5Handler() {
+function downloadDataHandler() {
   return async (req, res, next) => {
     const id = req.params.id;
 
@@ -1029,7 +1029,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/datas/:id/download", downloadDataMD5Handler());
+    app.get("/datas/:id/download", downloadDataHandler());
 
     /**
      * @swagger

@@ -4,12 +4,16 @@ import { validateAndGetGeometryTypes, getGeoJSON } from "./geojson.js";
 import { getAndCacheDataGeoJSON } from "./data.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
+import { createReadStream } from "fs";
 import { config } from "./config.js";
+import { stat } from "fs/promises";
 import { seed } from "./seed.js";
+import path from "path";
 import {
   calculateMD5OfFile,
   compileTemplate,
   getRequestHost,
+  isExistFile,
   gzipAsync,
 } from "./utils.js";
 
@@ -271,6 +275,70 @@ function getGeoJSONMD5Handler() {
       printLog(
         "error",
         `Failed to get md5 of GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
+      );
+
+      if (error.message === "File does not exist") {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Download geoJSON handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function downloadGeoJSONHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.geojsons[id];
+
+      /* Check GeoJSON is used? */
+      if (item === undefined) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send("GeoJSON group does not exist");
+      }
+
+      const geoJSONLayer = item[req.params.layer];
+
+      /* Check GeoJSON layer is used? */
+      if (geoJSONLayer === undefined) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send("GeoJSON layer does not exist");
+      }
+
+      if ((await isExistFile(geoJSONLayer.path)) === true) {
+        const stats = await stat(geoJSONLayer.path);
+        const fileName = path.basename(geoJSONLayer.path);
+
+        res.set({
+          "content-length": stats.size,
+          "content-disposition": `attachment; filename="${fileName}`,
+          "content-type": "application/octet-stream",
+        });
+
+        const readStream = createReadStream(geoJSONLayer.path);
+
+        readStream.pipe(res);
+
+        readStream.on("error", (error) => {
+          throw error;
+        });
+      } else {
+        throw new Error("File does not exist");
+      }
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to get GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
       );
 
       if (error.message === "File does not exist") {
@@ -558,6 +626,53 @@ export const serve_geojson = {
      *         description: Internal server error
      */
     app.get("/geojsons/:id/:layer/md5", getGeoJSONMD5Handler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: GeoJSON
+     *     description: GeoJSON related endpoints
+     * /geojsons/{id}/{layer}/download:
+     *   get:
+     *     tags:
+     *       - GeoJSON
+     *     summary: Download geoJSON file
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the GeoJSON
+     *       - in: path
+     *         name: layer
+     *         schema:
+     *           type: string
+     *           example: layer
+     *         required: true
+     *         description: Layer of the GeoJSON
+     *     responses:
+     *       200:
+     *         description: GeoJSON file
+     *         content:
+     *           application/octet-stream:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/geojsons/:id/:layer/download", downloadGeoJSONHandler());
 
     /* Serve GeoJSON */
     if (process.env.SERVE_FRONT_PAGE !== "false") {
