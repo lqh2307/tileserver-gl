@@ -2,8 +2,11 @@
 
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
+import { createReadStream } from "fs";
 import { config } from "./config.js";
+import { stat } from "fs/promises";
 import { seed } from "./seed.js";
+import path from "path";
 import os from "os";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -25,6 +28,7 @@ import {
   getRequestHost,
   getJSONSchema,
   validateJSON,
+  isExistFile,
   gzipAsync,
 } from "./utils.js";
 import {
@@ -407,6 +411,56 @@ function getDataMD5Handler() {
       return res.status(StatusCodes.OK).send();
     } catch (error) {
       printLog("error", `Failed to get md5 of data "${id}": ${error}`);
+
+      if (error.message === "File does not exist") {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Download data handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function downloadDataMD5Handler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.datas[id];
+
+      /* Check data is used? */
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+      }
+
+      if ((await isExistFile(item.path)) === true) {
+        const stats = await stat(item.path);
+        const fileName = path.basename(item.path);
+
+        res.set({
+          "content-length": stats.size,
+          "content-disposition": `attachment; filename="${fileName}`,
+          "content-type": "application/octet-stream",
+        });
+
+        const readStream = createReadStream(item.path);
+
+        readStream.pipe(res);
+
+        readStream.on("error", (error) => {
+          throw error;
+        });
+      } else {
+        throw new Error("File does not exist");
+      }
+    } catch (error) {
+      printLog("error", `Failed to get data "${id}": ${error}`);
 
       if (error.message === "File does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
@@ -936,6 +990,46 @@ export const serve_data = {
      *         description: Internal server error
      */
     app.get("/datas/:id/md5", getDataMD5Handler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Data
+     *     description: Data related endpoints
+     * /datas/{id}/download:
+     *   get:
+     *     tags:
+     *       - Data
+     *     summary: Download data file
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the data
+     *     responses:
+     *       200:
+     *         description: Data file
+     *         content:
+     *           application/octet-stream:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/datas/:id/download", downloadDataMD5Handler());
 
     /**
      * @swagger
