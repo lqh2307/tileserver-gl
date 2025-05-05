@@ -1,20 +1,15 @@
 "use strict";
 
+import { validateAndGetGeometryTypes, getGeoJSON } from "./geojson.js";
 import { getAndCacheDataGeoJSON } from "./data.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
-  validateAndGetGeometryTypes,
-  downloadGeoJSONFile,
-  getGeoJSON,
-} from "./geojson.js";
-import {
   calculateMD5OfFile,
   compileTemplate,
   getRequestHost,
-  isExistFile,
   gzipAsync,
 } from "./utils.js";
 
@@ -693,45 +688,23 @@ export const serve_geojson = {
                   /* Get GeoJSON path */
                   const geojsonInfo = {};
 
-                  if (
-                    item.geojson.startsWith("https://") === true ||
-                    item.geojson.startsWith("http://") === true
-                  ) {
-                    geojsonInfo.path = `${process.env.DATA_DIR}/geojsons/${id}/geojson.geojson`;
+                  if (item.cache !== undefined) {
+                    geojsonInfo.path = `${process.env.DATA_DIR}/caches/geojsons/${item.geojson}/${item.geojson}.geojson`;
 
-                    /* Download GeoJSON file */
-                    if ((await isExistFile(geojsonInfo.path)) === false) {
-                      printLog(
-                        "info",
-                        `Downloading GeoJSON file "${geojsonInfo.path}" - From "${item.geojson}"...`
-                      );
+                    const cacheSource = seed.geojsons?.[item.geojson];
 
-                      await downloadGeoJSONFile(
-                        item.geojson,
-                        geojsonInfo.path,
-                        5,
-                        300000 // 5 mins
+                    if (cacheSource === undefined) {
+                      throw new Error(
+                        `Cache GeoJSON "${item.geojson}" is invalid`
                       );
+                    }
+
+                    if (item.cache.forward === true) {
+                      geojsonInfo.sourceURL = cacheSource.url;
+                      geojsonInfo.storeCache = item.cache.store;
                     }
                   } else {
-                    if (item.cache !== undefined) {
-                      geojsonInfo.path = `${process.env.DATA_DIR}/caches/geojsons/${item.geojson}/${item.geojson}.geojson`;
-
-                      const cacheSource = seed.geojsons?.[item.geojson];
-
-                      if (cacheSource === undefined) {
-                        throw new Error(
-                          `Cache GeoJSON "${item.geojson}" is invalid`
-                        );
-                      }
-
-                      if (item.cache.forward === true) {
-                        geojsonInfo.sourceURL = cacheSource.url;
-                        geojsonInfo.storeCache = item.cache.store;
-                      }
-                    } else {
-                      geojsonInfo.path = `${process.env.DATA_DIR}/geojsons/${item.geojson}`;
-                    }
+                    geojsonInfo.path = `${process.env.DATA_DIR}/geojsons/${item.geojson}`;
                   }
 
                   /* Load GeoJSON */

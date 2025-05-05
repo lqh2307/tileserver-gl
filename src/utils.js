@@ -1,7 +1,7 @@
 "use strict";
 
+import { createReadStream, createWriteStream } from "node:fs";
 import { StatusCodes } from "http-status-codes";
-import { createReadStream } from "node:fs";
 import { printLog } from "./logger.js";
 import { exec } from "child_process";
 import handlebars from "handlebars";
@@ -189,6 +189,70 @@ export async function postDataToURL(
 
     throw error;
   }
+}
+
+/**
+ * Download file with stream
+ * @param {string} url The URL to download the file from
+ * @param {string} filePath The path where the file will be saved
+ * @param {number} maxTry Number of retry attempts on failure
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<void>}
+ */
+export async function downloadFileWithStream(url, filePath, maxTry, timeout) {
+  await retry(async () => {
+    try {
+      await mkdir(path.dirname(filePath), {
+        recursive: true,
+      });
+
+      const response = await getDataFromURL(url, timeout, "stream");
+
+      const tempFilePath = `${filePath}.tmp`;
+
+      const writer = createWriteStream(tempFilePath);
+
+      response.data.pipe(writer);
+
+      return await new Promise((resolve, reject) => {
+        writer
+          .on("finish", async () => {
+            await rename(tempFilePath, filePath);
+
+            resolve();
+          })
+          .on("error", async (error) => {
+            await rm(tempFilePath, {
+              force: true,
+            });
+
+            reject(error);
+          });
+      });
+    } catch (error) {
+      if (error.statusCode !== undefined) {
+        if (
+          error.statusCode === StatusCodes.NO_CONTENT ||
+          error.statusCode === StatusCodes.NOT_FOUND
+        ) {
+          printLog(
+            "error",
+            `Failed to download file "${filePath}" - From "${url}": ${error}`
+          );
+
+          return;
+        } else {
+          throw new Error(
+            `Failed to download file "${filePath}" - From "${url}": ${error}`
+          );
+        }
+      } else {
+        throw new Error(
+          `Failed to download file "${filePath}" - From "${url}": ${error}`
+        );
+      }
+    }
+  }, maxTry);
 }
 
 /**

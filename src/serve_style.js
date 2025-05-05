@@ -1,15 +1,10 @@
 "use strict";
 
+import { getRenderedStyleJSON, validateStyle, getStyle } from "./style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import {
-  getRenderedStyleJSON,
-  downloadStyleFile,
-  validateStyle,
-  getStyle,
-} from "./style.js";
 import {
   createTileMetadataFromTemplate,
   calculateMD5OfFile,
@@ -18,7 +13,6 @@ import {
   getRequestHost,
   getJSONSchema,
   validateJSON,
-  isExistFile,
   gzipAsync,
 } from "./utils.js";
 import {
@@ -1165,43 +1159,21 @@ export const serve_style = {
 
           /* Serve style */
           try {
-            if (
-              item.style.startsWith("https://") === true ||
-              item.style.startsWith("http://") === true
-            ) {
-              styleInfo.path = `${process.env.DATA_DIR}/styles/${id}/style.json`;
+            if (item.cache !== undefined) {
+              styleInfo.path = `${process.env.DATA_DIR}/caches/styles/${item.style}/style.json`;
 
-              /* Download style.json file */
-              if ((await isExistFile(styleInfo.path)) === false) {
-                printLog(
-                  "info",
-                  `Downloading style file "${styleInfo.path}" - From "${item.style}"...`
-                );
+              const cacheSource = seed.styles?.[item.style];
 
-                await downloadStyleFile(
-                  item.style,
-                  styleInfo.path,
-                  5,
-                  30000 // 30 secs
-                );
+              if (cacheSource === undefined) {
+                throw new Error(`Cache style "${item.style}" is invalid`);
+              }
+
+              if (item.cache.forward === true) {
+                styleInfo.sourceURL = cacheSource.url;
+                styleInfo.storeCache = item.cache.store;
               }
             } else {
-              if (item.cache !== undefined) {
-                styleInfo.path = `${process.env.DATA_DIR}/caches/styles/${item.style}/style.json`;
-
-                const cacheSource = seed.styles?.[item.style];
-
-                if (cacheSource === undefined) {
-                  throw new Error(`Cache style "${item.style}" is invalid`);
-                }
-
-                if (item.cache.forward === true) {
-                  styleInfo.sourceURL = cacheSource.url;
-                  styleInfo.storeCache = item.cache.store;
-                }
-              } else {
-                styleInfo.path = `${process.env.DATA_DIR}/styles/${item.style}`;
-              }
+              styleInfo.path = `${process.env.DATA_DIR}/styles/${item.style}`;
             }
 
             try {
