@@ -53,7 +53,7 @@ let seed;
 if (seed === undefined) {
   try {
     seed = JSON.parse(
-      readFileSync(`${process.env.DATA_DIR}/seed.json`, "utf8")
+      readFileSync(`${process.env.DATA_DIR || "data"}/seed.json`, "utf8")
     );
   } catch (error) {
     printLog("error", `Failed to load seed.json file: ${error}`);

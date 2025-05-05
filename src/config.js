@@ -11,7 +11,7 @@ let config;
 if (config === undefined) {
   try {
     config = JSON.parse(
-      readFileSync(`${process.env.DATA_DIR}/config.json`, "utf8")
+      readFileSync(`${process.env.DATA_DIR || "data"}/config.json`, "utf8")
     );
 
     config.repo = {

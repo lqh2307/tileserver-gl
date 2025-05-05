@@ -1,12 +1,5 @@
 "use strict";
 
-// Store init ENVs
-process.env.DATA_DIR = process.env.DATA_DIR || "data"; // Data dir
-process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
-process.env.RESTART_AFTER_CONFIG_CHANGE =
-  process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
-process.env.LOGGING_TO_FILE = process.env.LOGGING_TO_FILE || "true"; // Logging to file
-
 import { removeOldCacheLocks, runCommand } from "./utils.js";
 import { config, validateConfigFile } from "./config.js";
 import { validateCleanUpFile } from "./cleanup.js";
@@ -15,12 +8,12 @@ import { printLog } from "./logger.js";
 import chokidar from "chokidar";
 import cluster from "cluster";
 import cron from "node-cron";
+import os from "os";
 import {
   cancelTaskInWorker,
   startTaskInWorker,
   startServer,
 } from "./server.js";
-import os from "os";
 
 /**
  * Start cluster server
@@ -28,6 +21,13 @@ import os from "os";
  */
 async function startClusterServer() {
   if (cluster.isPrimary === true) {
+    /* Set default ENVs */
+    process.env.DATA_DIR = process.env.DATA_DIR || "data"; // Data dir
+    process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
+    process.env.RESTART_AFTER_CONFIG_CHANGE =
+      process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
+    process.env.LOGGING_TO_FILE = process.env.LOGGING_TO_FILE || "true"; // Logging to file
+
     let log = `Starting server with:`;
     log += `\n\tData dir: ${process.env.DATA_DIR}`;
     log += `\n\tService name: ${process.env.SERVICE_NAME}`;

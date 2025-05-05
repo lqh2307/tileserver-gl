@@ -13,7 +13,7 @@ if (logger === undefined) {
     },
   ];
 
-  if (process.env.LOGGING_TO_FILE === "true") {
+  if ((process.env.LOGGING_TO_FILE || "true") === "true") {
     streams.push({
       stream: FileStreamRotator.getStream({
         filename: `${process.env.DATA_DIR}/logs/%DATE%.log`,
