@@ -1,11 +1,9 @@
 "use strict";
 
-import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import { createWriteStream } from "node:fs";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
-import path from "node:path";
 import {
   openSQLiteWithTimeout,
   execSQLWithTimeout,
