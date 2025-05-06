@@ -56,7 +56,7 @@ async function getMBTilesLayersFromTiles(source) {
 
     rows.forEach((row) =>
       vectorTileProto.tile
-        .decode(Buffer.from(row.tile_data))
+        .decode(row.tile_data)
         .layers.map((layer) => layer.name)
         .forEach((layer) => layerNames.add(layer))
     );
@@ -449,11 +449,9 @@ export function getMBTilesTile(source, z, x, y) {
     throw new Error("Tile does not exist");
   }
 
-  data = Buffer.from(data.tile_data);
-
   return {
-    data: data,
-    headers: detectFormatAndHeaders(data).headers,
+    data: data.tile_data,
+    headers: detectFormatAndHeaders(data.tile_data).headers,
   };
 }
 

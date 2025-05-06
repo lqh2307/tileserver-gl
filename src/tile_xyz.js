@@ -452,8 +452,6 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
   try {
     let data = await readFile(`${sourcePath}/${z}/${x}/${y}.${format}`);
 
-    data = Buffer.from(data);
-
     return {
       data: data,
       headers: detectFormatAndHeaders(data).headers,

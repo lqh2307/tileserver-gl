@@ -199,11 +199,9 @@ export async function getPMTilesTile(pmtilesSource, z, x, y) {
     throw new Error("Tile does not exist");
   }
 
-  const data = Buffer.from(zxyTile.data);
-
   return {
-    data: data,
-    headers: detectFormatAndHeaders(data).headers,
+    data: zxyTile.data,
+    headers: detectFormatAndHeaders(zxyTile.data).headers,
   };
 }
 
