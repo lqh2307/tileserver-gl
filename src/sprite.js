@@ -171,30 +171,3 @@ export async function getSpriteSize(spriteDirPath) {
 
   return size;
 }
-
-/**
- * Get sprite from a URL
- * @param {string} url The URL to fetch data from
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<object>}
- */
-export async function getSpriteFromURL(url, timeout) {
-  try {
-    const response = await getDataFromURL(url, timeout, "arraybuffer");
-
-    return response.data;
-  } catch (error) {
-    if (error.statusCode !== undefined) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("Sprite does not exist");
-      } else {
-        throw new Error(`Failed to get sprite from "${url}": ${error}`);
-      }
-    } else {
-      throw new Error(`Failed to get sprite from "${url}": ${error}`);
-    }
-  }
-}

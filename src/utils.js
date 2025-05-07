@@ -113,19 +113,15 @@ export async function getDataTileFromURL(url, timeout) {
 }
 
 /**
- * Get JSON from a URL
+ * Get data file from a URL
  * @param {string} url The URL to fetch data from
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} isParse Parse JSON?
- * @returns {Promise<object|Buffer>}
+ * @returns {Promise<Buffer>}
  */
-export async function getJSONFromURL(url, timeout, isParse) {
+export async function getDataFileFromURL(url, timeout) {
   try {
-    const response = await getDataFromURL(
-      url,
-      timeout,
-      isParse === true ? "json" : "arraybuffer"
-    );
+    const response = await getDataFromURL(url, timeout, "arraybuffer");
 
     return response.data;
   } catch (error) {
@@ -134,12 +130,12 @@ export async function getJSONFromURL(url, timeout, isParse) {
         error.statusCode === StatusCodes.NO_CONTENT ||
         error.statusCode === StatusCodes.NOT_FOUND
       ) {
-        throw new Error("JSON does not exist");
+        throw new Error("File does not exist");
       } else {
-        throw new Error(`Failed to get JSON from "${url}": ${error}`);
+        throw new Error(`Failed to get file from "${url}": ${error}`);
       }
     } else {
-      throw new Error(`Failed to get JSON from "${url}": ${error}`);
+      throw new Error(`Failed to get file from "${url}": ${error}`);
     }
   }
 }

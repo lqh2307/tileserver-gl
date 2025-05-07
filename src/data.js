@@ -1,8 +1,8 @@
 "use strict";
 
 import { cacheStyleFile, getRenderedStyleJSON, getStyle } from "./style.js";
-import { cacheSpriteFile, getSprite, getSpriteFromURL } from "./sprite.js";
 import { cacheGeoJSONFile, getGeoJSON } from "./geojson.js";
+import { cacheSpriteFile, getSprite } from "./sprite.js";
 import { getPMTilesTile } from "./tile_pmtiles.js";
 import { createPool } from "generic-pool";
 import { printLog } from "./logger.js";
@@ -34,10 +34,10 @@ import {
   renderImageTileData,
   removeEmptyFolders,
   getDataTileFromURL,
+  getDataFileFromURL,
   getLonLatFromXYZ,
   processCoverages,
   getDataFromURL,
-  getJSONFromURL,
   calculateMD5,
   unzipAsync,
   runCommand,
@@ -519,84 +519,134 @@ export async function renderMBTilesTiles(
     /* Create renderer pool */
     const item = config.styles[id];
     const renderedStyleJSON = await getRenderedStyleJSON(item.path);
-    const rendererPool = createPool(
-      {
-        create: () => createTileRenderer(tileScale, renderedStyleJSON),
-        destroy: (renderer) => renderer.release(),
-      },
-      {
-        min: 1,
-        max: maxRendererPoolSize,
-      }
-    );
+    let pool;
+    let renderMBTilesTileData;
 
-    async function renderMBTilesTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (
-        refreshTimestampType !== "number" ||
-        tileExtraInfo[tileName] === undefined ||
-        tileExtraInfo[tileName] < refreshTimestamp
-      ) {
-        const completeTasks = tasks.completeTasks;
-
-        printLog(
-          "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        try {
-          // Rendered data
-          const isNeedHack = z === 0 && tileSize === 256;
-          const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
-
-          const renderer = await rendererPool.acquire();
-
-          const dataRaw = await new Promise((resolve, reject) => {
-            renderer.render(
-              {
-                zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
-                center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
-                width: hackTileSize,
-                height: hackTileSize,
-              },
-              (error, dataRaw) => {
-                if (renderer !== undefined) {
-                  rendererPool.release(renderer);
-                }
-
-                if (error) {
-                  return reject(error);
-                }
-
-                resolve(dataRaw);
-              }
-            );
-          });
-
-          const data = await renderImageTileData(
-            dataRaw,
-            hackTileSize * tileScale,
-            isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
-            metadata.format
-          );
-
-          if (
-            refreshTimestampType === "boolean" &&
-            tileExtraInfo[tileName] === calculateMD5(data)
-          ) {
-            return;
-          }
-
-          // Store data
-          await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
+    if (maxRendererPoolSize > 0) {
+      pool = createPool(
+        {
+          create: () => createTileRenderer(tileScale, renderedStyleJSON),
+          destroy: (renderer) => renderer.release(),
+        },
+        {
+          min: 1,
+          max: maxRendererPoolSize,
         }
-      }
+      );
+
+      renderMBTilesTileData = async (z, x, y, tasks) => {
+        const tileName = `${z}/${x}/${y}`;
+
+        if (
+          refreshTimestampType !== "number" ||
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
+        ) {
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            // Rendered data
+            const isNeedHack = z === 0 && tileSize === 256;
+            const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+
+            const renderer = await pool.acquire();
+
+            const dataRaw = await new Promise((resolve, reject) => {
+              renderer.render(
+                {
+                  zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+                  center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+                  width: hackTileSize,
+                  height: hackTileSize,
+                },
+                (error, dataRaw) => {
+                  if (renderer !== undefined) {
+                    pool.release(renderer);
+                  }
+
+                  if (error) {
+                    return reject(error);
+                  }
+
+                  resolve(dataRaw);
+                }
+              );
+            });
+
+            const data = await renderImageTileData(
+              dataRaw,
+              hackTileSize * tileScale,
+              isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
+              metadata.format
+            );
+
+            if (
+              refreshTimestampType === "boolean" &&
+              tileExtraInfo[tileName] === calculateMD5(data)
+            ) {
+              return;
+            }
+
+            // Store data
+            await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+      };
+    } else {
+      renderMBTilesTileData = async (z, x, y, tasks) => {
+        const tileName = `${z}/${x}/${y}`;
+
+        if (
+          refreshTimestampType !== "number" ||
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
+        ) {
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            // Rendered data
+            const data = await renderImageTile(
+              tileScale,
+              tileSize,
+              renderedStyleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+
+            if (
+              refreshTimestampType === "boolean" &&
+              tileExtraInfo[tileName] === calculateMD5(data)
+            ) {
+              return;
+            }
+
+            // Store data
+            await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+      };
     }
 
     printLog("info", "Rendering datas...");
@@ -634,8 +684,10 @@ export async function renderMBTilesTiles(
     }
 
     /* Destroy renderer pool */
-    await rendererPool.drain();
-    await rendererPool.clear();
+    if (maxRendererPoolSize > 0) {
+      await pool.drain();
+      await pool.clear();
+    }
 
     /* Create overviews */
     if (createOverview === true) {
@@ -797,93 +849,152 @@ export async function renderXYZTiles(
     /* Create renderer pool */
     const item = config.styles[id];
     const renderedStyleJSON = await getRenderedStyleJSON(item.path);
-    const rendererPool = createPool(
-      {
-        create: () => createTileRenderer(tileScale, renderedStyleJSON),
-        destroy: (renderer) => renderer.release(),
-      },
-      {
-        min: 1,
-        max: maxRendererPoolSize,
-      }
-    );
+    let pool;
+    let renderXYZTileData;
 
-    async function renderXYZTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (
-        refreshTimestampType !== "number" ||
-        tileExtraInfo[tileName] === undefined ||
-        tileExtraInfo[tileName] < refreshTimestamp
-      ) {
-        const completeTasks = tasks.completeTasks;
-
-        printLog(
-          "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        try {
-          // Rendered data
-          const isNeedHack = z === 0 && tileSize === 256;
-          const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
-
-          const renderer = await rendererPool.acquire();
-
-          const dataRaw = await new Promise((resolve, reject) => {
-            renderer.render(
-              {
-                zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
-                center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
-                width: hackTileSize,
-                height: hackTileSize,
-              },
-              (error, dataRaw) => {
-                if (renderer !== undefined) {
-                  rendererPool.release(renderer);
-                }
-
-                if (error) {
-                  return reject(error);
-                }
-
-                resolve(dataRaw);
-              }
-            );
-          });
-
-          const data = await renderImageTileData(
-            dataRaw,
-            hackTileSize * tileScale,
-            isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
-            metadata.format
-          );
-
-          if (
-            refreshTimestampType === "boolean" &&
-            tileExtraInfo[tileName] === calculateMD5(data)
-          ) {
-            return;
-          }
-
-          // Store data
-          await cacheXYZTileFile(
-            sourcePath,
-            source,
-            z,
-            x,
-            y,
-            metadata.format,
-            data,
-            storeTransparent
-          );
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
+    if (maxRendererPoolSize > 0) {
+      pool = createPool(
+        {
+          create: () => createTileRenderer(tileScale, renderedStyleJSON),
+          destroy: (renderer) => renderer.release(),
+        },
+        {
+          min: 1,
+          max: maxRendererPoolSize,
         }
-      }
+      );
+
+      renderXYZTileData = async (z, x, y, tasks) => {
+        const tileName = `${z}/${x}/${y}`;
+
+        if (
+          refreshTimestampType !== "number" ||
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
+        ) {
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            // Rendered data
+            const isNeedHack = z === 0 && tileSize === 256;
+            const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+
+            const renderer = await pool.acquire();
+
+            const dataRaw = await new Promise((resolve, reject) => {
+              renderer.render(
+                {
+                  zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+                  center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+                  width: hackTileSize,
+                  height: hackTileSize,
+                },
+                (error, dataRaw) => {
+                  if (renderer !== undefined) {
+                    pool.release(renderer);
+                  }
+
+                  if (error) {
+                    return reject(error);
+                  }
+
+                  resolve(dataRaw);
+                }
+              );
+            });
+
+            const data = await renderImageTileData(
+              dataRaw,
+              hackTileSize * tileScale,
+              isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
+              metadata.format
+            );
+
+            if (
+              refreshTimestampType === "boolean" &&
+              tileExtraInfo[tileName] === calculateMD5(data)
+            ) {
+              return;
+            }
+
+            // Store data
+            await cacheXYZTileFile(
+              sourcePath,
+              source,
+              z,
+              x,
+              y,
+              metadata.format,
+              data,
+              storeTransparent
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+      };
+    } else {
+      renderXYZTileData = async (z, x, y, tasks) => {
+        const tileName = `${z}/${x}/${y}`;
+
+        if (
+          refreshTimestampType !== "number" ||
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
+        ) {
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            // Rendered data
+            const data = await renderImageTile(
+              tileScale,
+              tileSize,
+              renderedStyleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+
+            if (
+              refreshTimestampType === "boolean" &&
+              tileExtraInfo[tileName] === calculateMD5(data)
+            ) {
+              return;
+            }
+
+            // Store data
+            await cacheXYZTileFile(
+              sourcePath,
+              source,
+              z,
+              x,
+              y,
+              metadata.format,
+              data,
+              storeTransparent
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+      };
     }
 
     printLog("info", "Rendering datas...");
@@ -921,8 +1032,10 @@ export async function renderXYZTiles(
     }
 
     /* Destroy renderer pool */
-    await rendererPool.drain();
-    await rendererPool.clear();
+    if (maxRendererPoolSize > 0) {
+      await pool.drain();
+      await pool.clear();
+    }
 
     /* Remove parent folders if empty */
     await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp)$/);
@@ -1070,91 +1183,148 @@ export async function renderPostgreSQLTiles(
     /* Create renderer pool */
     const item = config.styles[id];
     const renderedStyleJSON = await getRenderedStyleJSON(item.path);
-    const rendererPool = createPool(
-      {
-        create: () => createTileRenderer(tileScale, renderedStyleJSON),
-        destroy: (renderer) => renderer.release(),
-      },
-      {
-        min: 1,
-        max: maxRendererPoolSize,
-      }
-    );
+    let pool;
+    let renderPostgreSQLTileData;
 
-    async function renderPostgreSQLTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (
-        refreshTimestampType !== "number" ||
-        tileExtraInfo[tileName] === undefined ||
-        tileExtraInfo[tileName] < refreshTimestamp
-      ) {
-        const completeTasks = tasks.completeTasks;
-
-        printLog(
-          "info",
-          `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-        );
-
-        try {
-          // Rendered data
-          const isNeedHack = z === 0 && tileSize === 256;
-          const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
-
-          const renderer = await rendererPool.acquire();
-
-          const dataRaw = await new Promise((resolve, reject) => {
-            renderer.render(
-              {
-                zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
-                center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
-                width: hackTileSize,
-                height: hackTileSize,
-              },
-              (error, dataRaw) => {
-                if (renderer !== undefined) {
-                  rendererPool.release(renderer);
-                }
-
-                if (error) {
-                  return reject(error);
-                }
-
-                resolve(dataRaw);
-              }
-            );
-          });
-
-          const data = await renderImageTileData(
-            dataRaw,
-            hackTileSize * tileScale,
-            isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
-            metadata.format
-          );
-
-          if (
-            refreshTimestampType === "boolean" &&
-            tileExtraInfo[tileName] === calculateMD5(data)
-          ) {
-            return;
-          }
-
-          // Store data
-          await cachePostgreSQLTileData(
-            source,
-            z,
-            x,
-            y,
-            data,
-            storeTransparent
-          );
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
+    if (maxRendererPoolSize > 0) {
+      pool = createPool(
+        {
+          create: () => createTileRenderer(tileScale, renderedStyleJSON),
+          destroy: (renderer) => renderer.release(),
+        },
+        {
+          min: 1,
+          max: maxRendererPoolSize,
         }
-      }
+      );
+
+      renderPostgreSQLTileData = async (z, x, y, tasks) => {
+        const tileName = `${z}/${x}/${y}`;
+
+        if (
+          refreshTimestampType !== "number" ||
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
+        ) {
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            // Rendered data
+            const isNeedHack = z === 0 && tileSize === 256;
+            const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+
+            const renderer = await pool.acquire();
+
+            const dataRaw = await new Promise((resolve, reject) => {
+              renderer.render(
+                {
+                  zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+                  center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+                  width: hackTileSize,
+                  height: hackTileSize,
+                },
+                (error, dataRaw) => {
+                  if (renderer !== undefined) {
+                    pool.release(renderer);
+                  }
+
+                  if (error) {
+                    return reject(error);
+                  }
+
+                  resolve(dataRaw);
+                }
+              );
+            });
+
+            const data = await renderImageTileData(
+              dataRaw,
+              hackTileSize * tileScale,
+              isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
+              metadata.format
+            );
+
+            if (
+              refreshTimestampType === "boolean" &&
+              tileExtraInfo[tileName] === calculateMD5(data)
+            ) {
+              return;
+            }
+
+            // Store data
+            await cachePostgreSQLTileData(
+              source,
+              z,
+              x,
+              y,
+              data,
+              storeTransparent
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+      };
+    } else {
+      renderPostgreSQLTileData = async (z, x, y, tasks) => {
+        const tileName = `${z}/${x}/${y}`;
+
+        if (
+          refreshTimestampType !== "number" ||
+          tileExtraInfo[tileName] === undefined ||
+          tileExtraInfo[tileName] < refreshTimestamp
+        ) {
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            // Rendered data
+            const data = await renderImageTile(
+              tileScale,
+              tileSize,
+              renderedStyleJSON,
+              z,
+              x,
+              y,
+              metadata.format
+            );
+
+            if (
+              refreshTimestampType === "boolean" &&
+              tileExtraInfo[tileName] === calculateMD5(data)
+            ) {
+              return;
+            }
+
+            // Store data
+            await cachePostgreSQLTileData(
+              source,
+              z,
+              x,
+              y,
+              data,
+              storeTransparent
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+      };
     }
 
     printLog("info", "Rendering datas...");
@@ -1192,8 +1362,10 @@ export async function renderPostgreSQLTiles(
     }
 
     /* Destroy renderer pool */
-    await rendererPool.drain();
-    await rendererPool.clear();
+    if (maxRendererPoolSize > 0) {
+      await pool.drain();
+      await pool.clear();
+    }
 
     /* Create overviews */
     if (createOverview === true) {
@@ -2124,10 +2296,9 @@ export async function getAndCacheDataStyleJSON(id) {
     ) {
       printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
 
-      const styleJSON = await getJSONFromURL(
+      const styleJSON = await getDataFileFromURL(
         item.sourceURL,
-        30000, // 30 secs
-        false
+        30000 // 30 secs
       );
 
       if (item.storeCache === true) {
@@ -2169,10 +2340,9 @@ export async function getAndCacheDataGeoJSON(id, layer) {
         `Forwarding GeoJSON "${id}" - To "${geoJSONLayer.sourceURL}"...`
       );
 
-      const geoJSON = await getJSONFromURL(
+      const geoJSON = await getDataFileFromURL(
         geoJSONLayer.sourceURL,
-        30000, // 30 secs
-        false
+        30000 // 30 secs
       );
 
       if (geoJSONLayer.storeCache === true) {
@@ -2220,7 +2390,7 @@ export async function getAndCacheDataSprite(id, fileName) {
       );
 
       /* Get sprite */
-      const sprite = await getSpriteFromURL(
+      const sprite = await getDataFileFromURL(
         targetURL,
         30000 // 30 secs
       );
