@@ -112,10 +112,13 @@ npm run server
 ENVs:
 
 ```bash
-DATA_DIR: path_to_data_folder (default: data)
-SERVICE_NAME: service_name (default: tile-server)
-RESTART_AFTER_CONFIG_CHANGE: true/false (default: true)
-LOGGING_TO_FILE: true/false (default: true)
+LISTEN_PORT: service name, will overwrite config.json file (default: 8080)
+DATA_DIR: path to data folder (default: data)
+SERVICE_NAME: service name (default: tile-server)
+RESTART_AFTER_CONFIG_CHANGE: restart server after config file changed, true/false (default: true)
+LOGGING_TO_FILE: loggin to file, true/false (default: true)
+NUM_OF_THREAD: number of threads, will overwrite config.json file (default: num of cpus)
+NUM_OF_PROCESS: number of process, will overwrite config.json file (default: 1)
 ```
 
 ### Run with docker

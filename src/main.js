@@ -57,15 +57,17 @@ async function startClusterServer() {
       process.exit(1);
     }
 
-    const numOfProcess = config.options?.process || 1; // Number of process
-    const numOfThread = config.options?.thread || os.cpus().length; // Number of thread
-
     // Store ENVs
-    process.env.UV_THREADPOOL_SIZE = numOfThread; // For libuv
+    process.env.NUM_OF_PROCESS =
+      process.env.NUM_OF_PROCESS || config.options?.process || 1; // Number of process
+    process.env.UV_THREADPOOL_SIZE =
+      process.env.NUM_OF_THREAD || config.options?.thread || os.cpus().length; // For libuv (Number of thread)
     process.env.POSTGRESQL_BASE_URI =
       config.options?.postgreSQLBaseURI || "postgresql://localhost:5432"; // PostgreSQL base URI
     process.env.SERVE_FRONT_PAGE = config.options?.serveFrontPage || "true"; // Serve front page
     process.env.SERVE_SWAGGER = config.options?.serveSwagger || "true"; // Serve swagger
+    process.env.LISTEN_PORT =
+      process.env.LISTEN_PORT || config.options?.listenPort || 8080; // Server port
 
     // For gdal
     try {
@@ -89,7 +91,7 @@ async function startClusterServer() {
 
     printLog(
       "info",
-      `Starting server with ${numOfProcess} processes - ${numOfThread} threads...`
+      `Starting server with ${process.env.NUM_OF_PROCESS} processes - ${process.env.UV_THREADPOOL_SIZE} threads...`
     );
 
     /* Setup watch config file change */
@@ -139,7 +141,7 @@ async function startClusterServer() {
     /* Fork servers */
     printLog("info", "Creating workers...");
 
-    for (let i = 0; i < numOfProcess; i++) {
+    for (let i = 0; i < Number(process.env.NUM_OF_PROCESS); i++) {
       cluster.fork();
     }
 

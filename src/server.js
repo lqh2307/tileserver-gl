@@ -124,10 +124,10 @@ export async function startServer() {
     serve_prometheus.init(app);
 
     const server = app
-      .listen(config.options?.listenPort || 8080, () => {
+      .listen(Number(process.env.LISTEN_PORT), () => {
         printLog(
           "info",
-          `HTTP server is listening on port "${server.address().port}"...`
+          `HTTP server is listening on port "${process.env.LISTEN_PORT}"...`
         );
       })
       .on("error", (error) => {
