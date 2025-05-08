@@ -15,6 +15,7 @@ import {
 import {
   createCoveragesFromBBoxAndZooms,
   createFileWithLock,
+  createFolders,
   isLocalURL,
 } from "./utils.js";
 
@@ -33,6 +34,25 @@ export async function exportAll(dirPath, options) {
     log += `\n\tOptions: ${JSON.stringify(options)}`;
 
     printLog("info", log);
+
+    // Create folders
+    await createFolders([
+      `${dirPath}/caches/fonts`,
+      `${dirPath}/caches/geojsons`,
+      `${dirPath}/caches/mbtiles`,
+      `${dirPath}/caches/pmtiles`,
+      `${dirPath}/caches/sprites`,
+      `${dirPath}/caches/styles`,
+      `${dirPath}/caches/xyzs`,
+      `${dirPath}/exports`,
+      `${dirPath}/fonts`,
+      `${dirPath}/geojsons`,
+      `${dirPath}/mbtiles`,
+      `${dirPath}/pmtiles`,
+      `${dirPath}/sprites`,
+      `${dirPath}/styles`,
+      `${dirPath}/xyzs`,
+    ]);
 
     // Create config object
     const configObj = {

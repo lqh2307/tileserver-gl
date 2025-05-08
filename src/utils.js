@@ -243,6 +243,21 @@ export async function downloadFileWithStream(url, filePath, timeout) {
 }
 
 /**
+ * Create folders
+ * @param {string[]} dirPaths Create folders
+ * @returns {Promise<void>}
+ */
+export async function createFolders(dirPaths) {
+  await Promise.all(
+    dirPaths.map((dirPath) =>
+      mkdir(dirPath, {
+        recursive: true,
+      })
+    )
+  );
+}
+
+/**
  * Check URL is local?
  * @param {string} url URL to check
  * @returns {boolean}

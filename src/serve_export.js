@@ -4,6 +4,7 @@ import { getJSONSchema, validateJSON } from "./utils.js";
 import { StatusCodes } from "http-status-codes";
 import { exportAll } from "./export_all.js";
 import { printLog } from "./logger.js";
+import { config } from "./config.js";
 
 /**
  * Export all handler
@@ -11,16 +12,53 @@ import { printLog } from "./logger.js";
  */
 function exportAllHandler() {
   return async (req, res, next) => {
-    const id = req.params.id;
-
     try {
-      /* Export all */
       try {
         validateJSON(await getJSONSchema("export_all"), req.body);
       } catch (error) {
         return res
           .status(StatusCodes.BAD_REQUEST)
           .send(`Options is invalid: ${error}`);
+      }
+
+      if (options.styles !== undefined) {
+        for (const styleID of options.styles) {
+          if (config.styles[styleID] === undefined) {
+            return res
+              .status(StatusCodes.NOT_FOUND)
+              .send(`Style id "${styleID}" does not exist`);
+          }
+        }
+      }
+
+      if (options.datas !== undefined) {
+        for (const dataID of options.datas) {
+          if (config.datas[dataID] === undefined) {
+            return res
+              .status(StatusCodes.NOT_FOUND)
+              .send(`Data id "${dataID}" does not exist`);
+          }
+        }
+      }
+
+      if (options.geojsons !== undefined) {
+        for (const group of options.geojsons) {
+          if (config.geojsons[group] === undefined) {
+            return res
+              .status(StatusCodes.NOT_FOUND)
+              .send(`GeoJSON group id "${group}" does not exist`);
+          }
+        }
+      }
+
+      if (options.sprites !== undefined) {
+        for (const spriteID of options.sprites) {
+          if (config.sprites[spriteID] === undefined) {
+            return res
+              .status(StatusCodes.NOT_FOUND)
+              .send(`Sprite id "${spriteID}" does not exist`);
+          }
+        }
       }
 
       exportAll(
