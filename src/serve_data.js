@@ -43,13 +43,15 @@ import {
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
 import {
+  exportPostgreSQLTiles,
+  exportMBTilesTiles,
+  exportXYZTiles,
+} from "./export_data.js";
+import {
   getAndCachePostgreSQLDataTile,
   getAndCacheMBTilesDataTile,
   getAndCacheXYZDataTile,
-  exportPostgreSQLTiles,
   validateTileMetadata,
-  exportMBTilesTiles,
-  exportXYZTiles,
 } from "./data.js";
 
 /**
@@ -270,7 +272,8 @@ function exportDataHandler() {
             case "xyz": {
               exportXYZTiles(
                 id,
-                req.body.id,
+                `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}`,
+                `${sourcePath}/${req.body.id}.sqlite`,
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,
@@ -292,7 +295,7 @@ function exportDataHandler() {
             case "mbtiles": {
               exportMBTilesTiles(
                 id,
-                req.body.id,
+                `${process.env.DATA_DIR}/exports/datas/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,
@@ -314,7 +317,7 @@ function exportDataHandler() {
             case "pg": {
               exportPostgreSQLTiles(
                 id,
-                req.body.id,
+                `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,

@@ -1,10 +1,12 @@
 "use strict";
 
 import { getRenderedStyleJSON, validateStyle, getStyle } from "./style.js";
+import { getAndCacheDataStyleJSON } from "./data.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
+import os from "os";
 import {
   createTileMetadataFromTemplate,
   calculateMD5OfFile,
@@ -16,13 +18,11 @@ import {
   gzipAsync,
 } from "./utils.js";
 import {
-  getAndCacheDataStyleJSON,
   renderPostgreSQLTiles,
   renderMBTilesTiles,
   renderImageTile,
   renderXYZTiles,
-} from "./data.js";
-import os from "os";
+} from "./render_style.js";
 
 /**
  * Serve style handler
@@ -283,7 +283,7 @@ function renderStyleHandler() {
                 req.body.tileScale || 1,
                 req.body.tileSize || 256,
                 req.body.coverages,
-                req.body.maxRendererPoolSize || os.cpus().length,
+                req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent || false,
                 req.body.createOverview || false,
@@ -309,7 +309,7 @@ function renderStyleHandler() {
                 req.body.tileScale || 1,
                 req.body.tileSize || 256,
                 req.body.coverages,
-                req.body.maxRendererPoolSize || os.cpus().length,
+                req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent || false,
                 req.body.createOverview || false,
@@ -335,7 +335,7 @@ function renderStyleHandler() {
                 req.body.tileScale || 1,
                 req.body.tileSize || 256,
                 req.body.coverages,
-                req.body.maxRendererPoolSize || os.cpus().length,
+                req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent || false,
                 req.body.createOverview || false,
