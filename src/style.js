@@ -9,7 +9,7 @@ import {
   removeFileWithLock,
   createFileWithLock,
   getDataFromURL,
-  isLocalTileURL,
+  isLocalURL,
   retry,
 } from "./utils.js";
 
@@ -105,10 +105,7 @@ export async function validateStyle(styleJSON) {
   /* Validate sprite */
   if (styleJSON.sprite !== undefined) {
     if (styleJSON.sprite.startsWith("sprites://") === true) {
-      const spriteID = styleJSON.sprite.slice(
-        10,
-        styleJSON.sprite.lastIndexOf("/")
-      );
+      const spriteID = styleJSON.sprite.split("/")[2];
 
       if (config.sprites[spriteID] === undefined) {
         throw new Error(`Sprite "${spriteID}" is not found`);
@@ -127,25 +124,25 @@ export async function validateStyle(styleJSON) {
       const source = styleJSON.sources[id];
 
       if (source.data !== undefined) {
-        if (isLocalTileURL(source.data) === true) {
-          const elements = source.data.split("/");
+        if (isLocalURL(source.data) === true) {
+          const parts = source.data.split("/");
 
-          if (config.geojsons[elements[2]] === undefined) {
+          if (config.geojsons[parts[2]] === undefined) {
             throw new Error(
-              `Source "${id}" is not found data source "${elements[2]}"`
+              `Source "${id}" is not found data source "${parts[2]}"`
             );
           }
 
-          if (config.geojsons[elements[2]][elements[3]] === undefined) {
+          if (config.geojsons[parts[2]][parts[3]] === undefined) {
             throw new Error(
-              `Source "${id}" is not found data source "${elements[3]}"`
+              `Source "${id}" is not found data source "${parts[3]}"`
             );
           }
         }
       }
 
       if (source.url !== undefined) {
-        if (isLocalTileURL(source.url) === true) {
+        if (isLocalURL(source.url) === true) {
           const sourceID = source.url.split("/")[2];
 
           if (config.datas[sourceID] === undefined) {
@@ -167,7 +164,7 @@ export async function validateStyle(styleJSON) {
         }
 
         source.urls.forEach((url) => {
-          if (isLocalTileURL(url) === true) {
+          if (isLocalURL(url) === true) {
             const sourceID = url.split("/")[2];
 
             if (config.datas[sourceID] === undefined) {
@@ -190,7 +187,7 @@ export async function validateStyle(styleJSON) {
         }
 
         source.tiles.forEach((tile) => {
-          if (isLocalTileURL(tile) === true) {
+          if (isLocalURL(tile) === true) {
             const sourceID = tile.split("/")[2];
 
             if (config.datas[sourceID] === undefined) {
@@ -213,18 +210,11 @@ export async function validateStyle(styleJSON) {
 /**
  * Get style
  * @param {string} filePath
- * @param {boolean} isParse Parse JSON?
- * @returns {Promise<object|Buffer>}
+ * @returns {Promise<Buffer>}
  */
-export async function getStyle(filePath, isParse) {
+export async function getStyle(filePath) {
   try {
-    const data = await readFile(filePath);
-
-    if (isParse === true) {
-      return JSON.parse(data);
-    } else {
-      return data;
-    }
+    return await readFile(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error("JSON does not exist");
@@ -250,7 +240,7 @@ export async function getRenderedStyleJSON(filePath) {
         if (source.tiles !== undefined) {
           const tiles = new Set(
             source.tiles.map((tile) => {
-              if (isLocalTileURL(tile) === true) {
+              if (isLocalURL(tile) === true) {
                 const sourceID = tile.split("/")[2];
                 const sourceData = config.datas[sourceID];
 
@@ -268,7 +258,7 @@ export async function getRenderedStyleJSON(filePath) {
           const otherUrls = [];
 
           source.urls.forEach((url) => {
-            if (isLocalTileURL(url) === true) {
+            if (isLocalURL(url) === true) {
               const sourceID = url.split("/")[2];
               const sourceData = config.datas[sourceID];
 
@@ -296,7 +286,7 @@ export async function getRenderedStyleJSON(filePath) {
         }
 
         if (source.url !== undefined) {
-          if (isLocalTileURL(source.url) === true) {
+          if (isLocalURL(source.url) === true) {
             const sourceID = source.url.split("/")[2];
             const sourceData = config.datas[sourceID];
 
@@ -320,7 +310,7 @@ export async function getRenderedStyleJSON(filePath) {
           source.tiles !== undefined
         ) {
           if (source.tiles.length === 1) {
-            if (isLocalTileURL(source.tiles[0]) === true) {
+            if (isLocalURL(source.tiles[0]) === true) {
               const sourceID = source.tiles[0].split("/")[2];
               const sourceData = config.datas[sourceID];
 

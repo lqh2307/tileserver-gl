@@ -7,6 +7,7 @@ import { serve_geojson } from "./serve_geojson.js";
 import { serve_swagger } from "./serve_swagger.js";
 import { serve_common } from "./serve_common.js";
 import { serve_sprite } from "./serve_sprite.js";
+import { serve_export } from "./serve_export.js";
 import { serve_style } from "./serve_style.js";
 import { Worker } from "node:worker_threads";
 import { serve_font } from "./serve_font.js";
@@ -139,6 +140,7 @@ export async function startServer() {
 
     /* Register service handlers */
     serve_summary.init(app);
+    serve_export.init(app);
     serve_data.init(app);
     serve_geojson.init(app);
     serve_font.init(app);

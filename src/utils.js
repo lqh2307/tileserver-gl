@@ -116,7 +116,6 @@ export async function getDataTileFromURL(url, timeout) {
  * Get data file from a URL
  * @param {string} url The URL to fetch data from
  * @param {number} timeout Timeout in milliseconds
- * @param {boolean} isParse Parse JSON?
  * @returns {Promise<Buffer>}
  */
 export async function getDataFileFromURL(url, timeout) {
@@ -244,11 +243,11 @@ export async function downloadFileWithStream(url, filePath, timeout) {
 }
 
 /**
- * Check tile URL is local?
- * @param {string} url URL tile to check
+ * Check URL is local?
+ * @param {string} url URL to check
  * @returns {boolean}
  */
-export function isLocalTileURL(url) {
+export function isLocalURL(url) {
   if (typeof url !== "string") {
     return false;
   }
@@ -590,6 +589,26 @@ export function processCoverages(coverages, limitedBBox) {
       bbox: bbox,
     };
   });
+}
+
+/**
+ * Create coverages from bbox and zooms
+ * @param {[number, number, number, number]} bbox Bounding box
+ * @param {number} minZoom Minzoom
+ * @param {number} maxZoom Minzoom
+ * @returns {{ minZoom: number, maxZoom: number, bbox: [number, number, number, number] }}
+ */
+export function createCoveragesFromBBoxAndZooms(bbox, minZoom, maxZoom) {
+  const coverages = [];
+
+  for (let zoom = minZoom; zoom <= maxZoom; zoom++) {
+    coverages.push({
+      zoom: zoom,
+      bbox: bbox,
+    });
+  }
+
+  return coverages;
 }
 
 /**

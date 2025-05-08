@@ -883,7 +883,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
             timeout,
             "arraybuffer"
           ),
-          getGeoJSON(filePath, false),
+          getGeoJSON(filePath),
         ]);
 
         if (
@@ -1208,7 +1208,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
             timeout,
             "arraybuffer"
           ),
-          getStyle(filePath, false),
+          getStyle(filePath),
         ]);
 
         if (

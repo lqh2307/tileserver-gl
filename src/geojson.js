@@ -75,18 +75,11 @@ export async function cacheGeoJSONFile(filePath, data) {
 /**
  * Get GeoJSON
  * @param {string} filePath
- * @param {boolean} isParse Parse JSON?
- * @returns {Promise<object|Buffer>}
+ * @returns {Promise<Buffer>}
  */
-export async function getGeoJSON(filePath, isParse) {
+export async function getGeoJSON(filePath) {
   try {
-    const data = await readFile(filePath);
-
-    if (isParse === true) {
-      return JSON.parse(data);
-    } else {
-      return data;
-    }
+    return await readFile(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error("JSON does not exist");

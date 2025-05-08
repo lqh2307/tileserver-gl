@@ -11,10 +11,10 @@ import {
   createTileMetadataFromTemplate,
   calculateMD5OfFile,
   compileTemplate,
-  isLocalTileURL,
   getRequestHost,
   getJSONSchema,
   validateJSON,
+  isLocalURL,
   gzipAsync,
 } from "./utils.js";
 import {
@@ -139,16 +139,16 @@ function getStyleHandler() {
 
             // Fix geoJSON URL
             if (source.data !== undefined) {
-              if (isLocalTileURL(source.data) === true) {
-                const elements = source.data.split("/");
+              if (isLocalURL(source.data) === true) {
+                const parts = source.data.split("/");
 
-                source.data = `${requestHost}/geojsons/${elements[2]}/${elements[3]}.geojson`;
+                source.data = `${requestHost}/geojsons/${parts[2]}/${parts[3]}.geojson`;
               }
             }
 
             // Fix tileJSON URL
             if (source.url !== undefined) {
-              if (isLocalTileURL(source.url) === true) {
+              if (isLocalURL(source.url) === true) {
                 const sourceID = source.url.split("/")[2];
 
                 source.url = `${requestHost}/datas/${sourceID}.json`;
@@ -159,7 +159,7 @@ function getStyleHandler() {
             if (source.urls !== undefined) {
               const urls = new Set(
                 source.urls.map((url) => {
-                  if (isLocalTileURL(url) === true) {
+                  if (isLocalURL(url) === true) {
                     const sourceID = url.split("/")[2];
 
                     url = `${requestHost}/datas/${sourceID}.json`;
@@ -176,7 +176,7 @@ function getStyleHandler() {
             if (source.tiles !== undefined) {
               const tiles = new Set(
                 source.tiles.map((tile) => {
-                  if (isLocalTileURL(tile) === true) {
+                  if (isLocalURL(tile) === true) {
                     const sourceID = tile.split("/")[2];
                     const sourceData = config.datas[sourceID];
 
@@ -279,14 +279,14 @@ function renderStyleHandler() {
               renderXYZTiles(
                 id,
                 `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}`,
-                `${sourcePath}/${req.body.id}.sqlite`,
+                `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}/${req.body.id}.sqlite`,
                 req.body.metadata,
                 req.body.tileScale || 1,
                 req.body.tileSize || 256,
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || false,
+                req.body.storeTransparent || true,
                 req.body.createOverview || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
@@ -312,7 +312,7 @@ function renderStyleHandler() {
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || false,
+                req.body.storeTransparent || true,
                 req.body.createOverview || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
@@ -338,7 +338,7 @@ function renderStyleHandler() {
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || false,
+                req.body.storeTransparent || true,
                 req.body.createOverview || false,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
@@ -1179,7 +1179,7 @@ export const serve_style = {
 
             try {
               /* Read style.json file */
-              styleJSON = await getStyle(styleInfo.path, true);
+              styleJSON = JSON.parse(await getStyle(styleInfo.path));
 
               /* Validate style */
               await validateStyle(styleJSON);

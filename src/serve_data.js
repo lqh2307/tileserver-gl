@@ -273,11 +273,11 @@ function exportDataHandler() {
               exportXYZTiles(
                 id,
                 `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}`,
-                `${sourcePath}/${req.body.id}.sqlite`,
+                `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}/${req.body.id}.sqlite`,
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || false,
+                req.body.storeTransparent || true,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5
@@ -299,7 +299,7 @@ function exportDataHandler() {
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || false,
+                req.body.storeTransparent || true,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5
@@ -321,7 +321,7 @@ function exportDataHandler() {
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || false,
+                req.body.storeTransparent || true,
                 req.body.refreshBefore?.time ||
                   req.body.refreshBefore?.day ||
                   req.body.refreshBefore?.md5

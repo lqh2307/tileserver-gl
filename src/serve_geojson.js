@@ -825,7 +825,9 @@ export const serve_geojson = {
                   /* Load GeoJSON */
                   try {
                     /* Open GeoJSON */
-                    const geoJSON = await getGeoJSON(geojsonInfo.path, true);
+                    const geoJSON = JSON.parse(
+                      await getGeoJSON(geojsonInfo.path)
+                    );
 
                     /* Validate and Get GeoJSON info */
                     geojsonInfo.geometryTypes =

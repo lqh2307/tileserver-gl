@@ -545,7 +545,7 @@ export async function runTasks(opts) {
                       seedDataItem.concurrency || os.cpus().length,
                       seedDataItem.maxTry || 5,
                       seedDataItem.timeout || 60000,
-                      seedDataItem.storeTransparent || false,
+                      seedDataItem.storeTransparent || true,
                       seedDataItem.refreshBefore?.time ||
                         seedDataItem.refreshBefore?.day ||
                         seedDataItem.refreshBefore?.md5
@@ -564,7 +564,7 @@ export async function runTasks(opts) {
                       seedDataItem.concurrency || os.cpus().length,
                       seedDataItem.maxTry || 5,
                       seedDataItem.timeout || 60000,
-                      seedDataItem.storeTransparent || false,
+                      seedDataItem.storeTransparent || true,
                       seedDataItem.refreshBefore?.time ||
                         seedDataItem.refreshBefore?.day ||
                         seedDataItem.refreshBefore?.md5
@@ -583,7 +583,7 @@ export async function runTasks(opts) {
                       seedDataItem.concurrency || os.cpus().length,
                       seedDataItem.maxTry || 5,
                       seedDataItem.timeout || 60000,
-                      seedDataItem.storeTransparent || false,
+                      seedDataItem.storeTransparent || true,
                       seedDataItem.refreshBefore?.time ||
                         seedDataItem.refreshBefore?.day ||
                         seedDataItem.refreshBefore?.md5

@@ -213,7 +213,7 @@ export async function getAndCacheDataStyleJSON(id) {
   const item = config.styles[id];
 
   try {
-    return await getStyle(item.path, false);
+    return await getStyle(item.path);
   } catch (error) {
     if (
       item.sourceURL !== undefined &&
@@ -254,7 +254,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
   const geoJSONLayer = config.geojsons[id][layer];
 
   try {
-    return await getGeoJSON(geoJSONLayer.path, false);
+    return await getGeoJSON(geoJSONLayer.path);
   } catch (error) {
     if (
       geoJSONLayer.sourceURL !== undefined &&
