@@ -25,13 +25,15 @@ import {
  * @param {object} options Export options object
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
+ * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
 export async function exportAll(
   dirPath,
   options,
   concurrency,
-  storeTransparent
+  storeTransparent,
+  refreshBefore
 ) {
   const startTime = Date.now();
 
@@ -209,7 +211,7 @@ export async function exportAll(
                       coverages,
                       concurrency,
                       storeTransparent,
-                      undefined
+                      refreshBefore
                     );
 
                     configObj.datas[dataID] = {
@@ -253,7 +255,7 @@ export async function exportAll(
                       coverages,
                       concurrency,
                       storeTransparent,
-                      undefined
+                      refreshBefore
                     );
 
                     configObj.datas[dataID] = {
@@ -297,7 +299,7 @@ export async function exportAll(
                       coverages,
                       concurrency,
                       storeTransparent,
-                      undefined
+                      refreshBefore
                     );
 
                     configObj.datas[dataID] = {
@@ -401,7 +403,7 @@ export async function exportAll(
               coverages,
               concurrency,
               storeTransparent,
-              undefined
+              refreshBefore
             );
 
             configObj.datas[dataID] = {
@@ -445,7 +447,7 @@ export async function exportAll(
               coverages,
               concurrency,
               storeTransparent,
-              undefined
+              refreshBefore
             );
 
             configObj.datas[dataID] = {
@@ -489,7 +491,7 @@ export async function exportAll(
               coverages,
               concurrency,
               storeTransparent,
-              undefined
+              refreshBefore
             );
 
             configObj.datas[dataID] = {

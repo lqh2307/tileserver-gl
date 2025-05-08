@@ -74,6 +74,33 @@
     },
     "storeTransparent": {
       "type": "boolean"
+    },
+    "refreshBefore": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "string",
+          "minLength": 1
+        },
+        "day": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "md5": {
+          "type": "boolean"
+        }
+      },
+      "anyOf": [
+        {
+          "required": ["time"]
+        },
+        {
+          "required": ["day"]
+        },
+        {
+          "required": ["md5"]
+        }
+      ]
     }
   },
   "required": ["id"]
