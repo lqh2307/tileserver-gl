@@ -21,8 +21,8 @@ function exportAllHandler() {
           .send(`Options is invalid: ${error}`);
       }
 
-      if (options.styles !== undefined) {
-        for (const styleID of options.styles) {
+      if (req.body.styles !== undefined) {
+        for (const styleID of req.body.styles) {
           if (config.styles[styleID] === undefined) {
             return res
               .status(StatusCodes.NOT_FOUND)
@@ -31,8 +31,8 @@ function exportAllHandler() {
         }
       }
 
-      if (options.datas !== undefined) {
-        for (const dataID of options.datas) {
+      if (req.body.datas !== undefined) {
+        for (const dataID of req.body.datas) {
           if (config.datas[dataID] === undefined) {
             return res
               .status(StatusCodes.NOT_FOUND)
@@ -41,8 +41,8 @@ function exportAllHandler() {
         }
       }
 
-      if (options.geojsons !== undefined) {
-        for (const group of options.geojsons) {
+      if (req.body.geojsons !== undefined) {
+        for (const group of req.body.geojsons) {
           if (config.geojsons[group] === undefined) {
             return res
               .status(StatusCodes.NOT_FOUND)
@@ -51,8 +51,8 @@ function exportAllHandler() {
         }
       }
 
-      if (options.sprites !== undefined) {
-        for (const spriteID of options.sprites) {
+      if (req.body.sprites !== undefined) {
+        for (const spriteID of req.body.sprites) {
           if (config.sprites[spriteID] === undefined) {
             return res
               .status(StatusCodes.NOT_FOUND)
