@@ -5,6 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import { exportAll } from "./export_all.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
+import os from "os";
 
 /**
  * Export all handler
@@ -63,7 +64,9 @@ function exportAllHandler() {
 
       exportAll(
         `${process.env.DATA_DIR}/exports/alls/${req.body.id}`,
-        req.body
+        req.body,
+        req.body.concurrency || os.cpus().length,
+        req.body.storeTransparent ?? true
       );
 
       return res.status(StatusCodes.CREATED).send("OK");

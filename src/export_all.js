@@ -23,9 +23,16 @@ import {
  * Export all
  * @param {string} dirPath Exported dir path
  * @param {object} options Export options object
+ * @param {number} concurrency Concurrency to download
+ * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
-export async function exportAll(dirPath, options) {
+export async function exportAll(
+  dirPath,
+  options,
+  concurrency,
+  storeTransparent
+) {
   const startTime = Date.now();
 
   try {
@@ -200,8 +207,8 @@ export async function exportAll(dirPath, options) {
                       `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
                       dataItem.tileJSON,
                       coverages,
-                      256,
-                      true,
+                      concurrency,
+                      storeTransparent,
                       undefined
                     );
 
@@ -244,8 +251,8 @@ export async function exportAll(dirPath, options) {
                       `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
                       dataItem.tileJSON,
                       coverages,
-                      256,
-                      true,
+                      concurrency,
+                      storeTransparent,
                       undefined
                     );
 
@@ -288,8 +295,8 @@ export async function exportAll(dirPath, options) {
                       `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
                       dataItem.tileJSON,
                       coverages,
-                      256,
-                      true,
+                      concurrency,
+                      storeTransparent,
                       undefined
                     );
 
@@ -392,8 +399,8 @@ export async function exportAll(dirPath, options) {
               `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
               dataItem.tileJSON,
               coverages,
-              256,
-              true,
+              concurrency,
+              storeTransparent,
               undefined
             );
 
@@ -436,8 +443,8 @@ export async function exportAll(dirPath, options) {
               `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
               dataItem.tileJSON,
               coverages,
-              256,
-              true,
+              concurrency,
+              storeTransparent,
               undefined
             );
 
@@ -480,8 +487,8 @@ export async function exportAll(dirPath, options) {
               `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
               dataItem.tileJSON,
               coverages,
-              256,
-              true,
+              concurrency,
+              storeTransparent,
               undefined
             );
 

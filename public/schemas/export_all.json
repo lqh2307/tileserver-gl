@@ -67,6 +67,13 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "concurrency": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "storeTransparent": {
+      "type": "boolean"
     }
   },
   "required": ["id"]
