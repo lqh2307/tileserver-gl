@@ -396,8 +396,8 @@ export async function exportAll(dirPath, options) {
             await exportMBTilesTiles(
               sourceID,
               `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
+              dataItem.tileJSON,
               coverages,
-              req.body.coverages,
               256,
               true,
               undefined
