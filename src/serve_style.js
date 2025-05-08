@@ -274,6 +274,11 @@ function renderStyleHandler() {
 
           item.export = false;
 
+          const refreshBefore =
+            req.body.refreshBefore?.time ||
+            req.body.refreshBefore?.day ||
+            req.body.refreshBefore?.md5;
+
           switch (req.body.storeType) {
             case "xyz": {
               renderXYZTiles(
@@ -286,11 +291,9 @@ function renderStyleHandler() {
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || true,
-                req.body.createOverview || false,
-                req.body.refreshBefore?.time ||
-                  req.body.refreshBefore?.day ||
-                  req.body.refreshBefore?.md5
+                req.body.storeTransparent ?? true,
+                req.body.createOverview ?? false,
+                refreshBefore
               )
                 .catch((error) => {
                   printLog("error", `Failed to render style "${id}": ${error}`);
@@ -312,11 +315,9 @@ function renderStyleHandler() {
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || true,
-                req.body.createOverview || false,
-                req.body.refreshBefore?.time ||
-                  req.body.refreshBefore?.day ||
-                  req.body.refreshBefore?.md5
+                req.body.storeTransparent ?? true,
+                req.body.createOverview ?? false,
+                refreshBefore
               )
                 .catch((error) => {
                   printLog("error", `Failed to render style "${id}": ${error}`);
@@ -338,11 +339,9 @@ function renderStyleHandler() {
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || true,
-                req.body.createOverview || false,
-                req.body.refreshBefore?.time ||
-                  req.body.refreshBefore?.day ||
-                  req.body.refreshBefore?.md5
+                req.body.storeTransparent ?? true,
+                req.body.createOverview ?? false,
+                refreshBefore
               )
                 .catch((error) => {
                   printLog("error", `Failed to render style "${id}": ${error}`);
@@ -364,7 +363,7 @@ function renderStyleHandler() {
       if (error instanceof SyntaxError) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send("option parameter is invalid");
+          .send("Options parameter is invalid");
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

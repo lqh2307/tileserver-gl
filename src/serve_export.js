@@ -35,7 +35,7 @@ function exportAllHandler() {
       if (error instanceof SyntaxError) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send("option parameter is invalid");
+          .send("Options parameter is invalid");
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

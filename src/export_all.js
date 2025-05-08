@@ -37,14 +37,19 @@ export async function exportAll(dirPath, options) {
     // Create config object
     const configObj = {
       options: {
-        listenPort: options.listenPort || 8080,
-        serveFrontPage: options.serveFrontPage || true,
-        serveSwagger: options.serveSwagger || true,
+        listenPort: options.listenPort ?? 8080,
+        serveFrontPage: options.serveFrontPage ?? true,
+        serveSwagger: options.serveSwagger ?? true,
         taskSchedule: options.taskSchedule,
         postgreSQLBaseURI: options.postgreSQLBaseURI,
-        process: options.process || 2,
-        thread: options.thread || 16,
+        process: options.process ?? 2,
+        thread: options.thread ?? 16,
       },
+      styles: {},
+      geojsons: {},
+      datas: {},
+      sprites: {},
+      fonts: {},
     };
 
     // Create seed object
@@ -100,7 +105,9 @@ export async function exportAll(dirPath, options) {
             center: style.center,
           },
           url: `http://localhost:8080/styles/${styleID}/style.json`,
-          refreshBefore: "2025-01-01T00:00:00",
+          refreshBefore: {
+            md5: true,
+          },
           timeout: 300000,
           maxTry: 5,
           skip: false,
@@ -139,7 +146,9 @@ export async function exportAll(dirPath, options) {
 
               seedObj.geojsons[geojsonFolder] = {
                 url: `http://localhost:8080/geojsons/${parts[2]}/${parts[3]}.geojson`,
-                refreshBefore: "2025-01-01T00:00:00",
+                refreshBefore: {
+                  md5: true,
+                },
                 timeout: 300000,
                 maxTry: 5,
                 skip: false,
@@ -188,14 +197,16 @@ export async function exportAll(dirPath, options) {
                       metadata: dataItem.tileJSON,
                       url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
                       scheme: "xyz",
-                      skip: false,
-                      refreshBefore: "2025-01-01T00:00:00",
+                      refreshBefore: {
+                        md5: true,
+                      },
                       coverages: coverages,
                       timeout: 300000,
                       concurrency: 256,
                       maxTry: 5,
                       storeType: "xyz",
                       storeTransparent: true,
+                      skip: false,
                     };
 
                     break;
@@ -230,14 +241,16 @@ export async function exportAll(dirPath, options) {
                       metadata: dataItem.tileJSON,
                       url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
                       scheme: "xyz",
-                      skip: false,
-                      refreshBefore: "2025-01-01T00:00:00",
+                      refreshBefore: {
+                        md5: true,
+                      },
                       coverages: coverages,
                       timeout: 300000,
                       concurrency: 256,
                       maxTry: 5,
                       storeType: "mbtiles",
                       storeTransparent: true,
+                      skip: false,
                     };
 
                     break;
@@ -272,14 +285,16 @@ export async function exportAll(dirPath, options) {
                       metadata: dataItem.tileJSON,
                       url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
                       scheme: "xyz",
-                      skip: false,
-                      refreshBefore: "2025-01-01T00:00:00",
+                      refreshBefore: {
+                        md5: true,
+                      },
                       coverages: coverages,
                       timeout: 300000,
                       concurrency: 256,
                       maxTry: 5,
                       storeType: "pg",
                       storeTransparent: true,
+                      skip: false,
                     };
 
                     break;
@@ -321,7 +336,9 @@ export async function exportAll(dirPath, options) {
 
             seedObj.sprites[spriteFolder] = {
               url: `http://localhost:8080/sptites/${spriteID}/{name}`,
-              refreshBefore: "2025-01-01T00:00:00",
+              refreshBefore: {
+                md5: true,
+              },
               timeout: 300000,
               maxTry: 5,
               skip: false,
@@ -372,14 +389,16 @@ export async function exportAll(dirPath, options) {
               metadata: dataItem.tileJSON,
               url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
               scheme: "xyz",
-              skip: false,
-              refreshBefore: "2025-01-01T00:00:00",
+              refreshBefore: {
+                md5: true,
+              },
               coverages: coverages,
               timeout: 300000,
               concurrency: 256,
               maxTry: 5,
               storeType: "xyz",
               storeTransparent: true,
+              skip: false,
             };
 
             break;
@@ -414,14 +433,16 @@ export async function exportAll(dirPath, options) {
               metadata: dataItem.tileJSON,
               url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
               scheme: "xyz",
-              skip: false,
-              refreshBefore: "2025-01-01T00:00:00",
+              refreshBefore: {
+                md5: true,
+              },
               coverages: coverages,
               timeout: 300000,
               concurrency: 256,
               maxTry: 5,
               storeType: "mbtiles",
               storeTransparent: true,
+              skip: false,
             };
 
             break;
@@ -456,14 +477,16 @@ export async function exportAll(dirPath, options) {
               metadata: dataItem.tileJSON,
               url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
               scheme: "xyz",
-              skip: false,
-              refreshBefore: "2025-01-01T00:00:00",
+              refreshBefore: {
+                md5: true,
+              },
               coverages: coverages,
               timeout: 300000,
               concurrency: 256,
               maxTry: 5,
               storeType: "pg",
               storeTransparent: true,
+              skip: false,
             };
 
             break;
@@ -500,7 +523,9 @@ export async function exportAll(dirPath, options) {
 
           seedObj.geojsons[geojsonFolder] = {
             url: `http://localhost:8080/geojsons/${group}/${layer}.geojson`,
-            refreshBefore: "2025-01-01T00:00:00",
+            refreshBefore: {
+              md5: true,
+            },
             timeout: 300000,
             maxTry: 5,
             skip: false,
@@ -543,7 +568,9 @@ export async function exportAll(dirPath, options) {
 
         seedObj.sprites[spriteFolder] = {
           url: `http://localhost:8080/sptites/${spriteID}/{name}`,
-          refreshBefore: "2025-01-01T00:00:00",
+          refreshBefore: {
+            md5: true,
+          },
           timeout: 300000,
           maxTry: 5,
           skip: false,
@@ -577,7 +604,9 @@ export async function exportAll(dirPath, options) {
 
       seedObj.fonts[fontFolder] = {
         url: `http://localhost:8080/fonts/${fontID}/{range}.pbf`,
-        refreshBefore: "2025-01-01T00:00:00",
+        refreshBefore: {
+          md5: true,
+        },
         timeout: 300000,
         concurrency: 256,
         maxTry: 5,

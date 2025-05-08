@@ -57,9 +57,9 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const cleanUpSpriteItem = cleanUp.sprites[id];
+              const item = cleanUp.sprites[id];
 
-              if (cleanUpSpriteItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping clean up sprite "${id}"...`);
 
                 continue;
@@ -68,8 +68,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpSprite(
                   id,
-                  cleanUpSpriteItem.cleanUpBefore?.time ||
-                    cleanUpSpriteItem.cleanUpBefore?.day
+                  item.cleanUpBefore?.time || item.cleanUpBefore?.day
                 );
               } catch (error) {
                 printLog(
@@ -104,9 +103,9 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const cleanUpFontItem = cleanUp.fonts[id];
+              const item = cleanUp.fonts[id];
 
-              if (cleanUpFontItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping clean up font "${id}"...`);
 
                 continue;
@@ -115,8 +114,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpFont(
                   id,
-                  cleanUpFontItem.cleanUpBefore?.time ||
-                    cleanUpFontItem.cleanUpBefore?.day
+                  item.cleanUpBefore?.time || item.cleanUpBefore?.day
                 );
               } catch (error) {
                 printLog(
@@ -151,9 +149,9 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const cleanUpStyleItem = cleanUp.styles[id];
+              const item = cleanUp.styles[id];
 
-              if (cleanUpStyleItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping clean up style "${id}"...`);
 
                 continue;
@@ -162,8 +160,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpStyle(
                   id,
-                  cleanUpStyleItem.cleanUpBefore?.time ||
-                    cleanUpStyleItem.cleanUpBefore?.day
+                  item.cleanUpBefore?.time || item.cleanUpBefore?.day
                 );
               } catch (error) {
                 printLog(
@@ -198,9 +195,9 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const cleanUpGeoJSONItem = cleanUp.geojsons[id];
+              const item = cleanUp.geojsons[id];
 
-              if (cleanUpGeoJSONItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping clean up geojson "${id}"...`);
 
                 continue;
@@ -209,8 +206,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpGeoJSON(
                   id,
-                  cleanUpGeoJSONItem.cleanUpBefore?.time ||
-                    cleanUpGeoJSONItem.cleanUpBefore?.day
+                  item.cleanUpBefore?.time || item.cleanUpBefore?.day
                 );
               } catch (error) {
                 printLog(
@@ -323,9 +319,9 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedSpriteItem = seed.sprites[id];
+              const item = seed.sprites[id];
 
-              if (seedSpriteItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping seed font "${id}"...`);
 
                 continue;
@@ -334,11 +330,12 @@ export async function runTasks(opts) {
               try {
                 await seedSprite(
                   id,
-                  seedSpriteItem.url,
-                  seedSpriteItem.maxTry || 5,
-                  seedSpriteItem.timeout || 60000,
-                  seedSpriteItem.refreshBefore?.time ||
-                    seedSpriteItem.refreshBefore?.day
+                  item.url,
+                  item.maxTry || 5,
+                  item.timeout ?? 60000,
+                  item.refreshBefore?.time ||
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5
                 );
               } catch (error) {
                 printLog(
@@ -373,9 +370,9 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedFontItem = seed.fonts[id];
+              const item = seed.fonts[id];
 
-              if (seedFontItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping seed font "${id}"...`);
 
                 continue;
@@ -384,12 +381,13 @@ export async function runTasks(opts) {
               try {
                 await seedFont(
                   id,
-                  seedFontItem.url,
-                  seedFontItem.concurrency || os.cpus().length,
-                  seedFontItem.maxTry || 5,
-                  seedFontItem.timeout || 60000,
-                  seedFontItem.refreshBefore?.time ||
-                    seedFontItem.refreshBefore?.day
+                  item.url,
+                  item.concurrency || os.cpus().length,
+                  item.maxTry || 5,
+                  item.timeout ?? 60000,
+                  item.refreshBefore?.time ||
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5
                 );
               } catch (error) {
                 printLog(
@@ -424,9 +422,9 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedStyleItem = seed.styles[id];
+              const item = seed.styles[id];
 
-              if (seedStyleItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping seed style "${id}"...`);
 
                 continue;
@@ -435,11 +433,12 @@ export async function runTasks(opts) {
               try {
                 await seedStyle(
                   id,
-                  seedStyleItem.url,
-                  seedStyleItem.maxTry || 5,
-                  seedStyleItem.timeout || 60000,
-                  seedStyleItem.refreshBefore?.time ||
-                    seedStyleItem.refreshBefore?.day
+                  item.url,
+                  item.maxTry || 5,
+                  item.timeout ?? 60000,
+                  item.refreshBefore?.time ||
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5
                 );
               } catch (error) {
                 printLog(
@@ -474,9 +473,9 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedGeoJSONItem = seed.geojsons[id];
+              const item = seed.geojsons[id];
 
-              if (seedGeoJSONItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping seed geojson "${id}"...`);
 
                 continue;
@@ -485,12 +484,12 @@ export async function runTasks(opts) {
               try {
                 await seedGeoJSON(
                   id,
-                  seedGeoJSONItem.url,
-                  seedGeoJSONItem.maxTry || 5,
-                  seedGeoJSONItem.timeout || 60000,
-                  seedGeoJSONItem.refreshBefore?.time ||
-                    seedGeoJSONItem.refreshBefore?.day ||
-                    seedGeoJSONItem.refreshBefore?.md5
+                  item.url,
+                  item.maxTry || 5,
+                  item.timeout ?? 60000,
+                  item.refreshBefore?.time ||
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5
                 );
               } catch (error) {
                 printLog(
@@ -525,30 +524,30 @@ export async function runTasks(opts) {
             const startTime = Date.now();
 
             for (const id of ids) {
-              const seedDataItem = seed.datas[id];
+              const item = seed.datas[id];
 
-              if (seedDataItem.skip === true) {
+              if (item.skip === true) {
                 printLog("info", `Skipping seed data "${id}"...`);
 
                 continue;
               }
 
               try {
-                switch (seedDataItem.storeType) {
+                switch (item.storeType) {
                   case "xyz": {
                     await seedXYZTiles(
                       id,
-                      seedDataItem.metadata,
-                      seedDataItem.url,
-                      seedDataItem.scheme,
-                      seedDataItem.coverages,
-                      seedDataItem.concurrency || os.cpus().length,
-                      seedDataItem.maxTry || 5,
-                      seedDataItem.timeout || 60000,
-                      seedDataItem.storeTransparent || true,
-                      seedDataItem.refreshBefore?.time ||
-                        seedDataItem.refreshBefore?.day ||
-                        seedDataItem.refreshBefore?.md5
+                      item.metadata,
+                      item.url,
+                      item.scheme,
+                      item.coverages,
+                      item.concurrency || os.cpus().length,
+                      item.maxTry || 5,
+                      item.timeout ?? 60000,
+                      item.storeTransparent ?? true,
+                      item.refreshBefore?.time ||
+                        item.refreshBefore?.day ||
+                        item.refreshBefore?.md5
                     );
 
                     break;
@@ -557,17 +556,17 @@ export async function runTasks(opts) {
                   case "mbtiles": {
                     await seedMBTilesTiles(
                       id,
-                      seedDataItem.metadata,
-                      seedDataItem.url,
-                      seedDataItem.scheme,
-                      seedDataItem.coverages,
-                      seedDataItem.concurrency || os.cpus().length,
-                      seedDataItem.maxTry || 5,
-                      seedDataItem.timeout || 60000,
-                      seedDataItem.storeTransparent || true,
-                      seedDataItem.refreshBefore?.time ||
-                        seedDataItem.refreshBefore?.day ||
-                        seedDataItem.refreshBefore?.md5
+                      item.metadata,
+                      item.url,
+                      item.scheme,
+                      item.coverages,
+                      item.concurrency || os.cpus().length,
+                      item.maxTry || 5,
+                      item.timeout ?? 60000,
+                      item.storeTransparent ?? true,
+                      item.refreshBefore?.time ||
+                        item.refreshBefore?.day ||
+                        item.refreshBefore?.md5
                     );
 
                     break;
@@ -576,17 +575,17 @@ export async function runTasks(opts) {
                   case "pg": {
                     await seedPostgreSQLTiles(
                       id,
-                      seedDataItem.metadata,
-                      seedDataItem.url,
-                      seedDataItem.scheme,
-                      seedDataItem.coverages,
-                      seedDataItem.concurrency || os.cpus().length,
-                      seedDataItem.maxTry || 5,
-                      seedDataItem.timeout || 60000,
-                      seedDataItem.storeTransparent || true,
-                      seedDataItem.refreshBefore?.time ||
-                        seedDataItem.refreshBefore?.day ||
-                        seedDataItem.refreshBefore?.md5
+                      item.metadata,
+                      item.url,
+                      item.scheme,
+                      item.coverages,
+                      item.concurrency || os.cpus().length,
+                      item.maxTry || 5,
+                      item.timeout ?? 60000,
+                      item.storeTransparent ?? true,
+                      item.refreshBefore?.time ||
+                        item.refreshBefore?.day ||
+                        item.refreshBefore?.md5
                     );
 
                     break;

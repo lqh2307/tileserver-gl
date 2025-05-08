@@ -268,6 +268,11 @@ function exportDataHandler() {
 
           item.export = false;
 
+          const refreshBefore =
+            req.body.refreshBefore?.time ||
+            req.body.refreshBefore?.day ||
+            req.body.refreshBefore?.md5;
+
           switch (req.body.storeType) {
             case "xyz": {
               exportXYZTiles(
@@ -277,10 +282,8 @@ function exportDataHandler() {
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || true,
-                req.body.refreshBefore?.time ||
-                  req.body.refreshBefore?.day ||
-                  req.body.refreshBefore?.md5
+                req.body.storeTransparent ?? true,
+                refreshBefore
               )
                 .catch((error) => {
                   printLog("error", `Failed to export data "${id}": ${error}`);
@@ -299,10 +302,8 @@ function exportDataHandler() {
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || true,
-                req.body.refreshBefore?.time ||
-                  req.body.refreshBefore?.day ||
-                  req.body.refreshBefore?.md5
+                req.body.storeTransparent ?? true,
+                refreshBefore
               )
                 .catch((error) => {
                   printLog("error", `Failed to export data "${id}": ${error}`);
@@ -321,10 +322,8 @@ function exportDataHandler() {
                 req.body.metadata,
                 req.body.coverages,
                 req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent || true,
-                req.body.refreshBefore?.time ||
-                  req.body.refreshBefore?.day ||
-                  req.body.refreshBefore?.md5
+                req.body.storeTransparent ?? true,
+                refreshBefore
               )
                 .catch((error) => {
                   printLog("error", `Failed to export data "${id}": ${error}`);
@@ -346,7 +345,7 @@ function exportDataHandler() {
       if (error instanceof SyntaxError) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send("option parameter is invalid");
+          .send("Options parameter is invalid");
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
