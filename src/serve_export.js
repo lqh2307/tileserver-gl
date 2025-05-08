@@ -444,6 +444,13 @@ export const serve_export = {
      *       - Export
      *     summary: Cancel export data
      *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
      *       - in: query
      *         name: cancel
      *         schema:
@@ -473,6 +480,14 @@ export const serve_export = {
      *     tags:
      *       - Export
      *     summary: Export data
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Data ID
      *     requestBody:
      *       required: true
      *       content:
@@ -519,6 +534,13 @@ export const serve_export = {
        *       - Export
        *     summary: Cancel render style
        *     parameters:
+       *       - in: path
+       *         name: id
+       *         required: true
+       *         schema:
+       *           type: string
+       *           example: id
+       *         description: Style ID
        *       - in: query
        *         name: cancel
        *         schema:
@@ -548,6 +570,14 @@ export const serve_export = {
        *     tags:
        *       - Export
        *     summary: Render style
+       *     parameters:
+       *       - in: path
+       *         name: id
+       *         required: true
+       *         schema:
+       *           type: string
+       *           example: id
+       *         description: Style ID
        *     requestBody:
        *       required: true
        *       content:
