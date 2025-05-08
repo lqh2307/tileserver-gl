@@ -401,7 +401,7 @@ export async function renderImageTile(
 /**
  * Render MBTiles tiles
  * @param {string} id Style ID
- * @param {string} fileID Exported file id
+ * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
@@ -415,7 +415,7 @@ export async function renderImageTile(
  */
 export async function renderMBTilesTiles(
   id,
-  fileID,
+  filePath,
   metadata,
   tileScale,
   tileSize,
@@ -439,7 +439,7 @@ export async function renderMBTilesTiles(
     );
 
     let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:`;
-    log += `\n\tID: ${fileID}`;
+    log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -470,8 +470,6 @@ export async function renderMBTilesTiles(
     printLog("info", log);
 
     /* Open MBTiles SQLite database */
-    const filePath = `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${fileID}/${fileID}.mbtiles`;
-
     source = await openMBTilesDB(
       filePath,
       true,
@@ -730,7 +728,8 @@ export async function renderMBTilesTiles(
 /**
  * Render XYZ tiles
  * @param {string} id Style ID
- * @param {string} fileID Exported file id
+ * @param {string} sourcePath Exported source path
+ * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
@@ -744,7 +743,8 @@ export async function renderMBTilesTiles(
  */
 export async function renderXYZTiles(
   id,
-  fileID,
+  sourcePath,
+  filePath,
   metadata,
   tileScale,
   tileSize,
@@ -768,7 +768,8 @@ export async function renderXYZTiles(
     );
 
     let log = `Rendering ${total} tiles of style "${id}" to xyz with:`;
-    log += `\n\tID: ${fileID}`;
+    log += `\n\tSource path: ${sourcePath}`;
+    log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -799,9 +800,6 @@ export async function renderXYZTiles(
     printLog("info", log);
 
     /* Open MD5 SQLite database */
-    const sourcePath = `${process.env.DATA_DIR}/exports/style_renders/xyzs/${fileID}`;
-    const filePath = `${sourcePath}/${fileID}.sqlite`;
-
     const source = await openXYZMD5DB(
       filePath,
       true,
@@ -1069,7 +1067,7 @@ export async function renderXYZTiles(
 /**
  * Render PostgreSQL tiles
  * @param {string} id Style ID
- * @param {string} fileID Exported file id
+ * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
@@ -1083,7 +1081,7 @@ export async function renderXYZTiles(
  */
 export async function renderPostgreSQLTiles(
   id,
-  fileID,
+  filePath,
   metadata,
   tileScale,
   tileSize,
@@ -1107,7 +1105,7 @@ export async function renderPostgreSQLTiles(
     );
 
     let log = `Rendering ${total} tiles of style "${id}" to postgresql with:`;
-    log += `\n\tID: ${fileID}`;
+    log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -1138,8 +1136,6 @@ export async function renderPostgreSQLTiles(
     printLog("info", log);
 
     /* Open PostgreSQL database */
-    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${fileID}`;
-
     source = await openPostgreSQLDB(filePath, true);
 
     /* Get tile extra info */

@@ -278,7 +278,8 @@ function renderStyleHandler() {
             case "xyz": {
               renderXYZTiles(
                 id,
-                req.body.id,
+                `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}`,
+                `${sourcePath}/${req.body.id}.sqlite`,
                 req.body.metadata,
                 req.body.tileScale || 1,
                 req.body.tileSize || 256,
@@ -304,7 +305,7 @@ function renderStyleHandler() {
             case "mbtiles": {
               renderMBTilesTiles(
                 id,
-                req.body.id,
+                `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
                 req.body.metadata,
                 req.body.tileScale || 1,
                 req.body.tileSize || 256,
@@ -330,7 +331,7 @@ function renderStyleHandler() {
             case "pg": {
               renderPostgreSQLTiles(
                 id,
-                req.body.id,
+                `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
                 req.body.metadata,
                 req.body.tileScale || 1,
                 req.body.tileSize || 256,
