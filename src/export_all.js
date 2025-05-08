@@ -2,7 +2,6 @@
 
 import { cacheStyleFile, getRenderedStyleJSON, getStyle } from "./style.js";
 import { getAndCacheDataGeoJSON, getAndCacheDataSprite } from "./data.js";
-import { exportXYZTiles } from "./export_data.js";
 import { cacheGeoJSONFile } from "./geojson.js";
 import { cacheSpriteFile } from "./sprite.js";
 import { printLog } from "./logger.js";
