@@ -90,6 +90,6 @@ export const serve_export = {
      *       500:
      *         description: Internal server error
      */
-    app.post("/", exportAllHandler());
+    app.post("/exports", exportAllHandler());
   },
 };

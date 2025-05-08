@@ -124,7 +124,7 @@ export async function startServer() {
     serve_swagger.init(app);
     serve_prometheus.init(app);
 
-    const server = app
+    app
       .listen(Number(process.env.LISTEN_PORT), () => {
         printLog(
           "info",
