@@ -1193,7 +1193,7 @@
         document.getElementById("exportRenderForm").onsubmit = (event) => {
           event.preventDefault();
 
-          fetch(`${baseURL}/styles/${styleID}/export`, {
+          fetch(`${baseURL}/exports/style-render/${styleID}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1217,7 +1217,7 @@
         let maxRetries = 5;
 
         function tryFetch() {
-          fetch(`${baseURL}/styles/${styleID}/export?cancel=true`, {
+          fetch(`${baseURL}/exports/style-render/${styleID}?cancel=true`, {
             method: "GET",
           })
             .then((response) => {
@@ -1247,7 +1247,7 @@
         document.getElementById("exportDataForm").onsubmit = (event) => {
           event.preventDefault();
 
-          fetch(`${baseURL}/datas/${dataID}/export`, {
+          fetch(`${baseURL}/exports/data/${dataID}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1271,7 +1271,7 @@
         let maxRetries = 5;
 
         function tryFetch() {
-          fetch(`${baseURL}/datas/${dataID}/export?cancel=true`, {
+          fetch(`${baseURL}/exports/data/${dataID}?cancel=true`, {
             method: "GET",
           })
             .then((response) => {

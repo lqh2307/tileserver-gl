@@ -6,6 +6,16 @@ import { exportAll } from "./export_all.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import os from "os";
+import {
+  exportPostgreSQLTiles,
+  exportMBTilesTiles,
+  exportXYZTiles,
+} from "./export_data.js";
+import {
+  renderPostgreSQLTiles,
+  renderMBTilesTiles,
+  renderXYZTiles,
+} from "./render_style.js";
 
 /**
  * Export all handler
@@ -89,6 +99,293 @@ function exportAllHandler() {
   };
 }
 
+/**
+ * Export data handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function exportDataHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.datas[id];
+
+      if (item === undefined) {
+        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+      }
+
+      if (req.query.cancel === "true") {
+        /* Check export is not running? (export === true is not running) */
+        if (item.export === true) {
+          printLog(
+            "warn",
+            "No export is currently running. Skipping cancel export..."
+          );
+
+          return res.status(StatusCodes.NOT_FOUND).send("OK");
+        } else {
+          printLog("info", "Canceling export...");
+
+          item.export = true;
+
+          return res.status(StatusCodes.OK).send("OK");
+        }
+      } else {
+        /* Check export is running? (export === false is not running) */
+        if (item.export === false) {
+          printLog("warn", "A export is already running. Skipping export...");
+
+          return res.status(StatusCodes.CONFLICT).send("OK");
+        } else {
+          /* Export data */
+          try {
+            validateJSON(await getJSONSchema("data_export"), req.body);
+          } catch (error) {
+            return res
+              .status(StatusCodes.BAD_REQUEST)
+              .send(`Options is invalid: ${error}`);
+          }
+
+          item.export = false;
+
+          const refreshBefore =
+            req.body.refreshBefore?.time ||
+            req.body.refreshBefore?.day ||
+            req.body.refreshBefore?.md5;
+
+          switch (req.body.storeType) {
+            case "xyz": {
+              exportXYZTiles(
+                id,
+                `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}`,
+                `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}/${req.body.id}.sqlite`,
+                req.body.metadata,
+                req.body.coverages,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent ?? true,
+                refreshBefore
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to export data "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+
+              break;
+            }
+
+            case "mbtiles": {
+              exportMBTilesTiles(
+                id,
+                `${process.env.DATA_DIR}/exports/datas/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
+                req.body.metadata,
+                req.body.coverages,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent ?? true,
+                refreshBefore
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to export data "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+
+              break;
+            }
+
+            case "pg": {
+              exportPostgreSQLTiles(
+                id,
+                `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
+                req.body.metadata,
+                req.body.coverages,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent ?? true,
+                refreshBefore
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to export data "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+
+              break;
+            }
+          }
+
+          return res.status(StatusCodes.CREATED).send("OK");
+        }
+      }
+    } catch (error) {
+      printLog("error", `Failed to export data "${id}": ${error}`);
+
+      if (error instanceof SyntaxError) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send("Options parameter is invalid");
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Render style handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function renderStyleHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.styles[id];
+
+      /* Check rendered is exist? */
+      if (item === undefined || item.tileJSON === undefined) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send("Rendered does not exist");
+      }
+
+      if (req.query.cancel === "true") {
+        /* Check export is not running? (export === true is not running) */
+        if (item.export === true) {
+          printLog(
+            "warn",
+            "No render is currently running. Skipping cancel render..."
+          );
+
+          return res.status(StatusCodes.NOT_FOUND).send("OK");
+        } else {
+          printLog("info", "Canceling render...");
+
+          item.export = true;
+
+          return res.status(StatusCodes.OK).send("OK");
+        }
+      } else {
+        /* Check export is running? (export === false is not running) */
+        if (item.export === false) {
+          printLog("warn", "A render is already running. Skipping render...");
+
+          return res.status(StatusCodes.CONFLICT).send("OK");
+        } else {
+          /* Render style */
+          try {
+            validateJSON(await getJSONSchema("style_render"), req.body);
+          } catch (error) {
+            return res
+              .status(StatusCodes.BAD_REQUEST)
+              .send(`Options is invalid: ${error}`);
+          }
+
+          item.export = false;
+
+          const refreshBefore =
+            req.body.refreshBefore?.time ||
+            req.body.refreshBefore?.day ||
+            req.body.refreshBefore?.md5;
+
+          switch (req.body.storeType) {
+            case "xyz": {
+              renderXYZTiles(
+                id,
+                `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}`,
+                `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}/${req.body.id}.sqlite`,
+                req.body.metadata,
+                req.body.tileScale || 1,
+                req.body.tileSize || 256,
+                req.body.coverages,
+                req.body.maxRendererPoolSize,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent ?? true,
+                req.body.createOverview ?? false,
+                refreshBefore
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to render style "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+
+              break;
+            }
+
+            case "mbtiles": {
+              renderMBTilesTiles(
+                id,
+                `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
+                req.body.metadata,
+                req.body.tileScale || 1,
+                req.body.tileSize || 256,
+                req.body.coverages,
+                req.body.maxRendererPoolSize,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent ?? true,
+                req.body.createOverview ?? false,
+                refreshBefore
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to render style "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+
+              break;
+            }
+
+            case "pg": {
+              renderPostgreSQLTiles(
+                id,
+                `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
+                req.body.metadata,
+                req.body.tileScale || 1,
+                req.body.tileSize || 256,
+                req.body.coverages,
+                req.body.maxRendererPoolSize,
+                req.body.concurrency || os.cpus().length,
+                req.body.storeTransparent ?? true,
+                req.body.createOverview ?? false,
+                refreshBefore
+              )
+                .catch((error) => {
+                  printLog("error", `Failed to render style "${id}": ${error}`);
+                })
+                .finally(() => {
+                  item.export = true;
+                });
+
+              break;
+            }
+          }
+
+          return res.status(StatusCodes.CREATED).send("OK");
+        }
+      }
+    } catch (error) {
+      printLog("error", `Failed to render style "${id}": ${error}`);
+
+      if (error instanceof SyntaxError) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send("Options parameter is invalid");
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
 export const serve_export = {
   /**
    * Register export handlers
@@ -135,5 +432,152 @@ export const serve_export = {
      *         description: Internal server error
      */
     app.post("/exports", exportAllHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Export
+     *     description: Export related endpoints
+     * /exports/data/{id}:
+     *   get:
+     *     tags:
+     *       - Export
+     *     summary: Cancel export data
+     *     parameters:
+     *       - in: query
+     *         name: cancel
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Cancel export
+     *     responses:
+     *       200:
+     *         description: Data export is canceled
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: OK
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     *   post:
+     *     tags:
+     *       - Export
+     *     summary: Export data
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *             schema:
+     *               type: object
+     *               example: {}
+     *       description: Export export options
+     *     responses:
+     *       201:
+     *         description: Data export is started
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: OK
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/exports/data/:id", exportDataHandler());
+    app.post("/exports/data/:id", exportDataHandler());
+
+    if (
+      config.enableBackendRender === true &&
+      process.env.ENABLE_EXPORT !== "false"
+    ) {
+      /**
+       * @swagger
+       * tags:
+       *   - name: Export
+       *     description: Export related endpoints
+       * /exports/style-render/{id}:
+       *   get:
+       *     tags:
+       *       - Export
+       *     summary: Cancel render style
+       *     parameters:
+       *       - in: query
+       *         name: cancel
+       *         schema:
+       *           type: boolean
+       *         required: false
+       *         description: Cancel render
+       *     responses:
+       *       200:
+       *         description: Style render is canceled
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: OK
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       *   post:
+       *     tags:
+       *       - Export
+       *     summary: Render style
+       *     requestBody:
+       *       required: true
+       *       content:
+       *         application/json:
+       *             schema:
+       *               type: object
+       *               example: {}
+       *       description: Export render options
+       *     responses:
+       *       201:
+       *         description: Style render is started
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: OK
+       *       404:
+       *         description: Not found
+       *       503:
+       *         description: Server is starting up
+       *         content:
+       *           text/plain:
+       *             schema:
+       *               type: string
+       *               example: Starting...
+       *       500:
+       *         description: Internal server error
+       */
+      app.get("/exports/style-render/:id", renderStyleHandler());
+      app.post("/exports/style-render/:id", renderStyleHandler());
+    }
   },
 };

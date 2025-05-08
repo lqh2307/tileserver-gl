@@ -2,27 +2,19 @@
 
 import { getRenderedStyleJSON, validateStyle, getStyle } from "./style.js";
 import { getAndCacheDataStyleJSON } from "./data.js";
+import { renderImageTile } from "./render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
-import os from "os";
 import {
   createTileMetadataFromTemplate,
   calculateMD5OfFile,
   compileTemplate,
   getRequestHost,
-  getJSONSchema,
-  validateJSON,
   isLocalURL,
   gzipAsync,
 } from "./utils.js";
-import {
-  renderPostgreSQLTiles,
-  renderMBTilesTiles,
-  renderImageTile,
-  renderXYZTiles,
-} from "./render_style.js";
 
 /**
  * Serve style handler
@@ -213,157 +205,6 @@ function getStyleHandler() {
 
       if (error.message === "JSON does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
-      } else {
-        return res
-          .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .send("Internal server error");
-      }
-    }
-  };
-}
-
-/**
- * Render style handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
- */
-function renderStyleHandler() {
-  return async (req, res, next) => {
-    const id = req.params.id;
-
-    try {
-      const item = config.styles[id];
-
-      /* Check rendered is exist? */
-      if (item === undefined || item.tileJSON === undefined) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send("Rendered does not exist");
-      }
-
-      if (req.query.cancel === "true") {
-        /* Check export is not running? (export === true is not running) */
-        if (item.export === true) {
-          printLog(
-            "warn",
-            "No render is currently running. Skipping cancel render..."
-          );
-
-          return res.status(StatusCodes.NOT_FOUND).send("OK");
-        } else {
-          printLog("info", "Canceling render...");
-
-          item.export = true;
-
-          return res.status(StatusCodes.OK).send("OK");
-        }
-      } else {
-        /* Check export is running? (export === false is not running) */
-        if (item.export === false) {
-          printLog("warn", "A render is already running. Skipping render...");
-
-          return res.status(StatusCodes.CONFLICT).send("OK");
-        } else {
-          /* Render style */
-          try {
-            validateJSON(await getJSONSchema("style_render"), req.body);
-          } catch (error) {
-            return res
-              .status(StatusCodes.BAD_REQUEST)
-              .send(`Options is invalid: ${error}`);
-          }
-
-          item.export = false;
-
-          const refreshBefore =
-            req.body.refreshBefore?.time ||
-            req.body.refreshBefore?.day ||
-            req.body.refreshBefore?.md5;
-
-          switch (req.body.storeType) {
-            case "xyz": {
-              renderXYZTiles(
-                id,
-                `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}`,
-                `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}/${req.body.id}.sqlite`,
-                req.body.metadata,
-                req.body.tileScale || 1,
-                req.body.tileSize || 256,
-                req.body.coverages,
-                req.body.maxRendererPoolSize,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                req.body.createOverview ?? false,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to render style "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = true;
-                });
-
-              break;
-            }
-
-            case "mbtiles": {
-              renderMBTilesTiles(
-                id,
-                `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
-                req.body.metadata,
-                req.body.tileScale || 1,
-                req.body.tileSize || 256,
-                req.body.coverages,
-                req.body.maxRendererPoolSize,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                req.body.createOverview ?? false,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to render style "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = true;
-                });
-
-              break;
-            }
-
-            case "pg": {
-              renderPostgreSQLTiles(
-                id,
-                `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
-                req.body.metadata,
-                req.body.tileScale || 1,
-                req.body.tileSize || 256,
-                req.body.coverages,
-                req.body.maxRendererPoolSize,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                req.body.createOverview ?? false,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to render style "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = true;
-                });
-
-              break;
-            }
-          }
-
-          return res.status(StatusCodes.CREATED).send("OK");
-        }
-      }
-    } catch (error) {
-      printLog("error", `Failed to render style "${id}": ${error}`);
-
-      if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send("Options parameter is invalid");
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -705,80 +546,6 @@ export const serve_style = {
 
     /* Serve backend render */
     if (config.enableBackendRender === true) {
-      /* Serve export render */
-      if (process.env.ENABLE_EXPORT !== "false") {
-        /**
-         * @swagger
-         * tags:
-         *   - name: Style
-         *     description: Style related endpoints
-         * /styles/{id}/export:
-         *   get:
-         *     tags:
-         *       - Style
-         *     summary: Cancel render style
-         *     parameters:
-         *       - in: query
-         *         name: cancel
-         *         schema:
-         *           type: boolean
-         *         required: false
-         *         description: Cancel render
-         *     responses:
-         *       200:
-         *         description: Style render is canceled
-         *         content:
-         *           text/plain:
-         *             schema:
-         *               type: string
-         *               example: OK
-         *       404:
-         *         description: Not found
-         *       503:
-         *         description: Server is starting up
-         *         content:
-         *           text/plain:
-         *             schema:
-         *               type: string
-         *               example: Starting...
-         *       500:
-         *         description: Internal server error
-         *   post:
-         *     tags:
-         *       - Style
-         *     summary: Render style
-         *     requestBody:
-         *       required: true
-         *       content:
-         *         application/json:
-         *             schema:
-         *               type: object
-         *               example: {}
-         *       description: Style render options
-         *     responses:
-         *       201:
-         *         description: Style render is started
-         *         content:
-         *           text/plain:
-         *             schema:
-         *               type: string
-         *               example: OK
-         *       404:
-         *         description: Not found
-         *       503:
-         *         description: Server is starting up
-         *         content:
-         *           text/plain:
-         *             schema:
-         *               type: string
-         *               example: Starting...
-         *       500:
-         *         description: Internal server error
-         */
-        app.get("/styles/:id/export", renderStyleHandler());
-        app.post("/styles/:id/export", renderStyleHandler());
-      }
-
       /**
        * @swagger
        * tags:
