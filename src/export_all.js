@@ -2,13 +2,17 @@
 
 import { cacheStyleFile, getRenderedStyleJSON, getStyle } from "./style.js";
 import { getAndCacheDataGeoJSON, getAndCacheDataSprite } from "./data.js";
-import { isLocalURL, createCoveragesFromBBoxAndZooms } from "./utils.js";
 import { exportXYZTiles } from "./export_data.js";
 import { cacheGeoJSONFile } from "./geojson.js";
 import { cacheSpriteFile } from "./sprite.js";
 import { printLog } from "./logger.js";
 import { cp } from "node:fs/promises";
 import { config } from "./config.js";
+import {
+  createCoveragesFromBBoxAndZooms,
+  createFileWithLock,
+  isLocalURL,
+} from "./utils.js";
 
 /**
  * Export all
@@ -63,6 +67,8 @@ export async function exportAll(dirPath, options) {
     } else {
       for (const styleID of options.styles) {
         // Get style
+        const styleFolder = `${styleID}_cache`;
+
         const style = config.styles[styleID];
 
         const [styleBuffer, renderedStyleJSON] = await Promise.all([
@@ -71,19 +77,19 @@ export async function exportAll(dirPath, options) {
         ]);
 
         await cacheStyleFile(
-          `${dirPath}/caches/styles/${styleID}_cache/style.json`,
+          `${dirPath}/caches/styles/${styleFolder}/style.json`,
           styleBuffer
         );
 
         configObj.styles[styleID] = {
-          style: `${styleID}_cache`,
+          style: styleFolder,
           cache: {
             store: true,
             forward: true,
           },
         };
 
-        seedObj.styles[`${styleID}_cache`] = {
+        seedObj.styles[styleFolder] = {
           metadata: {
             name: style.name,
             zoom: style.zoom,
@@ -105,15 +111,35 @@ export async function exportAll(dirPath, options) {
             if (isLocalURL(source.data) === true) {
               const parts = source.data.split("/");
 
+              const geojsonFolder = `${parts[3]}_cache`;
+
               const geoJSONBuffer = await getAndCacheDataGeoJSON(
                 parts[2],
                 parts[3]
               );
 
               await cacheGeoJSONFile(
-                `${dirPath}/caches/geojsons/${parts[3]}_cache/${parts[3]}_cache.geojson`,
+                `${dirPath}/caches/geojsons/${geojsonFolder}/${geojsonFolder}.geojson`,
                 geoJSONBuffer
               );
+
+              configObj.geojsons[parts[2]] = {
+                [parts[3]]: {
+                  geojson: geojsonFolder,
+                  cache: {
+                    store: true,
+                    forward: true,
+                  },
+                },
+              };
+
+              seedObj.geojsons[geojsonFolder] = {
+                url: `http://localhost:8080/geojsons/${parts[2]}/${parts[3]}.geojson`,
+                refreshBefore: "2025-01-01T00:00:00",
+                timeout: 300000,
+                maxTry: 5,
+                skip: false,
+              };
             }
           }
 
@@ -122,83 +148,134 @@ export async function exportAll(dirPath, options) {
             for (const tile of source.tiles) {
               if (isLocalURL(tile) === true) {
                 const dataID = tile.split("/")[2];
+
+                const dataFolder = `${dataID}_cache`;
+
                 const dataItem = config.datas[dataID];
 
                 switch (dataItem.sourceType) {
                   case "xyz": {
+                    const coverages = createCoveragesFromBBoxAndZooms(
+                      dataItem.tileJSON.bounds,
+                      dataItem.tileJSON.minzoom,
+                      dataItem.tileJSON.maxzoom
+                    );
+
                     await exportXYZTiles(
                       dataID,
-                      `${dirPath}/caches/datas/xyzs/${dataID}_cache`,
-                      `${dirPath}/caches/datas/xyzs/${dataID}_cache/${dataID}_cache.sqlite`,
+                      `${dirPath}/caches/datas/xyzs/${dataFolder}`,
+                      `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
                       dataItem.tileJSON,
-                      createCoveragesFromBBoxAndZooms(
-                        dataItem.tileJSON.bounds,
-                        dataItem.tileJSON.minzoom,
-                        dataItem.tileJSON.maxzoom
-                      ),
+                      coverages,
                       256,
                       true,
                       undefined
                     );
 
                     configObj.datas[dataID] = {
-                      xyz: `${dataID}_cache`,
+                      xyz: dataFolder,
                       cache: {
                         store: true,
                         forward: true,
                       },
+                    };
+
+                    seedObj.datas[dataFolder] = {
+                      metadata: dataItem.tileJSON,
+                      url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+                      scheme: "xyz",
+                      skip: false,
+                      refreshBefore: "2025-01-01T00:00:00",
+                      coverages: coverages,
+                      timeout: 300000,
+                      concurrency: 100,
+                      maxTry: 5,
+                      storeType: "xyz",
+                      storeTransparent: true,
                     };
 
                     break;
                   }
 
                   case "mbtiles": {
+                    const coverages = createCoveragesFromBBoxAndZooms(
+                      dataItem.tileJSON.bounds,
+                      dataItem.tileJSON.minzoom,
+                      dataItem.tileJSON.maxzoom
+                    );
+
                     await exportMBTilesTiles(
                       dataID,
-                      `${dirPath}/caches/datas/mbtiles/${dataID}_cache/${dataID}_cache.mbtiles`,
+                      `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
                       dataItem.tileJSON,
-                      createCoveragesFromBBoxAndZooms(
-                        dataItem.tileJSON.bounds,
-                        dataItem.tileJSON.minzoom,
-                        dataItem.tileJSON.maxzoom
-                      ),
+                      coverages,
                       256,
                       true,
                       undefined
                     );
 
                     configObj.datas[dataID] = {
-                      mbtiles: `${dataID}_cache`,
+                      mbtiles: dataFolder,
                       cache: {
                         store: true,
                         forward: true,
                       },
                     };
 
+                    seedObj.datas[dataFolder] = {
+                      metadata: dataItem.tileJSON,
+                      url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+                      scheme: "xyz",
+                      skip: false,
+                      refreshBefore: "2025-01-01T00:00:00",
+                      coverages: coverages,
+                      timeout: 300000,
+                      concurrency: 100,
+                      maxTry: 5,
+                      storeType: "mbtiles",
+                      storeTransparent: true,
+                    };
+
                     break;
                   }
 
                   case "pg": {
+                    const coverages = createCoveragesFromBBoxAndZooms(
+                      dataItem.tileJSON.bounds,
+                      dataItem.tileJSON.minzoom,
+                      dataItem.tileJSON.maxzoom
+                    );
+
                     await exportPostgreSQLTiles(
                       dataID,
-                      `${process.env.POSTGRESQL_BASE_URI}/${dataID}_cache`,
+                      `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
                       dataItem.tileJSON,
-                      createCoveragesFromBBoxAndZooms(
-                        dataItem.tileJSON.bounds,
-                        dataItem.tileJSON.minzoom,
-                        dataItem.tileJSON.maxzoom
-                      ),
+                      coverages,
                       256,
                       true,
                       undefined
                     );
 
                     configObj.datas[dataID] = {
-                      pg: `${dataID}_cache`,
+                      pg: dataFolder,
                       cache: {
                         store: true,
                         forward: true,
                       },
+                    };
+
+                    seedObj.datas[dataFolder] = {
+                      metadata: dataItem.tileJSON,
+                      url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+                      scheme: "xyz",
+                      skip: false,
+                      refreshBefore: "2025-01-01T00:00:00",
+                      coverages: coverages,
+                      timeout: 300000,
+                      concurrency: 100,
+                      maxTry: 5,
+                      storeType: "pg",
+                      storeTransparent: true,
                     };
 
                     break;
@@ -212,6 +289,8 @@ export async function exportAll(dirPath, options) {
           if (renderedStyleJSON.sprite.startsWith("sprites://") === true) {
             const spriteID = source.data.split("/")[2];
 
+            const spriteFolder = `${spriteID}_cache`;
+
             const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
               getAndCacheDataSprite(spriteID, "sprite.json"),
               getAndCacheDataSprite(spriteID, "sprite.png"),
@@ -219,14 +298,30 @@ export async function exportAll(dirPath, options) {
 
             await Promise.all([
               cacheSpriteFile(
-                `${dirPath}/caches/sprites/${spriteID}_cache`,
+                `${dirPath}/caches/sprites/${spriteFolder}`,
                 spriteJSONBuffer
               ),
               cacheSpriteFile(
-                `${dirPath}/caches/sprites/${spriteID}_cache`,
+                `${dirPath}/caches/sprites/${spriteFolder}`,
                 spritePNGBuffer
               ),
             ]);
+
+            configObj.sprites[spriteID] = {
+              sprite: spriteFolder,
+              cache: {
+                store: true,
+                forward: true,
+              },
+            };
+
+            seedObj.sprites[spriteFolder] = {
+              url: `http://localhost:8080/sptites/${spriteID}/{name}`,
+              refreshBefore: "2025-01-01T00:00:00",
+              timeout: 300000,
+              maxTry: 5,
+              skip: false,
+            };
           }
         }
       }
@@ -238,45 +333,65 @@ export async function exportAll(dirPath, options) {
     } else {
       for (const dataID of options.datas) {
         // Get data
+        const dataFolder = `${dataID}_cache`;
+
         const dataItem = config.datas[dataID];
 
         switch (dataItem.sourceType) {
           case "xyz": {
+            const coverages = createCoveragesFromBBoxAndZooms(
+              dataItem.tileJSON.bounds,
+              dataItem.tileJSON.minzoom,
+              dataItem.tileJSON.maxzoom
+            );
+
             await exportXYZTiles(
               dataID,
-              `${dirPath}/caches/datas/xyzs/${dataID}_cache`,
-              `${dirPath}/caches/datas/xyzs/${dataID}_cache/${dataID}_cache.sqlite`,
+              `${dirPath}/caches/datas/xyzs/${dataFolder}`,
+              `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
               dataItem.tileJSON,
-              createCoveragesFromBBoxAndZooms(
-                dataItem.tileJSON.bounds,
-                dataItem.tileJSON.minzoom,
-                dataItem.tileJSON.maxzoom
-              ),
+              coverages,
               256,
               true,
               undefined
             );
 
             configObj.datas[dataID] = {
-              xyz: `${dataID}_cache`,
+              xyz: dataFolder,
               cache: {
                 store: true,
                 forward: true,
               },
             };
 
+            seedObj.datas[dataFolder] = {
+              metadata: dataItem.tileJSON,
+              url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+              scheme: "xyz",
+              skip: false,
+              refreshBefore: "2025-01-01T00:00:00",
+              coverages: coverages,
+              timeout: 300000,
+              concurrency: 100,
+              maxTry: 5,
+              storeType: "xyz",
+              storeTransparent: true,
+            };
+
             break;
           }
 
           case "mbtiles": {
+            const coverages = createCoveragesFromBBoxAndZooms(
+              dataItem.tileJSON.bounds,
+              dataItem.tileJSON.minzoom,
+              dataItem.tileJSON.maxzoom
+            );
+
             await exportMBTilesTiles(
               sourceID,
-              `${dataID}/caches/datas/mbtiles/${dataID}_cache/${dataID}_cache.mbtiles`,
-              createCoveragesFromBBoxAndZooms(
-                dataItem.tileJSON.bounds,
-                dataItem.tileJSON.minzoom,
-                dataItem.tileJSON.maxzoom
-              ),
+              `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
+              coverages,
               req.body.coverages,
               256,
               true,
@@ -284,37 +399,67 @@ export async function exportAll(dirPath, options) {
             );
 
             configObj.datas[dataID] = {
-              mbtiles: `${dataID}_cache`,
+              mbtiles: dataFolder,
               cache: {
                 store: true,
                 forward: true,
               },
             };
 
+            seedObj.datas[dataFolder] = {
+              metadata: dataItem.tileJSON,
+              url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+              scheme: "xyz",
+              skip: false,
+              refreshBefore: "2025-01-01T00:00:00",
+              coverages: coverages,
+              timeout: 300000,
+              concurrency: 100,
+              maxTry: 5,
+              storeType: "mbtiles",
+              storeTransparent: true,
+            };
+
             break;
           }
 
           case "pg": {
+            const coverages = createCoveragesFromBBoxAndZooms(
+              dataItem.tileJSON.bounds,
+              dataItem.tileJSON.minzoom,
+              dataItem.tileJSON.maxzoom
+            );
+
             await exportPostgreSQLTiles(
               dataID,
-              `${process.env.POSTGRESQL_BASE_URI}/${dataID}_cache`,
+              `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
               dataItem.tileJSON,
-              createCoveragesFromBBoxAndZooms(
-                dataItem.tileJSON.bounds,
-                dataItem.tileJSON.minzoom,
-                dataItem.tileJSON.maxzoom
-              ),
+              coverages,
               256,
               true,
               undefined
             );
 
             configObj.datas[dataID] = {
-              pg: `${dataID}_cache`,
+              pg: dataFolder,
               cache: {
                 store: true,
                 forward: true,
               },
+            };
+
+            seedObj.datas[dataFolder] = {
+              metadata: dataItem.tileJSON,
+              url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+              scheme: "xyz",
+              skip: false,
+              refreshBefore: "2025-01-01T00:00:00",
+              coverages: coverages,
+              timeout: 300000,
+              concurrency: 100,
+              maxTry: 5,
+              storeType: "pg",
+              storeTransparent: true,
             };
 
             break;
@@ -332,22 +477,24 @@ export async function exportAll(dirPath, options) {
         configObj.geojsons[group] = {};
 
         for (const layer of Object.keys(options.geojsons[group])) {
+          const geojsonFolder = `${layer}_cache`;
+
           const geoJSONBuffer = await getAndCacheDataGeoJSON(group, layer);
 
           await cacheGeoJSONFile(
-            `${dirPath}/caches/geojsons/${layer}_cache/${layer}_cache.geojson`,
+            `${dirPath}/caches/geojsons/${geojsonFolder}/${geojsonFolder}.geojson`,
             geoJSONBuffer
           );
 
           configObj.geojsons[group][layer] = {
-            geojson: `${layer}_cache`,
+            geojson: geojsonFolder,
             cache: {
               store: true,
               forward: true,
             },
           };
 
-          seedObj.geojsons[`${layer}_cache`] = {
+          seedObj.geojsons[geojsonFolder] = {
             url: `http://localhost:8080/geojsons/${group}/${layer}.geojson`,
             refreshBefore: "2025-01-01T00:00:00",
             timeout: 300000,
@@ -364,6 +511,8 @@ export async function exportAll(dirPath, options) {
     } else {
       // Get sprite
       for (const spriteID of options.sprites) {
+        const spriteFolder = `${spriteID}_cache`;
+
         const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
           getAndCacheDataSprite(spriteID, "sprite.json"),
           getAndCacheDataSprite(spriteID, "sprite.png"),
@@ -371,25 +520,25 @@ export async function exportAll(dirPath, options) {
 
         await Promise.all([
           cacheSpriteFile(
-            `${dirPath}/caches/sprites/${spriteID}_cache`,
+            `${dirPath}/caches/sprites/${spriteFolder}`,
             spriteJSONBuffer
           ),
           cacheSpriteFile(
-            `${dirPath}/caches/sprites/${spriteID}_cache`,
+            `${dirPath}/caches/sprites/${spriteFolder}`,
             spritePNGBuffer
           ),
         ]);
 
         configObj.sprites[spriteID] = {
-          sprite: `${spriteID}_cache`,
+          sprite: spriteFolder,
           cache: {
             store: true,
             forward: true,
           },
         };
 
-        seedObj.sprites[`${spriteID}_cache`] = {
-          url: `http://localhost:8080/sptites/spriteID`,
+        seedObj.sprites[spriteFolder] = {
+          url: `http://localhost:8080/sptites/${spriteID}/{name}`,
           refreshBefore: "2025-01-01T00:00:00",
           timeout: 300000,
           maxTry: 5,
@@ -405,21 +554,24 @@ export async function exportAll(dirPath, options) {
       // Do nothing
     }
 
+    // Copy all fonts
     for (const fontID of Object.keys(config.fonts)) {
+      const fontFolder = `${fontID}_cache`;
+
       await cp(
         config.fonts[fontID].path,
-        `${dirPath}/caches/fonts/${fontID}_cache`
+        `${dirPath}/caches/fonts/${fontFolder}`
       );
 
       configObj.fonts[fontID] = {
-        font: `${fontID}_cache`,
+        font: fontFolder,
         cache: {
           store: true,
           forward: true,
         },
       };
 
-      seedObj.fonts[`${fontID}_cache`] = {
+      seedObj.fonts[fontFolder] = {
         url: `http://localhost:8080/fonts/${fontID}/{range}.pbf`,
         refreshBefore: "2025-01-01T00:00:00",
         timeout: 300000,
@@ -428,6 +580,25 @@ export async function exportAll(dirPath, options) {
         skip: false,
       };
     }
+
+    // Export config files
+    await Promise.all([
+      createFileWithLock(
+        `${dirPath}/config.json`,
+        JSON.stringify(configObj, null, 2),
+        30000
+      ),
+      createFileWithLock(
+        `${dirPath}/seed.json`,
+        JSON.stringify(seedObj, null, 2),
+        30000
+      ),
+      createFileWithLock(
+        `${dirPath}/cleanup.json`,
+        JSON.stringify(cleanUpObj, null, 2),
+        30000
+      ),
+    ]);
 
     printLog(
       "info",

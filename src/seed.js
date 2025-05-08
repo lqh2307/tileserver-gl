@@ -999,7 +999,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
       }
 
       if (needDownload === true) {
-        const targetURL = url.replace("{id}", `${id}`);
+        const targetURL = url.replace("{name}", `${fileName}`);
 
         printLog(
           "info",
