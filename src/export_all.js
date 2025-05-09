@@ -25,6 +25,8 @@ import {
  * @param {object} options Export options object
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
+ * @param {string} parentServerHost Parent server host
+ * @param {string} exportData Is export data?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
@@ -33,6 +35,8 @@ export async function exportAll(
   options,
   concurrency,
   storeTransparent,
+  parentServerHost,
+  exportData,
   refreshBefore
 ) {
   const startTime = Date.now();
@@ -133,7 +137,7 @@ export async function exportAll(
             zoom: style.zoom,
             center: style.center,
           },
-          url: `http://localhost:8080/styles/${styleID}/style.json`,
+          url: `${parentServerHost}/styles/${styleID}/style.json?raw=true`,
           refreshBefore: {
             md5: true,
           },
@@ -174,7 +178,7 @@ export async function exportAll(
               };
 
               seedObj.geojsons[geojsonFolder] = {
-                url: `http://localhost:8080/geojsons/${parts[2]}/${parts[3]}.geojson`,
+                url: `${parentServerHost}/geojsons/${parts[2]}/${parts[3]}.geojson`,
                 refreshBefore: {
                   md5: true,
                 },
@@ -193,21 +197,21 @@ export async function exportAll(
 
                 const dataFolder = `${dataID}_cache`;
 
-                const dataItem = config.datas[dataID];
+                const data = config.datas[dataID];
 
-                switch (dataItem.sourceType) {
+                switch (data.sourceType) {
                   case "xyz": {
                     const coverages = createCoveragesFromBBoxAndZooms(
-                      dataItem.tileJSON.bounds,
-                      dataItem.tileJSON.minzoom,
-                      dataItem.tileJSON.maxzoom
+                      data.tileJSON.bounds,
+                      data.tileJSON.minzoom,
+                      data.tileJSON.maxzoom
                     );
 
                     await exportXYZTiles(
                       dataID,
                       `${dirPath}/caches/datas/xyzs/${dataFolder}`,
                       `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
-                      dataItem.tileJSON,
+                      data.tileJSON,
                       coverages,
                       concurrency,
                       storeTransparent,
@@ -223,8 +227,8 @@ export async function exportAll(
                     };
 
                     seedObj.datas[dataFolder] = {
-                      metadata: dataItem.tileJSON,
-                      url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+                      metadata: data.tileJSON,
+                      url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
                       refreshBefore: {
                         md5: true,
@@ -243,15 +247,15 @@ export async function exportAll(
 
                   case "mbtiles": {
                     const coverages = createCoveragesFromBBoxAndZooms(
-                      dataItem.tileJSON.bounds,
-                      dataItem.tileJSON.minzoom,
-                      dataItem.tileJSON.maxzoom
+                      data.tileJSON.bounds,
+                      data.tileJSON.minzoom,
+                      data.tileJSON.maxzoom
                     );
 
                     await exportMBTilesTiles(
                       dataID,
                       `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
-                      dataItem.tileJSON,
+                      data.tileJSON,
                       coverages,
                       concurrency,
                       storeTransparent,
@@ -267,8 +271,8 @@ export async function exportAll(
                     };
 
                     seedObj.datas[dataFolder] = {
-                      metadata: dataItem.tileJSON,
-                      url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+                      metadata: data.tileJSON,
+                      url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
                       refreshBefore: {
                         md5: true,
@@ -287,15 +291,15 @@ export async function exportAll(
 
                   case "pg": {
                     const coverages = createCoveragesFromBBoxAndZooms(
-                      dataItem.tileJSON.bounds,
-                      dataItem.tileJSON.minzoom,
-                      dataItem.tileJSON.maxzoom
+                      data.tileJSON.bounds,
+                      data.tileJSON.minzoom,
+                      data.tileJSON.maxzoom
                     );
 
                     await exportPostgreSQLTiles(
                       dataID,
                       `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
-                      dataItem.tileJSON,
+                      data.tileJSON,
                       coverages,
                       concurrency,
                       storeTransparent,
@@ -311,8 +315,8 @@ export async function exportAll(
                     };
 
                     seedObj.datas[dataFolder] = {
-                      metadata: dataItem.tileJSON,
-                      url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+                      metadata: data.tileJSON,
+                      url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
                       refreshBefore: {
                         md5: true,
@@ -364,7 +368,7 @@ export async function exportAll(
             };
 
             seedObj.sprites[spriteFolder] = {
-              url: `http://localhost:8080/sptites/${spriteID}/{name}`,
+              url: `${parentServerHost}/sptites/${spriteID}/{name}`,
               refreshBefore: {
                 md5: true,
               },
@@ -385,21 +389,21 @@ export async function exportAll(
         // Get data
         const dataFolder = `${dataID}_cache`;
 
-        const dataItem = config.datas[dataID];
+        const data = config.datas[dataID];
 
-        switch (dataItem.sourceType) {
+        switch (data.sourceType) {
           case "xyz": {
             const coverages = createCoveragesFromBBoxAndZooms(
-              dataItem.tileJSON.bounds,
-              dataItem.tileJSON.minzoom,
-              dataItem.tileJSON.maxzoom
+              data.tileJSON.bounds,
+              data.tileJSON.minzoom,
+              data.tileJSON.maxzoom
             );
 
             await exportXYZTiles(
               dataID,
               `${dirPath}/caches/datas/xyzs/${dataFolder}`,
               `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
-              dataItem.tileJSON,
+              data.tileJSON,
               coverages,
               concurrency,
               storeTransparent,
@@ -415,8 +419,8 @@ export async function exportAll(
             };
 
             seedObj.datas[dataFolder] = {
-              metadata: dataItem.tileJSON,
-              url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+              metadata: data.tileJSON,
+              url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
               refreshBefore: {
                 md5: true,
@@ -435,15 +439,15 @@ export async function exportAll(
 
           case "mbtiles": {
             const coverages = createCoveragesFromBBoxAndZooms(
-              dataItem.tileJSON.bounds,
-              dataItem.tileJSON.minzoom,
-              dataItem.tileJSON.maxzoom
+              data.tileJSON.bounds,
+              data.tileJSON.minzoom,
+              data.tileJSON.maxzoom
             );
 
             await exportMBTilesTiles(
               sourceID,
               `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
-              dataItem.tileJSON,
+              data.tileJSON,
               coverages,
               concurrency,
               storeTransparent,
@@ -459,8 +463,8 @@ export async function exportAll(
             };
 
             seedObj.datas[dataFolder] = {
-              metadata: dataItem.tileJSON,
-              url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+              metadata: data.tileJSON,
+              url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
               refreshBefore: {
                 md5: true,
@@ -479,15 +483,15 @@ export async function exportAll(
 
           case "pg": {
             const coverages = createCoveragesFromBBoxAndZooms(
-              dataItem.tileJSON.bounds,
-              dataItem.tileJSON.minzoom,
-              dataItem.tileJSON.maxzoom
+              data.tileJSON.bounds,
+              data.tileJSON.minzoom,
+              data.tileJSON.maxzoom
             );
 
             await exportPostgreSQLTiles(
               dataID,
               `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
-              dataItem.tileJSON,
+              data.tileJSON,
               coverages,
               concurrency,
               storeTransparent,
@@ -503,8 +507,8 @@ export async function exportAll(
             };
 
             seedObj.datas[dataFolder] = {
-              metadata: dataItem.tileJSON,
-              url: `http://localhost:8080/datas/${dataID}/{z}/{x}/{y}.${dataItem.tileJSON.format}`,
+              metadata: data.tileJSON,
+              url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
               refreshBefore: {
                 md5: true,
@@ -551,7 +555,7 @@ export async function exportAll(
           };
 
           seedObj.geojsons[geojsonFolder] = {
-            url: `http://localhost:8080/geojsons/${group}/${layer}.geojson`,
+            url: `${parentServerHost}/geojsons/${group}/${layer}.geojson`,
             refreshBefore: {
               md5: true,
             },
@@ -596,7 +600,7 @@ export async function exportAll(
         };
 
         seedObj.sprites[spriteFolder] = {
-          url: `http://localhost:8080/sptites/${spriteID}/{name}`,
+          url: `${parentServerHost}/sptites/${spriteID}/{name}`,
           refreshBefore: {
             md5: true,
           },
@@ -632,7 +636,7 @@ export async function exportAll(
       };
 
       seedObj.fonts[fontFolder] = {
-        url: `http://localhost:8080/fonts/${fontID}/{range}.pbf`,
+        url: `${parentServerHost}/fonts/${fontID}/{range}.pbf`,
         refreshBefore: {
           md5: true,
         },

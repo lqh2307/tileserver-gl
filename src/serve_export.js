@@ -77,6 +77,8 @@ function exportAllHandler() {
         req.body,
         req.body.concurrency || os.cpus().length,
         req.body.storeTransparent ?? true,
+        req.body.parentServerHost || "http://localhost:8080",
+        req.body.exportData ?? true,
         req.body.refreshBefore?.time ||
           req.body.refreshBefore?.day ||
           req.body.refreshBefore?.md5
