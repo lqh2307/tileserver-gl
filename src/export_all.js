@@ -113,16 +113,6 @@ export async function exportAll(
 
         const style = config.styles[styleID];
 
-        const [styleBuffer, renderedStyleJSON] = await Promise.all([
-          getStyle(style.path),
-          getRenderedStyleJSON(style.path),
-        ]);
-
-        await cacheStyleFile(
-          `${dirPath}/caches/styles/${styleFolder}/style.json`,
-          styleBuffer
-        );
-
         configObj.styles[styleID] = {
           style: styleFolder,
           cache: {
@@ -146,7 +136,18 @@ export async function exportAll(
           skip: false,
         };
 
+        if (exportData === true) {
+          const styleBuffer = await getStyle(style.path);
+
+          await cacheStyleFile(
+            `${dirPath}/caches/styles/${styleFolder}/style.json`,
+            styleBuffer
+          );
+        }
+
         // Get source
+        const renderedStyleJSON = await getRenderedStyleJSON(style.path);
+
         for (const sourceName of Object.keys(renderedStyleJSON.sources)) {
           // Get geojson source
           const source = renderedStyleJSON.sources[sourceName];
@@ -156,16 +157,6 @@ export async function exportAll(
               const parts = source.data.split("/");
 
               const geojsonFolder = `${parts[3]}_cache`;
-
-              const geoJSONBuffer = await getAndCacheDataGeoJSON(
-                parts[2],
-                parts[3]
-              );
-
-              await cacheGeoJSONFile(
-                `${dirPath}/caches/geojsons/${geojsonFolder}/${geojsonFolder}.geojson`,
-                geoJSONBuffer
-              );
 
               configObj.geojsons[parts[2]] = {
                 [parts[3]]: {
@@ -186,6 +177,18 @@ export async function exportAll(
                 maxTry: 5,
                 skip: false,
               };
+
+              if (exportData === true) {
+                const geoJSONBuffer = await getAndCacheDataGeoJSON(
+                  parts[2],
+                  parts[3]
+                );
+
+                await cacheGeoJSONFile(
+                  `${dirPath}/caches/geojsons/${geojsonFolder}/${geojsonFolder}.geojson`,
+                  geoJSONBuffer
+                );
+              }
             }
           }
 
@@ -199,25 +202,14 @@ export async function exportAll(
 
                 const data = config.datas[dataID];
 
+                const coverages = createCoveragesFromBBoxAndZooms(
+                  data.tileJSON.bounds,
+                  data.tileJSON.minzoom,
+                  data.tileJSON.maxzoom
+                );
+
                 switch (data.sourceType) {
                   case "xyz": {
-                    const coverages = createCoveragesFromBBoxAndZooms(
-                      data.tileJSON.bounds,
-                      data.tileJSON.minzoom,
-                      data.tileJSON.maxzoom
-                    );
-
-                    await exportXYZTiles(
-                      dataID,
-                      `${dirPath}/caches/datas/xyzs/${dataFolder}`,
-                      `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
-                      data.tileJSON,
-                      coverages,
-                      concurrency,
-                      storeTransparent,
-                      refreshBefore
-                    );
-
                     configObj.datas[dataID] = {
                       xyz: dataFolder,
                       cache: {
@@ -242,26 +234,23 @@ export async function exportAll(
                       skip: false,
                     };
 
+                    if (exportData === true) {
+                      await exportXYZTiles(
+                        dataID,
+                        `${dirPath}/caches/datas/xyzs/${dataFolder}`,
+                        `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
+                        data.tileJSON,
+                        coverages,
+                        concurrency,
+                        storeTransparent,
+                        refreshBefore
+                      );
+                    }
+
                     break;
                   }
 
                   case "mbtiles": {
-                    const coverages = createCoveragesFromBBoxAndZooms(
-                      data.tileJSON.bounds,
-                      data.tileJSON.minzoom,
-                      data.tileJSON.maxzoom
-                    );
-
-                    await exportMBTilesTiles(
-                      dataID,
-                      `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
-                      data.tileJSON,
-                      coverages,
-                      concurrency,
-                      storeTransparent,
-                      refreshBefore
-                    );
-
                     configObj.datas[dataID] = {
                       mbtiles: dataFolder,
                       cache: {
@@ -286,26 +275,22 @@ export async function exportAll(
                       skip: false,
                     };
 
+                    if (exportData === true) {
+                      await exportMBTilesTiles(
+                        dataID,
+                        `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
+                        data.tileJSON,
+                        coverages,
+                        concurrency,
+                        storeTransparent,
+                        refreshBefore
+                      );
+                    }
+
                     break;
                   }
 
                   case "pg": {
-                    const coverages = createCoveragesFromBBoxAndZooms(
-                      data.tileJSON.bounds,
-                      data.tileJSON.minzoom,
-                      data.tileJSON.maxzoom
-                    );
-
-                    await exportPostgreSQLTiles(
-                      dataID,
-                      `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
-                      data.tileJSON,
-                      coverages,
-                      concurrency,
-                      storeTransparent,
-                      refreshBefore
-                    );
-
                     configObj.datas[dataID] = {
                       pg: dataFolder,
                       cache: {
@@ -330,6 +315,18 @@ export async function exportAll(
                       skip: false,
                     };
 
+                    if (exportData === true) {
+                      await exportPostgreSQLTiles(
+                        dataID,
+                        `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
+                        data.tileJSON,
+                        coverages,
+                        concurrency,
+                        storeTransparent,
+                        refreshBefore
+                      );
+                    }
+
                     break;
                   }
                 }
@@ -342,22 +339,6 @@ export async function exportAll(
             const spriteID = source.data.split("/")[2];
 
             const spriteFolder = `${spriteID}_cache`;
-
-            const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
-              getAndCacheDataSprite(spriteID, "sprite.json"),
-              getAndCacheDataSprite(spriteID, "sprite.png"),
-            ]);
-
-            await Promise.all([
-              cacheSpriteFile(
-                `${dirPath}/caches/sprites/${spriteFolder}`,
-                spriteJSONBuffer
-              ),
-              cacheSpriteFile(
-                `${dirPath}/caches/sprites/${spriteFolder}`,
-                spritePNGBuffer
-              ),
-            ]);
 
             configObj.sprites[spriteID] = {
               sprite: spriteFolder,
@@ -376,6 +357,24 @@ export async function exportAll(
               maxTry: 5,
               skip: false,
             };
+
+            if (exportData === true) {
+              const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
+                getAndCacheDataSprite(spriteID, "sprite.json"),
+                getAndCacheDataSprite(spriteID, "sprite.png"),
+              ]);
+
+              await Promise.all([
+                cacheSpriteFile(
+                  `${dirPath}/caches/sprites/${spriteFolder}`,
+                  spriteJSONBuffer
+                ),
+                cacheSpriteFile(
+                  `${dirPath}/caches/sprites/${spriteFolder}`,
+                  spritePNGBuffer
+                ),
+              ]);
+            }
           }
         }
       }
@@ -391,25 +390,14 @@ export async function exportAll(
 
         const data = config.datas[dataID];
 
+        const coverages = createCoveragesFromBBoxAndZooms(
+          data.tileJSON.bounds,
+          data.tileJSON.minzoom,
+          data.tileJSON.maxzoom
+        );
+
         switch (data.sourceType) {
           case "xyz": {
-            const coverages = createCoveragesFromBBoxAndZooms(
-              data.tileJSON.bounds,
-              data.tileJSON.minzoom,
-              data.tileJSON.maxzoom
-            );
-
-            await exportXYZTiles(
-              dataID,
-              `${dirPath}/caches/datas/xyzs/${dataFolder}`,
-              `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
-              data.tileJSON,
-              coverages,
-              concurrency,
-              storeTransparent,
-              refreshBefore
-            );
-
             configObj.datas[dataID] = {
               xyz: dataFolder,
               cache: {
@@ -434,26 +422,23 @@ export async function exportAll(
               skip: false,
             };
 
+            if (exportData === true) {
+              await exportXYZTiles(
+                dataID,
+                `${dirPath}/caches/datas/xyzs/${dataFolder}`,
+                `${dirPath}/caches/datas/xyzs/${dataFolder}/${dataFolder}.sqlite`,
+                data.tileJSON,
+                coverages,
+                concurrency,
+                storeTransparent,
+                refreshBefore
+              );
+            }
+
             break;
           }
 
           case "mbtiles": {
-            const coverages = createCoveragesFromBBoxAndZooms(
-              data.tileJSON.bounds,
-              data.tileJSON.minzoom,
-              data.tileJSON.maxzoom
-            );
-
-            await exportMBTilesTiles(
-              sourceID,
-              `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
-              data.tileJSON,
-              coverages,
-              concurrency,
-              storeTransparent,
-              refreshBefore
-            );
-
             configObj.datas[dataID] = {
               mbtiles: dataFolder,
               cache: {
@@ -478,26 +463,22 @@ export async function exportAll(
               skip: false,
             };
 
+            if (exportData === true) {
+              await exportMBTilesTiles(
+                sourceID,
+                `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
+                data.tileJSON,
+                coverages,
+                concurrency,
+                storeTransparent,
+                refreshBefore
+              );
+            }
+
             break;
           }
 
           case "pg": {
-            const coverages = createCoveragesFromBBoxAndZooms(
-              data.tileJSON.bounds,
-              data.tileJSON.minzoom,
-              data.tileJSON.maxzoom
-            );
-
-            await exportPostgreSQLTiles(
-              dataID,
-              `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
-              data.tileJSON,
-              coverages,
-              concurrency,
-              storeTransparent,
-              refreshBefore
-            );
-
             configObj.datas[dataID] = {
               pg: dataFolder,
               cache: {
@@ -522,6 +503,18 @@ export async function exportAll(
               skip: false,
             };
 
+            if (exportData === true) {
+              await exportPostgreSQLTiles(
+                dataID,
+                `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
+                data.tileJSON,
+                coverages,
+                concurrency,
+                storeTransparent,
+                refreshBefore
+              );
+            }
+
             break;
           }
         }
@@ -538,13 +531,6 @@ export async function exportAll(
 
         for (const layer of Object.keys(options.geojsons[group])) {
           const geojsonFolder = `${layer}_cache`;
-
-          const geoJSONBuffer = await getAndCacheDataGeoJSON(group, layer);
-
-          await cacheGeoJSONFile(
-            `${dirPath}/caches/geojsons/${geojsonFolder}/${geojsonFolder}.geojson`,
-            geoJSONBuffer
-          );
 
           configObj.geojsons[group][layer] = {
             geojson: geojsonFolder,
@@ -563,6 +549,15 @@ export async function exportAll(
             maxTry: 5,
             skip: false,
           };
+
+          if (exportData === true) {
+            const geoJSONBuffer = await getAndCacheDataGeoJSON(group, layer);
+
+            await cacheGeoJSONFile(
+              `${dirPath}/caches/geojsons/${geojsonFolder}/${geojsonFolder}.geojson`,
+              geoJSONBuffer
+            );
+          }
         }
       }
     }
@@ -574,22 +569,6 @@ export async function exportAll(
       // Get sprite
       for (const spriteID of options.sprites) {
         const spriteFolder = `${spriteID}_cache`;
-
-        const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
-          getAndCacheDataSprite(spriteID, "sprite.json"),
-          getAndCacheDataSprite(spriteID, "sprite.png"),
-        ]);
-
-        await Promise.all([
-          cacheSpriteFile(
-            `${dirPath}/caches/sprites/${spriteFolder}`,
-            spriteJSONBuffer
-          ),
-          cacheSpriteFile(
-            `${dirPath}/caches/sprites/${spriteFolder}`,
-            spritePNGBuffer
-          ),
-        ]);
 
         configObj.sprites[spriteID] = {
           sprite: spriteFolder,
@@ -608,6 +587,24 @@ export async function exportAll(
           maxTry: 5,
           skip: false,
         };
+
+        if (exportData === true) {
+          const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
+            getAndCacheDataSprite(spriteID, "sprite.json"),
+            getAndCacheDataSprite(spriteID, "sprite.png"),
+          ]);
+
+          await Promise.all([
+            cacheSpriteFile(
+              `${dirPath}/caches/sprites/${spriteFolder}`,
+              spriteJSONBuffer
+            ),
+            cacheSpriteFile(
+              `${dirPath}/caches/sprites/${spriteFolder}`,
+              spritePNGBuffer
+            ),
+          ]);
+        }
       }
     }
 
@@ -621,11 +618,6 @@ export async function exportAll(
     // Copy all fonts
     for (const fontID of Object.keys(config.fonts)) {
       const fontFolder = `${fontID}_cache`;
-
-      await cp(
-        config.fonts[fontID].path,
-        `${dirPath}/caches/fonts/${fontFolder}`
-      );
 
       configObj.fonts[fontID] = {
         font: fontFolder,
@@ -645,6 +637,13 @@ export async function exportAll(
         maxTry: 5,
         skip: false,
       };
+
+      if (exportData === true) {
+        await cp(
+          config.fonts[fontID].path,
+          `${dirPath}/caches/fonts/${fontFolder}`
+        );
+      }
     }
 
     // Export config files
