@@ -51,7 +51,7 @@ apt-get -y install \
 If use export (Install gdal):
 
 ```bash
-export GDAL_VERSION=3.10.3
+export GDAL_VERSION=3.11.0
 
 wget -q http://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz; \
 tar -xzf ./gdal-${GDAL_VERSION}.tar.gz; \
