@@ -757,6 +757,14 @@ export async function delay(ms) {
 }
 
 /**
+ * Delay 50ms
+ * @returns {Promise<void>}
+ */
+export async function wait50ms() {
+  await new Promise((resolve) => setTimeout(resolve, 50));
+}
+
+/**
  * Calculate MD5 hash of a buffer
  * @param {Buffer} buffer The data buffer
  * @returns {string} The MD5 hash
@@ -1466,7 +1474,7 @@ export async function createFileWithLock(filePath, data, timeout) {
 
         continue;
       } else if (error.code === "EEXIST") {
-        await delay(50);
+        await wait50ms();
       } else {
         if (lockFileHandle !== undefined) {
           await lockFileHandle.close();
@@ -1515,7 +1523,7 @@ export async function removeFileWithLock(filePath, timeout) {
       if (error.code === "ENOENT") {
         return;
       } else if (error.code === "EEXIST") {
-        await delay(50);
+        await wait50ms();
       } else {
         if (lockFileHandle !== undefined) {
           await lockFileHandle.close();

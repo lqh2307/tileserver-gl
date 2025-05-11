@@ -22,7 +22,7 @@ import {
   calculateMD5,
   findFolders,
   findFiles,
-  delay,
+  wait50ms,
   retry,
 } from "./utils.js";
 
@@ -47,7 +47,7 @@ async function getXYZLayersFromTiles(sourcePath) {
   for (const pbfFilePath of pbfFilePaths) {
     /* Wait slot for a task */
     while (tasks.activeTasks >= 256) {
-      await delay(50);
+      await wait50ms();
     }
 
     await tasks.mutex.runExclusive(() => {
@@ -73,7 +73,7 @@ async function getXYZLayersFromTiles(sourcePath) {
 
   /* Wait all tasks done */
   while (tasks.activeTasks > 0) {
-    await delay(50);
+    await wait50ms();
   }
 
   return Array.from(layerNames);

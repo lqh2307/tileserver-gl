@@ -37,7 +37,7 @@ import {
   validateJSON,
   calculateMD5,
   unzipAsync,
-  delay,
+  wait50ms,
 } from "./utils.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -304,7 +304,7 @@ async function seedMBTilesTiles(
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await delay(50);
+            await wait50ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -324,7 +324,7 @@ async function seedMBTilesTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await delay(50);
+      await wait50ms();
     }
 
     printLog(
@@ -544,7 +544,7 @@ async function seedPostgreSQLTiles(
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await delay(50);
+            await wait50ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -564,7 +564,7 @@ async function seedPostgreSQLTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await delay(50);
+      await wait50ms();
     }
 
     printLog(
@@ -791,7 +791,7 @@ async function seedXYZTiles(
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await delay(50);
+            await wait50ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -811,7 +811,7 @@ async function seedXYZTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await delay(50);
+      await wait50ms();
     }
 
     /* Remove parent folders if empty */
@@ -1126,7 +1126,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
   for (let i = 0; i < 256; i++) {
     /* Wait slot for a task */
     while (tasks.activeTasks >= concurrency) {
-      await delay(50);
+      await wait50ms();
     }
 
     await tasks.mutex.runExclusive(() => {
@@ -1144,7 +1144,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   /* Wait all tasks done */
   while (tasks.activeTasks > 0) {
-    await delay(50);
+    await wait50ms();
   }
 
   /* Remove parent folders if empty */

@@ -42,7 +42,7 @@ import {
   calculateMD5,
   unzipAsync,
   runCommand,
-  delay,
+  wait50ms,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -658,7 +658,7 @@ export async function renderMBTilesTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await delay(50);
+            await wait50ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -678,7 +678,7 @@ export async function renderMBTilesTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await delay(50);
+      await wait50ms();
     }
 
     /* Destroy renderer pool */
@@ -1006,7 +1006,7 @@ export async function renderXYZTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await delay(50);
+            await wait50ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -1026,7 +1026,7 @@ export async function renderXYZTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await delay(50);
+      await wait50ms();
     }
 
     /* Destroy renderer pool */
@@ -1334,7 +1334,7 @@ export async function renderPostgreSQLTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await delay(50);
+            await wait50ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -1354,7 +1354,7 @@ export async function renderPostgreSQLTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await delay(50);
+      await wait50ms();
     }
 
     /* Destroy renderer pool */
