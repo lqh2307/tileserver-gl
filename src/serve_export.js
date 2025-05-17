@@ -1,6 +1,6 @@
 "use strict";
 
-import { getJSONSchema, validateJSON } from "./utils.js";
+import { DEFAULT_TILE_SIZE, getJSONSchema, validateJSON } from "./utils.js";
 import { StatusCodes } from "http-status-codes";
 import { exportAll } from "./export_all.js";
 import { printLog } from "./logger.js";
@@ -302,7 +302,7 @@ function renderStyleHandler() {
                 `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}/${req.body.id}.sqlite`,
                 req.body.metadata,
                 req.body.tileScale || 1,
-                req.body.tileSize || 256,
+                req.body.tileSize || DEFAULT_TILE_SIZE,
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
@@ -326,7 +326,7 @@ function renderStyleHandler() {
                 `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
                 req.body.metadata,
                 req.body.tileScale || 1,
-                req.body.tileSize || 256,
+                req.body.tileSize || DEFAULT_TILE_SIZE,
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
@@ -350,7 +350,7 @@ function renderStyleHandler() {
                 `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
                 req.body.metadata,
                 req.body.tileScale || 1,
-                req.body.tileSize || 256,
+                req.body.tileSize || DEFAULT_TILE_SIZE,
                 req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,

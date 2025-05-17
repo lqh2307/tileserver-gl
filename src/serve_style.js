@@ -10,6 +10,7 @@ import { seed } from "./seed.js";
 import {
   createTileMetadataFromTemplate,
   calculateMD5OfFile,
+  DEFAULT_TILE_SIZE,
   compileTemplate,
   getRequestHost,
   isLocalURL,
@@ -288,8 +289,8 @@ function getRenderedTileHandler() {
     /* Get tile scale (Default: 1) */
     const tileScale = Number(req.query.tileScale) || 1;
 
-    /* Get tile size (Default: 256px x 256px) */
-    const tileSize = Number(req.query.tileSize) || 256;
+    /* Get tile size (Default: DEFAULT_TILE_SIZE) */
+    const tileSize = Number(req.query.tileSize) || DEFAULT_TILE_SIZE;
 
     const z = Number(req.params.z);
     const x = Number(req.params.x);

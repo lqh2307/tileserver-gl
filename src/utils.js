@@ -27,6 +27,8 @@ import {
 
 sharp.cache(false);
 
+export const DEFAULT_TILE_SIZE = 256;
+
 /**
  * Compile template
  * @param {"index"|"viewer"|"vector_data"|"raster_data"|"geojson_group"|"geojson"|"wmts"} template
@@ -331,7 +333,7 @@ export function xy3857ToLonLat4326(x, y) {
 }
 
 /**
- * Get xyz tile indices from longitude, latitude, and zoom level (tile size = 256)
+ * Get xyz tile indices from longitude, latitude, and zoom level (tile size = DEFAULT_TILE_SIZE)
  * @param {number} lon Longitude in EPSG:4326
  * @param {number} lat Latitude in EPSG:4326
  * @param {number} z Zoom level
@@ -339,7 +341,7 @@ export function xy3857ToLonLat4326(x, y) {
  * @returns {[number, number, number]} Tile indices [x, y, z]
  */
 export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz") {
-  const size = 256 * (1 << z);
+  const size = DEFAULT_TILE_SIZE * (1 << z);
   const bc = size / 360;
   const cc = size / (2 * Math.PI);
   const zc = size / 2;
@@ -359,12 +361,13 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz") {
     lat = -85.051129;
   }
 
-  let x = Math.floor((zc + lon * bc) / 256);
+  let x = Math.floor((zc + lon * bc) / DEFAULT_TILE_SIZE);
   let y = Math.floor(
     (scheme === "tms"
       ? size -
         (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
-      : zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) / 256
+      : zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) /
+      DEFAULT_TILE_SIZE
   );
 
   // Limit x
@@ -385,7 +388,7 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz") {
 }
 
 /**
- * Get longitude, latitude from tile indices x, y, and zoom level (tile size = 256)
+ * Get longitude, latitude from tile indices x, y, and zoom level (tile size = DEFAULT_TILE_SIZE)
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {number} z Zoom level
@@ -400,20 +403,20 @@ export function getLonLatFromXYZ(
   position = "topLeft",
   scheme = "xyz"
 ) {
-  const size = 256 * (1 << z);
+  const size = DEFAULT_TILE_SIZE * (1 << z);
   const bc = size / 360;
   const cc = size / (2 * Math.PI);
   const zc = size / 2;
 
-  let px = x * 256;
-  let py = y * 256;
+  let px = x * DEFAULT_TILE_SIZE;
+  let py = y * DEFAULT_TILE_SIZE;
 
   if (position === "center") {
-    px = (x + 0.5) * 256;
-    py = (y + 0.5) * 256;
+    px = (x + 0.5) * DEFAULT_TILE_SIZE;
+    py = (y + 0.5) * DEFAULT_TILE_SIZE;
   } else if (position === "bottomRight") {
-    px = (x + 1) * 256;
-    py = (y + 1) * 256;
+    px = (x + 1) * DEFAULT_TILE_SIZE;
+    py = (y + 1) * DEFAULT_TILE_SIZE;
   }
 
   return [
