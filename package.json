@@ -19,7 +19,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-style-spec": "23.2.2",
+    "@maplibre/maplibre-gl-style-spec": "23.2.3",
     "@maplibre/maplibre-gl-native": "6.1.0",
     "file-stream-rotator": "1.0.0",
     "swagger-ui-express": "5.0.1",
@@ -31,7 +31,7 @@
     "generic-pool": "3.9.0",
     "async-mutex": "0.5.0",
     "handlebars": "4.7.8",
-    "node-cron": "4.0.0",
+    "node-cron": "4.0.5",
     "chokidar": "4.0.3",
     "express": "5.1.0",
     "pmtiles": "4.3.0",
@@ -40,11 +40,11 @@
     "cors": "2.8.5",
     "pino": "9.6.0",
     "ajv": "8.17.1",
-    "pg": "8.15.6"
+    "pg": "8.16.0"
   },
   "devDependencies": {
     "prettier": "3.5.3",
-    "eslint": "9.26.0"
+    "eslint": "9.27.0"
   },
   "engines": {
     "node": ">=22 <23"

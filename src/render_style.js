@@ -42,7 +42,7 @@ import {
   calculateMD5,
   unzipAsync,
   runCommand,
-  wait50ms,
+  wait25ms,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -82,7 +82,6 @@ if (cluster.isPrimary !== true) {
  */
 function createTileRenderer(tileScale, styleJSON) {
   const renderer = new mlgl.Map({
-    mode: "tile",
     ratio: tileScale,
     request: async (req, callback) => {
       const url = decodeURIComponent(req.url);
@@ -658,7 +657,7 @@ export async function renderMBTilesTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait50ms();
+            await wait25ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -678,7 +677,7 @@ export async function renderMBTilesTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait50ms();
+      await wait25ms();
     }
 
     /* Destroy renderer pool */
@@ -1006,7 +1005,7 @@ export async function renderXYZTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait50ms();
+            await wait25ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -1026,7 +1025,7 @@ export async function renderXYZTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait50ms();
+      await wait25ms();
     }
 
     /* Destroy renderer pool */
@@ -1334,7 +1333,7 @@ export async function renderPostgreSQLTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait50ms();
+            await wait25ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -1354,7 +1353,7 @@ export async function renderPostgreSQLTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait50ms();
+      await wait25ms();
     }
 
     /* Destroy renderer pool */

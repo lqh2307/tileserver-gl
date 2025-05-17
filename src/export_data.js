@@ -26,7 +26,7 @@ import {
   getTileBoundsFromCoverages,
   removeEmptyFolders,
   processCoverages,
-  wait50ms,
+  wait25ms,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -222,7 +222,7 @@ export async function exportMBTilesTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait50ms();
+            await wait25ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -242,7 +242,7 @@ export async function exportMBTilesTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait50ms();
+      await wait25ms();
     }
 
     printLog(
@@ -457,7 +457,7 @@ export async function exportXYZTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait50ms();
+            await wait25ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -477,7 +477,7 @@ export async function exportXYZTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait50ms();
+      await wait25ms();
     }
 
     /* Remove parent folders if empty */
@@ -686,7 +686,7 @@ export async function exportPostgreSQLTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait50ms();
+            await wait25ms();
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -706,7 +706,7 @@ export async function exportPostgreSQLTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait50ms();
+      await wait25ms();
     }
 
     printLog(

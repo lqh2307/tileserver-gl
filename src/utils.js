@@ -757,11 +757,11 @@ export async function delay(ms) {
 }
 
 /**
- * Delay 50ms
+ * Delay 25ms
  * @returns {Promise<void>}
  */
-export async function wait50ms() {
-  await new Promise((resolve) => setTimeout(resolve, 50));
+export async function wait25ms() {
+  await new Promise((resolve) => setTimeout(resolve, 25));
 }
 
 /**
@@ -1474,7 +1474,7 @@ export async function createFileWithLock(filePath, data, timeout) {
 
         continue;
       } else if (error.code === "EEXIST") {
-        await wait50ms();
+        await wait25ms();
       } else {
         if (lockFileHandle !== undefined) {
           await lockFileHandle.close();
@@ -1523,7 +1523,7 @@ export async function removeFileWithLock(filePath, timeout) {
       if (error.code === "ENOENT") {
         return;
       } else if (error.code === "EEXIST") {
-        await wait50ms();
+        await wait25ms();
       } else {
         if (lockFileHandle !== undefined) {
           await lockFileHandle.close();
