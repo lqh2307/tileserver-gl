@@ -373,12 +373,12 @@ export function validateTileMetadata(metadata) {
   */
 
   /* Validate minzoom */
-  if (metadata.minzoom < 0 || metadata.minzoom > 22) {
+  if (metadata.minzoom < 0 || metadata.minzoom > 25) {
     throw new Error(`"minzoom" property is invalid`);
   }
 
   /* Validate maxzoom */
-  if (metadata.maxzoom < 0 || metadata.maxzoom > 22) {
+  if (metadata.maxzoom < 0 || metadata.maxzoom > 25) {
     throw new Error(`"maxzoom" property is invalid`);
   }
 
@@ -409,7 +409,7 @@ export function validateTileMetadata(metadata) {
       Math.abs(metadata.center[0]) > 180 ||
       Math.abs(metadata.center[1]) > 90 ||
       metadata.center[2] < 0 ||
-      metadata.center[2] > 22
+      metadata.center[2] > 25
     ) {
       throw new Error(`"center" property is invalid`);
     }

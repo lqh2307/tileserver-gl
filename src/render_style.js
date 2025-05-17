@@ -7,6 +7,7 @@ import { printLog } from "./logger.js";
 import { getFonts } from "./font.js";
 import { config } from "./config.js";
 import { Mutex } from "async-mutex";
+import { rm } from "fs/promises";
 import cluster from "cluster";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -31,14 +32,18 @@ import {
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
+  createCoveragesFromBBoxAndZooms,
   getTileBoundsFromCoverages,
   detectFormatAndHeaders,
   createFallbackTileData,
   renderImageTileData,
   removeEmptyFolders,
+  createFileWithLock,
+  lonLat4326ToXY3857,
   getLonLatFromXYZ,
-  processCoverages,
+  renderImageData,
   getDataFromURL,
+  calculateSizes,
   calculateMD5,
   unzipAsync,
   runCommand,
@@ -75,14 +80,16 @@ if (cluster.isPrimary !== true) {
 }
 
 /**
- * Create tile render
- * @param {number} tileScale Tile scale
+ * Create render
+ * @param {"tile"|"static"} mode Render mode
+ * @param {number} scale Scale
  * @param {object} styleJSON StyleJSON
  * @returns {object}
  */
-function createTileRenderer(tileScale, styleJSON) {
+function createRenderer(mode, scale, styleJSON) {
   const renderer = new mlgl.Map({
-    ratio: tileScale,
+    mode: mode,
+    ratio: scale,
     request: async (req, callback) => {
       const url = decodeURIComponent(req.url);
       const parts = url.split("/");
@@ -343,6 +350,44 @@ function createTileRenderer(tileScale, styleJSON) {
 }
 
 /**
+ * Render image
+ * @param {object} styleJSON StyleJSON
+ * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
+ * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @param {number} zoom Zoom level
+ * @returns {Promise<Buffer>}
+ */
+export async function renderImage(styleJSON, bbox, zoom, format) {
+  const { width, height } = calculateSizes(bbox, zoom);
+
+  const data = await new Promise((resolve, reject) => {
+    const renderer = createRenderer("static", 1, styleJSON);
+
+    renderer.render(
+      {
+        zoom: zoom,
+        center: [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2],
+        width: width,
+        height: height,
+      },
+      (error, data) => {
+        if (renderer !== undefined) {
+          renderer.release();
+        }
+
+        if (error) {
+          return reject(error);
+        }
+
+        resolve(data);
+      }
+    );
+  });
+
+  return await renderImageData(data, width, height, format);
+}
+
+/**
  * Render image tile
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
@@ -366,7 +411,7 @@ export async function renderImageTile(
   const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
 
   const data = await new Promise((resolve, reject) => {
-    const renderer = createTileRenderer(tileScale, styleJSON);
+    const renderer = createRenderer("tile", tileScale, styleJSON);
 
     renderer.render(
       {
@@ -402,13 +447,11 @@ export async function renderImageTile(
  * @param {string} id Style ID
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
- * @param {number} tileScale Tile scale
- * @param {256|512} tileSize Tile size
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
+ * @param {boolean} fastRender Is fast render?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
@@ -416,13 +459,11 @@ export async function renderMBTilesTiles(
   id,
   filePath,
   metadata,
-  tileScale,
-  tileSize,
-  coverages,
   maxRendererPoolSize,
   concurrency,
   storeTransparent,
   createOverview,
+  fastRender,
   refreshBefore
 ) {
   const startTime = Date.now();
@@ -431,7 +472,11 @@ export async function renderMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
+    const targetCoverages = createCoveragesFromBBoxAndZooms(
+      metadata.bounds,
+      metadata.minzoom,
+      metadata.maxzoom
+    );
     const { total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
@@ -442,10 +487,8 @@ export async function renderMBTilesTiles(
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tCreate overview: ${createOverview}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tFast render: ${fastRender}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
@@ -507,192 +550,242 @@ export async function renderMBTilesTiles(
     );
 
     /* Render tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
-    /* Create renderer pool */
     const item = config.styles[id];
     const renderedStyleJSON = await getRenderedStyleJSON(item.path);
-    let pool;
-    let renderMBTilesTileData;
 
-    if (maxRendererPoolSize > 0) {
-      pool = createPool(
-        {
-          create: () => createTileRenderer(tileScale, renderedStyleJSON),
-          destroy: (renderer) => renderer.release(),
-        },
-        {
-          min: 1,
-          max: maxRendererPoolSize,
-        }
-      );
+    if (fastRender !== true) {
+      const tasks = {
+        mutex: new Mutex(),
+        activeTasks: 0,
+        completeTasks: 0,
+      };
 
-      renderMBTilesTileData = async (z, x, y, tasks) => {
-        const tileName = `${z}/${x}/${y}`;
+      /* Create renderer pool */
+      let pool;
+      let renderMBTilesTileData;
 
-        if (
-          refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
-          tileExtraInfo[tileName] < refreshTimestamp
-        ) {
-          const completeTasks = tasks.completeTasks;
+      if (maxRendererPoolSize > 0) {
+        pool = createPool(
+          {
+            create: () => createRenderer("tile", 1, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        );
 
-          printLog(
-            "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-          );
+        renderMBTilesTileData = async (z, x, y, tasks) => {
+          const tileName = `${z}/${x}/${y}`;
 
-          try {
-            // Rendered data
-            const isNeedHack = z === 0 && tileSize === 256;
-            const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+          if (
+            refreshTimestampType !== "number" ||
+            tileExtraInfo[tileName] === undefined ||
+            tileExtraInfo[tileName] < refreshTimestamp
+          ) {
+            const completeTasks = tasks.completeTasks;
 
-            const renderer = await pool.acquire();
+            printLog(
+              "info",
+              `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            );
 
-            const dataRaw = await new Promise((resolve, reject) => {
-              renderer.render(
-                {
-                  zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
-                  center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
-                  width: hackTileSize,
-                  height: hackTileSize,
-                },
-                (error, dataRaw) => {
-                  if (renderer !== undefined) {
-                    pool.release(renderer);
+            try {
+              // Rendered data
+              const hackTileSize = z === 0 ? 512 : 256;
+
+              const renderer = await pool.acquire();
+
+              const dataRaw = await new Promise((resolve, reject) => {
+                renderer.render(
+                  {
+                    zoom: z !== 0 ? z - 1 : z,
+                    center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+                    width: hackTileSize,
+                    height: hackTileSize,
+                  },
+                  (error, dataRaw) => {
+                    if (renderer !== undefined) {
+                      pool.release(renderer);
+                    }
+
+                    if (error) {
+                      return reject(error);
+                    }
+
+                    resolve(dataRaw);
                   }
+                );
+              });
 
-                  if (error) {
-                    return reject(error);
-                  }
-
-                  resolve(dataRaw);
-                }
+              const data = await renderImageTileData(
+                dataRaw,
+                hackTileSize,
+                z === 0 ? hackTileSize / 2 : undefined,
+                metadata.format
               );
+
+              if (
+                refreshTimestampType === "boolean" &&
+                tileExtraInfo[tileName] === calculateMD5(data)
+              ) {
+                return;
+              }
+
+              // Store data
+              await cacheMBtilesTileData(
+                source,
+                z,
+                x,
+                y,
+                data,
+                storeTransparent
+              );
+            } catch (error) {
+              printLog(
+                "error",
+                `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+              );
+            }
+          }
+        };
+      } else {
+        renderMBTilesTileData = async (z, x, y, tasks) => {
+          const tileName = `${z}/${x}/${y}`;
+
+          if (
+            refreshTimestampType !== "number" ||
+            tileExtraInfo[tileName] === undefined ||
+            tileExtraInfo[tileName] < refreshTimestamp
+          ) {
+            const completeTasks = tasks.completeTasks;
+
+            printLog(
+              "info",
+              `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            );
+
+            try {
+              // Rendered data
+              const data = await renderImageTile(
+                1,
+                256,
+                renderedStyleJSON,
+                z,
+                x,
+                y,
+                metadata.format
+              );
+
+              if (
+                refreshTimestampType === "boolean" &&
+                tileExtraInfo[tileName] === calculateMD5(data)
+              ) {
+                return;
+              }
+
+              // Store data
+              await cacheMBtilesTileData(
+                source,
+                z,
+                x,
+                y,
+                data,
+                storeTransparent
+              );
+            } catch (error) {
+              printLog(
+                "error",
+                `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+              );
+            }
+          }
+        };
+      }
+
+      printLog("info", "Rendering datas...");
+
+      for (const { z, x, y } of tileBounds) {
+        for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+          for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+            if (item.export === true) {
+              return;
+            }
+
+            /* Wait slot for a task */
+            while (tasks.activeTasks >= concurrency) {
+              await wait25ms();
+            }
+
+            await tasks.mutex.runExclusive(() => {
+              tasks.activeTasks++;
+              tasks.completeTasks++;
             });
 
-            const data = await renderImageTileData(
-              dataRaw,
-              hackTileSize * tileScale,
-              isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
-              metadata.format
-            );
-
-            if (
-              refreshTimestampType === "boolean" &&
-              tileExtraInfo[tileName] === calculateMD5(data)
-            ) {
-              return;
-            }
-
-            // Store data
-            await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            /* Run a task */
+            renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
+              tasks.mutex.runExclusive(() => {
+                tasks.activeTasks--;
+              })
             );
           }
-        }
-      };
-    } else {
-      renderMBTilesTileData = async (z, x, y, tasks) => {
-        const tileName = `${z}/${x}/${y}`;
-
-        if (
-          refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
-          tileExtraInfo[tileName] < refreshTimestamp
-        ) {
-          const completeTasks = tasks.completeTasks;
-
-          printLog(
-            "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-          );
-
-          try {
-            // Rendered data
-            const data = await renderImageTile(
-              tileScale,
-              tileSize,
-              renderedStyleJSON,
-              z,
-              x,
-              y,
-              metadata.format
-            );
-
-            if (
-              refreshTimestampType === "boolean" &&
-              tileExtraInfo[tileName] === calculateMD5(data)
-            ) {
-              return;
-            }
-
-            // Store data
-            await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-            );
-          }
-        }
-      };
-    }
-
-    printLog("info", "Rendering datas...");
-
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export === true) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await wait25ms();
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
         }
       }
-    }
 
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await wait25ms();
-    }
+      /* Wait all tasks done */
+      while (tasks.activeTasks > 0) {
+        await wait25ms();
+      }
 
-    /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0) {
-      await pool.drain();
-      await pool.clear();
+      /* Destroy renderer pool */
+      if (maxRendererPoolSize > 0) {
+        await pool.drain();
+        await pool.clear();
+      }
+    } else {
+      printLog("info", "Rendering datas...");
+
+      const tmpImageFilePath = `${filePath.slice(0, filePath.lastIndexOf("."))}.${metadata.format}`;
+
+      const data = await renderImage(
+        renderedStyleJSON,
+        metadata.bounds,
+        metadata.maxzoom,
+        metadata.format
+      );
+
+      printLog("info", `Creating ${metadata.format.toUpperCase()}...`);
+
+      await createFileWithLock(tmpImageFilePath, data, 30000);
+
+      const [minX, minY] = lonLat4326ToXY3857(
+        metadata.bounds[0],
+        metadata.bounds[1]
+      );
+      const [maxX, maxY] = lonLat4326ToXY3857(
+        metadata.bounds[2],
+        metadata.bounds[3]
+      );
+
+      const command = `gdal_translate -if ${metadata.format.toUpperCase()} -of MBTiles -a_ullr ${minX} ${minY} ${maxX} ${maxY} -r lanczos ${tmpImageFilePath} ${filePath}`;
+
+      printLog("info", `Creating MBTiles with gdal command: ${command}`);
+
+      const commandOutput = await runCommand(command);
+
+      printLog("info", `Gdal command output: ${commandOutput}`);
+
+      await rm(tmpImageFilePath, {
+        force: true,
+      });
     }
 
     /* Create overviews */
     if (createOverview === true) {
-      printLog("info", "Creating overviews...");
-
       const command = `gdaladdo -r lanczos -oo ZLEVEL=9 ${filePath} 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304`;
 
-      printLog("info", `Gdal command: ${command}`);
+      printLog("info", `Creating overviews with gdal command: ${command}`);
 
       const commandOutput = await runCommand(command);
 
@@ -730,13 +823,11 @@ export async function renderMBTilesTiles(
  * @param {string} sourcePath Exported source path
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
- * @param {number} tileScale Tile scale
- * @param {256|512} tileSize Tile size
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
+ * @param {boolean} fastRender Is fast render?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
@@ -745,13 +836,11 @@ export async function renderXYZTiles(
   sourcePath,
   filePath,
   metadata,
-  tileScale,
-  tileSize,
-  coverages,
   maxRendererPoolSize,
   concurrency,
   storeTransparent,
   createOverview,
+  fastRender,
   refreshBefore
 ) {
   const startTime = Date.now();
@@ -760,7 +849,11 @@ export async function renderXYZTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
+    const targetCoverages = createCoveragesFromBBoxAndZooms(
+      metadata.bounds,
+      metadata.minzoom,
+      metadata.maxzoom
+    );
     const { total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
@@ -772,10 +865,8 @@ export async function renderXYZTiles(
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tCreate overview: ${createOverview}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tFast render: ${fastRender}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
@@ -852,7 +943,7 @@ export async function renderXYZTiles(
     if (maxRendererPoolSize > 0) {
       pool = createPool(
         {
-          create: () => createTileRenderer(tileScale, renderedStyleJSON),
+          create: () => createRenderer("tile", 1, renderedStyleJSON),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -878,15 +969,14 @@ export async function renderXYZTiles(
 
           try {
             // Rendered data
-            const isNeedHack = z === 0 && tileSize === 256;
-            const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+            const hackTileSize = z === 0 ? 512 : 256;
 
             const renderer = await pool.acquire();
 
             const dataRaw = await new Promise((resolve, reject) => {
               renderer.render(
                 {
-                  zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+                  zoom: z !== 0 ? z - 1 : z,
                   center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
                   width: hackTileSize,
                   height: hackTileSize,
@@ -907,8 +997,8 @@ export async function renderXYZTiles(
 
             const data = await renderImageTileData(
               dataRaw,
-              hackTileSize * tileScale,
-              isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
+              hackTileSize,
+              z === 0 ? hackTileSize / 2 : undefined,
               metadata.format
             );
 
@@ -957,8 +1047,8 @@ export async function renderXYZTiles(
           try {
             // Rendered data
             const data = await renderImageTile(
-              tileScale,
-              tileSize,
+              1,
+              256,
               renderedStyleJSON,
               z,
               x,
@@ -1068,13 +1158,11 @@ export async function renderXYZTiles(
  * @param {string} id Style ID
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
- * @param {number} tileScale Tile scale
- * @param {256|512} tileSize Tile size
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
+ * @param {boolean} fastRender Is fast render?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
@@ -1082,13 +1170,11 @@ export async function renderPostgreSQLTiles(
   id,
   filePath,
   metadata,
-  tileScale,
-  tileSize,
-  coverages,
   maxRendererPoolSize,
   concurrency,
   storeTransparent,
   createOverview,
+  fastRender,
   refreshBefore
 ) {
   const startTime = Date.now();
@@ -1097,7 +1183,11 @@ export async function renderPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
+    const targetCoverages = createCoveragesFromBBoxAndZooms(
+      metadata.bounds,
+      metadata.minzoom,
+      metadata.maxzoom
+    );
     const { total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
@@ -1108,10 +1198,8 @@ export async function renderPostgreSQLTiles(
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tCreate overview: ${createOverview}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tFast render: ${fastRender}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
@@ -1184,7 +1272,7 @@ export async function renderPostgreSQLTiles(
     if (maxRendererPoolSize > 0) {
       pool = createPool(
         {
-          create: () => createTileRenderer(tileScale, renderedStyleJSON),
+          create: () => createRenderer("tile", 1, renderedStyleJSON),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -1210,15 +1298,14 @@ export async function renderPostgreSQLTiles(
 
           try {
             // Rendered data
-            const isNeedHack = z === 0 && tileSize === 256;
-            const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+            const hackTileSize = z === 0 ? 512 : 256;
 
             const renderer = await pool.acquire();
 
             const dataRaw = await new Promise((resolve, reject) => {
               renderer.render(
                 {
-                  zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+                  zoom: z !== 0 ? z - 1 : z,
                   center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
                   width: hackTileSize,
                   height: hackTileSize,
@@ -1239,8 +1326,8 @@ export async function renderPostgreSQLTiles(
 
             const data = await renderImageTileData(
               dataRaw,
-              hackTileSize * tileScale,
-              isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
+              hackTileSize,
+              z === 0 ? hackTileSize / 2 : undefined,
               metadata.format
             );
 
@@ -1287,8 +1374,8 @@ export async function renderPostgreSQLTiles(
           try {
             // Rendered data
             const data = await renderImageTile(
-              tileScale,
-              tileSize,
+              1,
+              256,
               renderedStyleJSON,
               z,
               x,

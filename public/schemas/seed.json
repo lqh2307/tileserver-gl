@@ -15,7 +15,7 @@
               "zoom": {
                 "type": "integer",
                 "minimum": 0,
-                "maximum": 22
+                "maximum": 25
               },
               "center": {
                 "type": "array",
@@ -161,12 +161,12 @@
               "minzoom": {
                 "type": "integer",
                 "minimum": 0,
-                "maximum": 22
+                "maximum": 25
               },
               "maxzoom": {
                 "type": "integer",
                 "minimum": 0,
-                "maximum": 22
+                "maximum": 25
               },
               "bounds": {
                 "type": "array",
@@ -202,12 +202,12 @@
                     "minzoom": {
                       "type": "integer",
                       "minimum": 0,
-                      "maximum": 22
+                      "maximum": 25
                     },
                     "maxzoom": {
                       "type": "integer",
                       "minimum": 0,
-                      "maximum": 22
+                      "maximum": 25
                     },
                     "fields": {
                       "type": "object",
@@ -277,7 +277,7 @@
                 "zoom": {
                   "type": "integer",
                   "minimum": 0,
-                  "maximum": 22
+                  "maximum": 25
                 },
                 "bbox": {
                   "type": "array",

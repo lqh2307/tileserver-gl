@@ -428,6 +428,59 @@ export function getLonLatFromXYZ(
 }
 
 /**
+ * Calculate zoom levels
+ * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @param {number} width Width of image
+ * @param {number} height Height of image
+ * @returns {{minZoom: number, maxZoom: number}} Zoom levels
+ */
+export function calculateZoomLevels(bbox, width, height) {
+  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
+  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
+
+  let maxZoom = Math.round(
+    Math.log2(
+      156543.03393 / Math.min((maxX - minX) / width, (maxY - minY) / height)
+    )
+  );
+  if (maxZoom > 25) {
+    maxZoom = 25;
+  }
+
+  let minZoom = maxZoom;
+
+  while (minZoom > 0 && (width > 243 || height > 243)) {
+    width /= 2;
+    height /= 2;
+
+    minZoom--;
+  }
+
+  return {
+    minZoom,
+    maxZoom,
+  };
+}
+
+/**
+ * Calculate sizes
+ * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @param {number} zoom Zoom level
+ * @returns {{width: number, height: number}} Sizes
+ */
+export function calculateSizes(bbox, zoom) {
+  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
+  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
+
+  const resolution = 156543.03393 / (1 << zoom);
+
+  return {
+    width: Math.round((maxX - minX) / resolution),
+    height: Math.round((maxY - minY) / resolution),
+  };
+}
+
+/**
  * Get grids for specific coverage with optional lat/lon steps (Keeps both head and tail residuals)
  * @param {{ zoom: number, bbox: [number, number, number, number] }} coverage
  * @param {number} lonStep Step for longitude
@@ -611,7 +664,7 @@ export function processCoverages(coverages, limitedBBox) {
 
 /**
  * Create coverages from bbox and zooms
- * @param {[number, number, number, number]} bbox Bounding box
+ * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} minZoom Minzoom
  * @param {number} maxZoom Minzoom
  * @returns {{ minZoom: number, maxZoom: number, bbox: [number, number, number, number] }}
@@ -1313,6 +1366,60 @@ export async function renderImageTileData(
       height: targetSize,
     });
   }
+
+  switch (format) {
+    case "gif": {
+      image.gif({});
+
+      break;
+    }
+
+    case "png": {
+      image.png({
+        compressionLevel: 9,
+      });
+
+      break;
+    }
+
+    case "jpg":
+    case "jpeg": {
+      image.jpeg({
+        quality: 100,
+      });
+
+      break;
+    }
+
+    case "webp": {
+      image.webp({
+        quality: 100,
+      });
+
+      break;
+    }
+  }
+
+  return await image.toBuffer();
+}
+
+/**
+ * Render image data
+ * @param {Buffer} data Image data
+ * @param {number} width Image width
+ * @param {number} height Image height
+ * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
+ * @returns {Promise<Buffer>}
+ */
+export async function renderImageData(data, width, height, format) {
+  const image = sharp(data, {
+    raw: {
+      premultiplied: true,
+      width: width,
+      height: height,
+      channels: 4,
+    },
+  });
 
   switch (format) {
     case "gif": {

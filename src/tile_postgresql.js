@@ -337,7 +337,7 @@ export async function openPostgreSQLDB(uri, isCreate) {
         metadata (
           name TEXT NOT NULL,
           value TEXT NOT NULL,
-          PRIMARY KEY (name)
+          UNIQUE(name)
         );
       `
     );
@@ -352,7 +352,7 @@ export async function openPostgreSQLDB(uri, isCreate) {
           tile_data BYTEA NOT NULL,
           hash TEXT,
           created BIGINT,
-          PRIMARY KEY (zoom_level, tile_column, tile_row)
+          UNIQUE(zoom_level, tile_column, tile_row)
         );
       `
     );

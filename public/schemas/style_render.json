@@ -35,12 +35,12 @@
         "minzoom": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 22
+          "maximum": 25
         },
         "maxzoom": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 22
+          "maximum": 25
         },
         "bounds": {
           "type": "array",
@@ -76,12 +76,12 @@
               "minzoom": {
                 "type": "integer",
                 "minimum": 0,
-                "maximum": 22
+                "maximum": 25
               },
               "maxzoom": {
                 "type": "integer",
                 "minimum": 0,
-                "maximum": 22
+                "maximum": 25
               },
               "fields": {
                 "type": "object",
@@ -103,66 +103,7 @@
           }
         }
       },
-      "required": ["format", "bounds"]
-    },
-    "tileScale": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "tileSize": {
-      "type": "integer",
-      "enum": [256, 512]
-    },
-    "coverages": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "zoom": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 22
-          },
-          "bbox": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "minimum": -180,
-              "maximum": 180
-            },
-            "minItems": 4,
-            "maxItems": 4
-          },
-          "circle": {
-            "type": "object",
-            "properties": {
-              "center": {
-                "type": "array",
-                "items": {
-                  "type": "number",
-                  "minimum": -180,
-                  "maximum": 180
-                },
-                "minItems": 2,
-                "maxItems": 2
-              },
-              "radius": {
-                "type": "number",
-                "minimum": 0
-              }
-            }
-          }
-        },
-        "anyOf": [
-          {
-            "required": ["zoom", "bbox"]
-          },
-          {
-            "required": ["zoom", "circle"]
-          }
-        ]
-      },
-      "minItems": 1
+      "required": ["format", "bounds", "minzoom", "maxzoom"]
     },
     "maxRendererPoolSize": {
       "type": "integer",
@@ -199,10 +140,13 @@
     "createOverview": {
       "type": "boolean"
     },
+    "fastRender": {
+      "type": "boolean"
+    },
     "storeType": {
       "type": "string",
       "enum": ["xyz", "mbtiles", "pg"]
     }
   },
-  "required": ["id", "metadata", "storeType", "coverages"]
+  "required": ["id", "metadata", "storeType"]
 }

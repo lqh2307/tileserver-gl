@@ -356,7 +356,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
         metadata (
           name TEXT NOT NULL,
           value TEXT NOT NULL,
-          PRIMARY KEY (name)
+          UNIQUE(name)
         );
       `,
       30000 // 30 secs
@@ -373,7 +373,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           tile_data BLOB NOT NULL,
           hash TEXT,
           created BIGINT,
-          PRIMARY KEY (zoom_level, tile_column, tile_row)
+          UNIQUE(zoom_level, tile_column, tile_row)
         );
       `,
       30000 // 30 secs

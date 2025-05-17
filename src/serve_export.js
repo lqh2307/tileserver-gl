@@ -1,6 +1,6 @@
 "use strict";
 
-import { DEFAULT_TILE_SIZE, getJSONSchema, validateJSON } from "./utils.js";
+import { getJSONSchema, validateJSON } from "./utils.js";
 import { StatusCodes } from "http-status-codes";
 import { exportAll } from "./export_all.js";
 import { printLog } from "./logger.js";
@@ -27,9 +27,7 @@ function exportAllHandler() {
       try {
         validateJSON(await getJSONSchema("export_all"), req.body);
       } catch (error) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options is invalid: ${error}`);
+        throw new SyntaxError(error);
       }
 
       if (req.body.styles !== undefined) {
@@ -91,7 +89,7 @@ function exportAllHandler() {
       if (error instanceof SyntaxError) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send("Options parameter is invalid");
+          .send(`Options parameter is invalid: ${error}`);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -143,9 +141,7 @@ function exportDataHandler() {
           try {
             validateJSON(await getJSONSchema("data_export"), req.body);
           } catch (error) {
-            return res
-              .status(StatusCodes.BAD_REQUEST)
-              .send(`Options is invalid: ${error}`);
+            throw new SyntaxError(error);
           }
 
           item.export = false;
@@ -227,7 +223,7 @@ function exportDataHandler() {
       if (error instanceof SyntaxError) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send("Options parameter is invalid");
+          .send(`Options parameter is invalid: ${error}`);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -282,9 +278,7 @@ function renderStyleHandler() {
           try {
             validateJSON(await getJSONSchema("style_render"), req.body);
           } catch (error) {
-            return res
-              .status(StatusCodes.BAD_REQUEST)
-              .send(`Options is invalid: ${error}`);
+            throw new SyntaxError(error);
           }
 
           item.export = false;
@@ -301,13 +295,11 @@ function renderStyleHandler() {
                 `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}`,
                 `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}/${req.body.id}.sqlite`,
                 req.body.metadata,
-                req.body.tileScale || 1,
-                req.body.tileSize || DEFAULT_TILE_SIZE,
-                req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
+                req.body.fastRender ?? false,
                 refreshBefore
               )
                 .catch((error) => {
@@ -325,13 +317,11 @@ function renderStyleHandler() {
                 id,
                 `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
                 req.body.metadata,
-                req.body.tileScale || 1,
-                req.body.tileSize || DEFAULT_TILE_SIZE,
-                req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
+                req.body.fastRender ?? false,
                 refreshBefore
               )
                 .catch((error) => {
@@ -349,13 +339,11 @@ function renderStyleHandler() {
                 id,
                 `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
                 req.body.metadata,
-                req.body.tileScale || 1,
-                req.body.tileSize || DEFAULT_TILE_SIZE,
-                req.body.coverages,
                 req.body.maxRendererPoolSize,
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
+                req.body.fastRender ?? false,
                 refreshBefore
               )
                 .catch((error) => {
@@ -378,7 +366,7 @@ function renderStyleHandler() {
       if (error instanceof SyntaxError) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send("Options parameter is invalid");
+          .send(`Options parameter is invalid: ${error}`);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

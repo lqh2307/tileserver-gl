@@ -874,35 +874,25 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "description": "osm",
     "format": "png",
     "bounds": [
-      96,
-      4,
-      120,
-      28
+      105.28976057367373,
+      20.75062266120389,
+      106.34246116226518,
+      21.229965164008846
     ],
     "center": [
       108,
       16,
       10
     ],
-    "minzoom": 9,
-    "maxzoom": 9
+    "minzoom": 12,
+    "maxzoom": 12
   },
   "refreshBefore": {
     "time": "2024-10-10T00:00:00"
   },
-  "coverages": [
-    {
-      "bbox": [
-        96,
-        4,
-        120,
-        28
-      ],
-      "zoom": 9
-    }
-  ],
   "concurrency": 50,
   "storeType": "mbtiles",
-  "storeTransparent": true
+  "storeTransparent": true,
+  "createOverview": true
 }
 ```
