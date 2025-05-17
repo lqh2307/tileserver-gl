@@ -107,7 +107,9 @@ function createRenderer(mode, scale, styleJSON) {
               `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty sprite...`
             );
 
-            err = error;
+            data = createFallbackTileData(
+              parts[3].slice(parts[3].lastIndexOf(".") + 1)
+            );
           }
 
           break;
@@ -132,7 +134,7 @@ function createRenderer(mode, scale, styleJSON) {
               `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty font...`
             );
 
-            err = error;
+            data = createFallbackTileData("pbf");
           }
 
           break;
@@ -148,7 +150,7 @@ function createRenderer(mode, scale, styleJSON) {
               `Failed to get GeoJSON group "${parts[2]}" - Layer "${parts[3]}": ${error}. Serving empty geojson...`
             );
 
-            err = error;
+            data = createFallbackTileData("geojson");
           }
 
           break;
@@ -180,7 +182,6 @@ function createRenderer(mode, scale, styleJSON) {
             );
 
             data = createFallbackTileData(item.tileJSON.format);
-            err = error;
           }
 
           break;
@@ -217,7 +218,6 @@ function createRenderer(mode, scale, styleJSON) {
             );
 
             data = createFallbackTileData(item.tileJSON.format);
-            err = error;
           }
 
           break;
@@ -249,7 +249,6 @@ function createRenderer(mode, scale, styleJSON) {
             );
 
             data = createFallbackTileData(item.tileJSON.format);
-            err = error;
           }
 
           break;
@@ -286,7 +285,6 @@ function createRenderer(mode, scale, styleJSON) {
             );
 
             data = createFallbackTileData(item.tileJSON.format);
-            err = error;
           }
 
           break;
@@ -322,7 +320,6 @@ function createRenderer(mode, scale, styleJSON) {
             );
 
             data = createFallbackTileData(url.slice(url.lastIndexOf(".") + 1));
-            err = error;
           }
 
           break;
@@ -757,7 +754,11 @@ export async function renderMBTilesTiles(
 
       printLog("info", `Creating ${metadata.format.toUpperCase()}...`);
 
-      await createFileWithLock(tmpImageFilePath, data, 30000);
+      await createFileWithLock(
+        tmpImageFilePath, 
+        data, 
+        3600000, // 1 hours
+      );
 
       const [minX, minY] = lonLat4326ToXY3857(
         metadata.bounds[0],

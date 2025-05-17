@@ -73,7 +73,7 @@ source ~/.bashrc;
 Install nodejs:
 
 ```bash
-export NODEJS_VERSION=22.15.0
+export NODEJS_VERSION=22.15.1
 
 wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
 tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
@@ -820,64 +820,20 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 }
 ```
 
-
-## Example export
+## Example export style
 
 ```json
 {
   "id": "osm_style_export",
   "metadata": {
-    "name": "osm",
-    "description": "osm",
+    "name": "osm_style",
+    "description": "osm_style",
     "format": "png",
     "bounds": [
       96,
       4,
       120,
       28
-    ],
-    "center": [
-      108,
-      16,
-      10
-    ],
-    "minzoom": 9,
-    "maxzoom": 9
-  },
-  "refreshBefore": {
-    "time": "2024-10-10T00:00:00"
-  },
-  "tileScale": 1,
-  "tileSize": 256,
-  "coverages": [
-    {
-      "bbox": [
-        96,
-        4,
-        120,
-        28
-      ],
-      "zoom": 9
-    }
-  ],
-  "createOverview": true,
-  "maxRendererPoolSize": 40,
-  "concurrency": 50,
-  "storeType": "mbtiles",
-  "storeTransparent": false
-}
-
-{
-  "id": "osm_data_export",
-  "metadata": {
-    "name": "osm",
-    "description": "osm",
-    "format": "png",
-    "bounds": [
-      105.28976057367373,
-      20.75062266120389,
-      106.34246116226518,
-      21.229965164008846
     ],
     "center": [
       108,
@@ -893,6 +849,60 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
   "concurrency": 50,
   "storeType": "mbtiles",
   "storeTransparent": true,
-  "createOverview": true
+  "createOverview": true,
+  "fastRender": true
+}
+```
+
+## Example render data
+
+```json
+{
+  "id": "osm_data_export",
+  "metadata": {
+    "name": "osm_data",
+    "description": "osm_data",
+    "format": "png",
+    "bounds": [
+      96,
+      4,
+      120,
+      28
+    ],
+    "center": [
+      108,
+      16,
+      10
+    ],
+    "minzoom": 12,
+    "maxzoom": 12
+  },
+  "refreshBefore": {
+    "time": "2024-10-10T00:00:00"
+  },
+  "concurrency": 50,
+  "storeType": "mbtiles",
+  "storeTransparent": true,
+  "createOverview": true,
+  "coverages": [
+    {
+      "bbox": [
+        96,
+        4,
+        120,
+        28
+      ],
+      "zoom": 11
+    },
+    {
+      "bbox": [
+        96,
+        4,
+        120,
+        28
+      ],
+      "zoom": 12
+    }
+  ]
 }
 ```
