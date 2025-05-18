@@ -4,7 +4,6 @@ import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
-import { config } from "./config.js";
 import cluster from "cluster";
 import {
   removeFileWithLock,
@@ -42,13 +41,13 @@ export async function removeFontFile(filePath, timeout) {
 /**
  * Cache font file
  * @param {string} sourcePath Font folder path
- * @param {string} range Fontstack range
+ * @param {string} fileName Font filename
  * @param {Buffer} data Font buffer
  * @returns {Promise<void>}
  */
-export async function cacheFontFile(sourcePath, range, data) {
+export async function cacheFontFile(sourcePath, fileName, data) {
   await createFileWithLock(
-    `${sourcePath}/${range}.pbf`,
+    `${sourcePath}/${fileName}`,
     data,
     30000 // 30 secs
   );
@@ -58,12 +57,12 @@ export async function cacheFontFile(sourcePath, range, data) {
  * Download font file
  * @param {string} url The URL to download the file from
  * @param {string} id Font ID
- * @param {string} range Fontstack range
+ * @param {string} fileName Font filename
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function downloadFontFile(url, id, range, maxTry, timeout) {
+export async function downloadFontFile(url, id, fileName, maxTry, timeout) {
   await retry(async () => {
     try {
       // Get data from URL
@@ -72,13 +71,13 @@ export async function downloadFontFile(url, id, range, maxTry, timeout) {
       // Store data to file
       await cacheFontFile(
         `${process.env.DATA_DIR}/caches/fonts/${id}`,
-        range,
+        fileName,
         response.data
       );
     } catch (error) {
       printLog(
         "error",
-        `Failed to download font range "${range}" - From "${url}": ${error}`
+        `Failed to download font "${fileName}" - From "${url}": ${error}`
       );
 
       if (error.statusCode !== undefined) {
@@ -135,38 +134,29 @@ export async function validateFont(pbfDirPath) {
 }
 
 /**
- * Get fonts pbf
- * @param {string} ids Font IDs
+ * Get font pbf
+ * @param {string} id Font ID
  * @param {string} fileName Font file name
  * @returns {Promise<Buffer>}
  */
-export async function getFonts(ids, fileName) {
-  /* Get font datas */
-  const buffers = await Promise.all(
-    ids.split(",").map(async (font) => {
-      try {
-        /* Check font is exist? */
-        if (config.fonts[font] === undefined) {
-          throw new Error("Font does not exist");
-        }
+export async function getFont(id, fileName) {
+  try {
+    return await readFile(`${process.env.DATA_DIR}/fonts/${id}/${fileName}`);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error("Font does not exist");
+    } else {
+      throw error;
+    }
+  }
+}
 
-        return await readFile(
-          `${process.env.DATA_DIR}/fonts/${font}/${fileName}`
-        );
-      } catch (error) {
-        printLog(
-          "warn",
-          `Failed to get font "${font}": ${error}. Using fallback font "Open Sans Regular"...`
-        );
-
-        return await readFile(
-          `public/resources/fonts/Open Sans Regular/${fileName}`
-        );
-      }
-    })
-  );
-
-  /* Merge font datas */
+/**
+ * Merge font datas
+ * @param {Buffer[]} buffers Font buffers
+ * @returns {Buffer}
+ */
+export function mergeFontDatas(buffers) {
   let result;
   const coverage = {};
 
@@ -189,7 +179,7 @@ export async function getFonts(ids, fileName) {
         }
       }
 
-      result.stacks[0].name += ", " + decoded.stacks[0].name;
+      result.stacks[0].name += "," + decoded.stacks[0].name;
     }
   }
 

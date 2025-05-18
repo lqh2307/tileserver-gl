@@ -22,6 +22,7 @@ import {
   getAndCacheDataGeoJSON,
   getAndCacheXYZDataTile,
   getAndCacheDataSprite,
+  getAndCacheDataFonts,
 } from "./data.js";
 import {
   getMBTilesTileExtraInfoFromCoverages,
@@ -118,7 +119,7 @@ function createRenderer(mode, scale, styleJSON) {
         /* Get font */
         case "fonts:": {
           try {
-            data = await getFonts(parts[2], parts[3]);
+            data = await getAndCacheDataFonts(parts[2], parts[3]);
 
             const headers = detectFormatAndHeaders(data).headers;
 
@@ -755,9 +756,9 @@ export async function renderMBTilesTiles(
       printLog("info", `Creating ${metadata.format.toUpperCase()}...`);
 
       await createFileWithLock(
-        tmpImageFilePath, 
-        data, 
-        3600000, // 1 hours
+        tmpImageFilePath,
+        data,
+        3600000 // 1 hours
       );
 
       const [minX, minY] = lonLat4326ToXY3857(

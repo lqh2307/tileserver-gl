@@ -1079,7 +1079,8 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   async function seedFontData(start, end, tasks) {
     const range = `${start}-${end}`;
-    const filePath = `${sourcePath}/${range}.pbf`;
+    const fileName = `${range}.pbf`;
+    const filePath = `${sourcePath}/${fileName}`;
     const completeTasks = tasks.completeTasks;
 
     try {
@@ -1104,19 +1105,19 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
       }
 
       if (needDownload === true) {
-        const targetURL = url.replace("{range}", `${range}`);
+        const targetURL = url.replace("{range}.pbf", `${range}.pbf`);
 
         printLog(
           "info",
-          `Downloading font "${id}" - Range "${range}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          `Downloading font "${id}" - Filename "${fileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
         );
 
-        await downloadFontFile(targetURL, id, range, maxTry, timeout);
+        await downloadFontFile(targetURL, id, fileName, maxTry, timeout);
       }
     } catch (error) {
       printLog(
         "error",
-        `Failed to seed font "${id}" - Range "${range}" - ${completeTasks}/${total}: ${error}`
+        `Failed to seed font "${id}" - Filename "${fileName}" - ${completeTasks}/${total}: ${error}`
       );
     }
   }

@@ -1,8 +1,9 @@
 "use strict";
 
 import { detectFormatAndHeaders, getRequestHost, gzipAsync } from "./utils.js";
-import { getFonts, validateFont } from "./font.js";
+import { getAndCacheDataFonts } from "./data.js";
 import { StatusCodes } from "http-status-codes";
+import { validateFont } from "./font.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
@@ -16,7 +17,7 @@ function getFontHandler() {
     const ids = req.params.id;
 
     try {
-      let data = await getFonts(
+      let data = await getAndCacheDataFonts(
         ids,
         req.url.slice(req.url.lastIndexOf("/") + 1)
       );

@@ -2,6 +2,7 @@
 
 import { cacheMBtilesTileData, getMBTilesTile } from "./tile_mbtiles.js";
 import { getDataTileFromURL, getDataFileFromURL } from "./utils.js";
+import { cacheFontFile, getFont, mergeFontDatas } from "./font.js";
 import { cacheXYZTileFile, getXYZTile } from "./tile_xyz.js";
 import { cacheGeoJSONFile, getGeoJSON } from "./geojson.js";
 import { cacheSpriteFile, getSprite } from "./sprite.js";
@@ -337,6 +338,75 @@ export async function getAndCacheDataSprite(id, fileName) {
       throw error;
     }
   }
+}
+
+/**
+ * Get and cache data Sprites
+ * @param {string} ids Sprite ids
+ * @param {string} fileName Sprite file name
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheDataFonts(ids, fileName) {
+  /* Get font datas */
+  const buffers = await Promise.all(
+    ids.split(",").map(async (id) => {
+      const item = config.fonts[id];
+
+      try {
+        return await getFont(id, fileName);
+      } catch (error) {
+        try {
+          if (
+            item !== undefined &&
+            item.sourceURL !== undefined &&
+            error.message === "Font does not exist"
+          ) {
+            const targetURL = item.sourceURL.replace("{range}.pbf", fileName);
+
+            printLog(
+              "info",
+              `Forwarding font "${id}" - Filename "${fileName}" - To "${targetURL}"...`
+            );
+
+            /* Get font */
+            const font = await getDataFileFromURL(
+              targetURL,
+              30000 // 30 secs
+            );
+
+            /* Cache */
+            if (item.storeCache === true) {
+              printLog(
+                "info",
+                `Caching font "${id}" - Filename "${fileName}"...`
+              );
+
+              cacheFontFile(item.source, fileName, font).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache font "${id}" - Filename "${fileName}": ${error}`
+                )
+              );
+            }
+
+            return font;
+          } else {
+            throw error;
+          }
+        } catch (error) {
+          printLog(
+            "warn",
+            `Failed to get font "${id}": ${error}. Using fallback font "Open Sans Regular"...`
+          );
+
+          return await getFont("Open Sans Regular", fileName);
+        }
+      }
+    })
+  );
+
+  /* Merge font datas */
+  return mergeFontDatas(buffers);
 }
 
 /**
