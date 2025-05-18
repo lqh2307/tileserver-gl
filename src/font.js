@@ -152,6 +152,15 @@ export async function getFont(id, fileName) {
 }
 
 /**
+ * Get fallback font pbf
+ * @param {string} fileName Font file name
+ * @returns {Promise<Buffer>}
+ */
+export async function getFallbackFont(fileName) {
+  return await readFile(`public/resources/fonts/Open Sans Regular/${fileName}`);
+}
+
+/**
  * Merge font datas
  * @param {Buffer[]} buffers Font buffers
  * @returns {Buffer}

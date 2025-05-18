@@ -1,23 +1,27 @@
 "use strict";
 
 import { cacheStyleFile, getRenderedStyleJSON, getStyle } from "./style.js";
-import { getAndCacheDataGeoJSON, getAndCacheDataSprite } from "./data.js";
 import { cacheGeoJSONFile } from "./geojson.js";
 import { cacheSpriteFile } from "./sprite.js";
+import { cacheFontFile } from "./font.js";
 import { printLog } from "./logger.js";
-import { cp } from "node:fs/promises";
 import { config } from "./config.js";
-import {
-  exportPostgreSQLTiles,
-  exportMBTilesTiles,
-  exportXYZTiles,
-} from "./export_data.js";
 import {
   createCoveragesFromBBoxAndZooms,
   createFileWithLock,
   createFolders,
   isLocalURL,
 } from "./utils.js";
+import {
+  getAndCacheDataGeoJSON,
+  getAndCacheDataSprite,
+  getAndCacheDataFonts,
+} from "./data.js";
+import {
+  exportPostgreSQLTiles,
+  exportMBTilesTiles,
+  exportXYZTiles,
+} from "./export_data.js";
 
 /**
  * Export all
@@ -143,6 +147,105 @@ export async function exportAll(
             `${dirPath}/caches/styles/${styleFolder}/style.json`,
             styleBuffer
           );
+        }
+
+        // Get font
+        if (renderedStyleJSON.sprite.startsWith("fonts://") === true) {
+          const fonts = [];
+
+          for (const layer of renderedStyleJSON.layers) {
+            if (
+              layer.layout !== undefined &&
+              layer.layout["text-font"] !== undefined
+            ) {
+              fonts.push(...layer.layout["text-font"]);
+            }
+          }
+
+          for (const fontID of Array.from(new Set(fonts))) {
+            const fontFolder = `${fontID}_cache`;
+
+            configObj.fonts[fontID] = {
+              font: fontFolder,
+              cache: {
+                store: true,
+                forward: true,
+              },
+            };
+
+            seedObj.fonts[fontFolder] = {
+              url: `${parentServerHost}/fonts/${fontID}/{range}.pbf`,
+              refreshBefore: {
+                md5: true,
+              },
+              timeout: 300000,
+              concurrency: 256,
+              maxTry: 5,
+              skip: false,
+            };
+
+            if (exportData === true) {
+              await Promise.all(
+                Array.from({ length: 256 }, async (_, i) => {
+                  const fileName = `${i * 256}-${i * 256 + 255}.pbf`;
+
+                  const fontBuffer = await getAndCacheDataFonts(
+                    fontID,
+                    fileName
+                  );
+
+                  await cacheFontFile(
+                    `${dirPath}/caches/fonts/${fontFolder}`,
+                    fileName,
+                    fontBuffer
+                  );
+                })
+              );
+            }
+          }
+        }
+
+        // Get sprite
+        if (renderedStyleJSON.sprite.startsWith("sprites://") === true) {
+          const spriteID = renderedStyleJSON.sprite.split("/")[2];
+
+          const spriteFolder = `${spriteID}_cache`;
+
+          configObj.sprites[spriteID] = {
+            sprite: spriteFolder,
+            cache: {
+              store: true,
+              forward: true,
+            },
+          };
+
+          seedObj.sprites[spriteFolder] = {
+            url: `${parentServerHost}/sptites/${spriteID}/{name}`,
+            refreshBefore: {
+              md5: true,
+            },
+            timeout: 300000,
+            maxTry: 5,
+            skip: false,
+          };
+
+          if (exportData === true) {
+            const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
+              getAndCacheDataSprite(spriteID, "sprite.json"),
+              getAndCacheDataSprite(spriteID, "sprite.png"),
+            ]);
+
+            await Promise.all([
+              cacheSpriteFile(
+                `${dirPath}/caches/sprites/${spriteFolder}`,
+                spriteJSONBuffer
+              ),
+              cacheSpriteFile(
+                `${dirPath}/caches/sprites/${spriteFolder}`,
+                spritePNGBuffer
+              ),
+            ]);
+          }
         }
 
         // Get source
@@ -331,49 +434,6 @@ export async function exportAll(
                   }
                 }
               }
-            }
-          }
-
-          // Get sprite
-          if (renderedStyleJSON.sprite.startsWith("sprites://") === true) {
-            const spriteID = source.data.split("/")[2];
-
-            const spriteFolder = `${spriteID}_cache`;
-
-            configObj.sprites[spriteID] = {
-              sprite: spriteFolder,
-              cache: {
-                store: true,
-                forward: true,
-              },
-            };
-
-            seedObj.sprites[spriteFolder] = {
-              url: `${parentServerHost}/sptites/${spriteID}/{name}`,
-              refreshBefore: {
-                md5: true,
-              },
-              timeout: 300000,
-              maxTry: 5,
-              skip: false,
-            };
-
-            if (exportData === true) {
-              const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
-                getAndCacheDataSprite(spriteID, "sprite.json"),
-                getAndCacheDataSprite(spriteID, "sprite.png"),
-              ]);
-
-              await Promise.all([
-                cacheSpriteFile(
-                  `${dirPath}/caches/sprites/${spriteFolder}`,
-                  spriteJSONBuffer
-                ),
-                cacheSpriteFile(
-                  `${dirPath}/caches/sprites/${spriteFolder}`,
-                  spritePNGBuffer
-                ),
-              ]);
             }
           }
         }
@@ -612,37 +672,44 @@ export async function exportAll(
     if (options.fonts === undefined) {
       printLog("info", "No fonts to export. Skipping...");
     } else {
-      // Do nothing
-    }
+      // Get font
+      for (const fontID of Object.keys(config.fonts)) {
+        const fontFolder = `${fontID}_cache`;
 
-    // Copy all fonts
-    for (const fontID of Object.keys(config.fonts)) {
-      const fontFolder = `${fontID}_cache`;
+        configObj.fonts[fontID] = {
+          font: fontFolder,
+          cache: {
+            store: true,
+            forward: true,
+          },
+        };
 
-      configObj.fonts[fontID] = {
-        font: fontFolder,
-        cache: {
-          store: true,
-          forward: true,
-        },
-      };
+        seedObj.fonts[fontFolder] = {
+          url: `${parentServerHost}/fonts/${fontID}/{range}.pbf`,
+          refreshBefore: {
+            md5: true,
+          },
+          timeout: 300000,
+          concurrency: 256,
+          maxTry: 5,
+          skip: false,
+        };
 
-      seedObj.fonts[fontFolder] = {
-        url: `${parentServerHost}/fonts/${fontID}/{range}.pbf`,
-        refreshBefore: {
-          md5: true,
-        },
-        timeout: 300000,
-        concurrency: 256,
-        maxTry: 5,
-        skip: false,
-      };
+        if (exportData === true) {
+          await Promise.all(
+            Array.from({ length: 256 }, async (_, i) => {
+              const fileName = `${i * 256}-${i * 256 + 255}.pbf`;
 
-      if (exportData === true) {
-        await cp(
-          config.fonts[fontID].path,
-          `${dirPath}/caches/fonts/${fontFolder}`
-        );
+              const fontBuffer = await getAndCacheDataFonts(fontID, fileName);
+
+              await cacheFontFile(
+                `${dirPath}/caches/fonts/${fontFolder}`,
+                fileName,
+                fontBuffer
+              );
+            })
+          );
+        }
       }
     }
 

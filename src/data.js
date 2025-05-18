@@ -2,7 +2,6 @@
 
 import { cacheMBtilesTileData, getMBTilesTile } from "./tile_mbtiles.js";
 import { getDataTileFromURL, getDataFileFromURL } from "./utils.js";
-import { cacheFontFile, getFont, mergeFontDatas } from "./font.js";
 import { cacheXYZTileFile, getXYZTile } from "./tile_xyz.js";
 import { cacheGeoJSONFile, getGeoJSON } from "./geojson.js";
 import { cacheSpriteFile, getSprite } from "./sprite.js";
@@ -13,6 +12,12 @@ import {
   cachePostgreSQLTileData,
   getPostgreSQLTile,
 } from "./tile_postgresql.js";
+import {
+  getFallbackFont,
+  mergeFontDatas,
+  cacheFontFile,
+  getFont,
+} from "./font.js";
 
 /**
  * Get and cache MBTiles data tile
@@ -325,7 +330,7 @@ export async function getAndCacheDataSprite(id, fileName) {
       if (item.storeCache === true) {
         printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
 
-        cacheSpriteFile(item.source, fileName, sprite).catch((error) =>
+        cacheSpriteFile(item.path, fileName, sprite).catch((error) =>
           printLog(
             "error",
             `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
@@ -381,7 +386,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
                 `Caching font "${id}" - Filename "${fileName}"...`
               );
 
-              cacheFontFile(item.source, fileName, font).catch((error) =>
+              cacheFontFile(item.path, fileName, font).catch((error) =>
                 printLog(
                   "error",
                   `Failed to cache font "${id}" - Filename "${fileName}": ${error}`
@@ -399,7 +404,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
             `Failed to get font "${id}": ${error}. Using fallback font "Open Sans Regular"...`
           );
 
-          return await getFont("Open Sans Regular", fileName);
+          return await getFallbackFont(fileName);
         }
       }
     })

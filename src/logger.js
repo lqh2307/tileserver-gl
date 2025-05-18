@@ -1,40 +1,45 @@
 "use strict";
 
 import FileStreamRotator from "file-stream-rotator";
+import pretty from "pino-pretty";
 import pino from "pino";
 
 let logger;
 
 /* Init pino logger */
 if (logger === undefined) {
-  const streams = [
-    {
-      stream: process.stdout,
-    },
-  ];
+  const consoleStream = pretty({
+    colorize: true,
+    translateTime: "SYS:standard",
+    ignore: "hostname",
+  });
 
   if ((process.env.LOGGING_TO_FILE || "true") === "true") {
-    streams.push({
-      stream: FileStreamRotator.getStream({
-        filename: `${process.env.DATA_DIR}/logs/%DATE%.log`,
-        frequency: "daily",
-        date_format: "YYYY-MM-DD",
-      }),
+    const logFileStream = FileStreamRotator.getStream({
+      filename: `${process.env.DATA_DIR}/logs/%DATE%.log`,
+      frequency: "daily",
+      date_format: "YYYY-MM-DD",
     });
+
+    consoleStream.pipe(logFileStream);
   }
 
   logger = pino(
     {
       level: "info",
-      base: { pid: process.pid },
+      base: {
+        pid: process.pid,
+      },
       formatters: {
         level(label) {
-          return { level: label };
+          return {
+            level: label,
+          };
         },
       },
       timestamp: pino.stdTimeFunctions.isoTime,
     },
-    pino.multistream(streams)
+    consoleStream
   );
 }
 
