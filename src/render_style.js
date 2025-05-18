@@ -4,7 +4,6 @@ import { getPMTilesTile } from "./tile_pmtiles.js";
 import { getRenderedStyleJSON } from "./style.js";
 import { createPool } from "generic-pool";
 import { printLog } from "./logger.js";
-import { getFonts } from "./font.js";
 import { config } from "./config.js";
 import { Mutex } from "async-mutex";
 import { rm } from "fs/promises";
