@@ -578,7 +578,7 @@ async function seedPostgreSQLTiles(
   } finally {
     if (source !== undefined) {
       /* Close PostgreSQL database */
-      await closePostgreSQLDB(source);
+      closePostgreSQLDB(source);
     }
   }
 }

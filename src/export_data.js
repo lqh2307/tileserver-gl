@@ -725,7 +725,7 @@ export async function exportPostgreSQLTiles(
   } finally {
     if (source !== undefined) {
       /* Close PostgreSQL database */
-      await closePostgreSQLDB(source);
+      closePostgreSQLDB(source);
     }
   }
 }

@@ -677,7 +677,9 @@ export async function renderStyleJSONToImage(
     /* Create image */
     const command = `gdal_translate -if MBTiles -of ${format.toUpperCase()} -r lanczos -projwin_srs EPSG:4326 -projwin ${
       bbox[0]
-    } ${bbox[3]} ${bbox[2]} ${bbox[1]} ${mbtilesFilePath} ${filePath}`;
+    } ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${
+      bbox[3]
+    } ${bbox[2]} ${bbox[1]} ${mbtilesFilePath} ${filePath}`;
 
     printLog(
       "info",
@@ -709,7 +711,7 @@ export async function renderStyleJSONToImage(
       closeMBTilesDB(source);
 
       // Remove MBTiles SQLite database
-      await rm(mbtilesFilePath, {
+      rm(mbtilesFilePath, {
         force: true,
       });
     }
@@ -1689,7 +1691,7 @@ export async function renderPostgreSQLTiles(
   } finally {
     if (source !== undefined) {
       /* Close PostgreSQL database */
-      await closePostgreSQLDB(source);
+      closePostgreSQLDB(source);
     }
   }
 }

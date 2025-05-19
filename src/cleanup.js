@@ -394,7 +394,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
   } finally {
     if (source !== undefined) {
       /* Close PostgreSQL database */
-      await closePostgreSQLDB(source);
+      closePostgreSQLDB(source);
     }
   }
 }

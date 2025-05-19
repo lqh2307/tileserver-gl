@@ -741,7 +741,7 @@ export async function countPostgreSQLTiles(uri) {
 
   const data = await source.query("SELECT COUNT(*) AS count FROM tiles;");
 
-  await closePostgreSQLDB(source);
+  closePostgreSQLDB(source);
 
   if (data.rows.length !== 0) {
     return Number(data.rows[0].count);
