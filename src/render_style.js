@@ -486,7 +486,7 @@ export async function renderStyleJSONToImage(
   try {
     /* Calculate summary */
     const targetCoverages = createCoveragesFromBBoxAndZooms(bbox, zoom, zoom);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
@@ -520,7 +520,7 @@ export async function renderStyleJSONToImage(
         name: fileNameWithoutExt,
         description: fileNameWithoutExt,
         format: format,
-        bounds: bbox,
+        bounds: realBBox,
         minzoom: zoom,
         maxzoom: zoom,
       }),
@@ -675,7 +675,11 @@ export async function renderStyleJSONToImage(
     }
 
     /* Create image */
-    const command = `gdal_translate -if MBTiles -of ${format.toUpperCase()} -r lanczos ${mbtilesFilePath} ${filePath}`;
+    const command = `gdal_translate -if MBTiles -of ${format.toUpperCase()} -r lanczos -projwin_srs EPSG:4326 -projwin ${
+      bbox[0]
+    } ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${
+      bbox[3]
+    } ${bbox[2]} ${bbox[1]} ${mbtilesFilePath} ${filePath}`;
 
     printLog(
       "info",
