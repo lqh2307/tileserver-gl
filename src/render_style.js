@@ -88,14 +88,16 @@ function createRenderer(mode, scale, styleJSON) {
     mode: mode,
     ratio: scale,
     request: async (req, callback) => {
-      const url = decodeURIComponent(req.url);
-      const parts = url.split("/");
+      const scheme = req.url.slice(0, req.url.indexOf(":"));
+
       let data = null;
       let err = null;
 
-      switch (parts[0]) {
+      switch (scheme) {
         /* Get sprite */
         case "sprites:": {
+          const parts = decodeURIComponent(req.url).split("/");
+
           try {
             data = await getAndCacheDataSprite(parts[2], parts[3]);
           } catch (error) {
@@ -114,6 +116,8 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get font */
         case "fonts:": {
+          const parts = decodeURIComponent(req.url).split("/");
+
           try {
             data = await getAndCacheDataFonts(parts[2], parts[3]);
 
@@ -139,6 +143,8 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get geojson */
         case "geojson:": {
+          const parts = decodeURIComponent(req.url).split("/");
+
           try {
             data = await getAndCacheDataGeoJSON(parts[2], parts[3]);
           } catch (error) {
@@ -155,6 +161,8 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get pmtiles tile */
         case "pmtiles:": {
+          const parts = decodeURIComponent(req.url).split("/");
+
           const z = Number(parts[3]);
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
@@ -186,6 +194,8 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get mbtiles tile */
         case "mbtiles:": {
+          const parts = decodeURIComponent(req.url).split("/");
+
           const z = Number(parts[3]);
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
@@ -222,6 +232,8 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get xyz tile */
         case "xyz:": {
+          const parts = decodeURIComponent(req.url).split("/");
+
           const z = Number(parts[3]);
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
@@ -253,6 +265,8 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get pg tile */
         case "pg:": {
+          const parts = decodeURIComponent(req.url).split("/");
+
           const z = Number(parts[3]);
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
@@ -291,10 +305,10 @@ function createRenderer(mode, scale, styleJSON) {
         case "http:":
         case "https:": {
           try {
-            printLog("info", `Getting data from "${url}"...`);
+            printLog("info", `Getting data from "${req.url}"...`);
 
             const dataRemote = await getDataFromURL(
-              url,
+              req.url,
               30000, // 30 secs
               "arraybuffer"
             );
@@ -313,22 +327,24 @@ function createRenderer(mode, scale, styleJSON) {
           } catch (error) {
             printLog(
               "warn",
-              `Failed to get data from "${url}": ${error}. Serving empty data...`
+              `Failed to get data from "${req.url}": ${error}. Serving empty data...`
             );
 
-            data = createFallbackTileData(url.slice(url.lastIndexOf(".") + 1));
+            data = createFallbackTileData(
+              req.url.slice(req.url.lastIndexOf(".") + 1)
+            );
           }
 
           break;
         }
 
         /* Get base64 data */
-        case "data:image": {
+        case "data": {
           try {
             printLog("info", "Decoding base64 data...");
 
             const dataBase64 = Buffer.from(
-              url.slice(url.indexOf(",") + 1),
+              req.url.slice(req.url.indexOf(",") + 1),
               "base64"
             );
 
@@ -350,7 +366,7 @@ function createRenderer(mode, scale, styleJSON) {
             );
 
             data = createFallbackTileData(
-              url.slice(url.indexOf("/") + 1, url.indexOf(";"))
+              req.url.slice(req.url.indexOf("/") + 1, req.url.indexOf(";"))
             );
           }
 
@@ -359,7 +375,7 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Default */
         default: {
-          err = new Error(`Unknown scheme: "${parts[0]}`);
+          err = new Error(`Unknown scheme: "${scheme}"`);
 
           printLog("warn", `Failed to render: ${err}. Skipping...`);
 
