@@ -95,7 +95,7 @@ function createRenderer(mode, scale, styleJSON) {
 
       switch (scheme) {
         /* Get sprite */
-        case "sprites:": {
+        case "sprites": {
           const parts = decodeURIComponent(req.url).split("/");
 
           try {
@@ -115,7 +115,7 @@ function createRenderer(mode, scale, styleJSON) {
         }
 
         /* Get font */
-        case "fonts:": {
+        case "fonts": {
           const parts = decodeURIComponent(req.url).split("/");
 
           try {
@@ -142,7 +142,7 @@ function createRenderer(mode, scale, styleJSON) {
         }
 
         /* Get geojson */
-        case "geojson:": {
+        case "geojson": {
           const parts = decodeURIComponent(req.url).split("/");
 
           try {
@@ -160,7 +160,7 @@ function createRenderer(mode, scale, styleJSON) {
         }
 
         /* Get pmtiles tile */
-        case "pmtiles:": {
+        case "pmtiles": {
           const parts = decodeURIComponent(req.url).split("/");
 
           const z = Number(parts[3]);
@@ -193,7 +193,7 @@ function createRenderer(mode, scale, styleJSON) {
         }
 
         /* Get mbtiles tile */
-        case "mbtiles:": {
+        case "mbtiles": {
           const parts = decodeURIComponent(req.url).split("/");
 
           const z = Number(parts[3]);
@@ -231,7 +231,7 @@ function createRenderer(mode, scale, styleJSON) {
         }
 
         /* Get xyz tile */
-        case "xyz:": {
+        case "xyz": {
           const parts = decodeURIComponent(req.url).split("/");
 
           const z = Number(parts[3]);
@@ -264,7 +264,7 @@ function createRenderer(mode, scale, styleJSON) {
         }
 
         /* Get pg tile */
-        case "pg:": {
+        case "pg": {
           const parts = decodeURIComponent(req.url).split("/");
 
           const z = Number(parts[3]);
@@ -302,8 +302,8 @@ function createRenderer(mode, scale, styleJSON) {
         }
 
         /* Get data from remote */
-        case "http:":
-        case "https:": {
+        case "http":
+        case "https": {
           try {
             printLog("info", `Getting data from "${req.url}"...`);
 
