@@ -299,7 +299,6 @@ function renderStyleHandler() {
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
-                req.body.fastRender ?? false,
                 refreshBefore
               )
                 .catch((error) => {
@@ -321,7 +320,6 @@ function renderStyleHandler() {
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
-                req.body.fastRender ?? false,
                 refreshBefore
               )
                 .catch((error) => {
@@ -343,7 +341,6 @@ function renderStyleHandler() {
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
-                req.body.fastRender ?? false,
                 refreshBefore
               )
                 .catch((error) => {

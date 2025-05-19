@@ -140,9 +140,6 @@
     "createOverview": {
       "type": "boolean"
     },
-    "fastRender": {
-      "type": "boolean"
-    },
     "storeType": {
       "type": "string",
       "enum": ["xyz", "mbtiles", "pg"]

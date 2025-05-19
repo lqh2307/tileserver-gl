@@ -1360,66 +1360,12 @@ export async function renderImageTileData(
     },
   });
 
-  if (targetSize !== undefined) {
+  if (targetSize !== undefined && targetSize !== originSize) {
     image.resize({
       width: targetSize,
       height: targetSize,
     });
   }
-
-  switch (format) {
-    case "gif": {
-      image.gif({});
-
-      break;
-    }
-
-    case "png": {
-      image.png({
-        compressionLevel: 9,
-      });
-
-      break;
-    }
-
-    case "jpg":
-    case "jpeg": {
-      image.jpeg({
-        quality: 100,
-      });
-
-      break;
-    }
-
-    case "webp": {
-      image.webp({
-        quality: 100,
-      });
-
-      break;
-    }
-  }
-
-  return await image.toBuffer();
-}
-
-/**
- * Render image data
- * @param {Buffer} data Image data
- * @param {number} width Image width
- * @param {number} height Image height
- * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @returns {Promise<Buffer>}
- */
-export async function renderImageData(data, width, height, format) {
-  const image = sharp(data, {
-    raw: {
-      premultiplied: true,
-      width: width,
-      height: height,
-      channels: 4,
-    },
-  });
 
   switch (format) {
     case "gif": {
@@ -1714,6 +1660,8 @@ export function createTileMetadataFromTemplate(metadata) {
   }
 
   if (metadata.center !== undefined) {
+    data.center = deepClone(metadata.center);
+  } else {
     data.center = [
       (data.bounds[0] + data.bounds[2]) / 2,
       (data.bounds[1] + data.bounds[3]) / 2,
