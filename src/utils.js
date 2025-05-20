@@ -1543,7 +1543,7 @@ export function createTileMetadataFromTemplate(metadata) {
   if (metadata.description !== undefined) {
     data.description = metadata.description;
   } else {
-    data.description = "Unknown";
+    data.description = metadata.name;
   }
 
   if (metadata.attribution !== undefined) {

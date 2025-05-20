@@ -474,14 +474,13 @@ export async function renderStyleJSONToImage(
   const startTime = Date.now();
 
   let source;
-  const fileNameWithoutExt = filePath.slice(
-    filePath.lastIndexOf("/") + 1,
-    filePath.lastIndexOf(".")
-  );
+
   const mbtilesFilePath = `${filePath.slice(
     0,
     filePath.lastIndexOf(".")
   )}.mbtiles`;
+
+  const driver = format.toUpperCase();
 
   try {
     /* Calculate summary */
@@ -491,7 +490,7 @@ export async function renderStyleJSONToImage(
       "xyz"
     );
 
-    let log = `Rendering ${total} tiles of style JSON to ${format.toUpperCase()} with:`;
+    let log = `Rendering ${total} tiles of style JSON to ${driver} with:`;
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
@@ -517,8 +516,10 @@ export async function renderStyleJSONToImage(
     await updateMBTilesMetadata(
       source,
       createTileMetadataFromTemplate({
-        name: fileNameWithoutExt,
-        description: fileNameWithoutExt,
+        name: filePath.slice(
+          filePath.lastIndexOf("/") + 1,
+          filePath.lastIndexOf(".")
+        ),
         format: format,
         bounds: realBBox,
         minzoom: zoom,
@@ -675,16 +676,9 @@ export async function renderStyleJSONToImage(
     }
 
     /* Create image */
-    const command = `gdal_translate -if MBTiles -of ${format.toUpperCase()} -r lanczos -projwin_srs EPSG:4326 -projwin ${
-      bbox[0]
-    } ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${
-      bbox[3]
-    } ${bbox[2]} ${bbox[1]} ${mbtilesFilePath} ${filePath}`;
+    const command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${mbtilesFilePath} ${filePath}`;
 
-    printLog(
-      "info",
-      `Creating ${format.toUpperCase()} with gdal command: ${command}`
-    );
+    printLog("info", `Creating ${driver} with gdal command: ${command}`);
 
     const commandOutput = await runCommand(command);
 
@@ -692,14 +686,14 @@ export async function renderStyleJSONToImage(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style JSON to ${format.toUpperCase()} after ${
+      `Completed render ${total} tiles of style JSON to ${driver} after ${
         (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style JSON to ${format.toUpperCase()} after ${
+      `Failed to render style JSON to ${driver} after ${
         (Date.now() - startTime) / 1000
       }s: ${error}`
     );
