@@ -143,6 +143,14 @@
     "storeType": {
       "type": "string",
       "enum": ["xyz", "mbtiles", "pg"]
+    },
+    "tileSize": {
+      "type": "integer",
+      "enum": [256, 512]
+    },
+    "tileScale": {
+      "type": "integer",
+      "minimum": 1
     }
   },
   "required": ["id", "metadata", "storeType"]

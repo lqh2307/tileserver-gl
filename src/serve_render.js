@@ -1,7 +1,7 @@
 "use strict";
 
+import { DEFAULT_TILE_SIZE, getJSONSchema, validateJSON } from "./utils.js";
 import { renderStyleJSONToImage } from "./render_style.js";
-import { getJSONSchema, validateJSON } from "./utils.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { createReadStream } from "fs";
@@ -33,7 +33,9 @@ function renderStyleJSONHandler() {
         filePath,
         req.body.maxRendererPoolSize,
         req.body.concurrency || os.cpus().length,
-        req.body.storeTransparent ?? true
+        req.body.storeTransparent ?? true,
+        req.body.tileScale || 1,
+        req.body.tileSize || DEFAULT_TILE_SIZE
       );
 
       const stats = await stat(filePath);

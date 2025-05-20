@@ -1,6 +1,6 @@
 "use strict";
 
-import { getJSONSchema, validateJSON } from "./utils.js";
+import { DEFAULT_TILE_SIZE, getJSONSchema, validateJSON } from "./utils.js";
 import { StatusCodes } from "http-status-codes";
 import { exportAll } from "./export_all.js";
 import { printLog } from "./logger.js";
@@ -299,6 +299,8 @@ function renderStyleHandler() {
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
+                req.body.tileScale || 1,
+                req.body.tileSize || DEFAULT_TILE_SIZE,
                 refreshBefore
               )
                 .catch((error) => {
@@ -320,6 +322,8 @@ function renderStyleHandler() {
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
+                req.body.tileScale || 1,
+                req.body.tileSize || DEFAULT_TILE_SIZE,
                 refreshBefore
               )
                 .catch((error) => {
@@ -341,6 +345,8 @@ function renderStyleHandler() {
                 req.body.concurrency || os.cpus().length,
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
+                req.body.tileScale || 1,
+                req.body.tileSize || DEFAULT_TILE_SIZE,
                 refreshBefore
               )
                 .catch((error) => {

@@ -35,6 +35,14 @@
     "storeTransparent": {
       "type": "boolean"
     },
+    "tileSize": {
+      "type": "integer",
+      "enum": [256, 512]
+    },
+    "tileScale": {
+      "type": "integer",
+      "minimum": 1
+    },
     "styleJSON": {
       "type": "object"
     }

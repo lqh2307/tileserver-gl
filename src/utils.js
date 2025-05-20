@@ -270,7 +270,7 @@ export function isLocalURL(url) {
   }
 
   return ["mbtiles://", "pmtiles://", "xyz://", "pg://", "geojson://"].some(
-    (scheme) => filePath.startsWith(scheme) === true
+    (scheme) => url.startsWith(scheme) === true
   );
 }
 
@@ -1282,32 +1282,32 @@ export async function isFullTransparentPNGImage(buffer) {
 }
 
 /**
- * Render image tile data
+ * Process image tile data
  * @param {Buffer} data Image data
- * @param {number} originSize Image origin size
- * @param {number} targetSize Image target size
+ * @param {number} originTileSize Image origin tile size
+ * @param {number} targetTileSize Image target tile size
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<Buffer>}
  */
-export async function renderImageTileData(
+export async function processImageTileData(
   data,
-  originSize,
-  targetSize,
+  originTileSize,
+  targetTileSize,
   format
 ) {
   const image = sharp(data, {
     raw: {
       premultiplied: true,
-      width: originSize,
-      height: originSize,
+      width: originTileSize,
+      height: originTileSize,
       channels: 4,
     },
   });
 
-  if (targetSize !== undefined && targetSize !== originSize) {
+  if (targetTileSize !== undefined && targetTileSize !== originTileSize) {
     image.resize({
-      width: targetSize,
-      height: targetSize,
+      width: targetTileSize,
+      height: targetTileSize,
     });
   }
 
