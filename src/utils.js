@@ -3,7 +3,7 @@
 import { createReadStream, createWriteStream } from "node:fs";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import handlebars from "handlebars";
 import https from "node:https";
 import http from "node:http";
@@ -1216,18 +1216,54 @@ export async function getJSONSchema(schema) {
 }
 
 /**
- * Run an external command and wait for it to finish
+ * Run an external command and optionally stream output via callback
  * @param {string} command The command to run
- * @returns {Promise<string>} The command's stdout
+ * @param {number} interval Interval in milliseconds to call callback
+ * @param {(partialOutput: string) => void} callback Function to call every interval with output so far
+ * @returns {Promise<string>} The command's full stdout
  */
-export async function runCommand(command) {
+export async function runCommand(command, interval, callback) {
   return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        reject(stderr);
-      } else {
-        resolve(stdout);
+    const child = spawn(command, {
+      shell: true,
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    const intervalID =
+      interval > 0 && callback !== undefined
+        ? setInterval(() => callback(stdout), interval)
+        : undefined;
+
+    child.on("close", (code) => {
+      if (intervalID !== undefined) {
+        clearInterval(intervalID);
+
+        callback(stdout);
       }
+
+      if (code === 0) {
+        resolve(stdout);
+      } else {
+        reject(stderr || `Process exited with code: ${code}`);
+      }
+    });
+
+    child.on("error", (err) => {
+      if (intervalID !== undefined) {
+        clearInterval(intervalID);
+      }
+
+      reject(err.message);
     });
   });
 }
