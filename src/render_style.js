@@ -83,7 +83,7 @@ if (cluster.isPrimary !== true) {
  * @param {object} styleJSON StyleJSON
  * @returns {object}
  */
-export function createRenderer(mode, scale, styleJSON) {
+function createRenderer(mode, scale, styleJSON) {
   const renderer = new mlgl.Map({
     mode: mode,
     ratio: scale,
@@ -396,28 +396,28 @@ export function createRenderer(mode, scale, styleJSON) {
 
 /**
  * Render image tile data
- * @param {object} renderer Renderer object
+ * @param {object} styleJSON StyleJSON
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
- * @param {boolean} release Is release renderer?
  * @returns {Promise<Buffer>}
  */
 export async function renderImageTileData(
-  renderer,
+  styleJSON,
   tileScale,
   tileSize,
   z,
   x,
   y,
-  format,
-  release
+  format
 ) {
   const isNeedHack = z === 0 && tileSize === 256;
   const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+
+  const renderer = createRenderer("tile", tileScale, styleJSON);
 
   const data = await new Promise((resolve, reject) => {
     renderer.render(
@@ -428,8 +428,63 @@ export async function renderImageTileData(
         height: hackTileSize,
       },
       (error, data) => {
-        if (release === true && renderer !== undefined) {
+        if (renderer !== undefined) {
           renderer.release();
+        }
+
+        if (error) {
+          return reject(error);
+        }
+
+        resolve(data);
+      }
+    );
+  });
+
+  return await processImageTileData(
+    data,
+    hackTileSize * tileScale,
+    isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
+    format
+  );
+}
+
+/**
+ * Render image tile data with pool
+ * @param {object} pool Pool object
+ * @param {number} tileScale Tile scale
+ * @param {256|512} tileSize Tile size
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
+ * @returns {Promise<Buffer>}
+ */
+export async function renderImageTileDataWithPool(
+  pool,
+  tileScale,
+  tileSize,
+  z,
+  x,
+  y,
+  format
+) {
+  const isNeedHack = z === 0 && tileSize === 256;
+  const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+
+  const renderer = await pool.acquire();
+
+  const data = await new Promise((resolve, reject) => {
+    renderer.render(
+      {
+        zoom: z !== 0 && tileSize === 256 ? z - 1 : z,
+        center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+        width: hackTileSize,
+        height: hackTileSize,
+      },
+      (error, data) => {
+        if (renderer !== undefined) {
+          pool.release(renderer);
         }
 
         if (error) {
@@ -569,22 +624,15 @@ export async function renderStyleJSONToImage(
 
         try {
           // Rendered data
-          const renderer = await pool.acquire();
-
-          const data = await renderImageTileData(
-            renderer,
+          const data = await renderImageTileDataWithPool(
+            pool,
             tileScale,
             tileSize,
             z,
             x,
             y,
-            format,
-            false
-          ).finally(() => {
-            if (renderer !== undefined) {
-              pool.release(renderer);
-            }
-          });
+            format
+          );
 
           // Store data
           await cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
@@ -608,17 +656,14 @@ export async function renderStyleJSONToImage(
 
         try {
           // Rendered data
-          const renderer = createRenderer("tile", tileScale, styleJSON);
-
           const data = await renderImageTileData(
-            renderer,
+            styleJSON,
             tileScale,
             tileSize,
             z,
             x,
             y,
-            format,
-            true
+            format
           );
 
           // Store data
@@ -860,22 +905,15 @@ export async function renderMBTilesTiles(
 
           try {
             // Rendered data
-            const renderer = await pool.acquire();
-
-            const data = await renderImageTileData(
-              renderer,
+            const data = await renderImageTileDataWithPool(
+              pool,
               tileScale,
               tileSize,
               z,
               x,
               y,
-              metadata.format,
-              false
-            ).finally(() => {
-              if (renderer !== undefined) {
-                pool.release(renderer);
-              }
-            });
+              metadata.format
+            );
 
             if (
               refreshTimestampType === "boolean" &&
@@ -912,21 +950,14 @@ export async function renderMBTilesTiles(
 
           try {
             // Rendered data
-            const renderer = createRenderer(
-              "tile",
-              tileScale,
-              renderedStyleJSON
-            );
-
             const data = await renderImageTileData(
-              renderer,
+              renderedStyleJSON,
               tileScale,
               tileSize,
               z,
               x,
               y,
-              metadata.format,
-              true
+              metadata.format
             );
 
             if (
@@ -1181,22 +1212,15 @@ export async function renderXYZTiles(
 
           try {
             // Rendered data
-            const renderer = await pool.acquire();
-
-            const data = await renderImageTileData(
-              renderer,
+            const data = await renderImageTileDataWithPool(
+              pool,
               tileScale,
               tileSize,
               z,
               x,
               y,
-              metadata.format,
-              false
-            ).finally(() => {
-              if (renderer !== undefined) {
-                pool.release(renderer);
-              }
-            });
+              metadata.format
+            );
 
             if (
               refreshTimestampType === "boolean" &&
@@ -1242,21 +1266,14 @@ export async function renderXYZTiles(
 
           try {
             // Rendered data
-            const renderer = createRenderer(
-              "tile",
-              tileScale,
-              renderedStyleJSON
-            );
-
             const data = await renderImageTileData(
-              renderer,
+              renderedStyleJSON,
               tileScale,
               tileSize,
               z,
               x,
               y,
-              metadata.format,
-              true
+              metadata.format
             );
 
             if (
@@ -1506,22 +1523,15 @@ export async function renderPostgreSQLTiles(
 
           try {
             // Rendered data
-            const renderer = await pool.acquire();
-
-            const data = await renderImageTileData(
-              renderer,
+            const data = await renderImageTileDataWithPool(
+              pool,
               tileScale,
               tileSize,
               z,
               x,
               y,
-              metadata.format,
-              false
-            ).finally(() => {
-              if (renderer !== undefined) {
-                pool.release(renderer);
-              }
-            });
+              metadata.format
+            );
 
             if (
               refreshTimestampType === "boolean" &&
@@ -1565,21 +1575,14 @@ export async function renderPostgreSQLTiles(
 
           try {
             // Rendered data
-            const renderer = createRenderer(
-              "tile",
-              tileScale,
-              renderedStyleJSON
-            );
-
             const data = await renderImageTileData(
-              renderer,
+              renderedStyleJSON,
               tileScale,
               tileSize,
               z,
               x,
               y,
-              metadata.format,
-              true
+              metadata.format
             );
 
             if (

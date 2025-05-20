@@ -1,7 +1,7 @@
 "use strict";
 
 import { getRenderedStyleJSON, validateStyle, getStyle } from "./style.js";
-import { createRenderer, renderImageTileData } from "./render_style.js";
+import { renderImageTileData } from "./render_style.js";
 import { getAndCacheDataStyleJSON } from "./data.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
@@ -300,17 +300,14 @@ function getRenderedTileHandler() {
     try {
       const renderedStyleJSON = await getRenderedStyleJSON(item.path);
 
-      const renderer = createRenderer("tile", tileScale, renderedStyleJSON);
-
       const image = await renderImageTileData(
-        renderer,
+        renderedStyleJSON,
         tileScale,
         tileSize,
         z,
         x,
         y,
-        req.params.format,
-        true
+        req.params.format
       );
 
       switch (req.params.format) {
