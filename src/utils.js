@@ -25,7 +25,7 @@ import {
   rm,
 } from "node:fs/promises";
 
-sharp.cache(false);
+// sharp.cache(false);
 
 export const DEFAULT_TILE_SIZE = 256;
 
@@ -269,12 +269,8 @@ export function isLocalURL(url) {
     return false;
   }
 
-  return (
-    url.startsWith("mbtiles://") === true ||
-    url.startsWith("pmtiles://") === true ||
-    url.startsWith("xyz://") === true ||
-    url.startsWith("pg://") === true ||
-    url.startsWith("geojson://") === true
+  return ["mbtiles://", "pmtiles://", "xyz://", "pg://", "geojson://"].some(
+    (scheme) => filePath.startsWith(scheme) === true
   );
 }
 
@@ -745,6 +741,25 @@ export function getBBoxFromPoint(points) {
   }
 
   return bbox;
+}
+
+/**
+ * Get bounding box intersect
+ * @param {[number, number, number, number]} bbox1 Bounding box 1 in the format [minLon, minLat, maxLon, maxLat]
+ * @param {[number, number, number, number]} bbox2 Bounding box 2 in the format [minLon, minLat, maxLon, maxLat]
+ * @returns {[number, number, number, number]} Intersect bounding box in the format [minLon, minLat, maxLon, maxLat]
+ */
+export function getIntersectBBox(bbox1, bbox2) {
+  const minLon = Math.max(bbox1[0], bbox2[0]);
+  const minLat = Math.max(bbox1[1], bbox2[1]);
+  const maxLon = Math.min(bbox1[2], bbox2[2]);
+  const maxLat = Math.min(bbox1[3], bbox2[3]);
+
+  if (minLon >= maxLon || minLat >= maxLat) {
+    return;
+  }
+
+  return [minLon, minLat, maxLon, maxLat];
 }
 
 /**
@@ -1543,7 +1558,7 @@ export function createTileMetadataFromTemplate(metadata) {
   if (metadata.description !== undefined) {
     data.description = metadata.description;
   } else {
-    data.description = metadata.name;
+    data.description = data.name;
   }
 
   if (metadata.attribution !== undefined) {
@@ -1583,13 +1598,13 @@ export function createTileMetadataFromTemplate(metadata) {
   }
 
   if (metadata.bounds !== undefined) {
-    data.bounds = deepClone(metadata.bounds);
+    data.bounds = [...metadata.bounds];
   } else {
     data.bounds = [-180, -85.051129, 180, 85.051129];
   }
 
   if (metadata.center !== undefined) {
-    data.center = deepClone(metadata.center);
+    data.center = [...metadata.center];
   } else {
     data.center = [
       (data.bounds[0] + data.bounds[2]) / 2,

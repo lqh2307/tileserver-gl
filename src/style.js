@@ -91,14 +91,14 @@ export async function validateStyle(styleJSON) {
     );
   }
 
-  /* Validate fonts */
+  /* Validate font */
   if (styleJSON.glyphs !== undefined) {
     if (
-      styleJSON.glyphs.startsWith("fonts://") === false &&
-      styleJSON.glyphs.startsWith("https://") === false &&
-      styleJSON.glyphs.startsWith("http://") === false
+      ["fonts://", "https://", "http://"].some(
+        (scheme) => styleJSON.glyphs.startsWith(scheme) === true
+      ) === false
     ) {
-      throw new Error("Invalid fonts url");
+      throw new Error(`Invalid font url "${styleJSON.glyphs}"`);
     }
   }
 
@@ -111,10 +111,11 @@ export async function validateStyle(styleJSON) {
         throw new Error(`Sprite "${spriteID}" is not found`);
       }
     } else if (
-      styleJSON.sprite.startsWith("https://") === false &&
-      styleJSON.sprite.startsWith("http://") === false
+      ["https://", "http://"].some(
+        (scheme) => styleJSON.sprite.startsWith(scheme) === true
+      ) === false
     ) {
-      throw new Error("Invalid sprite url");
+      throw new Error(`Invalid sprite url "${styleJSON.sprite}"`);
     }
   }
 
@@ -151,8 +152,9 @@ export async function validateStyle(styleJSON) {
             );
           }
         } else if (
-          source.url.startsWith("https://") === false &&
-          source.url.startsWith("http://") === false
+          ["https://", "http://", "data:"].some(
+            (scheme) => source.url.startsWith(scheme) === true
+          ) === false
         ) {
           throw new Error(`Source "${id}" is invalid data url "${source.url}"`);
         }
@@ -173,8 +175,9 @@ export async function validateStyle(styleJSON) {
               );
             }
           } else if (
-            url.startsWith("https://") === false &&
-            url.startsWith("http://") === false
+            ["https://", "http://"].some(
+              (scheme) => url.startsWith(scheme) === true
+            ) === false
           ) {
             throw new Error(`Source "${id}" is invalid data url "${url}"`);
           }
@@ -196,8 +199,9 @@ export async function validateStyle(styleJSON) {
               );
             }
           } else if (
-            tile.startsWith("https://") === false &&
-            tile.startsWith("http://") === false
+            ["https://", "http://"].some(
+              (scheme) => tile.startsWith(scheme) === true
+            ) === false
           ) {
             throw new Error(`Source "${id}" is invalid tile url "${tile}"`);
           }

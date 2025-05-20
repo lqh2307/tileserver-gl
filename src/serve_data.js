@@ -1014,8 +1014,9 @@ export const serve_data = {
               dataInfo.sourceType = "pmtiles";
 
               if (
-                item.pmtiles.startsWith("https://") === true ||
-                item.pmtiles.startsWith("http://") === true
+                ["https://", "http://"].some(
+                  (scheme) => item.pmtiles.startsWith(scheme) === true
+                ) === true
               ) {
                 /* Get PMTiles path */
                 dataInfo.path = item.pmtiles;

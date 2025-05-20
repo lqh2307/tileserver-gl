@@ -40,8 +40,9 @@ export function openPMTiles(filePath) {
   let source;
 
   if (
-    filePath.startsWith("https://") === true ||
-    filePath.startsWith("http://") === true
+    ["https://", "http://"].some(
+      (scheme) => filePath.startsWith(scheme) === true
+    ) === true
   ) {
     source = new FetchSource(filePath);
   } else {
@@ -75,7 +76,7 @@ export async function getPMTilesMetadata(pmtilesSource) {
   if (pmtilesMetadata.description !== undefined) {
     metadata.description = pmtilesMetadata.description;
   } else {
-    metadata.description = "Unknown";
+    metadata.description = metadata.name;
   }
 
   if (pmtilesMetadata.attribution !== undefined) {

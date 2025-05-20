@@ -271,8 +271,9 @@ function serveSummaryHandler() {
 
               case "pmtiles": {
                 if (
-                  item.path.startsWith("https://") !== true &&
-                  item.path.startsWith("http://") !== true
+                  ["https://", "http://"].some(
+                    (scheme) => item.path.startsWith(scheme) === true
+                  ) === false
                 ) {
                   result.datas.pmtiles.size += await getPMTilesSize(item.path);
                 }

@@ -115,7 +115,7 @@ function getStyleHandler() {
           }
         }
 
-        /* Fix fonts url */
+        /* Fix font url */
         if (styleJSON.glyphs !== undefined) {
           if (styleJSON.glyphs.startsWith("fonts://") === true) {
             styleJSON.glyphs = styleJSON.glyphs.replace(
