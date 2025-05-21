@@ -795,8 +795,10 @@ export async function renderStyleJSONToImage(
     }
 
     const baselayerFilePath = `${baselayerDirPath}/${filePathWithoutExt}.${format}`;
+    const imageFilePath = `${outputDirPath}/${filePathWithoutExt}.${format}`;
 
     /* Create image */
+
     let command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -a_srs EPSG:4326 -a_ullr ${realBBox[0]} ${realBBox[3]} ${realBBox[2]} ${realBBox[1]} ${mbtilesFilePath} ${baselayerFilePath}`;
 
     printLog(
@@ -810,7 +812,6 @@ export async function renderStyleJSONToImage(
 
     if (overlayFilePaths.length > 0) {
       const vrtFilePath = `${vrtDirPath}/${filePathWithoutExt}.vrt`;
-      const imageFilePath = `${outputDirPath}/${filePathWithoutExt}.${format}`;
 
       /* Create VRT */
       let command = `gdalbuildvrt -overwrite -resolution highest ${vrtFilePath} ${baselayerFilePath} ${overlayFilePaths.join(
