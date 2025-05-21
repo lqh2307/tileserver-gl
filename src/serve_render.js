@@ -1,17 +1,12 @@
 "use strict";
 
+import { DEFAULT_TILE_SIZE, getJSONSchema, validateJSON } from "./utils.js";
 import { renderStyleJSONToImage } from "./render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import os from "os";
-import {
-  detectContentTypeFromFormat,
-  DEFAULT_TILE_SIZE,
-  getJSONSchema,
-  validateJSON,
-} from "./utils.js";
 
 /**
  * Render style JSON handler
@@ -27,7 +22,7 @@ function renderStyleJSONHandler() {
         throw new SyntaxError(error);
       }
 
-      const fileName = `${req.body.id}.${req.body.format}`;
+      const fileName = `${req.body.id}.zip`;
       const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${req.body.id}`;
       const filePath = `${dirPath}/${fileName}`;
 
@@ -49,7 +44,7 @@ function renderStyleJSONHandler() {
       res.set({
         "content-length": stats.size,
         "content-disposition": `attachment; filename="${fileName}"`,
-        "content-type": detectContentTypeFromFormat(req.body.format),
+        "content-type": "application/zip",
       });
 
       const readStream = createReadStream(filePath);
@@ -104,7 +99,7 @@ export const serve_render = {
      *       201:
      *         description: Style JSON rendered
      *         content:
-     *           application/octet-stream:
+     *           application/zip:
      *             schema:
      *               type: string
      *               format: binary
