@@ -357,11 +357,11 @@ export async function getAndCacheDataFonts(ids, fileName) {
     ids.split(",").map(async (id) => {
       const item = config.fonts[id];
 
-      if (item === undefined) {
-        throw new Error("Font does not exist");
-      }
-
       try {
+        if (item === undefined) {
+          throw new Error("Font does not exist");
+        }
+
         return await getFont(item.path, fileName);
       } catch (error) {
         try {
