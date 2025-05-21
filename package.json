@@ -32,7 +32,7 @@
     "pino-pretty": "13.0.0",
     "async-mutex": "0.5.0",
     "handlebars": "4.7.8",
-    "node-cron": "4.0.5",
+    "node-cron": "4.0.6",
     "chokidar": "4.0.3",
     "express": "5.1.0",
     "pmtiles": "4.3.0",
