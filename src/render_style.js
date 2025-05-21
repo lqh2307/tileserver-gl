@@ -6,7 +6,6 @@ import { createPool } from "generic-pool";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { Mutex } from "async-mutex";
-import { rm } from "fs/promises";
 import cluster from "cluster";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -38,9 +37,12 @@ import {
   detectFormatAndHeaders,
   createFallbackTileData,
   processImageTileData,
+  removeFilesOrFolders,
   removeEmptyFolders,
+  createFileWithLock,
   getLonLatFromXYZ,
   getDataFromURL,
+  createFolders,
   calculateMD5,
   unzipAsync,
   runCommand,
@@ -534,10 +536,15 @@ export async function renderStyleJSONToImage(
 
   let source;
 
-  const mbtilesFilePath = `${filePath.slice(
-    0,
+  const dirPath = filePath.slice(0, filePath.lastIndexOf("/"));
+  const mbtilesDirPath = `${dirPath}/mbtiles`;
+  const vrtDirPath = `${dirPath}/vrt`;
+  const baselayerDirPath = `${dirPath}/baselayer`;
+  const overlaysDirPath = `${dirPath}/overlays`;
+  const filePathWithoutExt = filePath.slice(
+    filePath.lastIndexOf("/") + 1,
     filePath.lastIndexOf(".")
-  )}.mbtiles`;
+  );
 
   const driver = format.toUpperCase();
 
@@ -562,6 +569,8 @@ export async function renderStyleJSONToImage(
 
     printLog("info", log);
 
+    const mbtilesFilePath = `${mbtilesDirPath}/${filePathWithoutExt}.mbtiles`;
+
     /* Open MBTiles SQLite database */
     printLog("info", "Creating MBTiles...");
 
@@ -577,10 +586,7 @@ export async function renderStyleJSONToImage(
     await updateMBTilesMetadata(
       source,
       createTileMetadataFromTemplate({
-        name: filePath.slice(
-          filePath.lastIndexOf("/") + 1,
-          filePath.lastIndexOf(".")
-        ),
+        name: filePathWithoutExt,
         format: format,
         bounds: realBBox,
         minzoom: zoom,
@@ -588,6 +594,88 @@ export async function renderStyleJSONToImage(
       }),
       30000 // 30 secs
     );
+
+    /* Create tmp folders */
+    await createFolders([
+      dirPath,
+      mbtilesDirPath,
+      vrtDirPath,
+      baselayerDirPath,
+      overlaysDirPath,
+      `${overlaysDirPath}/no_srids`,
+      `${overlaysDirPath}/srids`,
+    ]);
+
+    const overlayFilePaths = [];
+
+    /* Process style JSON */
+    for (const sourceStyleName of Object.keys(styleJSON.sources)) {
+      const sourceStyle = styleJSON.sources[sourceStyleName];
+
+      if (sourceStyle.url?.startsWith("data:") === true) {
+        delete styleJSON.sources[sourceStyleName];
+
+        for (let i = styleJSON.layers.length - 1; i >= 0; i--) {
+          const layerStyle = styleJSON.layers[i];
+
+          if (layerStyle.source === sourceStyleName) {
+            styleJSON.layers.splice(i, 1);
+          }
+        }
+
+        const overlayBBox = [
+          ...sourceStyle.coordinates[3],
+          ...sourceStyle.coordinates[1],
+        ];
+
+        if (
+          overlayBBox[2] <= bbox[0] ||
+          overlayBBox[0] >= bbox[2] ||
+          overlayBBox[3] <= bbox[1] ||
+          overlayBBox[1] >= bbox[3]
+        ) {
+          printLog(
+            "info",
+            `Overlay ${sourceStyleName} is outside bbox. Skipping...`
+          );
+
+          continue;
+        }
+
+        const overlayFormat = sourceStyle.url.slice(
+          sourceStyle.url.indexOf("/") + 1,
+          sourceStyle.url.indexOf(";")
+        );
+        const overlayNoSRIDFilePath = `${overlaysDirPath}/no_srids/${sourceStyleName}.${overlayFormat}`;
+        const overlaySRIDFilePath = `${overlaysDirPath}/srids/${sourceStyleName}.${overlayFormat}`;
+        const overlayDriver = overlayFormat.toUpperCase();
+
+        await createFileWithLock(
+          overlayNoSRIDFilePath,
+          Buffer.from(
+            sourceStyle.url.slice(sourceStyle.url.indexOf(",") + 1),
+            "base64"
+          ),
+          30000
+        );
+
+        overlayFilePaths.push(overlaySRIDFilePath);
+
+        const command = `gdal_translate -if ${overlayDriver} -of ${overlayDriver} -a_srs EPSG:4326 -a_ullr ${[
+          ...sourceStyle.coordinates[0],
+          ...sourceStyle.coordinates[2],
+        ].join(" ")} ${overlayNoSRIDFilePath} ${overlaySRIDFilePath}`;
+
+        printLog(
+          "info",
+          `Adding SRID for ${sourceStyleName} overlay with gdal command: ${command}`
+        );
+
+        const commandOutput = await runCommand(command);
+
+        printLog("info", `Gdal command output: ${commandOutput}`);
+      }
+    }
 
     /* Render tiles */
     const tasks = {
@@ -713,14 +801,52 @@ export async function renderStyleJSONToImage(
       await pool.clear();
     }
 
+    const baselayerFilePath = `${baselayerDirPath}/${filePathWithoutExt}.${format}`;
+
     /* Create image */
-    const command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${mbtilesFilePath} ${filePath}`;
+    let command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -a_srs EPSG:4326 -a_ullr ${realBBox[0]} ${realBBox[3]} ${realBBox[2]} ${realBBox[1]} ${mbtilesFilePath} ${baselayerFilePath}`;
 
-    printLog("info", `Creating ${driver} with gdal command: ${command}`);
+    printLog(
+      "info",
+      `Creating ${filePathWithoutExt} baselayer with gdal command: ${command}`
+    );
 
-    const commandOutput = await runCommand(command);
+    let commandOutput = await runCommand(command);
 
     printLog("info", `Gdal command output: ${commandOutput}`);
+
+    if (overlayFilePaths.length > 0) {
+      const vrtFilePath = `${vrtDirPath}/${filePathWithoutExt}.vrt`;
+
+      /* Create VRT */
+      let command = `gdalbuildvrt -overwrite -resolution highest ${vrtFilePath} ${baselayerFilePath} ${overlayFilePaths.join(
+        " "
+      )}`;
+
+      printLog("info", `Creating VRT with gdal command: ${command}`);
+
+      commandOutput = await runCommand(command);
+
+      printLog("info", `Gdal command output: ${commandOutput}`);
+
+      /* Create image */
+      command = `gdal_translate -if VRT -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${vrtFilePath} ${filePath}`;
+
+      printLog("info", `Creating image with gdal command: ${command}`);
+
+      commandOutput = await runCommand(command);
+
+      printLog("info", `Gdal command output: ${commandOutput}`);
+    } else {
+      /* Create image */
+      command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${filePath}`;
+
+      printLog("info", `Creating image with gdal command: ${command}`);
+
+      commandOutput = await runCommand(command);
+
+      printLog("info", `Gdal command output: ${commandOutput}`);
+    }
 
     printLog(
       "info",
@@ -742,10 +868,13 @@ export async function renderStyleJSONToImage(
       // Close MBTiles SQLite database
       closeMBTilesDB(source);
 
-      // Remove MBTiles SQLite database
-      rm(mbtilesFilePath, {
-        force: true,
-      });
+      /* Remove tmp */
+      removeFilesOrFolders([
+        mbtilesDirPath,
+        vrtDirPath,
+        baselayerDirPath,
+        overlaysDirPath,
+      ]);
     }
   }
 }
