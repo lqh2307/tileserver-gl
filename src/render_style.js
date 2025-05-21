@@ -597,9 +597,9 @@ export async function renderStyleJSONToImage(
 
     /* Create tmp folders */
     await createFolders([
-      dirPath,
-      mbtilesDirPath,
+      outputDirPath,
       vrtDirPath,
+      mbtilesDirPath,
       baselayerDirPath,
       overlaysDirPath,
       `${overlaysDirPath}/no_srids`,
