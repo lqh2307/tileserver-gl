@@ -365,40 +365,40 @@ export async function getAndCacheDataFonts(ids, fileName) {
         return await getFont(item.path, fileName);
       } catch (error) {
         try {
-          if (
-            item !== undefined &&
-            item.sourceURL !== undefined &&
-            error.message === "Font does not exist"
-          ) {
-            const targetURL = item.sourceURL.replace("{range}.pbf", fileName);
+          if (error.message === "Font does not exist") {
+            if (item !== undefined && item.sourceURL !== undefined) {
+              const targetURL = item.sourceURL.replace("{range}.pbf", fileName);
 
-            printLog(
-              "info",
-              `Forwarding font "${id}" - Filename "${fileName}" - To "${targetURL}"...`
-            );
-
-            /* Get font */
-            const font = await getDataFileFromURL(
-              targetURL,
-              30000 // 30 secs
-            );
-
-            /* Cache */
-            if (item.storeCache === true) {
               printLog(
                 "info",
-                `Caching font "${id}" - Filename "${fileName}"...`
+                `Forwarding font "${id}" - Filename "${fileName}" - To "${targetURL}"...`
               );
 
-              cacheFontFile(item.path, fileName, font).catch((error) =>
+              /* Get font */
+              const font = await getDataFileFromURL(
+                targetURL,
+                30000 // 30 secs
+              );
+
+              /* Cache */
+              if (item.storeCache === true) {
                 printLog(
-                  "error",
-                  `Failed to cache font "${id}" - Filename "${fileName}": ${error}`
-                )
-              );
-            }
+                  "info",
+                  `Caching font "${id}" - Filename "${fileName}"...`
+                );
 
-            return font;
+                cacheFontFile(item.path, fileName, font).catch((error) =>
+                  printLog(
+                    "error",
+                    `Failed to cache font "${id}" - Filename "${fileName}": ${error}`
+                  )
+                );
+              }
+
+              return font;
+            } else {
+              return await getFallbackFont(fileName);
+            }
           } else {
             throw error;
           }
