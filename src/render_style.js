@@ -46,6 +46,7 @@ import {
   calculateMD5,
   unzipAsync,
   runCommand,
+  zipFolder,
   wait25ms,
 } from "./utils.js";
 import {
@@ -538,7 +539,8 @@ export async function renderStyleJSONToImage(
   let pool;
 
   const filePathWithoutExt = dirPath.slice(dirPath.lastIndexOf("/") + 1);
-  const filePath = `${dirPath}/${filePathWithoutExt}.${format}`;
+  const outputFilePath = `${dirPath}/${filePathWithoutExt}.zip`;
+  const outputDirPath = `${dirPath}/output`;
   const mbtilesDirPath = `${dirPath}/mbtiles`;
   const vrtDirPath = `${dirPath}/vrt`;
   const baselayerDirPath = `${dirPath}/baselayer`;
@@ -808,6 +810,7 @@ export async function renderStyleJSONToImage(
 
     if (overlayFilePaths.length > 0) {
       const vrtFilePath = `${vrtDirPath}/${filePathWithoutExt}.vrt`;
+      const imageFilePath = `${outputDirPath}/${filePathWithoutExt}.${format}`;
 
       /* Create VRT */
       let command = `gdalbuildvrt -overwrite -resolution highest ${vrtFilePath} ${baselayerFilePath} ${overlayFilePaths.join(
@@ -821,7 +824,7 @@ export async function renderStyleJSONToImage(
       printLog("info", `Gdal command output: ${commandOutput}`);
 
       /* Create image */
-      command = `gdal_translate -if VRT -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${vrtFilePath} ${filePath}`;
+      command = `gdal_translate -if VRT -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${vrtFilePath} ${imageFilePath}`;
 
       printLog("info", `Creating image with gdal command: ${command}`);
 
@@ -830,7 +833,7 @@ export async function renderStyleJSONToImage(
       printLog("info", `Gdal command output: ${commandOutput}`);
     } else {
       /* Create image */
-      command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${filePath}`;
+      command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${imageFilePath}`;
 
       printLog("info", `Creating image with gdal command: ${command}`);
 
@@ -838,6 +841,10 @@ export async function renderStyleJSONToImage(
 
       printLog("info", `Gdal command output: ${commandOutput}`);
     }
+
+    printLog("info", "Zipping output...");
+
+    await zipFolder(outputDirPath, outputFilePath);
 
     printLog(
       "info",
@@ -868,9 +875,10 @@ export async function renderStyleJSONToImage(
     /* Remove tmp */
     removeFilesOrFolders([
       mbtilesDirPath,
-      vrtDirPath,
-      baselayerDirPath,
       overlaysDirPath,
+      baselayerDirPath,
+      vrtDirPath,
+      outputDirPath,
     ]);
   }
 }

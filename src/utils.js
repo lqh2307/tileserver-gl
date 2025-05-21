@@ -5,6 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { spawn } from "child_process";
 import handlebars from "handlebars";
+import archiver from "archiver";
 import https from "node:https";
 import http from "node:http";
 import path from "node:path";
@@ -1207,6 +1208,37 @@ export const unzipAsync = util.promisify(zlib.unzip);
  * @returns {Promise<Buffer>} A Promise that resolves to the decompressed data as a Buffer
  */
 export const inflateAsync = util.promisify(zlib.inflate);
+
+/**
+ * Compress zip folder
+ * @param {string} iDirPath The input dir path
+ * @param {string} oFilePath The output file path
+ * @returns {Promise<void>}
+ */
+export async function zipFolder(iDirPath, oFilePath) {
+  await mkdir(path.dirname(oFilePath), {
+    recursive: true,
+  });
+
+  return new Promise((resolve, reject) => {
+    const output = createWriteStream(oFilePath);
+    const archive = archiver("zip", {
+      zlib: {
+        level: 9,
+      },
+    });
+
+    output.on("close", () => resolve());
+
+    archive.on("error", (error) => reject(error));
+
+    archive.pipe(output);
+
+    archive.directory(iDirPath, false);
+
+    archive.finalize();
+  });
+}
 
 /**
  * Validate tileJSON
