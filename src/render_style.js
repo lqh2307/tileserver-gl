@@ -512,7 +512,7 @@ export async function renderImageTileDataWithPool(
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} zoom Zoom level
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @param {string} filePath Exported image file path
+ * @param {string} dirPath Exported image dir path
  * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -525,7 +525,7 @@ export async function renderStyleJSONToImage(
   bbox,
   zoom,
   format,
-  filePath,
+  dirPath,
   maxRendererPoolSize,
   concurrency,
   storeTransparent,
@@ -537,15 +537,12 @@ export async function renderStyleJSONToImage(
   let source;
   let pool;
 
-  const dirPath = filePath.slice(0, filePath.lastIndexOf("/"));
+  const filePathWithoutExt = dirPath.slice(dirPath.lastIndexOf("/") + 1);
+  const filePath = `${dirPath}/${filePathWithoutExt}.${format}`;
   const mbtilesDirPath = `${dirPath}/mbtiles`;
   const vrtDirPath = `${dirPath}/vrt`;
   const baselayerDirPath = `${dirPath}/baselayer`;
   const overlaysDirPath = `${dirPath}/overlays`;
-  const filePathWithoutExt = filePath.slice(
-    filePath.lastIndexOf("/") + 1,
-    filePath.lastIndexOf(".")
-  );
 
   const driver = format.toUpperCase();
 
@@ -558,7 +555,7 @@ export async function renderStyleJSONToImage(
     );
 
     let log = `Rendering ${total} tiles of style JSON to ${driver} with:`;
-    log += `\n\tFile path: ${filePath}`;
+    log += `\n\tDir path: ${dirPath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;

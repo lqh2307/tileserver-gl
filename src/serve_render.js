@@ -28,14 +28,15 @@ function renderStyleJSONHandler() {
       }
 
       const fileName = `${req.body.id}.${req.body.format}`;
-      const filePath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${req.body.id}/${fileName}`;
+      const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${req.body.id}`;
+      const filePath = `${dirPath}/${fileName}`;
 
       await renderStyleJSONToImage(
         req.body.styleJSON,
         req.body.bbox,
         req.body.zoom,
         req.body.format,
-        filePath,
+        dirPath,
         req.body.maxRendererPoolSize,
         req.body.concurrency || os.cpus().length,
         req.body.storeTransparent ?? true,
