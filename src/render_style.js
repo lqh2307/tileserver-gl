@@ -833,7 +833,7 @@ export async function renderStyleJSONToImage(
       printLog("info", `Gdal command output: ${commandOutput}`);
     } else {
       /* Create image */
-      command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${filePath}`;
+      command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${filePath}`;
 
       printLog("info", `Creating image with gdal command: ${command}`);
 
