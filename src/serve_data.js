@@ -21,6 +21,7 @@ import {
 } from "./tile_mbtiles.js";
 import {
   createTileMetadataFromTemplate,
+  detectContentTypeFromFormat,
   calculateMD5OfFile,
   processCoverages,
   compileTemplate,
@@ -306,7 +307,7 @@ function downloadDataHandler() {
         res.set({
           "content-length": stats.size,
           "content-disposition": `attachment; filename="${fileName}`,
-          "content-type": "application/octet-stream",
+          "content-type": detectContentTypeFromFormat(item.tileJSON.format),
         });
 
         const readStream = createReadStream(item.path);
@@ -531,13 +532,17 @@ function getDatasListHandler() {
         })
       );
 
+      const headers = {
+        "content-type": "application/json",
+      };
+
       if (req.query.compression === "true") {
         result = await gzipAsync(JSON.stringify(result));
 
-        res.set({
-          "content-encoding": "gzip",
-        });
+        headers["content-encoding"] = "gzip";
       }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

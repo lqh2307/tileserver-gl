@@ -322,7 +322,7 @@ function downloadGeoJSONHandler() {
         res.set({
           "content-length": stats.size,
           "content-disposition": `attachment; filename="${fileName}`,
-          "content-type": "application/octet-stream",
+          "content-type": "application/json",
         });
 
         const readStream = createReadStream(geoJSONLayer.path);
@@ -371,13 +371,17 @@ function getGeoJSONGroupsListHandler() {
         })
       );
 
+      const headers = {
+        "content-type": "application/json",
+      };
+
       if (req.query.compression === "true") {
         result = await gzipAsync(JSON.stringify(result));
 
-        res.set({
-          "content-encoding": "gzip",
-        });
+        headers["content-encoding"] = "gzip";
       }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

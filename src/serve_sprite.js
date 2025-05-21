@@ -1,12 +1,16 @@
 "use strict";
 
-import { getRequestHost, gzipAsync } from "./utils.js";
 import { getAndCacheDataSprite } from "./data.js";
 import { StatusCodes } from "http-status-codes";
 import { validateSprite } from "./sprite.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
+import {
+  detectContentTypeFromFormat,
+  getRequestHost,
+  gzipAsync,
+} from "./utils.js";
 
 /**
  * Get sprite handler
@@ -35,11 +39,10 @@ function getSpriteHandler() {
         req.url.slice(req.url.lastIndexOf("/") + 1)
       );
 
-      if (req.params.format === "json") {
-        res.header("content-type", "application/json");
-      } else {
-        res.header("content-type", "image/png");
-      }
+      res.header(
+        "content-type",
+        detectContentTypeFromFormat(req.params.format)
+      );
 
       return res.status(StatusCodes.OK).send(sprite);
     } catch (error) {
@@ -74,13 +77,17 @@ function getSpritesListHandler() {
         })
       );
 
+      const headers = {
+        "content-type": "application/json",
+      };
+
       if (req.query.compression === "true") {
         result = await gzipAsync(JSON.stringify(result));
 
-        res.set({
-          "content-encoding": "gzip",
-        });
+        headers["content-encoding"] = "gzip";
       }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

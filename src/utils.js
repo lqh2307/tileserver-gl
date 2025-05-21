@@ -1142,6 +1142,49 @@ export function detectFormatAndHeaders(buffer) {
 }
 
 /**
+ * Get content-type from format
+ * @param {string} format Data format
+ * @returns {string}
+ */
+export function detectContentTypeFromFormat(format) {
+  switch (format) {
+    case "png": {
+      return "image/png";
+    }
+
+    case "jpg":
+    case "jpeg": {
+      return "image/jpeg";
+    }
+
+    case "gif": {
+      return "image/gif";
+    }
+
+    case "webp": {
+      return "image/webp";
+    }
+
+    case "pbf": {
+      return "application/x-protobuf";
+    }
+
+    case "xml": {
+      return "text/xml";
+    }
+
+    case "json":
+    case "geojson": {
+      return "application/json";
+    }
+
+    default: {
+      return "application/octet-stream";
+    }
+  }
+}
+
+/**
  * Compress data using gzip algorithm asynchronously
  * @param {Buffer|string} input The data to compress
  * @param {zlib.ZlibOptions} options Optional zlib compression options

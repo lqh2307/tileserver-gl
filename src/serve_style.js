@@ -9,6 +9,7 @@ import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
   createTileMetadataFromTemplate,
+  detectContentTypeFromFormat,
   calculateMD5OfFile,
   DEFAULT_TILE_SIZE,
   compileTemplate,
@@ -234,13 +235,17 @@ function getStylesListHandler() {
         })
       );
 
+      const headers = {
+        "content-type": "application/json",
+      };
+
       if (req.query.compression === "true") {
         result = await gzipAsync(JSON.stringify(result));
 
-        res.set({
-          "content-encoding": "gzip",
-        });
+        headers["content-encoding"] = "gzip";
       }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
@@ -310,32 +315,10 @@ function getRenderedTileHandler() {
         req.params.format
       );
 
-      switch (req.params.format) {
-        case "gif": {
-          res.header("content-type", "image/gif");
-
-          break;
-        }
-
-        case "png": {
-          res.header("content-type", "image/png");
-
-          break;
-        }
-
-        case "jpg":
-        case "jpeg": {
-          res.header("content-type", "image/jpeg");
-
-          break;
-        }
-
-        case "webp": {
-          res.header("content-type", "image/webp");
-
-          break;
-        }
-      }
+      res.header(
+        "content-type",
+        detectContentTypeFromFormat(req.params.format)
+      );
 
       return res.status(StatusCodes.OK).send(image);
     } catch (error) {
@@ -472,13 +455,17 @@ function getRenderedsListHandler() {
         }
       });
 
+      const headers = {
+        "content-type": "application/json",
+      };
+
       if (req.query.compression === "true") {
         result = await gzipAsync(JSON.stringify(result));
 
-        res.set({
-          "content-encoding": "gzip",
-        });
+        headers["content-encoding"] = "gzip";
       }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

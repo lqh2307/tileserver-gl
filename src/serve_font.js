@@ -62,13 +62,17 @@ function getFontsListHandler() {
         })
       );
 
+      const headers = {
+        "content-type": "application/json",
+      };
+
       if (req.query.compression === "true") {
         result = await gzipAsync(JSON.stringify(result));
 
-        res.set({
-          "content-encoding": "gzip",
-        });
+        headers["content-encoding"] = "gzip";
       }
+
+      res.set(headers);
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

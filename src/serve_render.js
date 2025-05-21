@@ -1,12 +1,17 @@
 "use strict";
 
-import { DEFAULT_TILE_SIZE, getJSONSchema, validateJSON } from "./utils.js";
 import { renderStyleJSONToImage } from "./render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import os from "os";
+import {
+  detectContentTypeFromFormat,
+  DEFAULT_TILE_SIZE,
+  getJSONSchema,
+  validateJSON,
+} from "./utils.js";
 
 /**
  * Render style JSON handler
@@ -43,7 +48,7 @@ function renderStyleJSONHandler() {
       res.set({
         "content-length": stats.size,
         "content-disposition": `attachment; filename="${fileName}"`,
-        "content-type": "application/octet-stream",
+        "content-type": detectContentTypeFromFormat(req.body.format),
       });
 
       const readStream = createReadStream(filePath);
