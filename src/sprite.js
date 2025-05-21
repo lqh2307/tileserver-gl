@@ -140,13 +140,13 @@ export async function validateSprite(spriteDirPath) {
 
 /**
  * Get sprite
- * @param {string} id Sprite ID
+ * @param {string} dirPath Sprite dir path
  * @param {string} fileName Sprite file name
  * @returns {Promise<Buffer>}
  */
-export async function getSprite(id, fileName) {
+export async function getSprite(dirPath, fileName) {
   try {
-    return await readFile(`${process.env.DATA_DIR}/sprites/${id}/${fileName}`);
+    return await readFile(`${dirPath}/${fileName}`);
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error("Sprite does not exist");

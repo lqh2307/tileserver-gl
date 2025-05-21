@@ -307,7 +307,7 @@ export async function getAndCacheDataSprite(id, fileName) {
   const item = config.sprites[id];
 
   try {
-    return await getSprite(id, fileName);
+    return await getSprite(item.path, fileName);
   } catch (error) {
     if (
       item.sourceURL !== undefined &&
@@ -346,9 +346,9 @@ export async function getAndCacheDataSprite(id, fileName) {
 }
 
 /**
- * Get and cache data Sprites
- * @param {string} ids Sprite ids
- * @param {string} fileName Sprite file name
+ * Get and cache data Fonts
+ * @param {string} ids Font ids
+ * @param {string} fileName Font file name
  * @returns {Promise<object>}
  */
 export async function getAndCacheDataFonts(ids, fileName) {
@@ -358,7 +358,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
       const item = config.fonts[id];
 
       try {
-        return await getFont(id, fileName);
+        return await getFont(item.path, fileName);
       } catch (error) {
         try {
           if (

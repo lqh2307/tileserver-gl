@@ -135,13 +135,13 @@ export async function validateFont(pbfDirPath) {
 
 /**
  * Get font pbf
- * @param {string} id Font ID
+ * @param {string} dirPath Font dir path
  * @param {string} fileName Font file name
  * @returns {Promise<Buffer>}
  */
-export async function getFont(id, fileName) {
+export async function getFont(dirPath, fileName) {
   try {
-    return await readFile(`${process.env.DATA_DIR}/fonts/${id}/${fileName}`);
+    return await readFile(`${dirPath}/${fileName}`);
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error("Font does not exist");
