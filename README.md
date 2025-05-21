@@ -912,10 +912,11 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 {
   "id": "base",
   "format": "png",
-  "zoom": 12,
-  "bbox": [96, 4, 120, 28],
-  "maxRendererPoolSize": 100,
-  "concurrency": 100,
+  "zoom": 10,
+  "bbox": [102, 8, 110, 24],
+  "maxRendererPoolSize": 200,
+  "concurrency": 200,
+  "tileScale": 2,
   "storeTransparent": true,
   "styleJSON": {
     "version": 8,
