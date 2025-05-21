@@ -535,6 +535,7 @@ export async function renderStyleJSONToImage(
   const startTime = Date.now();
 
   let source;
+  let pool;
 
   const dirPath = filePath.slice(0, filePath.lastIndexOf("/"));
   const mbtilesDirPath = `${dirPath}/mbtiles`;
@@ -685,7 +686,6 @@ export async function renderStyleJSONToImage(
     };
 
     /* Create renderer pool */
-    let pool;
     let renderMBTilesTileData;
 
     if (maxRendererPoolSize > 0) {
@@ -795,12 +795,6 @@ export async function renderStyleJSONToImage(
       await wait25ms();
     }
 
-    /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0) {
-      await pool.drain();
-      await pool.clear();
-    }
-
     const baselayerFilePath = `${baselayerDirPath}/${filePathWithoutExt}.${format}`;
 
     /* Create image */
@@ -864,18 +858,23 @@ export async function renderStyleJSONToImage(
 
     throw error;
   } finally {
-    if (source !== undefined) {
-      // Close MBTiles SQLite database
-      closeMBTilesDB(source);
-
-      /* Remove tmp */
-      removeFilesOrFolders([
-        mbtilesDirPath,
-        vrtDirPath,
-        baselayerDirPath,
-        overlaysDirPath,
-      ]);
+    /* Destroy renderer pool */
+    if (maxRendererPoolSize > 0 && pool !== undefined) {
+      pool.drain().then(() => pool.clear());
     }
+
+    // Close MBTiles SQLite database
+    if (source !== undefined) {
+      closeMBTilesDB(source);
+    }
+
+    /* Remove tmp */
+    removeFilesOrFolders([
+      mbtilesDirPath,
+      vrtDirPath,
+      baselayerDirPath,
+      overlaysDirPath,
+    ]);
   }
 }
 
@@ -908,6 +907,7 @@ export async function renderMBTilesTiles(
   const startTime = Date.now();
 
   let source;
+  let pool;
 
   try {
     /* Calculate summary */
@@ -1002,7 +1002,6 @@ export async function renderMBTilesTiles(
     };
 
     /* Create renderer pool */
-    let pool;
     let renderMBTilesTileData;
 
     if (maxRendererPoolSize > 0) {
@@ -1142,12 +1141,6 @@ export async function renderMBTilesTiles(
       await wait25ms();
     }
 
-    /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0) {
-      await pool.drain();
-      await pool.clear();
-    }
-
     /* Create overviews */
     if (createOverview === true) {
       const command = `gdaladdo -r lanczos -oo ZLEVEL=9 ${filePath} 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304`;
@@ -1177,8 +1170,13 @@ export async function renderMBTilesTiles(
       }s: ${error}`
     );
   } finally {
+    /* Destroy renderer pool */
+    if (maxRendererPoolSize > 0 && pool !== undefined) {
+      pool.drain().then(() => pool.clear());
+    }
+
+    // Close MBTiles SQLite database
     if (source !== undefined) {
-      // Close MBTiles SQLite database
       closeMBTilesDB(source);
     }
   }
@@ -1215,6 +1213,7 @@ export async function renderXYZTiles(
   const startTime = Date.now();
 
   let source;
+  let pool;
 
   try {
     /* Calculate summary */
@@ -1309,7 +1308,6 @@ export async function renderXYZTiles(
     /* Create renderer pool */
     const item = config.styles[id];
     const renderedStyleJSON = await getRenderedStyleJSON(item.path);
-    let pool;
     let renderXYZTileData;
 
     if (maxRendererPoolSize > 0) {
@@ -1467,12 +1465,6 @@ export async function renderXYZTiles(
       await wait25ms();
     }
 
-    /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0) {
-      await pool.drain();
-      await pool.clear();
-    }
-
     /* Remove parent folders if empty */
     await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp)$/);
 
@@ -1495,8 +1487,13 @@ export async function renderXYZTiles(
       }s: ${error}`
     );
   } finally {
+    /* Destroy renderer pool */
+    if (maxRendererPoolSize > 0 && pool !== undefined) {
+      pool.drain().then(() => pool.clear());
+    }
+
+    /* Close MD5 SQLite database */
     if (source !== undefined) {
-      /* Close MD5 SQLite database */
       closeXYZMD5DB(source);
     }
   }
@@ -1531,6 +1528,7 @@ export async function renderPostgreSQLTiles(
   const startTime = Date.now();
 
   let source;
+  let pool;
 
   try {
     /* Calculate summary */
@@ -1620,7 +1618,6 @@ export async function renderPostgreSQLTiles(
     /* Create renderer pool */
     const item = config.styles[id];
     const renderedStyleJSON = await getRenderedStyleJSON(item.path);
-    let pool;
     let renderPostgreSQLTileData;
 
     if (maxRendererPoolSize > 0) {
@@ -1774,12 +1771,6 @@ export async function renderPostgreSQLTiles(
       await wait25ms();
     }
 
-    /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0) {
-      await pool.drain();
-      await pool.clear();
-    }
-
     /* Create overviews */
     if (createOverview === true) {
       // Do nothing
@@ -1799,8 +1790,13 @@ export async function renderPostgreSQLTiles(
       }s: ${error}`
     );
   } finally {
+    /* Destroy renderer pool */
+    if (maxRendererPoolSize > 0 && pool !== undefined) {
+      pool.drain().then(() => pool.clear());
+    }
+
+    /* Close PostgreSQL database */
     if (source !== undefined) {
-      /* Close PostgreSQL database */
       closePostgreSQLDB(source);
     }
   }

@@ -259,8 +259,8 @@ export async function exportMBTilesTiles(
       }s: ${error}`
     );
   } finally {
+    // Close MBTiles SQLite database
     if (source !== undefined) {
-      // Close MBTiles SQLite database
       closeMBTilesDB(source);
     }
   }
@@ -497,8 +497,8 @@ export async function exportXYZTiles(
       }s: ${error}`
     );
   } finally {
+    /* Close MD5 SQLite database */
     if (source !== undefined) {
-      /* Close MD5 SQLite database */
       closeXYZMD5DB(source);
     }
   }
@@ -723,8 +723,8 @@ export async function exportPostgreSQLTiles(
       }s: ${error}`
     );
   } finally {
+    /* Close PostgreSQL database */
     if (source !== undefined) {
-      /* Close PostgreSQL database */
       closePostgreSQLDB(source);
     }
   }

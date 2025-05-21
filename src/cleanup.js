@@ -241,8 +241,8 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
   } catch (error) {
     throw error;
   } finally {
+    /* Close MBTiles SQLite database */
     if (source !== undefined) {
-      /* Close MBTiles SQLite database */
       closeMBTilesDB(source);
     }
   }
@@ -392,8 +392,8 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
   } catch (error) {
     throw error;
   } finally {
+    /* Close PostgreSQL database */
     if (source !== undefined) {
-      /* Close PostgreSQL database */
       closePostgreSQLDB(source);
     }
   }
@@ -557,8 +557,8 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
   } catch (error) {
     throw error;
   } finally {
+    /* Close XYZ MD5 SQLite database */
     if (source !== undefined) {
-      /* Close XYZ MD5 SQLite database */
       closeXYZMD5DB(source);
     }
   }

@@ -336,8 +336,8 @@ async function seedMBTilesTiles(
   } catch (error) {
     throw error;
   } finally {
+    // Close MBTiles SQLite database
     if (source !== undefined) {
-      // Close MBTiles SQLite database
       closeMBTilesDB(source);
     }
   }
@@ -576,8 +576,8 @@ async function seedPostgreSQLTiles(
   } catch (error) {
     throw error;
   } finally {
+    /* Close PostgreSQL database */
     if (source !== undefined) {
-      /* Close PostgreSQL database */
       closePostgreSQLDB(source);
     }
   }
@@ -826,8 +826,8 @@ async function seedXYZTiles(
   } catch (error) {
     throw error;
   } finally {
+    /* Close MD5 SQLite database */
     if (source !== undefined) {
-      /* Close MD5 SQLite database */
       closeXYZMD5DB(source);
     }
   }
