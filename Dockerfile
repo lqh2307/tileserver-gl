@@ -23,7 +23,9 @@ RUN \
     libjpeg-dev \
     libgif-dev \
     libwebp-dev \
-    libtiff-dev; \
+    libtiff-dev \
+    python3-dev \
+    python3-pip; \
   apt-get -y --purge autoremove; \
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;
@@ -49,6 +51,9 @@ RUN \
   mkdir -p /usr/local/opt/nodejs; \
   cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
   rm -rf node-v${NODEJS_VERSION}-linux-x64*;
+
+RUN \
+  pip3 install -r ./tools/requirements.txt
 
 ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
 
@@ -81,7 +86,8 @@ RUN \
     libsqlite3-0 \
     librasterlite2-1 \
     libspatialite7 \
-    libtiff5; \
+    libtiff5 \
+    python3; \
   apt-get -y --purge autoremove; \
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;

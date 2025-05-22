@@ -1,0 +1,384 @@
+#!/usr/bin/env python3
+
+import logging
+import argparse
+
+import rasterio
+from rasterio.plot import show
+
+import matplotlib.pyplot as pyplot
+import matplotlib.patches as patches
+import matplotlib.ticker as ticker
+
+import numpy
+
+
+# Config log
+LOGGER = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)5s: %(message)s"))
+LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.INFO)
+
+
+# Parse args
+def parse_args():
+  parser = argparse.ArgumentParser(description="Add frame to image")
+
+  parser.add_argument("--i_file_path", type=str, required=True, help="Input image file path")
+  parser.add_argument("--o_file_path", type=str, required=True, help="Output image file path")
+
+  parser.add_argument("--dpi", type=int, required=False, default=150, help="DPI")
+  parser.add_argument("--fig_width", type=float, required=False, default=12.0, help="")
+  parser.add_argument("--fig_padding_left", type=float, required=False, default=0.05, help="")
+  parser.add_argument("--fig_padding_right", type=float, required=False, default=0.05, help="")
+  parser.add_argument("--fig_padding_bottom", type=float, required=False, default=0.05, help="")
+  parser.add_argument("--fig_padding_top", type=float, required=False, default=0.05, help="")
+
+  parser.add_argument("--spine_color", type=str, required=False, default="black", help="")
+  parser.add_argument("--spine_linewidth", type=float, required=False, default=1.5, help="")
+  parser.add_argument("--spine_space", type=float, required=False, default=0.15, help="")
+
+  parser.add_argument("--enable_tick_label_degree", type=bool, required=False, default=True, help="")
+  parser.add_argument("--tick_major_tick_color", type=str, required=False, default="black", help="")
+  parser.add_argument("--tick_major_label_color", type=str, required=False, default="black", help="")
+  parser.add_argument("--tick_minor_tick_color", type=str, required=False, default="black", help="")
+  parser.add_argument("--tick_minor_label_color", type=str, required=False, default="black", help="")
+
+  parser.add_argument("--xtick_major_tick_step", type=float, required=False, default=1.0, help="")
+  parser.add_argument("--xtick_minor_tick_step", type=float, required=False, default=0.05, help="")
+
+  parser.add_argument("--ytick_major_tick_step", type=float, required=False, default=1.0, help="")
+  parser.add_argument("--ytick_minor_tick_step", type=float, required=False, default=0.05, help="")
+
+  parser.add_argument("--xtick_major_tick_width", type=float, required=False, default=1.0, help="")
+  parser.add_argument("--xtick_major_tick_size", type=int, required=False, default=4, help="")
+  parser.add_argument("--xtick_major_label_size", type=int, required=False, default=4, help="")
+  parser.add_argument("--xtick_major_label_rotation", type=int, required=False, default=0, help="")
+  parser.add_argument("--xtick_minor_tick_width", type=float, required=False, default=1.0, help="")
+  parser.add_argument("--xtick_minor_tick_size", type=int, required=False, default=3, help="")
+  parser.add_argument("--xtick_minor_label_size", type=int, required=False, default=0, help="")
+  parser.add_argument("--xtick_minor_label_rotation", type=int, required=False, default=0, help="")
+
+  parser.add_argument("--ytick_major_tick_width", type=float, required=False, default=1.0, help="")
+  parser.add_argument("--ytick_major_tick_size", type=int, required=False, default=4, help="")
+  parser.add_argument("--ytick_major_label_size", type=int, required=False, default=4, help="")
+  parser.add_argument("--ytick_major_label_rotation", type=int, required=False, default=90, help="")
+  parser.add_argument("--ytick_minor_tick_width", type=float, required=False, default=1.0, help="")
+  parser.add_argument("--ytick_minor_tick_size", type=int, required=False, default=3, help="")
+  parser.add_argument("--ytick_minor_label_size", type=int, required=False, default=0, help="")
+  parser.add_argument("--ytick_minor_label_rotation", type=int, required=False, default=90, help="")
+
+  return parser.parse_args()
+
+# Add frame to image
+def add_frame_to_image(
+  i_file_path: str,
+  o_file_path: str,
+
+  dpi: int = 150,
+  fig_width: float = 12.0,
+  fig_padding_left: float = 0.05,
+  fig_padding_right: float = 0.05,
+  fig_padding_bottom: float = 0.05,
+  fig_padding_top: float = 0.05,
+
+  spine_color: str = "black",
+  spine_linewidth: float = 1.5,
+  spine_space: float = 0.15,
+
+  enable_tick_label_degree: bool = True,
+  tick_major_tick_color: str = "black",
+  tick_major_label_color: str = "black",
+  tick_minor_tick_color: str = "black",
+  tick_minor_label_color: str = "black",
+
+  xtick_major_tick_step: float = 1.0,
+  xtick_minor_tick_step: float = 0.05,
+
+  ytick_major_tick_step: float = 1.0,
+  ytick_minor_tick_step: float = 0.05,
+
+  xtick_major_tick_width: float = 1.0,
+  xtick_major_tick_size: int = 4,
+  xtick_major_label_size: int = 4,
+  xtick_major_label_rotation: int = 0,
+  xtick_minor_tick_width: float = 1.0,
+  xtick_minor_tick_size: int = 3,
+  xtick_minor_label_size: int = 0,
+  xtick_minor_label_rotation: int = 0,
+  
+  ytick_major_tick_width: float = 1.0,
+  ytick_major_tick_size: int = 4,
+  ytick_major_label_size: int = 4,
+  ytick_major_label_rotation: int = 90,
+  ytick_minor_tick_width: float = 1.0,
+  ytick_minor_tick_size: int = 3,
+  ytick_minor_label_size: int = 0,
+  ytick_minor_label_rotation: int = 90,
+):
+  with rasterio.open(i_file_path) as src:
+    image_data = src.read()
+
+    fig_height = fig_width * (src.height / src.width)
+    fig, ax = pyplot.subplots(
+      figsize=(fig_width, fig_height)
+    )
+
+    # Add padding
+    fig.subplots_adjust(
+      left=fig_padding_left/fig_width,
+      right=1-fig_padding_right/fig_width,
+      bottom=fig_padding_bottom/fig_height,
+      top=1-fig_padding_top/fig_height,
+    )
+
+    # Disable default spine
+    pyplot.box(False)
+
+    show(
+      image_data,
+      transform=src.transform,
+      ax=ax
+    )
+
+    bounds = src.bounds
+    inner_width = bounds.right - bounds.left
+    inner_height = bounds.top - bounds.bottom
+    outer_width = inner_width + 2 * spine_space
+    outer_height = inner_height + 2 * spine_space
+
+    # Draw inner
+    inner = patches.Rectangle(
+      (bounds.left, bounds.bottom),
+      inner_width,
+      inner_height,
+      fill=False,
+      edgecolor=spine_color,
+      facecolor="none",
+      zorder=1,
+      linewidth=spine_linewidth,
+    )
+    ax.add_patch(inner)
+
+    # Draw outer
+    outer = patches.Rectangle(
+      (bounds.left - spine_space, bounds.bottom - spine_space),
+      outer_width,
+      outer_height,
+      clip_on=False,
+      fill=False,
+      edgecolor=spine_color,
+      facecolor="none",
+      zorder=1,
+      linewidth=spine_linewidth,
+    )
+    ax.add_patch(outer)
+
+    ax.set_xlim(bounds.left, bounds.right)
+    ax.set_ylim(bounds.bottom, bounds.top)
+
+    tick_label_format = ticker.FormatStrFormatter("%.2f")
+    if enable_tick_label_degree == True:
+      tick_label_format = ticker.FormatStrFormatter("%.2f\u00B0")
+
+    # Set x major tick
+    if (xtick_major_tick_size > 0):
+      xtick_major_values = numpy.arange(bounds.left, bounds.right + 1e-9, xtick_major_tick_step)
+      ax.xaxis.set_ticks(xtick_major_values)
+
+      if (xtick_major_label_size > 0):
+        ax.xaxis.set_major_formatter(tick_label_format)
+
+        for label in ax.get_xticklabels(minor=False):
+          label.set_ha("center")
+          label.set_va("center")
+
+      ax.tick_params(
+        axis="x",
+        which="major",
+        direction="out",
+        bottom=True,
+        top=True,
+        labelbottom=True,
+        labeltop=True,
+        color=tick_major_tick_color,
+        labelcolor=tick_major_label_color,
+        width=xtick_major_tick_width,
+        length=xtick_major_tick_size,
+        labelsize=xtick_major_label_size,
+        labelrotation=xtick_major_label_rotation,
+      )
+    else:
+      ax.tick_params(
+        axis="x",
+        bottom=False,
+        top=False,
+      )
+
+    # Set x minor tick
+    if (xtick_minor_tick_size > 0):
+      xtick_minor_values = numpy.arange(bounds.left, bounds.right + 1e-9, xtick_minor_tick_step)
+      ax.xaxis.set_ticks(xtick_minor_values, minor=True)
+
+      if (xtick_minor_label_size > 0):
+        ax.xaxis.set_minor_formatter(tick_label_format)
+
+        for label in ax.get_xticklabels(minor=True):
+          label.set_ha("center")
+          label.set_va("center")
+
+      ax.tick_params(
+        axis="x",
+        which="minor",
+        direction="out",
+        bottom=True,
+        top=True,
+        labelbottom=True,
+        labeltop=True,
+        color=tick_minor_tick_color,
+        labelcolor=tick_minor_label_color,
+        width=xtick_minor_tick_width,
+        length=xtick_minor_tick_size,
+        labelsize=xtick_minor_label_size,
+        labelrotation=xtick_minor_label_rotation,
+      )
+    else:
+      ax.tick_params(
+        axis="x",
+        which="minor",
+        bottom=False,
+        top=False,
+      )
+
+    # Set y major tick
+    if (ytick_major_tick_size > 0):
+      ytick_major_values = numpy.arange(bounds.bottom, bounds.top + 1e-9, ytick_major_tick_step)
+      ax.yaxis.set_ticks(ytick_major_values)
+
+      if (ytick_major_label_size > 0):
+        ax.yaxis.set_major_formatter(tick_label_format)
+
+        for label in ax.get_yticklabels(minor=False):
+          label.set_ha("center")
+          label.set_va("center")
+
+      ax.tick_params(
+        axis="y",
+        which="major",
+        direction="out",
+        left=True,
+        right=True,
+        labelleft=True,
+        labelright=True,
+        color=tick_major_tick_color,
+        labelcolor=tick_major_label_color,
+        width=ytick_major_tick_width,
+        length=ytick_major_tick_size,
+        labelsize=ytick_major_label_size,
+        labelrotation=ytick_major_label_rotation,
+      )
+    else:
+      ax.tick_params(
+        axis="y",
+        left=False,
+        right=False,
+      )
+
+    # Set y minor tick
+    if (ytick_minor_tick_size > 0):
+      ytick_minor_values = numpy.arange(bounds.bottom, bounds.top + 1e-9, ytick_minor_tick_step)
+      ax.yaxis.set_ticks(ytick_minor_values, minor=True)
+
+      if (ytick_minor_label_size > 0):
+        ax.yaxis.set_minor_formatter(tick_label_format)
+
+        for label in ax.get_yticklabels(minor=True):
+          label.set_ha("center")
+          label.set_va("center")
+
+      ax.tick_params(
+        axis="y",
+        which="minor",
+        direction="out",
+        left=True,
+        right=True,
+        labelleft=True,
+        labelright=True,
+        color=tick_minor_tick_color,
+        labelcolor=tick_minor_label_color,
+        width=ytick_minor_tick_width,
+        length=ytick_minor_tick_size,
+        labelsize=ytick_minor_label_size,
+        labelrotation=ytick_minor_label_rotation,
+      )
+    else:
+      ax.tick_params(
+        axis="y",
+        which="minor",
+        left=False,
+        right=False,
+      )
+
+    pyplot.tight_layout()
+    pyplot.savefig(o_file_path, dpi=dpi)
+    pyplot.close()
+
+
+# Main
+if __name__ == "__main__":
+  args = parse_args()
+
+  LOGGER.info(f"Running add frame to image from {args.i_file_path} to {args.o_file_path}...")
+
+  add_frame_to_image(**vars(args))
+
+  LOGGER.info(f"Done to add frame to image from {args.i_file_path} to {args.o_file_path}!")
+
+
+# Test
+# add_frame_to_image(
+#   i_file_path="data/khqs_tile_scale_2/khqs_tile_scale_2.png",
+#   o_file_path="data/khqs_tile_scale_2/khqs_tile_scale.png",
+
+#   dpi=300,
+#   fig_width=12.0,
+#   fig_padding_left=0.05,
+#   fig_padding_right=0.05,
+#   fig_padding_bottom=0.05,
+#   fig_padding_top=0.05,
+
+#   spine_color="black",
+#   spine_linewidth=1.5,
+#   spine_space=0.15,
+
+#   enable_tick_label_degree=True,
+#   tick_major_tick_color="black",
+#   tick_major_label_color="black",
+#   tick_minor_tick_color="black",
+#   tick_minor_label_color="black",
+
+#   xtick_major_tick_step=1.0,
+#   xtick_minor_tick_step=0.05,
+
+#   ytick_major_tick_step=1.0,
+#   ytick_minor_tick_step=0.05,
+
+#   xtick_major_tick_width=1.0,
+#   xtick_major_tick_size=4,
+#   xtick_major_label_size=4,
+#   xtick_major_label_rotation=0,
+#   xtick_minor_tick_width=1.0,
+#   xtick_minor_tick_size=3,
+#   xtick_minor_label_size=0,
+#   xtick_minor_label_rotation=0,
+
+#   ytick_major_tick_width=1.0,
+#   ytick_major_tick_size=4,
+#   ytick_major_label_size=4,
+#   ytick_major_label_rotation=90,
+#   ytick_minor_tick_width=1.0,
+#   ytick_minor_tick_size=3,
+#   ytick_minor_label_size=0,
+#   ytick_minor_label_rotation=90,
+# )
