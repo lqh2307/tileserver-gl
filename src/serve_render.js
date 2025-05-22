@@ -29,8 +29,8 @@ function renderStyleJSONHandler() {
 
       const fileName =
         req.body.addFrame === true
-          ? `${req.body.id}.zip`
-          : `${req.body.id}.${req.body.format}`;
+          ? `${req.body.id}.${req.body.format}`
+          : `${req.body.id}.zip`;
       const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${req.body.id}`;
       const filePath = `${dirPath}/${fileName}`;
 
@@ -55,8 +55,8 @@ function renderStyleJSONHandler() {
         "content-disposition": `attachment; filename="${fileName}"`,
         "content-type":
           req.body.addFrame === true
-            ? "application/zip"
-            : detectContentTypeFromFormat(req.body.format),
+            ? detectContentTypeFromFormat(req.body.format)
+            : "application/zip",
       });
 
       const readStream = createReadStream(filePath);
