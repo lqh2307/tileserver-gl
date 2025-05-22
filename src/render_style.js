@@ -519,6 +519,7 @@ export async function renderImageTileDataWithPool(
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
+ * @param {boolean} addFrame Is add frame?
  * @returns {Promise<void>}
  */
 export async function renderStyleJSONToImage(
@@ -531,7 +532,8 @@ export async function renderStyleJSONToImage(
   concurrency,
   storeTransparent,
   tileScale,
-  tileSize
+  tileSize,
+  addFrame
 ) {
   const startTime = Date.now();
 
@@ -539,7 +541,10 @@ export async function renderStyleJSONToImage(
   let pool;
 
   const filePathWithoutExt = dirPath.slice(dirPath.lastIndexOf("/") + 1);
-  const outputFilePath = `${dirPath}/${filePathWithoutExt}.zip`;
+  const outputFilePath =
+    addFrame === true
+      ? `${dirPath}/${filePathWithoutExt}.${format}`
+      : `${dirPath}/${filePathWithoutExt}.zip`;
   const outputDirPath = `${dirPath}/output`;
   const mbtilesDirPath = `${dirPath}/mbtiles`;
   const vrtDirPath = `${dirPath}/vrt`;
@@ -565,6 +570,7 @@ export async function renderStyleJSONToImage(
     log += `\n\tFormat: ${format}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tTile size: ${tileSize}`;
+    log += `\n\tAdd frame: ${addFrame}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     printLog("info", log);
@@ -798,15 +804,14 @@ export async function renderStyleJSONToImage(
     const imageFilePath = `${outputDirPath}/${filePathWithoutExt}.${format}`;
 
     /* Create image */
-
-    let command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -a_srs EPSG:4326 -a_ullr ${realBBox[0]} ${realBBox[3]} ${realBBox[2]} ${realBBox[1]} ${mbtilesFilePath} ${baselayerFilePath}`;
+    const command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -a_srs EPSG:4326 -a_ullr ${realBBox[0]} ${realBBox[3]} ${realBBox[2]} ${realBBox[1]} ${mbtilesFilePath} ${baselayerFilePath}`;
 
     printLog(
       "info",
       `Creating ${filePathWithoutExt} baselayer with gdal command: ${command}`
     );
 
-    let commandOutput = await runCommand(command);
+    const commandOutput = await runCommand(command);
 
     printLog("info", `Gdal command output: ${commandOutput}`);
 
@@ -820,7 +825,7 @@ export async function renderStyleJSONToImage(
 
       printLog("info", `Creating VRT with gdal command: ${command}`);
 
-      commandOutput = await runCommand(command);
+      let commandOutput = await runCommand(command);
 
       printLog("info", `Gdal command output: ${commandOutput}`);
 
@@ -834,18 +839,28 @@ export async function renderStyleJSONToImage(
       printLog("info", `Gdal command output: ${commandOutput}`);
     } else {
       /* Create image */
-      command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${imageFilePath}`;
+      const command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${imageFilePath}`;
 
       printLog("info", `Creating image with gdal command: ${command}`);
 
-      commandOutput = await runCommand(command);
+      const commandOutput = await runCommand(command);
 
       printLog("info", `Gdal command output: ${commandOutput}`);
     }
 
-    printLog("info", "Zipping output...");
+    if (addFrame === true) {
+      const command = `tools/add_frame_to_image --i_file_path ${imageFilePath} --o_file_path ${outputFilePath}`;
 
-    await zipFolder(outputDirPath, outputFilePath);
+      printLog("info", `Adding frame with command: ${command}`);
+
+      const commandOutput = await runCommand(command);
+
+      printLog("info", `Command output: ${commandOutput}`);
+    } else {
+      printLog("info", "Zipping output...");
+
+      await zipFolder(outputDirPath, outputFilePath);
+    }
 
     printLog(
       "info",

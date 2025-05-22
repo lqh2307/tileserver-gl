@@ -1,12 +1,17 @@
 "use strict";
 
-import { DEFAULT_TILE_SIZE, getJSONSchema, validateJSON } from "./utils.js";
 import { renderStyleJSONToImage } from "./render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import os from "os";
+import {
+  detectContentTypeFromFormat,
+  DEFAULT_TILE_SIZE,
+  getJSONSchema,
+  validateJSON,
+} from "./utils.js";
 
 /**
  * Render style JSON handler
@@ -22,7 +27,10 @@ function renderStyleJSONHandler() {
         throw new SyntaxError(error);
       }
 
-      const fileName = `${req.body.id}.zip`;
+      const fileName =
+        req.body.addFrame === true
+          ? `${req.body.id}.zip`
+          : `${req.body.id}.${req.body.format}`;
       const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${req.body.id}`;
       const filePath = `${dirPath}/${fileName}`;
 
@@ -36,7 +44,8 @@ function renderStyleJSONHandler() {
         req.body.concurrency || os.cpus().length,
         req.body.storeTransparent ?? true,
         req.body.tileScale || 1,
-        req.body.tileSize || DEFAULT_TILE_SIZE
+        req.body.tileSize || DEFAULT_TILE_SIZE,
+        req.body.addFrame ?? false
       );
 
       const stats = await stat(filePath);
@@ -44,7 +53,10 @@ function renderStyleJSONHandler() {
       res.set({
         "content-length": stats.size,
         "content-disposition": `attachment; filename="${fileName}"`,
-        "content-type": "application/zip",
+        "content-type":
+          req.body.addFrame === true
+            ? "application/zip"
+            : detectContentTypeFromFormat(req.body.format),
       });
 
       const readStream = createReadStream(filePath);
@@ -99,7 +111,7 @@ export const serve_render = {
      *       201:
      *         description: Style JSON rendered
      *         content:
-     *           application/zip:
+     *           application/octet-stream:
      *             schema:
      *               type: string
      *               format: binary

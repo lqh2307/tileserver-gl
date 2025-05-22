@@ -43,6 +43,9 @@
       "type": "integer",
       "minimum": 1
     },
+    "addFrame": {
+      "type": "boolean"
+    },
     "styleJSON": {
       "type": "object"
     }

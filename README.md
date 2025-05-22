@@ -7,7 +7,7 @@
 Clone source:
 
 ```bash
-git clone --single-branch -b 0.0.27 https://github.com/lqh2307/tileserver-gl.git
+git clone --single-branch -b 0.0.28 https://github.com/lqh2307/tileserver-gl.git
 ```
 
 Jump to folder:
@@ -16,10 +16,10 @@ Jump to folder:
 cd tile-server
 ```
 
-Switch to 0.0.27 branch:
+Switch to 0.0.28 branch:
 
 ```bash
-git checkout 0.0.27
+git checkout 0.0.28
 ```
 
 ### Run with nodejs - native (on ubuntu 22.04 x86_64 amd)
@@ -45,7 +45,9 @@ apt-get -y install \
   libopengl0 \
   libpng16-16 \
   libwebp7 \
-  libcurl4;
+  libcurl4 \
+  python3 \
+  python3-pip;
 ```
 
 If use export (Install gdal):
@@ -84,6 +86,12 @@ grep -q '/usr/local/opt/nodejs/bin' ~/.bashrc || echo 'export PATH=/usr/local/op
 source ~/.bashrc;
 ```
 
+Install python libs:
+
+```bash
+pip3 install --no-cache-dir -r ./tools/requirements.txt;
+```
+
 Clean:
 
 ```bash
@@ -91,7 +99,8 @@ apt-get -y remove \
   wget \
   cmake \
   build-essential \
-  libproj-dev; \
+  libproj-dev \
+  python3-pip; \
 apt-get -y --purge autoremove; \
 apt-get clean; \
 rm -rf /var/lib/apt/lists/*;
@@ -126,13 +135,13 @@ NUM_OF_PROCESS: number of process, will overwrite config.json file (default: 1)
 Build image:
 
 ```bash
-docker build -t tile-server:0.0.27 .
+docker build -t tile-server:0.0.28 .
 ```
 
 Run container:
 
 ```bash
-docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.27
+docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.28
 ```
 
 ### Prepare data

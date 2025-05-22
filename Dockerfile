@@ -52,9 +52,6 @@ RUN \
   cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
   rm -rf node-v${NODEJS_VERSION}-linux-x64*;
 
-RUN \
-  pip3 install -r ./tools/requirements.txt
-
 ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
 
 WORKDIR /tile-server
@@ -64,6 +61,9 @@ ADD . .
 RUN \
   npm install --omit=dev; \
   rm -rf package-lock.json;
+
+RUN \
+  pip3 install --no-cache-dir -r ./tools/requirements.txt;
 
 
 FROM ${TARGET_IMAGE} AS final
