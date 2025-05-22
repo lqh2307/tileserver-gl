@@ -63,7 +63,7 @@ RUN \
   rm -rf package-lock.json;
 
 RUN \
-  pip3 install --no-cache-dir -r ./tools/requirements.txt;
+  pip3 install --no-cache-dir --target=/python3-deps -r ./tools/requirements.txt;
 
 
 FROM ${TARGET_IMAGE} AS final
@@ -96,6 +96,7 @@ WORKDIR /tile-server
 
 COPY --from=builder /tile-server .
 COPY --from=builder /usr/local/opt /usr/local/opt
+COPY --from=builder /python3-deps /usr/local/lib/python3.10/dist-packages/
 
 ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
 
