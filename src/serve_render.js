@@ -20,7 +20,7 @@ import {
 function renderStyleJSONHandler() {
   return async (req, res, next) => {
     try {
-      /* Render style */
+      /* Validate options */
       try {
         validateJSON(await getJSONSchema("render"), req.body);
       } catch (error) {
@@ -34,6 +34,7 @@ function renderStyleJSONHandler() {
       const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${req.body.id}`;
       const filePath = `${dirPath}/${fileName}`;
 
+      /* Render style */
       await renderStyleJSONToImage(
         req.body.styleJSON,
         req.body.bbox,
@@ -45,7 +46,8 @@ function renderStyleJSONHandler() {
         req.body.storeTransparent ?? true,
         req.body.tileScale || 1,
         req.body.tileSize || DEFAULT_TILE_SIZE,
-        req.body.addFrame ?? false
+        req.body.addFrame ?? false,
+        req.body.overlays
       );
 
       const stats = await stat(filePath);

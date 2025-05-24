@@ -39,11 +39,11 @@ import {
   processImageTileData,
   removeFilesOrFolders,
   removeEmptyFolders,
-  createFileWithLock,
   getLonLatFromXYZ,
   getDataFromURL,
   createFolders,
   calculateMD5,
+  mergeImages,
   unzipAsync,
   runCommand,
   zipFolder,
@@ -520,6 +520,7 @@ export async function renderImageTileDataWithPool(
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {boolean} addFrame Is add frame?
+ * @param {{name: string, content: string, bbox: [number, number, number, number]}[]} overlays Overlays
  * @returns {Promise<void>}
  */
 export async function renderStyleJSONToImage(
@@ -533,7 +534,8 @@ export async function renderStyleJSONToImage(
   storeTransparent,
   tileScale,
   tileSize,
-  addFrame
+  addFrame,
+  overlays
 ) {
   const startTime = Date.now();
 
@@ -546,10 +548,9 @@ export async function renderStyleJSONToImage(
       ? `${dirPath}/${filePathWithoutExt}.${format}`
       : `${dirPath}/${filePathWithoutExt}.zip`;
   const outputDirPath = `${dirPath}/output`;
+  const mergedDirPath = `${dirPath}/merged`;
   const mbtilesDirPath = `${dirPath}/mbtiles`;
-  const vrtDirPath = `${dirPath}/vrt`;
   const baselayerDirPath = `${dirPath}/baselayer`;
-  const overlaysDirPath = `${dirPath}/overlays`;
 
   const driver = format.toUpperCase();
 
@@ -571,6 +572,7 @@ export async function renderStyleJSONToImage(
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tTile size: ${tileSize}`;
     log += `\n\tAdd frame: ${addFrame}`;
+    log += `\n\tOverlays: ${overlays === undefined ? false : true}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     printLog("info", log);
@@ -604,15 +606,12 @@ export async function renderStyleJSONToImage(
     /* Create tmp folders */
     await createFolders([
       outputDirPath,
-      vrtDirPath,
+      mergedDirPath,
       mbtilesDirPath,
       baselayerDirPath,
-      overlaysDirPath,
-      `${overlaysDirPath}/no_srids`,
-      `${overlaysDirPath}/srids`,
     ]);
 
-    const overlayFilePaths = [];
+    const targetOverlays = [];
 
     /* Process style JSON */
     for (const sourceStyleName of Object.keys(styleJSON.sources)) {
@@ -648,38 +647,34 @@ export async function renderStyleJSONToImage(
           continue;
         }
 
-        const overlayFormat = sourceStyle.url.slice(
-          sourceStyle.url.indexOf("/") + 1,
-          sourceStyle.url.indexOf(";")
-        );
-        const overlayNoSRIDFilePath = `${overlaysDirPath}/no_srids/${sourceStyleName}.${overlayFormat}`;
-        const overlaySRIDFilePath = `${overlaysDirPath}/srids/${sourceStyleName}.${overlayFormat}`;
-        const overlayDriver = overlayFormat.toUpperCase();
-
-        await createFileWithLock(
-          overlayNoSRIDFilePath,
-          Buffer.from(
+        targetOverlays.push({
+          content: Buffer.from(
             sourceStyle.url.slice(sourceStyle.url.indexOf(",") + 1),
             "base64"
           ),
-          30000
-        );
+          bbox: overlayBBox,
+        });
+      }
+    }
 
-        overlayFilePaths.push(overlaySRIDFilePath);
+    /* Process SVG layers */
+    if (overlays !== undefined) {
+      for (const overlay of overlays) {
+        if (
+          overlay.bbox[2] <= bbox[0] ||
+          overlay.bbox[0] >= bbox[2] ||
+          overlay.bbox[3] <= bbox[1] ||
+          overlay.bbox[1] >= bbox[3]
+        ) {
+          printLog(
+            "info",
+            `SVG layer ${overlay.name} is outside bbox. Skipping...`
+          );
 
-        const command = `gdal_translate -if ${overlayDriver} -of ${overlayDriver} -a_srs EPSG:4326 -a_ullr ${[
-          ...sourceStyle.coordinates[0],
-          ...sourceStyle.coordinates[2],
-        ].join(" ")} ${overlayNoSRIDFilePath} ${overlaySRIDFilePath}`;
+          continue;
+        }
 
-        printLog(
-          "info",
-          `Adding SRID for ${sourceStyleName} overlay with gdal command: ${command}`
-        );
-
-        const commandOutput = await runCommand(command);
-
-        printLog("info", `Gdal command output: ${commandOutput}`);
+        targetOverlays.push(overlay);
       }
     }
 
@@ -815,30 +810,32 @@ export async function renderStyleJSONToImage(
 
     printLog("info", `Gdal command output: ${commandOutput}`);
 
-    if (overlayFilePaths.length > 0) {
-      const vrtFilePath = `${vrtDirPath}/${filePathWithoutExt}.vrt`;
+    if (targetOverlays.length > 0) {
+      /* Merge image */
+      const mergedFilePath = `${mergedDirPath}/${filePathWithoutExt}.${format}`;
+      const targetBaselayer = {
+        content: baselayerFilePath,
+        bbox: bbox,
+      };
+      const targetOutput = {
+        filePath: mergedFilePath,
+        format: format,
+      };
 
-      /* Create VRT */
-      let command = `gdalbuildvrt -overwrite -resolution highest ${vrtFilePath} ${baselayerFilePath} ${overlayFilePaths.join(
-        " "
-      )}`;
+      printLog("info", "Merging image...");
 
-      printLog("info", `Creating VRT with gdal command: ${command}`);
+      await mergeImages(targetBaselayer, targetOverlays, targetOutput);
 
-      let commandOutput = await runCommand(command);
+      /* Add SRID */
+      const command = `gdal_translate -if ${driver} -of ${driver} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${mergedFilePath} ${imageFilePath}`;
 
-      printLog("info", `Gdal command output: ${commandOutput}`);
+      printLog("info", `Adding SRID for image with gdal command: ${command}`);
 
-      /* Create image */
-      command = `gdal_translate -if VRT -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${vrtFilePath} ${imageFilePath}`;
-
-      printLog("info", `Creating image with gdal command: ${command}`);
-
-      commandOutput = await runCommand(command);
+      const commandOutput = await runCommand(command);
 
       printLog("info", `Gdal command output: ${commandOutput}`);
     } else {
-      /* Create image */
+      /* Crop image */
       const command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${imageFilePath}`;
 
       printLog("info", `Creating image with gdal command: ${command}`);
@@ -849,7 +846,7 @@ export async function renderStyleJSONToImage(
     }
 
     if (addFrame === true) {
-      const command = `tools/add_frame_to_image --i_file_path ${imageFilePath} --o_file_path ${outputFilePath}`;
+      const command = `tools/add_frame_to_image --i_file_path ${imageFilePath} --o_file_path ${outputFilePath} --dpi 300`;
 
       printLog("info", `Adding frame with command: ${command}`);
 
@@ -891,9 +888,8 @@ export async function renderStyleJSONToImage(
     /* Remove tmp */
     removeFilesOrFolders([
       mbtilesDirPath,
-      overlaysDirPath,
       baselayerDirPath,
-      vrtDirPath,
+      mergedDirPath,
       outputDirPath,
     ]);
   }

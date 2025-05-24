@@ -1349,7 +1349,143 @@ export async function runCommand(command, interval, callback) {
  * @returns {Promise<object>}
  */
 export async function getPNGImageMetadata(filePath) {
-  return await sharp(filePath).metadata();
+  return await sharp(filePath, {
+    limitInputPixels: false,
+  }).metadata();
+}
+
+/**
+ * Convert SVG to PNG
+ * @param {string} iFilePath Input file path
+ * @param {string} oFilePath Output file path
+ * @param {number} width Width of image
+ * @param {number} height Height of image
+ * @returns {Promise<void>}
+ */
+export async function convertSVGToPNG(iFilePath, oFilePath, width, height) {
+  await mkdir(path.dirname(oFilePath), {
+    recursive: true,
+  });
+
+  const image = sharp(iFilePath, {
+    limitInputPixels: false,
+  }).png({
+    compressionLevel: 9,
+  });
+
+  if (width > 0 || height > 0) {
+    image.resize(width, height);
+  }
+
+  await image.toFile(oFilePath);
+}
+
+/**
+ * Merge images
+ * @param {{ content: string, bbox: [number, number, number, number] }} baselayer Baselayer object
+ * @param {{ content: string, bbox: [number, number, number, number] }[]} overlays Array of overlay object
+ * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
+ * @returns {Promise<void>}
+ */
+export async function mergeImages(baselayer, overlays, output) {
+  await mkdir(path.dirname(output.filePath), {
+    recursive: true,
+  });
+
+  const baseImage = sharp(
+    (await isExistFile(baselayer.content))
+      ? baselayer.content
+      : Buffer.from(baselayer.content),
+    {
+      limitInputPixels: false,
+    }
+  );
+  const baseImageMetadata = await baseImage.metadata();
+  const baseImageExtent = [
+    ...lonLat4326ToXY3857(baselayer.bbox[0], baselayer.bbox[1]),
+    ...lonLat4326ToXY3857(baselayer.bbox[2], baselayer.bbox[3]),
+  ];
+  const baseWidthResolution =
+    baseImageMetadata.width / (baseImageExtent[2] - baseImageExtent[0]);
+  const baseHeightResolution =
+    baseImageMetadata.height / (baseImageExtent[3] - baseImageExtent[1]);
+
+  baseImage.composite(
+    await Promise.all(
+      overlays.map(async (overlay) => {
+        const overlayImage = sharp(
+          (await isExistFile(overlay.content))
+            ? overlay.content
+            : Buffer.from(overlay.content),
+          {
+            limitInputPixels: false,
+          }
+        );
+        const overlayExtent = [
+          ...lonLat4326ToXY3857(overlay.bbox[0], overlay.bbox[1]),
+          ...lonLat4326ToXY3857(overlay.bbox[2], overlay.bbox[3]),
+        ];
+
+        return {
+          input: await overlayImage
+            .resize(
+              Math.round(
+                (overlayExtent[2] - overlayExtent[0]) * baseWidthResolution
+              ),
+              Math.round(
+                (overlayExtent[3] - overlayExtent[1]) * baseHeightResolution
+              )
+            )
+            .toBuffer(),
+          left: Math.round(
+            (overlayExtent[0] - baseImageExtent[0]) * baseWidthResolution
+          ),
+          top: Math.round(
+            (baseImageExtent[3] - overlayExtent[3]) * baseHeightResolution
+          ),
+        };
+      })
+    )
+  );
+
+  if (output.width > 0 || output.height > 0) {
+    baseImage.resize(output.width, output.height);
+  }
+
+  switch (output.format) {
+    case "gif": {
+      baseImage.gif({});
+
+      break;
+    }
+
+    case "png": {
+      baseImage.png({
+        compressionLevel: 9,
+      });
+
+      break;
+    }
+
+    case "jpg":
+    case "jpeg": {
+      baseImage.jpeg({
+        quality: 100,
+      });
+
+      break;
+    }
+
+    case "webp": {
+      baseImage.webp({
+        quality: 100,
+      });
+
+      break;
+    }
+  }
+
+  await baseImage.toFile(output.filePath);
 }
 
 /**
@@ -1372,9 +1508,13 @@ export async function isFullTransparentPNGImage(buffer) {
       return false;
     }
 
-    const { data, info } = await sharp(buffer).raw().toBuffer({
-      resolveWithObject: true,
-    });
+    const { data, info } = await sharp(buffer, {
+      limitInputPixels: false,
+    })
+      .raw()
+      .toBuffer({
+        resolveWithObject: true,
+      });
 
     if (info.channels !== 4) {
       return false;
@@ -1407,6 +1547,7 @@ export async function processImageTileData(
   format
 ) {
   const image = sharp(data, {
+    limitInputPixels: false,
     raw: {
       premultiplied: true,
       width: originTileSize,

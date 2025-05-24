@@ -46,6 +46,9 @@
     "addFrame": {
       "type": "boolean"
     },
+    "overlays": {
+      "type": "array"
+    },
     "styleJSON": {
       "type": "object"
     }
