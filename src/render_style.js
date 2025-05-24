@@ -36,11 +36,12 @@ import {
   getTileBoundsFromCoverages,
   detectFormatAndHeaders,
   createFallbackTileData,
-  processImageTileData,
   removeFilesOrFolders,
   removeEmptyFolders,
+  processImageData,
   getLonLatFromXYZ,
   getDataFromURL,
+  calculateSizes,
   createFolders,
   calculateMD5,
   mergeImages,
@@ -444,10 +445,64 @@ export async function renderImageTileData(
     );
   });
 
-  return await processImageTileData(
+  const originTileSize = hackTileSize * tileScale;
+  let targetTileSize;
+  if (isNeedHack === true) {
+    targetTileSize = (hackTileSize / 2) * tileScale;
+  }
+
+  return await processImageData(
     data,
-    hackTileSize * tileScale,
-    isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
+    originTileSize,
+    originTileSize,
+    targetTileSize,
+    targetTileSize,
+    format
+  );
+}
+
+/**
+ * Render image data
+ * @param {object} styleJSON StyleJSON
+ * @param {number} tileScale Tile scale
+ * @param {number} z Zoom level
+ * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
+ * @returns {Promise<Buffer>}
+ */
+export async function renderImageData(styleJSON, tileScale, z, bbox, format) {
+  const [width, height] = calculateSizes(z, bbox);
+
+  const renderer = createRenderer("static", tileScale, styleJSON);
+
+  const data = await new Promise((resolve, reject) => {
+    renderer.render(
+      {
+        zoom: z,
+        center: [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2],
+        width: width,
+        height: height,
+      },
+      (error, data) => {
+        if (renderer !== undefined) {
+          renderer.release();
+        }
+
+        if (error) {
+          return reject(error);
+        }
+
+        resolve(data);
+      }
+    );
+  });
+
+  return await processImageData(
+    data,
+    width,
+    height,
+    undefined,
+    undefined,
     format
   );
 }
@@ -499,10 +554,18 @@ export async function renderImageTileDataWithPool(
     );
   });
 
-  return await processImageTileData(
+  const originTileSize = hackTileSize * tileScale;
+  let targetTileSize;
+  if (isNeedHack === true) {
+    targetTileSize = (hackTileSize / 2) * tileScale;
+  }
+
+  return await processImageData(
     data,
-    hackTileSize * tileScale,
-    isNeedHack === false ? undefined : (hackTileSize / 2) * tileScale,
+    originTileSize,
+    originTileSize,
+    targetTileSize,
+    targetTileSize,
     format
   );
 }

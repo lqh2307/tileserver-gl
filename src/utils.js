@@ -460,6 +460,22 @@ export function calculateZoomLevels(bbox, width, height) {
 }
 
 /**
+ * Calculate sizes
+ * @param {number} z Zoom level
+ * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @returns {{width: number, height: number}} Sizes
+ */
+export function calculateSizes(z, bbox) {
+  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
+  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
+
+  return {
+    width: Math.round(((1 << z) * (maxX - minX)) / 156543.03393),
+    height: Math.round(((1 << z) * (maxY - minY)) / 156543.03393),
+  };
+}
+
+/**
  * Get grids for specific coverage with optional lat/lon steps (Keeps both head and tail residuals)
  * @param {{ zoom: number, bbox: [number, number, number, number] }} coverage
  * @param {number} lonStep Step for longitude
@@ -1355,32 +1371,6 @@ export async function getPNGImageMetadata(filePath) {
 }
 
 /**
- * Convert SVG to PNG
- * @param {string} iFilePath Input file path
- * @param {string} oFilePath Output file path
- * @param {number} width Width of image
- * @param {number} height Height of image
- * @returns {Promise<void>}
- */
-export async function convertSVGToPNG(iFilePath, oFilePath, width, height) {
-  await mkdir(path.dirname(oFilePath), {
-    recursive: true,
-  });
-
-  const image = sharp(iFilePath, {
-    limitInputPixels: false,
-  }).png({
-    compressionLevel: 9,
-  });
-
-  if (width > 0 || height > 0) {
-    image.resize(width, height);
-  }
-
-  await image.toFile(oFilePath);
-}
-
-/**
  * Merge images
  * @param {{ content: string, bbox: [number, number, number, number] }} baselayer Baselayer object
  * @param {{ content: string, bbox: [number, number, number, number] }[]} overlays Array of overlay object
@@ -1533,33 +1523,40 @@ export async function isFullTransparentPNGImage(buffer) {
 }
 
 /**
- * Process image tile data
+ * Process image data
  * @param {Buffer} data Image data
- * @param {number} originTileSize Image origin tile size
- * @param {number} targetTileSize Image target tile size
+ * @param {number} originWidth Image origin width size
+ * @param {number} originHeight Image origin height size
+ * @param {number} targetWidth Image origin width size
+ * @param {number} targetHeight Image origin height size
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<Buffer>}
  */
-export async function processImageTileData(
+export async function processImageData(
   data,
-  originTileSize,
-  targetTileSize,
+  originWidth,
+  originHeight,
+  targetWidth,
+  targetHeight,
   format
 ) {
   const image = sharp(data, {
     limitInputPixels: false,
     raw: {
       premultiplied: true,
-      width: originTileSize,
-      height: originTileSize,
+      width: originWidth,
+      height: originHeight,
       channels: 4,
     },
   });
 
-  if (targetTileSize !== undefined && targetTileSize !== originTileSize) {
+  if (
+    (targetWidth !== undefined && targetWidth !== originWidth) ||
+    (targetHeight !== undefined && targetHeight !== originHeight)
+  ) {
     image.resize({
-      width: targetTileSize,
-      height: targetTileSize,
+      width: targetWidth,
+      height: targetHeight,
     });
   }
 
