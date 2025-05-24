@@ -11,7 +11,6 @@ import {
   createTileMetadataFromTemplate,
   detectContentTypeFromFormat,
   calculateMD5OfFile,
-  DEFAULT_TILE_SIZE,
   compileTemplate,
   getRequestHost,
   isLocalURL,
@@ -294,8 +293,8 @@ function getRenderedTileHandler() {
     /* Get tile scale (Default: 1) */
     const tileScale = Number(req.query.tileScale) || 1;
 
-    /* Get tile size (Default: DEFAULT_TILE_SIZE) */
-    const tileSize = Number(req.query.tileSize) || DEFAULT_TILE_SIZE;
+    /* Get tile size (Default: 256) */
+    const tileSize = Number(req.query.tileSize) || 256;
 
     const z = Number(req.params.z);
     const x = Number(req.params.x);

@@ -36,7 +36,6 @@ import {
   getTileBoundsFromCoverages,
   detectFormatAndHeaders,
   createFallbackTileData,
-  removeFilesOrFolders,
   removeEmptyFolders,
   processImageData,
   getLonLatFromXYZ,
@@ -49,6 +48,7 @@ import {
   runCommand,
   zipFolder,
   wait25ms,
+  createFileWithLock,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -471,17 +471,17 @@ export async function renderImageTileData(
  * @returns {Promise<Buffer>}
  */
 export async function renderImageData(styleJSON, tileScale, z, bbox, format) {
-  const [width, height] = calculateSizes(z, bbox);
+  const sizes = calculateSizes(z, bbox);
 
   const renderer = createRenderer("static", tileScale, styleJSON);
 
   const data = await new Promise((resolve, reject) => {
     renderer.render(
       {
-        zoom: z,
+        zoom: z - 1,
         center: [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2],
-        width: width,
-        height: height,
+        width: sizes.width,
+        height: sizes.height,
       },
       (error, data) => {
         if (renderer !== undefined) {
@@ -499,8 +499,8 @@ export async function renderImageData(styleJSON, tileScale, z, bbox, format) {
 
   return await processImageData(
     data,
-    width,
-    height,
+    sizes.width,
+    sizes.height,
     undefined,
     undefined,
     format
@@ -949,12 +949,12 @@ export async function renderStyleJSONToImage(
     }
 
     /* Remove tmp */
-    removeFilesOrFolders([
-      mbtilesDirPath,
-      baselayerDirPath,
-      mergedDirPath,
-      outputDirPath,
-    ]);
+    // removeFilesOrFolders([
+    //   mbtilesDirPath,
+    //   baselayerDirPath,
+    //   mergedDirPath,
+    //   outputDirPath,
+    // ]);
   }
 }
 

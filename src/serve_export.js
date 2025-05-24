@@ -1,6 +1,6 @@
 "use strict";
 
-import { DEFAULT_TILE_SIZE, getJSONSchema, validateJSON } from "./utils.js";
+import { getJSONSchema, validateJSON } from "./utils.js";
 import { StatusCodes } from "http-status-codes";
 import { exportAll } from "./export_all.js";
 import { printLog } from "./logger.js";
@@ -300,7 +300,7 @@ function renderStyleHandler() {
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
                 req.body.tileScale || 1,
-                req.body.tileSize || DEFAULT_TILE_SIZE,
+                req.body.tileSize || 256,
                 refreshBefore
               )
                 .catch((error) => {
@@ -323,7 +323,7 @@ function renderStyleHandler() {
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
                 req.body.tileScale || 1,
-                req.body.tileSize || DEFAULT_TILE_SIZE,
+                req.body.tileSize || 256,
                 refreshBefore
               )
                 .catch((error) => {
@@ -346,7 +346,7 @@ function renderStyleHandler() {
                 req.body.storeTransparent ?? true,
                 req.body.createOverview ?? false,
                 req.body.tileScale || 1,
-                req.body.tileSize || DEFAULT_TILE_SIZE,
+                req.body.tileSize || 256,
                 refreshBefore
               )
                 .catch((error) => {

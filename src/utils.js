@@ -28,8 +28,6 @@ import {
 
 // sharp.cache(false);
 
-export const DEFAULT_TILE_SIZE = 256;
-
 /**
  * Compile template
  * @param {"index"|"viewer"|"vector_data"|"raster_data"|"geojson_group"|"geojson"|"wmts"} template
@@ -330,15 +328,16 @@ export function xy3857ToLonLat4326(x, y) {
 }
 
 /**
- * Get xyz tile indices from longitude, latitude, and zoom level (tile size = DEFAULT_TILE_SIZE)
+ * Get xyz tile indices from longitude, latitude, and zoom level
  * @param {number} lon Longitude in EPSG:4326
  * @param {number} lat Latitude in EPSG:4326
  * @param {number} z Zoom level
  * @param {"xyz"|"tms"} scheme Tile scheme
+ * @param {256|512} tileSize Tile size
  * @returns {[number, number, number]} Tile indices [x, y, z]
  */
-export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz") {
-  const size = DEFAULT_TILE_SIZE * (1 << z);
+export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz", tileSize = 256) {
+  const size = tileSize * (1 << z);
   const bc = size / 360;
   const cc = size / (2 * Math.PI);
   const zc = size / 2;
@@ -358,13 +357,13 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz") {
     lat = -85.051129;
   }
 
-  let x = Math.floor((zc + lon * bc) / DEFAULT_TILE_SIZE);
+  let x = Math.floor((zc + lon * bc) / tileSize);
   let y = Math.floor(
     (scheme === "tms"
       ? size -
         (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
       : zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) /
-      DEFAULT_TILE_SIZE
+      tileSize
   );
 
   // Limit x
@@ -385,12 +384,13 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz") {
 }
 
 /**
- * Get longitude, latitude from tile indices x, y, and zoom level (tile size = DEFAULT_TILE_SIZE)
+ * Get longitude, latitude from tile indices x, y, and zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {number} z Zoom level
  * @param {"center"|"topLeft"|"bottomRight"} position Tile position: "center", "topLeft", or "bottomRight"
  * @param {"xyz"|"tms"} scheme Tile scheme
+ * @param {256|512} tileSize Tile size
  * @returns {[number, number]} [longitude, latitude] in EPSG:4326
  */
 export function getLonLatFromXYZ(
@@ -398,22 +398,23 @@ export function getLonLatFromXYZ(
   y,
   z,
   position = "topLeft",
-  scheme = "xyz"
+  scheme = "xyz",
+  tileSize = 256
 ) {
-  const size = DEFAULT_TILE_SIZE * (1 << z);
+  const size = tileSize * (1 << z);
   const bc = size / 360;
   const cc = size / (2 * Math.PI);
   const zc = size / 2;
 
-  let px = x * DEFAULT_TILE_SIZE;
-  let py = y * DEFAULT_TILE_SIZE;
+  let px = x * tileSize;
+  let py = y * tileSize;
 
   if (position === "center") {
-    px = (x + 0.5) * DEFAULT_TILE_SIZE;
-    py = (y + 0.5) * DEFAULT_TILE_SIZE;
+    px = (x + 0.5) * tileSize;
+    py = (y + 0.5) * tileSize;
   } else if (position === "bottomRight") {
-    px = (x + 1) * DEFAULT_TILE_SIZE;
-    py = (y + 1) * DEFAULT_TILE_SIZE;
+    px = (x + 1) * tileSize;
+    py = (y + 1) * tileSize;
   }
 
   return [
@@ -429,15 +430,18 @@ export function getLonLatFromXYZ(
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} width Width of image
  * @param {number} height Height of image
+ * @param {256|512} tileSize Tile size
  * @returns {{minZoom: number, maxZoom: number}} Zoom levels
  */
-export function calculateZoomLevels(bbox, width, height) {
+export function calculateZoomLevels(bbox, width, height, tileSize = 256) {
   const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
   const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
 
+  const resolution = (6378137.0 * (2 * Math.PI)) / tileSize;
+
   let maxZoom = Math.round(
     Math.log2(
-      156543.03393 / Math.min((maxX - minX) / width, (maxY - minY) / height)
+      resolution / Math.min((maxX - minX) / width, (maxY - minY) / height)
     )
   );
   if (maxZoom > 25) {
@@ -463,15 +467,18 @@ export function calculateZoomLevels(bbox, width, height) {
  * Calculate sizes
  * @param {number} z Zoom level
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @param {256|512} tileSize Tile size
  * @returns {{width: number, height: number}} Sizes
  */
-export function calculateSizes(z, bbox) {
+export function calculateSizes(z, bbox, tileSize = 256) {
   const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
   const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
 
+  const resolution = (6378137.0 * (2 * Math.PI)) / tileSize;
+
   return {
-    width: Math.round(((1 << z) * (maxX - minX)) / 156543.03393),
-    height: Math.round(((1 << z) * (maxY - minY)) / 156543.03393),
+    width: Math.round(((1 << z) * (maxX - minX)) / resolution),
+    height: Math.round(((1 << z) * (maxY - minY)) / resolution),
   };
 }
 

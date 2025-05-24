@@ -8,7 +8,6 @@ import { stat } from "fs/promises";
 import os from "os";
 import {
   detectContentTypeFromFormat,
-  DEFAULT_TILE_SIZE,
   getJSONSchema,
   validateJSON,
 } from "./utils.js";
@@ -45,7 +44,7 @@ function renderStyleJSONHandler() {
         req.body.concurrency || os.cpus().length,
         req.body.storeTransparent ?? true,
         req.body.tileScale || 1,
-        req.body.tileSize || DEFAULT_TILE_SIZE,
+        req.body.tileSize || 256,
         req.body.addFrame ?? false,
         req.body.overlays
       );
