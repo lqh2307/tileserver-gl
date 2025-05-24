@@ -450,7 +450,7 @@ export function calculateZoomLevels(bbox, width, height, tileSize = 256) {
 
   let minZoom = maxZoom;
 
-  while (minZoom > 0 && (width > 243 || height > 243)) {
+  while (minZoom > 0 && (width > Math.floor(tileSize * 0.95) || height > Math.floor(tileSize * 0.95))) {
     width /= 2;
     height /= 2;
 
