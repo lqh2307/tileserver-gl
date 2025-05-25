@@ -48,7 +48,6 @@ import {
   runCommand,
   zipFolder,
   wait25ms,
-  createFileWithLock,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -449,14 +448,14 @@ export async function renderImageTileData(
  * @returns {Promise<Buffer>}
  */
 export async function renderImageData(styleJSON, tileScale, z, bbox, format) {
-  const sizes = calculateSizes(z, bbox);
+  const sizes = calculateSizes(z, bbox, 512);
 
   const renderer = createRenderer("static", tileScale, styleJSON);
 
   const data = await new Promise((resolve, reject) => {
     renderer.render(
       {
-        zoom: z - 1,
+        zoom: z,
         center: [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2],
         width: sizes.width,
         height: sizes.height,

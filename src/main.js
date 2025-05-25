@@ -69,7 +69,7 @@ async function startClusterServer() {
     process.env.LISTEN_PORT =
       process.env.LISTEN_PORT || config.options?.listenPort || 8080; // Server port
 
-    // For gdal
+    // Check GDAL
     try {
       const gdalVersion = await runCommand("gdalinfo --version");
 
@@ -84,22 +84,24 @@ async function startClusterServer() {
       printLog("info", "Not found gdal. Disable export render!");
     }
 
-    // MLGL
-    import("@maplibre/maplibre-gl-native")
-      .then(() => {
-        printLog(
-          "info",
-          `Success to import "@maplibre/maplibre-gl-native". Enable backend render!`
-        );
+    // Check MLGL
+    try {
+      await import("@maplibre/maplibre-gl-native");
 
-        process.env.BACKEND_RENDER === "true";
-      })
-      .catch((error) => {
-        printLog(
-          "error",
-          `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render!`
-        );
-      });
+      printLog(
+        "info",
+        `Success to import "@maplibre/maplibre-gl-native". Enable backend render!`
+      );
+
+      process.env.BACKEND_RENDER = "true";
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render!`
+      );
+
+      process.env.BACKEND_RENDER = "false";
+    }
 
     /* Remove old cache locks */
     printLog("info", "Removing old cache locks before start server...");

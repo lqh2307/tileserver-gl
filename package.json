@@ -4,9 +4,11 @@
   "version": "0.0.28",
   "license": "MIT",
   "author": "Huy Le <lqh23072000@gmail.com>",
-  "keywords": ["tile-server"],
+  "keywords": [
+    "tile-server"
+  ],
   "repository": {
-    "url": "git+https://github.com/lqh2307/tileserver-gl.git",
+    "url": "git+https://gi0thub.com/lqh2307/tileserver-gl.git",
     "type": "git"
   },
   "type": "module",
@@ -32,7 +34,7 @@
     "pino-pretty": "13.0.0",
     "async-mutex": "0.5.0",
     "handlebars": "4.7.8",
-    "node-cron": "4.0.6",
+    "node-cron": "4.0.7",
     "chokidar": "4.0.3",
     "archiver": "7.0.1",
     "express": "5.1.0",

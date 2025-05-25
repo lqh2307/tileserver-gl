@@ -450,7 +450,9 @@ export function calculateZoomLevels(bbox, width, height, tileSize = 256) {
 
   let minZoom = maxZoom;
 
-  while (minZoom > 0 && (width > 243 || height > 243)) {
+  const targetTileSize = Math.floor(tileSize * 0.95);
+
+  while (minZoom > 0 && (width > targetTileSize || height > targetTileSize)) {
     width /= 2;
     height /= 2;
 
@@ -471,8 +473,8 @@ export function calculateZoomLevels(bbox, width, height, tileSize = 256) {
  * @returns {{width: number, height: number}} Sizes
  */
 export function calculateSizes(z, bbox, tileSize = 256) {
-  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
-  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
+  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1], tileSize);
+  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3], tileSize);
 
   const resolution = (6378137.0 * (2 * Math.PI)) / tileSize;
 
@@ -543,9 +545,10 @@ export function getGridsFromCoverage(coverage, lonStep = 1, latStep = 1) {
  * Get tile bounds and total count for specific coverages
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {"xyz"|"tms"} scheme Tile scheme
+ * @param {256|512} tileSize Tile size
  * @returns {{ realBBox: [number, number, number, number], total: number, tileBounds: { z: number, x: [number, number], y: [number, number] }[] }}
  */
-export function getTileBoundsFromCoverages(coverages, scheme) {
+export function getTileBoundsFromCoverages(coverages, scheme, tileSize = 256) {
   let totalTile = 0;
   let realBBox;
 
@@ -554,13 +557,15 @@ export function getTileBoundsFromCoverages(coverages, scheme) {
       coverage.bbox[0],
       coverage.bbox[3],
       coverage.zoom,
-      scheme
+      scheme,
+      tileSize
     );
     let [xMax, yMax] = getXYZFromLonLatZ(
       coverage.bbox[2],
       coverage.bbox[1],
       coverage.zoom,
-      scheme
+      scheme,
+      tileSize
     );
 
     if (yMin > yMax) {
@@ -573,7 +578,8 @@ export function getTileBoundsFromCoverages(coverages, scheme) {
       xMax,
       yMax,
       coverage.zoom,
-      scheme
+      scheme,
+      tileSize
     );
 
     if (idx === 0) {
@@ -679,17 +685,33 @@ export function createCoveragesFromBBoxAndZooms(bbox, minZoom, maxZoom) {
  * @param {number} yMax Maximum y tile index
  * @param {number} z Zoom level
  * @param {"xyz"|"tms"} scheme Tile scheme
+ * @param {256|512} tileSize Tile size
  * @returns {[number, number, number, number]} Bounding box [lonMin, latMin, lonMax, latMax] in EPSG:4326
  */
-export function getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme = "xyz") {
-  const [lonMin, latMax] = getLonLatFromXYZ(xMin, yMin, z, "topLeft", scheme);
+export function getBBoxFromTiles(
+  xMin,
+  yMin,
+  xMax,
+  yMax,
+  z,
+  scheme = "xyz",
+  tileSize = 256
+) {
+  const [lonMin, latMax] = getLonLatFromXYZ(
+    xMin,
+    yMin,
+    z,
+    "topLeft",
+    scheme,
+    tileSize
+  );
   const [lonMax, latMin] = getLonLatFromXYZ(
     xMax,
     yMax,
     z,
     "bottomRight",
-    z,
-    scheme
+    scheme,
+    tileSize
   );
 
   return [lonMin, latMin, lonMax, latMax];
