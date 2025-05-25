@@ -1400,6 +1400,135 @@ export async function getPNGImageMetadata(filePath) {
 }
 
 /**
+ * Create SVG Frame
+ * @param {string} filePath File path to image
+ * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @param {object} config Configuration object
+ * @returns {Promise<string>}
+ */
+export async function createSVGFrame(filePath, bbox, config) {
+  const {
+    frame_outline_color,
+    frame_outline_width,
+    frame_space,
+
+    enable_tick_label_degree,
+
+    tick_step,
+    tick_width,
+    tick_size,
+    tick_color,
+    tick_label_size,
+    tick_label_rotation,
+    tick_label_color,
+  } = config;
+
+  const imageMetadata = await sharp(filePath, {
+    limitInputPixels: false,
+  }).metadata();
+
+  const svgElements = [];
+
+  const degPerPixelX = (bbox.maxLon - bbox.minLon) / imageMetadata.width;
+  const degPerPixelY = (bbox.maxLat - bbox.minLat) / imageMetadata.height;
+
+  const tickStepPx = {
+    x: {
+      major: tick_step.x.major / degPerPixelX,
+      minor: tick_step.x.minor / degPerPixelX,
+    },
+    y: {
+      major: tick_step.y.major / degPerPixelY,
+      minor: tick_step.y.minor / degPerPixelY,
+    },
+  };
+
+  // === Spine ===
+  svgElements.push(
+    `<rect x="0" y="0" width="${imageMetadata.width}" height="${imageMetadata.height}" fill="none" stroke="${frame_outline_color}" stroke-width="${frame_outline_width}" />`
+  );
+
+  // === X Axis ===
+  for (let x = 0; x <= imageMetadata.width; x += tickStepPx.x.minor) {
+    const isMajor = x % tickStepPx.x.major < 1;
+    const type = isMajor ? "major" : "minor";
+
+    const tickSize = tick_size.x[type];
+    const tickWidth = tick_width.x[type];
+    const tickColor = tick_color[type];
+    const labelSize = tick_label_size.x[type];
+    const labelColor = tick_label_color[type];
+    const rotation = tick_label_rotation.x[type];
+
+    svgElements.push(
+      `<line x1="${x}" y1="0" x2="${x}" y2="${tickSize}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+    );
+    svgElements.push(
+      `<line x1="${x}" y1="${imageMetadata.height}" x2="${x}" y2="${
+        imageMetadata.height - tickSize
+      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+    );
+
+    if (labelSize > 0 && isMajor) {
+      const lon = bbox.minLon + x * degPerPixelX;
+      const label = enable_tick_label_degree
+        ? `${lon.toFixed(4)}°`
+        : x.toString();
+      svgElements.push(
+        `<text x="${x}" y="${
+          imageMetadata.height - tickSize - 2
+        }" font-size="${labelSize}" fill="${labelColor}" text-anchor="middle" transform="rotate(${rotation},${x},${
+          imageMetadata.height - tickSize - 2
+        })">${label}</text>`
+      );
+    }
+  }
+
+  // === Y Axis ===
+  for (let y = 0; y <= imageMetadata.height; y += tickStepPx.y.minor) {
+    const isMajor = y % tickStepPx.y.major < 1;
+    const type = isMajor ? "major" : "minor";
+
+    const tickSize = tick_size.y[type];
+    const tickWidth = tick_width.y[type];
+    const tickColor = tick_color[type];
+    const labelSize = tick_label_size.y[type];
+    const labelColor = tick_label_color[type];
+    const rotation = tick_label_rotation.y[type];
+
+    svgElements.push(
+      `<line x1="0" y1="${y}" x2="${tickSize}" y2="${y}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+    );
+    svgElements.push(
+      `<line x1="${imageMetadata.width}" y1="${y}" x2="${
+        imageMetadata.width - tickSize
+      }" y2="${y}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+    );
+
+    if (labelSize > 0 && isMajor) {
+      const lat = bbox.maxLat - y * degPerPixelY;
+      const label = enable_tick_label_degree
+        ? `${lat.toFixed(4)}°`
+        : y.toString();
+      svgElements.push(
+        `<text x="${tickSize + 2}" y="${
+          y + labelSize / 2
+        }" font-size="${labelSize}" fill="${labelColor}" transform="rotate(${rotation},${
+          tickSize + 2
+        },${y + labelSize / 2})">${label}</text>`
+      );
+    }
+  }
+
+  return `
+<svg width="${imageMetadata.width}" height="${
+    imageMetadata.height
+  }" xmlns="http://www.w3.org/2000/svg">
+  ${svgElements.join("\n")}
+</svg>`;
+}
+
+/**
  * Merge images
  * @param {{ content: string, bbox: [number, number, number, number] }} baselayer Baselayer object
  * @param {{ content: string, bbox: [number, number, number, number] }[]} overlays Array of overlay object
