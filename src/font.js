@@ -153,11 +153,20 @@ export async function getFont(dirPath, fileName) {
 
 /**
  * Get fallback font pbf
+ * @param {string} fontName Font name
  * @param {string} fileName Font file name
  * @returns {Promise<Buffer>}
  */
-export async function getFallbackFont(fileName) {
-  return await readFile(`public/resources/fonts/Open Sans Regular/${fileName}`);
+export async function getFallbackFont(fontName, fileName) {
+  let fallbackFont = "Open Sans Regular";
+
+  if (fontName.indexOf("Italic") >= 0) {
+    fallbackFont = "Open Sans Italic";
+  } else if (fontName.indexOf("Bold") >= 0) {
+    fallbackFont = "Open Sans Bold";
+  }
+
+  return await readFile(`public/resources/fonts/${fallbackFont}/${fileName}`);
 }
 
 /**

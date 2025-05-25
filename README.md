@@ -233,18 +233,26 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "winter-v2": {
       "style": "winter-v2/style.json"
     },
-    "demotiles": {
+    "demotiles_cache": {
       "style": "demotiles_cache",
       "cache": {
         "forward": true,
         "store": true
       }
+    },
+    "demotiles": {
+      "style": "demotiles/style.json"
     }
   },
   "geojsons": {
-    "test": {
-      "test": {
+    "test_group": {
+      "test_layer": {
         "geojson": "test/geojson.geojson"
+      }
+    },
+    "crimea": {
+      "crimea": {
+        "geojson": "crimea/crimea.geojson"
       }
     },
     "U37AG001": {
@@ -271,13 +279,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     },
     "satellite": {
       "mbtiles": "satellite_cache",
-      "cache": {
-        "forward": true,
-        "store": true
-      }
-    },
-    "satellite_md5": {
-      "mbtiles": "satellite_md5_cache",
       "cache": {
         "forward": true,
         "store": true
@@ -314,13 +315,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     },
     "osm_pg": {
       "pg": "osm_pg_cache",
-      "cache": {
-        "forward": true,
-        "store": true
-      }
-    },
-    "osm_pg_2": {
-      "pg": "osm_pg_2_cache",
       "cache": {
         "forward": true,
         "store": true
@@ -384,11 +378,47 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     }
   },
   "fonts": {
-    "Open Sans Regular": {
-      "font": "Open Sans Regular"
+    "Open Sans Italic": {
+      "font": "Open Sans Italic",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
     },
-    "Times New Roman": {
-      "font": "Times New Roman"
+    "Open Sans Bold": {
+      "font": "Open Sans Bold",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Open Sans Regular": {
+      "font": "Open Sans Regular",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Noto Sans Regular": {
+      "font": "Noto Sans Regular",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Noto Sans Bold": {
+      "font": "Noto Sans Bold",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Noto Sans Italic": {
+      "font": "Noto Sans Italic",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
     },
     "Roboto Medium": {
       "font": "Roboto Medium",
@@ -397,8 +427,64 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "store": true
       }
     },
-    "Noto Sans Regular": {
-      "font": "Noto Sans Regular",
+    "Roboto Regular": {
+      "font": "Roboto Regular",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Roboto Bold": {
+      "font": "Roboto Bold",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Roboto Italic": {
+      "font": "Roboto Italic",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Roboto Condensed Italic": {
+      "font": "Roboto Condensed Italic",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Roboto Condensed Regular": {
+      "font": "Roboto Condensed Regular",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Roboto Condensed Bold": {
+      "font": "Roboto Condensed Bold",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Frutiger Neue Condensed Italic": {
+      "font": "Frutiger Neue Condensed Italic",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Frutiger Neue Condensed Regular": {
+      "font": "Frutiger Neue Condensed Regular",
+      "cache": {
+        "forward": true,
+        "store": true
+      }
+    },
+    "Frutiger Neue Condensed Bold": {
+      "font": "Frutiger Neue Condensed Bold",
       "cache": {
         "forward": true,
         "store": true
@@ -430,26 +516,50 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "name": "osm",
         "description": "osm",
         "format": "png",
-        "bounds": [96, 4, 120, 28],
-        "center": [108, 16, 10],
+        "bounds": [
+          96,
+          4,
+          120,
+          28
+        ],
+        "center": [
+          108,
+          16,
+          10
+        ],
         "minzoom": 0,
         "maxzoom": 18
       },
       "refreshBefore": {
-        "time": "2024-10-10T00:00:00"
+        "md5": true
       },
       "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       "coverages": [
         {
-          "bbox": [96, 4, 120, 28],
+          "bbox": [
+            96,
+            4,
+            120,
+            28
+          ],
           "zoom": 0
         },
         {
-          "bbox": [96, 4, 120, 28],
+          "bbox": [
+            96,
+            4,
+            120,
+            28
+          ],
           "zoom": 5
         },
         {
-          "bbox": [96, 4, 120, 28],
+          "bbox": [
+            96,
+            4,
+            120,
+            28
+          ],
           "zoom": 9
         }
       ],
@@ -464,8 +574,17 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "name": "planet",
         "description": "planet",
         "format": "pbf",
-        "bounds": [96, 4, 120, 28],
-        "center": [108, 16, 10],
+        "bounds": [
+          96,
+          4,
+          120,
+          28
+        ],
+        "center": [
+          108,
+          16,
+          10
+        ],
         "vector_layers": [
           {
             "id": "aerodrome_label"
@@ -525,19 +644,39 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "url": "https://dwuxtsziek7cf.cloudfront.net/planet/{z}/{x}/{y}.pbf",
       "coverages": [
         {
-          "bbox": [108, 20, 114, 28],
+          "bbox": [
+            108,
+            20,
+            114,
+            28
+          ],
           "zoom": 0
         },
         {
-          "bbox": [96, 8, 102, 16],
+          "bbox": [
+            96,
+            8,
+            102,
+            16
+          ],
           "zoom": 5
         },
         {
-          "bbox": [96, 8, 102, 16],
+          "bbox": [
+            96,
+            8,
+            102,
+            16
+          ],
           "zoom": 10
         },
         {
-          "bbox": [96, 4, 120, 28],
+          "bbox": [
+            96,
+            4,
+            120,
+            28
+          ],
           "zoom": 10
         }
       ],
@@ -553,8 +692,17 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "name": "satellite",
         "description": "satellite",
         "format": "jpeg",
-        "bounds": [-180, -90, 180, 90],
-        "center": [108, 16, 10],
+        "bounds": [
+          -180,
+          -90,
+          180,
+          90
+        ],
+        "center": [
+          108,
+          16,
+          10
+        ],
         "minzoom": 0,
         "maxzoom": 18
       },
@@ -564,35 +712,75 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       "coverages": [
         {
-          "bbox": [104.4, 8.55, 106.8, 10.42],
+          "bbox": [
+            104.4,
+            8.55,
+            106.8,
+            10.42
+          ],
           "zoom": 17
         },
         {
-          "bbox": [102.5, 20.5, 108, 21.5],
+          "bbox": [
+            102.5,
+            20.5,
+            108,
+            21.5
+          ],
           "zoom": 17
         },
         {
-          "bbox": [103.8, 20.15, 106.65, 20.5],
+          "bbox": [
+            103.8,
+            20.15,
+            106.65,
+            20.5
+          ],
           "zoom": 17
         },
         {
-          "bbox": [103.8, 19, 106.39, 20.15],
+          "bbox": [
+            103.8,
+            19,
+            106.39,
+            20.15
+          ],
           "zoom": 17
         },
         {
-          "bbox": [104.4, 8.55, 106.8, 10.42],
+          "bbox": [
+            104.4,
+            8.55,
+            106.8,
+            10.42
+          ],
           "zoom": 18
         },
         {
-          "bbox": [102.5, 20.5, 108, 21.5],
+          "bbox": [
+            102.5,
+            20.5,
+            108,
+            21.5
+          ],
           "zoom": 18
         },
         {
-          "bbox": [103.8, 20.15, 106.65, 20.5],
+          "bbox": [
+            103.8,
+            20.15,
+            106.65,
+            20.5
+          ],
           "zoom": 18
         },
         {
-          "bbox": [103.8, 19, 106.39, 20.15],
+          "bbox": [
+            103.8,
+            19,
+            106.39,
+            20.15
+          ],
           "zoom": 18
         }
       ],
@@ -602,35 +790,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "storeType": "mbtiles",
       "storeTransparent": true,
       "skip": true
-    },
-    "satellite_md5_cache": {
-      "metadata": {
-        "name": "satellite",
-        "description": "satellite",
-        "format": "jpeg",
-        "bounds": [-180, -90, 180, 90],
-        "center": [108, 16, 10],
-        "minzoom": 0,
-        "maxzoom": 18
-      },
-      "refreshBefore": {
-        "md5": true
-      },
-      "url": "http://localhost:8080/datas/satellite/{z}/{x}/{y}.jpeg",
-      "coverages": [
-        {
-          "bbox": [
-            106.3654661178589, 20.785024793097858, 106.40363931655885,
-            20.80269765224451
-          ],
-          "zoom": 16
-        }
-      ],
-      "timeout": 180000,
-      "concurrency": 30,
-      "maxTry": 5,
-      "storeType": "mbtiles",
-      "storeTransparent": true
     }
   },
   "sprites": {},
@@ -644,8 +803,134 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "concurrency": 50,
       "maxTry": 5
     },
+    "Roboto Italic": {
+      "url": "https://api.maptiler.com/fonts/Roboto Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Roboto Bold": {
+      "url": "https://api.maptiler.com/fonts/Roboto Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Roboto Regular": {
+      "url": "https://api.maptiler.com/fonts/Roboto Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
     "Noto Sans Regular": {
       "url": "https://api.maptiler.com/fonts/Noto Sans Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Noto Sans Italic": {
+      "url": "https://api.maptiler.com/fonts/Noto Sans Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Noto Sans Bold": {
+      "url": "https://api.maptiler.com/fonts/Noto Sans Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Open Sans Bold": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Open Sans Italic": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Open Sans Regular": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Roboto Condensed Italic": {
+      "url": "https://api.maptiler.com/fonts/Roboto Condensed Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Roboto Condensed Regular": {
+      "url": "https://api.maptiler.com/fonts/Roboto Condensed Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Roboto Condensed Bold": {
+      "url": "https://api.maptiler.com/fonts/Roboto Condensed Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Frutiger Neue Condensed Italic": {
+      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Frutiger Neue Condensed Regular": {
+      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 50,
+      "maxTry": 5
+    },
+    "Frutiger Neue Condensed Bold": {
+      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },

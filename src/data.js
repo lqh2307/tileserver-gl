@@ -405,10 +405,10 @@ export async function getAndCacheDataFonts(ids, fileName) {
         } catch (error) {
           printLog(
             "warn",
-            `Failed to get font "${id}": ${error}. Using fallback font "Open Sans Regular"...`
+            `Failed to get font "${id}": ${error}. Using fallback font "Open Sans"...`
           );
 
-          return await getFallbackFont(fileName);
+          return await getFallbackFont(id, fileName);
         }
       }
     })
