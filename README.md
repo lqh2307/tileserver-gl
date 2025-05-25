@@ -8638,7 +8638,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       }
     ],
     "glyphs": "http://localhost:8080/fonts/{fontstack}/{range}.pbf",
-    "sprite": "http://localhost:8080/sprites/osm/sprite"
+    "sprite": "http://localhost:8080/sprites/openstreetmap/sprite"
   }
 }
 ```
