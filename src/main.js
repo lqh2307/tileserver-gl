@@ -84,6 +84,23 @@ async function startClusterServer() {
       printLog("info", "Not found gdal. Disable export render!");
     }
 
+    // MLGL
+    import("@maplibre/maplibre-gl-native")
+      .then(() => {
+        printLog(
+          "info",
+          `Success to import "@maplibre/maplibre-gl-native". Enable backend render!`
+        );
+
+        process.env.BACKEND_RENDER === "true";
+      })
+      .catch((error) => {
+        printLog(
+          "error",
+          `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render!`
+        );
+      });
+
     /* Remove old cache locks */
     printLog("info", "Removing old cache locks before start server...");
 

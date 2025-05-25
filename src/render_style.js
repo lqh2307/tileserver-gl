@@ -2,11 +2,11 @@
 
 import { getPMTilesTile } from "./tile_pmtiles.js";
 import { getRenderedStyleJSON } from "./style.js";
+import mlgl from "@maplibre/maplibre-gl-native";
 import { createPool } from "generic-pool";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { Mutex } from "async-mutex";
-import cluster from "cluster";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   updatePostgreSQLMetadata,
@@ -57,28 +57,6 @@ import {
   closeXYZMD5DB,
   openXYZMD5DB,
 } from "./tile_xyz.js";
-
-let mlgl;
-
-if (cluster.isPrimary !== true) {
-  import("@maplibre/maplibre-gl-native")
-    .then((module) => {
-      mlgl = module.default;
-
-      printLog(
-        "info",
-        `Success to import "@maplibre/maplibre-gl-native". Enable backend render!`
-      );
-
-      config.enableBackendRender = true;
-    })
-    .catch((error) => {
-      printLog(
-        "error",
-        `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render!`
-      );
-    });
-}
 
 /**
  * Create render

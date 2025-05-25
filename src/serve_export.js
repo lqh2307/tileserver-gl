@@ -513,7 +513,7 @@ export const serve_export = {
     app.post("/exports/data/:id", exportDataHandler());
 
     if (
-      config.enableBackendRender === true &&
+      process.env.BACKEND_RENDER === "true" &&
       process.env.ENABLE_EXPORT !== "false"
     ) {
       /**

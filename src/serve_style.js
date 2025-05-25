@@ -532,7 +532,7 @@ export const serve_style = {
     app.get("/styles/styles.json", getStylesListHandler());
 
     /* Serve backend render */
-    if (config.enableBackendRender === true) {
+    if (process.env.BACKEND_RENDER === "true") {
       /**
        * @swagger
        * tags:
@@ -974,7 +974,7 @@ export const serve_style = {
 
           /* Serve rendered */
           if (
-            config.enableBackendRender === true &&
+            process.env.BACKEND_RENDER === "true" &&
             isCanServeRendered === true
           ) {
             try {
