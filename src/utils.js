@@ -1451,20 +1451,20 @@ export function formatDegree(deg, isLat, format) {
 }
 
 /**
- * Add SVG frame to image
+ * Add frame to image
  * @param {{ filePath: string, bbox: [number, number, number, number] }} input Input object
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {object} options Frame options object
  * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
  * @returns {Promise<string>}
  */
-export async function addSVGFrameToImage(input, options, output) {
+export async function addFrameToImage(input, options, output) {
   const {
     frameInnerColor = "black",
-    frameInnerWidth = 5,
+    frameInnerWidth = 6,
 
     frameOuterColor = "black",
-    frameOuterWidth = 5,
+    frameOuterWidth = 6,
 
     frameSpace = 120,
 
@@ -1473,8 +1473,8 @@ export async function addSVGFrameToImage(input, options, output) {
     tickMajorTickStep = 0.5,
     tickMinorTickStep = 0.05,
 
-    tickMajorTickWidth = 5,
-    tickMinorTickWidth = 3,
+    tickMajorTickWidth = 6,
+    tickMinorTickWidth = 4,
 
     tickMajorTickSize = 18,
     tickMinorTickSize = 12,
@@ -1491,8 +1491,8 @@ export async function addSVGFrameToImage(input, options, output) {
     tickMajorLabelFont = "sans-serif",
     tickMinorLabelFont = "sans-serif",
 
-    xTickLabelOffset = 10,
-    yTickLabelOffset = 10,
+    xTickLabelOffset = 5,
+    yTickLabelOffset = 5,
 
     xTickMajorLabelRotation = 0,
     xTickMinorLabelRotation = 0,
@@ -1511,15 +1511,8 @@ export async function addSVGFrameToImage(input, options, output) {
   const degPerPixelX = (bbox[2] - bbox[0]) / width;
   const degPerPixelY = (bbox[3] - bbox[1]) / height;
 
-  const xTickMajorTickStepPX = tickMajorTickStep / degPerPixelX;
-  const xTickMinorTickStepPX = tickMinorTickStep / degPerPixelX;
-  const yTickMajorTickStepPX = tickMajorTickStep / degPerPixelY;
-  const yTickMinorTickStepPX = tickMinorTickStep / degPerPixelY;
-
+  const esp = 1e-9;
   const svgElements = [];
-
-  const totalWidth = width + frameSpace * 2;
-  const totalHeight = height + frameSpace * 2;
 
   // Inner frame
   svgElements.push(
@@ -1528,13 +1521,17 @@ export async function addSVGFrameToImage(input, options, output) {
 
   // Outer frame
   svgElements.push(
-    `<rect x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" />`
+    `<rect x="0" y="0" width="${width + frameSpace * 2}" height="${
+      height + frameSpace * 2
+    }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" />`
   );
 
   // X-axis ticks & labels
-  for (let x = 0; x <= width + 1e-9; x += xTickMinorTickStepPX) {
-    const isMajor = x % xTickMajorTickStepPX < 1;
-
+  const xStart =
+    Math.ceil((bbox[0] + esp) / tickMinorTickStep) * tickMinorTickStep;
+  for (let lon = xStart; lon <= bbox[2] + esp; lon += tickMinorTickStep) {
+    const x = (lon - bbox[0]) / degPerPixelX;
+    const isMajor = Math.abs(lon % tickMajorTickStep) < esp;
     const tickSize = isMajor ? tickMajorTickSize : tickMinorTickSize;
     const tickWidth = isMajor ? tickMajorTickWidth : tickMinorTickWidth;
     const tickColor = isMajor ? tickMajorColor : tickMinorColor;
@@ -1547,12 +1544,20 @@ export async function addSVGFrameToImage(input, options, output) {
 
     // Top tick
     svgElements.push(
-      `<line x1="${x + frameSpace}" y1="${frameSpace}" x2="${x + frameSpace}" y2="${frameSpace - tickSize}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${x + frameSpace}" y1="${frameSpace}" x2="${
+        x + frameSpace
+      }" y2="${
+        frameSpace - tickSize
+      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
 
     // Bottom tick
     svgElements.push(
-      `<line x1="${x + frameSpace}" y1="${height + frameSpace}" x2="${x + frameSpace}" y2="${height + frameSpace + tickSize}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${x + frameSpace}" y1="${height + frameSpace}" x2="${
+        x + frameSpace
+      }" y2="${
+        height + frameSpace + tickSize
+      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
 
     if (labelSize > 0) {
@@ -1564,20 +1569,32 @@ export async function addSVGFrameToImage(input, options, output) {
 
       // Top label
       svgElements.push(
-        `<text x="${x + frameSpace}" y="${frameSpace - tickSize - xTickLabelOffset}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" transform="rotate(${rotation},${x + frameSpace},${frameSpace - tickSize - xTickLabelOffset})">${label}</text>`
+        `<text x="${x + frameSpace}" y="${
+          frameSpace - tickSize - xTickLabelOffset
+        }" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" transform="rotate(${rotation},${
+          x + frameSpace
+        },${frameSpace - tickSize - xTickLabelOffset})">${label}</text>`
       );
 
       // Bottom label
       svgElements.push(
-        `<text x="${x + frameSpace}" y="${height + frameSpace + tickSize + xTickLabelOffset}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${rotation},${x + frameSpace},${height + frameSpace + tickSize + xTickLabelOffset})">${label}</text>`
+        `<text x="${x + frameSpace}" y="${
+          height + frameSpace + tickSize + xTickLabelOffset
+        }" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${rotation},${
+          x + frameSpace
+        },${
+          height + frameSpace + tickSize + xTickLabelOffset
+        })">${label}</text>`
       );
     }
   }
 
   // Y-axis ticks & labels
-  for (let y = 0; y <= height + 1e-9; y += yTickMinorTickStepPX) {
-    const isMajor = y % yTickMajorTickStepPX < 1;
-
+  const yStart =
+    Math.ceil((bbox[1] + esp) / tickMinorTickStep) * tickMinorTickStep;
+  for (let lat = yStart; lat <= bbox[3] + esp; lat += tickMinorTickStep) {
+    const y = (bbox[3] - lat) / degPerPixelY;
+    const isMajor = Math.abs(lat % tickMajorTickStep) < esp;
     const tickSize = isMajor ? tickMajorTickSize : tickMinorTickSize;
     const tickWidth = isMajor ? tickMajorTickWidth : tickMinorTickWidth;
     const tickColor = isMajor ? tickMajorColor : tickMinorColor;
@@ -1590,12 +1607,20 @@ export async function addSVGFrameToImage(input, options, output) {
 
     // Left tick
     svgElements.push(
-      `<line x1="${frameSpace}" y1="${y + frameSpace}" x2="${frameSpace - tickSize}" y2="${y + frameSpace}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${frameSpace}" y1="${y + frameSpace}" x2="${
+        frameSpace - tickSize
+      }" y2="${
+        y + frameSpace
+      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
 
     // Right tick
     svgElements.push(
-      `<line x1="${width + frameSpace}" y1="${y + frameSpace}" x2="${width + frameSpace + tickSize}" y2="${y + frameSpace}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${width + frameSpace}" y1="${y + frameSpace}" x2="${
+        width + frameSpace + tickSize
+      }" y2="${
+        y + frameSpace
+      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
 
     if (labelSize > 0) {
@@ -1607,12 +1632,20 @@ export async function addSVGFrameToImage(input, options, output) {
 
       // Left label
       svgElements.push(
-        `<text x="${frameSpace - tickSize - yTickLabelOffset}" y="${y + frameSpace}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${rotation},${frameSpace - tickSize - yTickLabelOffset},${y + frameSpace})">${label}</text>`
+        `<text x="${frameSpace - tickSize - yTickLabelOffset}" y="${
+          y + frameSpace
+        }" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${rotation},${
+          frameSpace - tickSize - yTickLabelOffset
+        },${y + frameSpace})">${label}</text>`
       );
 
       // Right label
       svgElements.push(
-        `<text x="${width + frameSpace + tickSize + yTickLabelOffset}" y="${y + frameSpace}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${rotation},${width + frameSpace + tickSize + yTickLabelOffset},${y + frameSpace})">${label}</text>`
+        `<text x="${width + frameSpace + tickSize + yTickLabelOffset}" y="${
+          y + frameSpace
+        }" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${rotation},${
+          width + frameSpace + tickSize + yTickLabelOffset
+        },${y + frameSpace})">${label}</text>`
       );
     }
   }
@@ -1620,16 +1653,18 @@ export async function addSVGFrameToImage(input, options, output) {
   // Create image
   image
     .extend({
-      top: frameSpace + frameOuterWidth,
-      left: frameSpace + frameOuterWidth,
-      bottom: frameSpace + frameOuterWidth,
-      right: frameSpace + frameOuterWidth,
+      top: frameSpace + 10,
+      left: frameSpace + 10,
+      bottom: frameSpace + 10,
+      right: frameSpace + 10,
       background: { r: 255, g: 255, b: 255, alpha: 1 },
     })
     .composite([
       {
         input: Buffer.from(
-          `<svg width="${totalWidth}" height="${totalHeight}" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
+          `<svg width="${width + frameSpace * 2}" height="${
+            height + frameSpace * 2
+          }" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
         ),
         left: 0,
         top: 0,

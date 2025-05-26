@@ -37,10 +37,10 @@ import {
   detectFormatAndHeaders,
   createFallbackTileData,
   removeFilesOrFolders,
-  addSVGFrameToImage,
   removeEmptyFolders,
   processImageData,
   getLonLatFromXYZ,
+  addFrameToImage,
   getDataFromURL,
   calculateSizes,
   createFolders,
@@ -853,7 +853,7 @@ export async function renderStyleJSONToImage(
     printLog("info", `Gdal command output: ${commandOutput}`);
 
     if (targetOverlays.length > 0) {
-      /* Merge image */
+      /* Merge overlays to image */
       const mergedFilePath = `${mergedDirPath}/${filePathWithoutExt}.${format}`;
       const targetBaselayer = {
         content: baselayerFilePath,
@@ -864,12 +864,16 @@ export async function renderStyleJSONToImage(
         format: format,
       };
 
-      printLog("info", "Merging image...");
+      printLog("info", "Merging overlays to image...");
 
       await mergeImages(targetBaselayer, targetOverlays, targetOutput);
 
       /* Add SRID */
-      const command = `gdal_translate -if ${driver} -of ${driver} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${mergedFilePath} ${imageFilePath}`;
+      const command = `gdal_translate -if ${driver} -of ${driver}${
+        format === "png" ? " -co ZLEVEL=9" : ""
+      } -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${
+        bbox[1]
+      } ${mergedFilePath} ${imageFilePath}`;
 
       printLog("info", `Adding SRID for image with gdal command: ${command}`);
 
@@ -878,7 +882,13 @@ export async function renderStyleJSONToImage(
       printLog("info", `Gdal command output: ${commandOutput}`);
     } else {
       /* Crop image */
-      const command = `gdal_translate -if ${driver} -of ${driver} -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]} ${baselayerFilePath} ${imageFilePath}`;
+      const command = `gdal_translate -if ${driver} -of ${driver}${
+        format === "png" ? " -co ZLEVEL=9" : ""
+      } -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${
+        bbox[2]
+      } ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${
+        bbox[1]
+      } ${baselayerFilePath} ${imageFilePath}`;
 
       printLog("info", `Creating image with gdal command: ${command}`);
 
@@ -888,7 +898,8 @@ export async function renderStyleJSONToImage(
     }
 
     if (frame !== undefined) {
-      printLog("info", "Adding frame...");
+      /* Add frame */
+      printLog("info", "Adding frame to image...");
 
       const input = {
         filePath: imageFilePath,
@@ -900,8 +911,9 @@ export async function renderStyleJSONToImage(
         format: format,
       };
 
-      await addSVGFrameToImage(input, frame, output);
+      await addFrameToImage(input, frame, output);
     } else {
+      /* Zip image */
       printLog("info", "Zipping output...");
 
       await zipFolder(outputDirPath, outputFilePath);
