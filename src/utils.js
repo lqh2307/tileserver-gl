@@ -1476,8 +1476,8 @@ export async function addFrameToImage(input, options, output) {
     tickMajorTickWidth = 6,
     tickMinorTickWidth = 4,
 
-    tickMajorTickSize = 18,
-    tickMinorTickSize = 12,
+    tickMajorTickSize = 20,
+    tickMinorTickSize = 15,
 
     tickMajorLabelSize = 18,
     tickMinorLabelSize = 0,
