@@ -46,6 +46,10 @@
     "frame": {
       "type": "object",
       "properties": {
+        "padding": {
+          "type": "integer",
+          "minLength": 0
+        },
         "frameInnerColor": {
           "type": "string",
           "minLength": 1

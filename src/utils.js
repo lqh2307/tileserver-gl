@@ -1460,6 +1460,8 @@ export function formatDegree(deg, isLat, format) {
  */
 export async function addFrameToImage(input, options, output) {
   const {
+    padding = 10,
+
     frameInnerColor = "black",
     frameInnerWidth = 6,
 
@@ -1516,51 +1518,44 @@ export async function addFrameToImage(input, options, output) {
 
   // Inner frame
   svgElements.push(
-    `<rect x="${frameSpace}" y="${frameSpace}" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" />`
+    `<rect x="${padding + frameSpace}" y="${
+      padding + frameSpace
+    }" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" />`
   );
 
   // Outer frame
   svgElements.push(
-    `<rect x="0" y="0" width="${width + frameSpace * 2}" height="${
+    `<rect x="${padding}" y="${padding}" width="${
+      width + frameSpace * 2
+    }" height="${
       height + frameSpace * 2
     }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" />`
   );
 
-  // X-axis ticks & labels
-  const xStart =
-    Math.ceil((bbox[0] + esp) / tickMinorTickStep) * tickMinorTickStep;
-  for (let lon = xStart; lon <= bbox[2] + esp; lon += tickMinorTickStep) {
+  // X-axis major ticks & labels
+  let xMajorStart = Math.round(bbox[0] / tickMajorTickStep) * tickMajorTickStep;
+  for (let lon = xMajorStart; lon <= bbox[2] + esp; lon += tickMajorTickStep) {
     const x = (lon - bbox[0]) / degPerPixelX;
-    const isMajor = Math.abs(lon % tickMajorTickStep) < esp;
-    const tickSize = isMajor ? tickMajorTickSize : tickMinorTickSize;
-    const tickWidth = isMajor ? tickMajorTickWidth : tickMinorTickWidth;
-    const tickColor = isMajor ? tickMajorColor : tickMinorColor;
-    const labelSize = isMajor ? tickMajorLabelSize : tickMinorLabelSize;
-    const labelColor = isMajor ? tickMajorLabelColor : tickMinorLabelColor;
-    const labelFont = isMajor ? tickMajorLabelFont : tickMinorLabelFont;
-    const rotation = isMajor
-      ? xTickMajorLabelRotation
-      : xTickMinorLabelRotation;
 
     // Top tick
     svgElements.push(
-      `<line x1="${x + frameSpace}" y1="${frameSpace}" x2="${
-        x + frameSpace
-      }" y2="${
-        frameSpace - tickSize
-      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${padding + x + frameSpace}" y1="${
+        padding + frameSpace
+      }" x2="${padding + x + frameSpace}" y2="${
+        padding + frameSpace - tickMajorTickSize
+      }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
     );
 
     // Bottom tick
     svgElements.push(
-      `<line x1="${x + frameSpace}" y1="${height + frameSpace}" x2="${
-        x + frameSpace
-      }" y2="${
-        height + frameSpace + tickSize
-      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${padding + x + frameSpace}" y1="${
+        padding + height + frameSpace
+      }" x2="${padding + x + frameSpace}" y2="${
+        padding + height + frameSpace + tickMajorTickSize
+      }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
     );
 
-    if (labelSize > 0) {
+    if (tickMajorLabelSize > 0) {
       const label = formatDegree(
         bbox[0] + x * degPerPixelX,
         false,
@@ -1569,61 +1564,107 @@ export async function addFrameToImage(input, options, output) {
 
       // Top label
       svgElements.push(
-        `<text x="${x + frameSpace}" y="${
-          frameSpace - tickSize - xTickLabelOffset
-        }" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" transform="rotate(${rotation},${
-          x + frameSpace
-        },${frameSpace - tickSize - xTickLabelOffset})">${label}</text>`
+        `<text x="${padding + x + frameSpace}" y="${
+          padding + frameSpace - tickMajorTickSize - xTickLabelOffset
+        }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${
+          padding + x + frameSpace
+        },${
+          padding + frameSpace - tickMajorTickSize - xTickLabelOffset
+        })">${label}</text>`
       );
 
       // Bottom label
       svgElements.push(
-        `<text x="${x + frameSpace}" y="${
-          height + frameSpace + tickSize + xTickLabelOffset
-        }" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${rotation},${
-          x + frameSpace
+        `<text x="${padding + x + frameSpace}" y="${
+          padding + height + frameSpace + tickMajorTickSize + xTickLabelOffset
+        }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${
+          padding + x + frameSpace
         },${
-          height + frameSpace + tickSize + xTickLabelOffset
+          padding + height + frameSpace + tickMajorTickSize + xTickLabelOffset
         })">${label}</text>`
       );
     }
   }
 
-  // Y-axis ticks & labels
-  const yStart =
-    Math.ceil((bbox[1] + esp) / tickMinorTickStep) * tickMinorTickStep;
-  for (let lat = yStart; lat <= bbox[3] + esp; lat += tickMinorTickStep) {
+  // X-axis minor & labels
+  let xMinorStart = Math.round(bbox[0] / tickMinorTickStep) * tickMinorTickStep;
+  for (let lon = xMinorStart; lon <= bbox[2] + esp; lon += tickMinorTickStep) {
+    const x = (lon - bbox[0]) / degPerPixelX;
+
+    // Top tick
+    svgElements.push(
+      `<line x1="${padding + x + frameSpace}" y1="${
+        padding + frameSpace
+      }" x2="${padding + x + frameSpace}" y2="${
+        padding + frameSpace - tickMinorTickSize
+      }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
+    );
+
+    // Bottom tick
+    svgElements.push(
+      `<line x1="${padding + x + frameSpace}" y1="${
+        padding + height + frameSpace
+      }" x2="${padding + x + frameSpace}" y2="${
+        padding + height + frameSpace + tickMinorTickSize
+      }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
+    );
+
+    if (tickMinorLabelSize > 0) {
+      const label = formatDegree(
+        bbox[0] + x * degPerPixelX,
+        false,
+        tickLabelFormat
+      );
+
+      // Top label
+      svgElements.push(
+        `<text x="${padding + x + frameSpace}" y="${
+          padding + frameSpace - tickMinorTickSize - xTickLabelOffset
+        }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${
+          padding + x + frameSpace
+        },${
+          padding + frameSpace - tickMinorTickSize - xTickLabelOffset
+        })">${label}</text>`
+      );
+
+      // Bottom label
+      svgElements.push(
+        `<text x="${padding + x + frameSpace}" y="${
+          padding + height + frameSpace + tickMinorTickSize + xTickLabelOffset
+        }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${
+          padding + x + frameSpace
+        },${
+          padding + height + frameSpace + tickMinorTickSize + xTickLabelOffset
+        })">${label}</text>`
+      );
+    }
+  }
+
+  // Y-axis major ticks & labels
+  let yMajorStart =
+    Math.round((bbox[1] + esp) / tickMajorTickStep) * tickMajorTickStep;
+  for (let lat = yMajorStart; lat <= bbox[3] + esp; lat += tickMajorTickStep) {
     const y = (bbox[3] - lat) / degPerPixelY;
-    const isMajor = Math.abs(lat % tickMajorTickStep) < esp;
-    const tickSize = isMajor ? tickMajorTickSize : tickMinorTickSize;
-    const tickWidth = isMajor ? tickMajorTickWidth : tickMinorTickWidth;
-    const tickColor = isMajor ? tickMajorColor : tickMinorColor;
-    const labelSize = isMajor ? tickMajorLabelSize : tickMinorLabelSize;
-    const labelColor = isMajor ? tickMajorLabelColor : tickMinorLabelColor;
-    const labelFont = isMajor ? tickMajorLabelFont : tickMinorLabelFont;
-    const rotation = isMajor
-      ? yTickMajorLabelRotation
-      : yTickMinorLabelRotation;
 
     // Left tick
     svgElements.push(
-      `<line x1="${frameSpace}" y1="${y + frameSpace}" x2="${
-        frameSpace - tickSize
-      }" y2="${
-        y + frameSpace
-      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${padding + frameSpace}" y1="${
+        padding + y + frameSpace
+      }" x2="${padding + frameSpace - tickMajorTickSize}" y2="${
+        padding + y + frameSpace
+      }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
     );
 
     // Right tick
     svgElements.push(
-      `<line x1="${width + frameSpace}" y1="${y + frameSpace}" x2="${
-        width + frameSpace + tickSize
-      }" y2="${
-        y + frameSpace
-      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${padding + width + frameSpace}" y1="${
+        padding + y + frameSpace
+      }" x2="${padding + width + frameSpace + tickMajorTickSize}" y2="${
+        padding + y + frameSpace
+      }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
     );
 
-    if (labelSize > 0) {
+    if (tickMajorLabelSize > 0) {
       const label = formatDegree(
         bbox[3] - y * degPerPixelY,
         true,
@@ -1632,20 +1673,78 @@ export async function addFrameToImage(input, options, output) {
 
       // Left label
       svgElements.push(
-        `<text x="${frameSpace - tickSize - yTickLabelOffset}" y="${
-          y + frameSpace
-        }" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${rotation},${
-          frameSpace - tickSize - yTickLabelOffset
-        },${y + frameSpace})">${label}</text>`
+        `<text x="${
+          padding + frameSpace - tickMajorTickSize - yTickLabelOffset
+        }" y="${
+          padding + y + frameSpace
+        }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
+          padding + frameSpace - tickMajorTickSize - yTickLabelOffset
+        },${padding + y + frameSpace})">${label}</text>`
       );
 
       // Right label
       svgElements.push(
-        `<text x="${width + frameSpace + tickSize + yTickLabelOffset}" y="${
-          y + frameSpace
-        }" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${rotation},${
-          width + frameSpace + tickSize + yTickLabelOffset
-        },${y + frameSpace})">${label}</text>`
+        `<text x="${
+          padding + width + frameSpace + tickMajorTickSize + yTickLabelOffset
+        }" y="${
+          padding + y + frameSpace
+        }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
+          padding + width + frameSpace + tickMajorTickSize + yTickLabelOffset
+        },${padding + y + frameSpace})">${label}</text>`
+      );
+    }
+  }
+
+  // Y-axis minor ticks & labels
+  let yMinorStart = Math.round(bbox[1] / tickMinorTickStep) * tickMinorTickStep;
+  for (let lat = yMinorStart; lat <= bbox[3] + esp; lat += tickMinorTickStep) {
+    const y = (bbox[3] - lat) / degPerPixelY;
+
+    // Left tick
+    svgElements.push(
+      `<line x1="${padding + frameSpace}" y1="${
+        padding + y + frameSpace
+      }" x2="${padding + frameSpace - tickMinorTickSize}" y2="${
+        padding + y + frameSpace
+      }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
+    );
+
+    // Right tick
+    svgElements.push(
+      `<line x1="${padding + width + frameSpace}" y1="${
+        padding + y + frameSpace
+      }" x2="${padding + width + frameSpace + tickMinorTickSize}" y2="${
+        padding + y + frameSpace
+      }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
+    );
+
+    if (tickMinorLabelSize > 0) {
+      const label = formatDegree(
+        bbox[3] - y * degPerPixelY,
+        true,
+        tickLabelFormat
+      );
+
+      // Left label
+      svgElements.push(
+        `<text x="${
+          padding + frameSpace - tickMinorTickSize - yTickLabelOffset
+        }" y="${
+          padding + y + frameSpace
+        }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
+          padding + frameSpace - tickMinorTickSize - yTickLabelOffset
+        },${padding + y + frameSpace})">${label}</text>`
+      );
+
+      // Right label
+      svgElements.push(
+        `<text x="${
+          padding + width + frameSpace + tickMinorTickSize + yTickLabelOffset
+        }" y="${
+          padding + y + frameSpace
+        }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
+          padding + width + frameSpace + tickMinorTickSize + yTickLabelOffset
+        },${padding + y + frameSpace})">${label}</text>`
       );
     }
   }
@@ -1653,17 +1752,17 @@ export async function addFrameToImage(input, options, output) {
   // Create image
   image
     .extend({
-      top: frameSpace + 10,
-      left: frameSpace + 10,
-      bottom: frameSpace + 10,
-      right: frameSpace + 10,
+      top: padding + frameSpace,
+      left: padding + frameSpace,
+      bottom: padding + frameSpace,
+      right: padding + frameSpace,
       background: { r: 255, g: 255, b: 255, alpha: 1 },
     })
     .composite([
       {
         input: Buffer.from(
-          `<svg width="${width + frameSpace * 2}" height="${
-            height + frameSpace * 2
+          `<svg width="${padding * 2 + width + frameSpace * 2}" height="${
+            padding * 2 + height + frameSpace * 2
           }" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
         ),
         left: 0,
