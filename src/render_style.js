@@ -36,6 +36,8 @@ import {
   getTileBoundsFromCoverages,
   detectFormatAndHeaders,
   createFallbackTileData,
+  removeFilesOrFolders,
+  addSVGFrameToImage,
   removeEmptyFolders,
   processImageData,
   getLonLatFromXYZ,
@@ -611,7 +613,7 @@ export async function renderStyleJSONToImage(
     log += `\n\tFormat: ${format}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tAdd frame: ${frame === undefined ? false : true}`;
+    log += `\n\tFrame: ${JSON.stringify(frame === undefined ? {} : frame)}`;
     log += `\n\tOverlays: ${overlays === undefined ? false : true}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
@@ -886,13 +888,19 @@ export async function renderStyleJSONToImage(
     }
 
     if (frame !== undefined) {
-      const command = `tools/add_frame_to_image --i_file_path ${imageFilePath} --o_file_path ${outputFilePath} --dpi 300`;
+      printLog("info", "Adding frame...");
 
-      printLog("info", `Adding frame with command: ${command}`);
+      const input = {
+        filePath: imageFilePath,
+        bbox: bbox,
+        format: format,
+      };
+      const output = {
+        filePath: outputFilePath,
+        format: format,
+      };
 
-      const commandOutput = await runCommand(command);
-
-      printLog("info", `Command output: ${commandOutput}`);
+      await addSVGFrameToImage(input, frame, output);
     } else {
       printLog("info", "Zipping output...");
 
@@ -926,12 +934,12 @@ export async function renderStyleJSONToImage(
     }
 
     /* Remove tmp */
-    // removeFilesOrFolders([
-    //   mbtilesDirPath,
-    //   baselayerDirPath,
-    //   mergedDirPath,
-    //   outputDirPath,
-    // ]);
+    removeFilesOrFolders([
+      mbtilesDirPath,
+      baselayerDirPath,
+      mergedDirPath,
+      outputDirPath,
+    ]);
   }
 }
 

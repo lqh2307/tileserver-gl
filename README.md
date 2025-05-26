@@ -45,9 +45,7 @@ apt-get -y install \
   libopengl0 \
   libpng16-16 \
   libwebp7 \
-  libcurl4 \
-  python3 \
-  python3-pip;
+  libcurl4;
 ```
 
 If use export (Install gdal):
@@ -86,12 +84,6 @@ grep -q '/usr/local/opt/nodejs/bin' ~/.bashrc || echo 'export PATH=/usr/local/op
 source ~/.bashrc;
 ```
 
-Install python libs:
-
-```bash
-pip3 install --no-cache-dir -r ./tools/requirements.txt;
-```
-
 Clean:
 
 ```bash
@@ -99,8 +91,7 @@ apt-get -y remove \
   wget \
   cmake \
   build-essential \
-  libproj-dev \
-  python3-pip; \
+  libproj-dev; \
 apt-get -y --purge autoremove; \
 apt-get clean; \
 rm -rf /var/lib/apt/lists/*;

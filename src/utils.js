@@ -1400,158 +1400,280 @@ export async function getPNGImageMetadata(filePath) {
 }
 
 /**
- * Create SVG Frame
- * @param {string} filePath File path to image
+ * Format degree
+ * @param {number} deg Degree
+ * @param {boolean} isLat Is lat?
+ * @param {"D"|"DMS"|"DMSD"} format Format
+ * @returns {string}
+ */
+export function formatDegree(deg, isLat, format) {
+  const rounded = Number(deg.toFixed(9));
+
+  if (format === "DMS" || format === "DMSD") {
+    const abs = Math.abs(rounded);
+    let d = Math.floor(abs);
+    let m = Math.floor((abs - d) * 60);
+    let s = Math.round(((abs - d) * 60 - m) * 60);
+
+    if (s === 60) {
+      s = 0;
+      m += 1;
+    }
+
+    if (m === 60) {
+      m = 0;
+      d += 1;
+    }
+
+    let direction = "";
+    let sign = "";
+    if (format === "DMSD") {
+      if (isLat === true) {
+        direction = rounded >= 0 ? "N" : "S";
+      } else {
+        direction = rounded >= 0 ? "E" : "W";
+      }
+    } else if (rounded < 0) {
+      sign = "-";
+    }
+
+    const sFormat = s === 0 ? "" : `${s}"`;
+    const mFormat = m === 0 ? "" : `${m}'`;
+
+    return `${sign}${d}°${sFormat}${mFormat}${direction}`;
+  } else {
+    if (Number.isInteger(rounded) === true) {
+      return Math.round(rounded).toString();
+    }
+
+    return rounded.toFixed(2);
+  }
+}
+
+/**
+ * Add SVG frame to image
+ * @param {{ filePath: string, bbox: [number, number, number, number] }} input Input object
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
- * @param {object} config Configuration object
+ * @param {object} options Frame options object
+ * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
  * @returns {Promise<string>}
  */
-export async function createSVGFrame(filePath, bbox, config) {
+export async function addSVGFrameToImage(input, options, output) {
   const {
-    frame_inner_color = "black",
-    frame_inner_width = 2,
-    frame_outer_color = "black",
-    frame_outer_width = 2,
-    frame_space = 20,
+    frameInnerColor = "black",
+    frameInnerWidth = 5,
 
-    enable_tick_label_degree = true,
+    frameOuterColor = "black",
+    frameOuterWidth = 5,
 
-    tick_major_tick_step = 1.0,
-    tick_minor_tick_step = 0.05,
+    frameSpace = 120,
 
-    tick_major_tick_width = 2,
-    tick_minor_tick_width = 1,
-    tick_major_tick_size = 10,
-    tick_minor_tick_size = 5,
+    tickLabelFormat = "DMSD",
 
-    tick_major_label_size = 2,
-    tick_minor_label_size = 1,
-    tick_major_label_rotation = 0,
-    tick_minor_label_rotation = -90,
+    tickMajorTickStep = 0.5,
+    tickMinorTickStep = 0.05,
 
-    tick_major_color = "black",
-    tick_minor_color = "black",
-    tick_major_label_color = "black",
-    tick_minor_label_color = "black",
-    tick_major_label_font = "sans-serif",
-    tick_minor_label_font = "sans-serif",
-  } = config;
+    tickMajorTickWidth = 5,
+    tickMinorTickWidth = 3,
 
-  const { width, height } = await sharp(filePath, {
+    tickMajorTickSize = 18,
+    tickMinorTickSize = 12,
+
+    tickMajorLabelSize = 18,
+    tickMinorLabelSize = 0,
+
+    tickMajorColor = "black",
+    tickMinorColor = "black",
+
+    tickMajorLabelColor = "black",
+    tickMinorLabelColor = "black",
+
+    tickMajorLabelFont = "sans-serif",
+    tickMinorLabelFont = "sans-serif",
+
+    xTickLabelOffset = 10,
+    yTickLabelOffset = 10,
+
+    xTickMajorLabelRotation = 0,
+    xTickMinorLabelRotation = 0,
+
+    yTickMajorLabelRotation = 0,
+    yTickMinorLabelRotation = 0,
+  } = options;
+
+  const image = sharp(input.filePath, {
     limitInputPixels: false,
-  }).metadata();
-  const [minLon, minLat, maxLon, maxLat] = bbox;
+  });
 
-  const degPerPixelX = (maxLon - minLon) / width;
-  const degPerPixelY = (maxLat - minLat) / height;
+  const { width, height } = await image.metadata();
+  const bbox = input.bbox;
 
-  const xtick_major_px = tick_major_tick_step / degPerPixelX;
-  const xtick_minor_px = tick_minor_tick_step / degPerPixelX;
-  const ytick_major_px = tick_major_tick_step / degPerPixelY;
-  const ytick_minor_px = tick_minor_tick_step / degPerPixelY;
+  const degPerPixelX = (bbox[2] - bbox[0]) / width;
+  const degPerPixelY = (bbox[3] - bbox[1]) / height;
+
+  const xTickMajorTickStepPX = tickMajorTickStep / degPerPixelX;
+  const xTickMinorTickStepPX = tickMinorTickStep / degPerPixelX;
+  const yTickMajorTickStepPX = tickMajorTickStep / degPerPixelY;
+  const yTickMinorTickStepPX = tickMinorTickStep / degPerPixelY;
 
   const svgElements = [];
-  const totalWidth = width + frame_space * 2;
-  const totalHeight = height + frame_space * 2;
 
-  // Outer frame
-  svgElements.push(
-    `<rect x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="none" stroke="${frame_outer_color}" stroke-width="${frame_outer_width}" />`
-  );
+  const totalWidth = width + frameSpace * 2;
+  const totalHeight = height + frameSpace * 2;
 
   // Inner frame
   svgElements.push(
-    `<rect x="${frame_space}" y="${frame_space}" width="${width}" height="${height}" fill="none" stroke="${frame_inner_color}" stroke-width="${frame_inner_width}" />`
+    `<rect x="${frameSpace}" y="${frameSpace}" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" />`
+  );
+
+  // Outer frame
+  svgElements.push(
+    `<rect x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" />`
   );
 
   // X-axis ticks & labels
-  for (let x = 0; x <= width; x += xtick_minor_px) {
-    const isMajor = Math.abs(x % xtick_major_px) < 1;
-    const tickSize = isMajor ? tick_major_tick_size : tick_minor_tick_size;
-    const tickWidth = isMajor ? tick_major_tick_width : tick_minor_tick_width;
-    const tickColor = isMajor ? tick_major_color : tick_minor_color;
-    const labelSize = isMajor ? tick_major_label_size : tick_minor_label_size;
-    const labelRotation = isMajor
-      ? tick_major_label_rotation
-      : tick_minor_label_rotation;
-    const labelColor = isMajor
-      ? tick_major_label_color
-      : tick_minor_label_color;
-    const labelFont = isMajor ? tick_major_label_font : tick_minor_label_font;
+  for (let x = 0; x <= width + 1e-9; x += xTickMinorTickStepPX) {
+    const isMajor = x % xTickMajorTickStepPX < 1;
 
-    const sx = x + frame_space;
+    const tickSize = isMajor ? tickMajorTickSize : tickMinorTickSize;
+    const tickWidth = isMajor ? tickMajorTickWidth : tickMinorTickWidth;
+    const tickColor = isMajor ? tickMajorColor : tickMinorColor;
+    const labelSize = isMajor ? tickMajorLabelSize : tickMinorLabelSize;
+    const labelColor = isMajor ? tickMajorLabelColor : tickMinorLabelColor;
+    const labelFont = isMajor ? tickMajorLabelFont : tickMinorLabelFont;
+    const rotation = isMajor
+      ? xTickMajorLabelRotation
+      : xTickMinorLabelRotation;
 
-    // Tick lines
+    // Top tick
     svgElements.push(
-      `<line x1="${sx}" y1="${
-        frame_space - tickSize
-      }" x2="${sx}" y2="${frame_space}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
-    );
-    svgElements.push(
-      `<line x1="${sx}" y1="${frame_space + height}" x2="${sx}" y2="${
-        frame_space + height + tickSize
-      }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${x + frameSpace}" y1="${frameSpace}" x2="${x + frameSpace}" y2="${frameSpace - tickSize}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
 
-    // Tick labels (major only)
-    if (labelSize > 0 && isMajor) {
-      const lon = minLon + x * degPerPixelX;
-      const label = enable_tick_label_degree
-        ? `${lon.toFixed(4)}°`
-        : lon.toFixed(4);
-      const ly = frame_space + height + tickSize + 2;
+    // Bottom tick
+    svgElements.push(
+      `<line x1="${x + frameSpace}" y1="${height + frameSpace}" x2="${x + frameSpace}" y2="${height + frameSpace + tickSize}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+    );
+
+    if (labelSize > 0) {
+      const label = formatDegree(
+        bbox[0] + x * degPerPixelX,
+        false,
+        tickLabelFormat
+      );
+
+      // Top label
       svgElements.push(
-        `<text x="${sx}" y="${ly}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" transform="rotate(${labelRotation},${sx},${ly})">${label}</text>`
+        `<text x="${x + frameSpace}" y="${frameSpace - tickSize - xTickLabelOffset}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" transform="rotate(${rotation},${x + frameSpace},${frameSpace - tickSize - xTickLabelOffset})">${label}</text>`
+      );
+
+      // Bottom label
+      svgElements.push(
+        `<text x="${x + frameSpace}" y="${height + frameSpace + tickSize + xTickLabelOffset}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${rotation},${x + frameSpace},${height + frameSpace + tickSize + xTickLabelOffset})">${label}</text>`
       );
     }
   }
 
   // Y-axis ticks & labels
-  for (let y = 0; y <= height; y += ytick_minor_px) {
-    const isMajor = Math.abs(y % ytick_major_px) < 1;
-    const tickSize = isMajor ? tick_major_tick_size : tick_minor_tick_size;
-    const tickWidth = isMajor ? tick_major_tick_width : tick_minor_tick_width;
-    const tickColor = isMajor ? tick_major_color : tick_minor_color;
-    const labelSize = isMajor ? tick_major_label_size : tick_minor_label_size;
-    const labelRotation = isMajor
-      ? tick_major_label_rotation
-      : tick_minor_label_rotation;
-    const labelColor = isMajor
-      ? tick_major_label_color
-      : tick_minor_label_color;
-    const labelFont = isMajor ? tick_major_label_font : tick_minor_label_font;
+  for (let y = 0; y <= height + 1e-9; y += yTickMinorTickStepPX) {
+    const isMajor = y % yTickMajorTickStepPX < 1;
 
-    const sy = y + frame_space;
+    const tickSize = isMajor ? tickMajorTickSize : tickMinorTickSize;
+    const tickWidth = isMajor ? tickMajorTickWidth : tickMinorTickWidth;
+    const tickColor = isMajor ? tickMajorColor : tickMinorColor;
+    const labelSize = isMajor ? tickMajorLabelSize : tickMinorLabelSize;
+    const labelColor = isMajor ? tickMajorLabelColor : tickMinorLabelColor;
+    const labelFont = isMajor ? tickMajorLabelFont : tickMinorLabelFont;
+    const rotation = isMajor
+      ? yTickMajorLabelRotation
+      : yTickMinorLabelRotation;
 
-    // Tick lines
+    // Left tick
     svgElements.push(
-      `<line x1="${
-        frame_space - tickSize
-      }" y1="${sy}" x2="${frame_space}" y2="${sy}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
-    );
-    svgElements.push(
-      `<line x1="${frame_space + width}" y1="${sy}" x2="${
-        frame_space + width + tickSize
-      }" y2="${sy}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${frameSpace}" y1="${y + frameSpace}" x2="${frameSpace - tickSize}" y2="${y + frameSpace}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
 
-    // Tick labels (major only)
-    if (labelSize > 0 && isMajor) {
-      const lat = maxLat - y * degPerPixelY;
-      const label = enable_tick_label_degree
-        ? `${lat.toFixed(4)}°`
-        : lat.toFixed(4);
-      const lx = frame_space - tickSize - 2;
-      const ly = sy + labelSize / 2;
+    // Right tick
+    svgElements.push(
+      `<line x1="${width + frameSpace}" y1="${y + frameSpace}" x2="${width + frameSpace + tickSize}" y2="${y + frameSpace}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+    );
+
+    if (labelSize > 0) {
+      const label = formatDegree(
+        bbox[3] - y * degPerPixelY,
+        true,
+        tickLabelFormat
+      );
+
+      // Left label
       svgElements.push(
-        `<text x="${lx}" y="${ly}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="end" transform="rotate(${labelRotation},${lx},${ly})">${label}</text>`
+        `<text x="${frameSpace - tickSize - yTickLabelOffset}" y="${y + frameSpace}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${rotation},${frameSpace - tickSize - yTickLabelOffset},${y + frameSpace})">${label}</text>`
+      );
+
+      // Right label
+      svgElements.push(
+        `<text x="${width + frameSpace + tickSize + yTickLabelOffset}" y="${y + frameSpace}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${rotation},${width + frameSpace + tickSize + yTickLabelOffset},${y + frameSpace})">${label}</text>`
       );
     }
   }
 
-  return `<svg width="${totalWidth}" height="${totalHeight}" xmlns="http://www.w3.org/2000/svg">\n${svgElements.join(
-    "\n"
-  )}\n</svg>`;
+  // Create image
+  image
+    .extend({
+      top: frameSpace + frameOuterWidth,
+      left: frameSpace + frameOuterWidth,
+      bottom: frameSpace + frameOuterWidth,
+      right: frameSpace + frameOuterWidth,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    })
+    .composite([
+      {
+        input: Buffer.from(
+          `<svg width="${totalWidth}" height="${totalHeight}" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
+        ),
+        left: 0,
+        top: 0,
+      },
+    ]);
+
+  if (output.width > 0 || output.height > 0) {
+    image.resize(output.width, output.height);
+  }
+
+  switch (output.format) {
+    case "gif": {
+      image.gif({});
+
+      break;
+    }
+
+    case "png": {
+      image.png({
+        compressionLevel: 9,
+      });
+
+      break;
+    }
+
+    case "jpg":
+    case "jpeg": {
+      image.jpeg({
+        quality: 100,
+      });
+
+      break;
+    }
+
+    case "webp": {
+      image.webp({
+        quality: 100,
+      });
+
+      break;
+    }
+  }
+
+  await image.toFile(output.filePath);
 }
 
 /**
@@ -1579,9 +1701,9 @@ export async function mergeImages(baselayer, overlays, output) {
     ...lonLat4326ToXY3857(baselayer.bbox[0], baselayer.bbox[1]),
     ...lonLat4326ToXY3857(baselayer.bbox[2], baselayer.bbox[3]),
   ];
-  const baseWidthResolution =
+  const baseImageWidthResolution =
     baseImageMetadata.width / (baseImageExtent[2] - baseImageExtent[0]);
-  const baseHeightResolution =
+  const baseImageHeightResolution =
     baseImageMetadata.height / (baseImageExtent[3] - baseImageExtent[1]);
 
   baseImage.composite(
@@ -1603,19 +1725,20 @@ export async function mergeImages(baselayer, overlays, output) {
         return {
           input: await overlayImage
             .resize(
-              Math.round(
-                (overlayExtent[2] - overlayExtent[0]) * baseWidthResolution
+              Math.ceil(
+                (overlayExtent[2] - overlayExtent[0]) * baseImageWidthResolution
               ),
-              Math.round(
-                (overlayExtent[3] - overlayExtent[1]) * baseHeightResolution
+              Math.ceil(
+                (overlayExtent[3] - overlayExtent[1]) *
+                  baseImageHeightResolution
               )
             )
             .toBuffer(),
-          left: Math.round(
-            (overlayExtent[0] - baseImageExtent[0]) * baseWidthResolution
+          left: Math.floor(
+            (overlayExtent[0] - baseImageExtent[0]) * baseImageWidthResolution
           ),
-          top: Math.round(
-            (baseImageExtent[3] - overlayExtent[3]) * baseHeightResolution
+          top: Math.floor(
+            (baseImageExtent[3] - overlayExtent[3]) * baseImageHeightResolution
           ),
         };
       })

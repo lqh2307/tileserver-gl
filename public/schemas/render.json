@@ -44,7 +44,107 @@
       "minimum": 1
     },
     "frame": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "frameInnerColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frameInnerWidth": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "frameOuterColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frameOuterWidth": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "frameSpace": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "tickLabelFormat": {
+          "type": "string",
+          "enum": ["D", "DMS", "DMSD"]
+        },
+        "tickMajorTickStep": {
+          "type": "number",
+          "minLength": 0
+        },
+        "tickMinorTickStep": {
+          "type": "number",
+          "minLength": 0
+        },
+        "tickMajorTickWidth": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "tickMinorTickWidth": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "tickMajorTickSize": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "tickMinorTickSize": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "tickMajorLabelSize": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "tickMinorLabelSize": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "tickMajorColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tickMinorColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tickMajorLabelColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tickMinorLabelColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tickMajorLabelFont": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tickMinorLabelFont": {
+          "type": "string",
+          "minLength": 1
+        },
+        "xTickLabelOffset": {
+          "type": "integer"
+        },
+        "yTickLabelOffset": {
+          "type": "integer"
+        },
+        "xTickMajorLabelRotation": {
+          "type": "number"
+        },
+        "xTickMinorLabelRotation": {
+          "type": "number"
+        },
+        "yTickMajorLabelRotation": {
+          "type": "number"
+        },
+        "yTickMinorLabelRotation": {
+          "type": "number"
+        }
+      }
     },
     "overlays": {
       "type": "array"

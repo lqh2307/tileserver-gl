@@ -23,9 +23,7 @@ RUN \
     libjpeg-dev \
     libgif-dev \
     libwebp-dev \
-    libtiff-dev \
-    python3-dev \
-    python3-pip; \
+    libtiff-dev; \
   apt-get -y --purge autoremove; \
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;
@@ -62,9 +60,6 @@ RUN \
   npm install --omit=dev; \
   rm -rf package-lock.json;
 
-RUN \
-  pip3 install --no-cache-dir --target=/python3-deps -r ./tools/requirements.txt;
-
 
 FROM ${TARGET_IMAGE} AS final
 
@@ -86,8 +81,7 @@ RUN \
     libsqlite3-0 \
     librasterlite2-1 \
     libspatialite7 \
-    libtiff5 \
-    python3; \
+    libtiff5; \
   apt-get -y --purge autoremove; \
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;
@@ -96,7 +90,6 @@ WORKDIR /tile-server
 
 COPY --from=builder /tile-server .
 COPY --from=builder /usr/local/opt /usr/local/opt
-COPY --from=builder /python3-deps /usr/local/lib/python3.10/dist-packages/
 
 ENV PATH=/usr/local/opt/gdal/bin:/usr/local/opt/nodejs/bin:${PATH}
 
