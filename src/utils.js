@@ -1408,124 +1408,150 @@ export async function getPNGImageMetadata(filePath) {
  */
 export async function createSVGFrame(filePath, bbox, config) {
   const {
-    frame_outline_color,
-    frame_outline_width,
-    frame_space,
+    frame_inner_color = "black",
+    frame_inner_width = 2,
+    frame_outer_color = "black",
+    frame_outer_width = 2,
+    frame_space = 20,
 
-    enable_tick_label_degree,
+    enable_tick_label_degree = true,
 
-    tick_step,
-    tick_width,
-    tick_size,
-    tick_color,
-    tick_label_size,
-    tick_label_rotation,
-    tick_label_color,
+    tick_major_tick_step = 1.0,
+    tick_minor_tick_step = 0.05,
+
+    tick_major_tick_width = 2,
+    tick_minor_tick_width = 1,
+    tick_major_tick_size = 10,
+    tick_minor_tick_size = 5,
+
+    tick_major_label_size = 2,
+    tick_minor_label_size = 1,
+    tick_major_label_rotation = 0,
+    tick_minor_label_rotation = -90,
+
+    tick_major_color = "black",
+    tick_minor_color = "black",
+    tick_major_label_color = "black",
+    tick_minor_label_color = "black",
+    tick_major_label_font = "sans-serif",
+    tick_minor_label_font = "sans-serif",
   } = config;
 
-  const imageMetadata = await sharp(filePath, {
+  const { width, height } = await sharp(filePath, {
     limitInputPixels: false,
   }).metadata();
+  const [minLon, minLat, maxLon, maxLat] = bbox;
+
+  const degPerPixelX = (maxLon - minLon) / width;
+  const degPerPixelY = (maxLat - minLat) / height;
+
+  const xtick_major_px = tick_major_tick_step / degPerPixelX;
+  const xtick_minor_px = tick_minor_tick_step / degPerPixelX;
+  const ytick_major_px = tick_major_tick_step / degPerPixelY;
+  const ytick_minor_px = tick_minor_tick_step / degPerPixelY;
 
   const svgElements = [];
+  const totalWidth = width + frame_space * 2;
+  const totalHeight = height + frame_space * 2;
 
-  const degPerPixelX = (bbox.maxLon - bbox.minLon) / imageMetadata.width;
-  const degPerPixelY = (bbox.maxLat - bbox.minLat) / imageMetadata.height;
-
-  const tickStepPx = {
-    x: {
-      major: tick_step.x.major / degPerPixelX,
-      minor: tick_step.x.minor / degPerPixelX,
-    },
-    y: {
-      major: tick_step.y.major / degPerPixelY,
-      minor: tick_step.y.minor / degPerPixelY,
-    },
-  };
-
-  // === Spine ===
+  // Outer frame
   svgElements.push(
-    `<rect x="0" y="0" width="${imageMetadata.width}" height="${imageMetadata.height}" fill="none" stroke="${frame_outline_color}" stroke-width="${frame_outline_width}" />`
+    `<rect x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="none" stroke="${frame_outer_color}" stroke-width="${frame_outer_width}" />`
   );
 
-  // === X Axis ===
-  for (let x = 0; x <= imageMetadata.width; x += tickStepPx.x.minor) {
-    const isMajor = x % tickStepPx.x.major < 1;
-    const type = isMajor ? "major" : "minor";
+  // Inner frame
+  svgElements.push(
+    `<rect x="${frame_space}" y="${frame_space}" width="${width}" height="${height}" fill="none" stroke="${frame_inner_color}" stroke-width="${frame_inner_width}" />`
+  );
 
-    const tickSize = tick_size.x[type];
-    const tickWidth = tick_width.x[type];
-    const tickColor = tick_color[type];
-    const labelSize = tick_label_size.x[type];
-    const labelColor = tick_label_color[type];
-    const rotation = tick_label_rotation.x[type];
+  // X-axis ticks & labels
+  for (let x = 0; x <= width; x += xtick_minor_px) {
+    const isMajor = Math.abs(x % xtick_major_px) < 1;
+    const tickSize = isMajor ? tick_major_tick_size : tick_minor_tick_size;
+    const tickWidth = isMajor ? tick_major_tick_width : tick_minor_tick_width;
+    const tickColor = isMajor ? tick_major_color : tick_minor_color;
+    const labelSize = isMajor ? tick_major_label_size : tick_minor_label_size;
+    const labelRotation = isMajor
+      ? tick_major_label_rotation
+      : tick_minor_label_rotation;
+    const labelColor = isMajor
+      ? tick_major_label_color
+      : tick_minor_label_color;
+    const labelFont = isMajor ? tick_major_label_font : tick_minor_label_font;
 
+    const sx = x + frame_space;
+
+    // Tick lines
     svgElements.push(
-      `<line x1="${x}" y1="0" x2="${x}" y2="${tickSize}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${sx}" y1="${
+        frame_space - tickSize
+      }" x2="${sx}" y2="${frame_space}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
     svgElements.push(
-      `<line x1="${x}" y1="${imageMetadata.height}" x2="${x}" y2="${
-        imageMetadata.height - tickSize
+      `<line x1="${sx}" y1="${frame_space + height}" x2="${sx}" y2="${
+        frame_space + height + tickSize
       }" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
 
+    // Tick labels (major only)
     if (labelSize > 0 && isMajor) {
-      const lon = bbox.minLon + x * degPerPixelX;
+      const lon = minLon + x * degPerPixelX;
       const label = enable_tick_label_degree
         ? `${lon.toFixed(4)}°`
-        : x.toString();
+        : lon.toFixed(4);
+      const ly = frame_space + height + tickSize + 2;
       svgElements.push(
-        `<text x="${x}" y="${
-          imageMetadata.height - tickSize - 2
-        }" font-size="${labelSize}" fill="${labelColor}" text-anchor="middle" transform="rotate(${rotation},${x},${
-          imageMetadata.height - tickSize - 2
-        })">${label}</text>`
+        `<text x="${sx}" y="${ly}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="middle" transform="rotate(${labelRotation},${sx},${ly})">${label}</text>`
       );
     }
   }
 
-  // === Y Axis ===
-  for (let y = 0; y <= imageMetadata.height; y += tickStepPx.y.minor) {
-    const isMajor = y % tickStepPx.y.major < 1;
-    const type = isMajor ? "major" : "minor";
+  // Y-axis ticks & labels
+  for (let y = 0; y <= height; y += ytick_minor_px) {
+    const isMajor = Math.abs(y % ytick_major_px) < 1;
+    const tickSize = isMajor ? tick_major_tick_size : tick_minor_tick_size;
+    const tickWidth = isMajor ? tick_major_tick_width : tick_minor_tick_width;
+    const tickColor = isMajor ? tick_major_color : tick_minor_color;
+    const labelSize = isMajor ? tick_major_label_size : tick_minor_label_size;
+    const labelRotation = isMajor
+      ? tick_major_label_rotation
+      : tick_minor_label_rotation;
+    const labelColor = isMajor
+      ? tick_major_label_color
+      : tick_minor_label_color;
+    const labelFont = isMajor ? tick_major_label_font : tick_minor_label_font;
 
-    const tickSize = tick_size.y[type];
-    const tickWidth = tick_width.y[type];
-    const tickColor = tick_color[type];
-    const labelSize = tick_label_size.y[type];
-    const labelColor = tick_label_color[type];
-    const rotation = tick_label_rotation.y[type];
+    const sy = y + frame_space;
 
+    // Tick lines
     svgElements.push(
-      `<line x1="0" y1="${y}" x2="${tickSize}" y2="${y}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${
+        frame_space - tickSize
+      }" y1="${sy}" x2="${frame_space}" y2="${sy}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
     svgElements.push(
-      `<line x1="${imageMetadata.width}" y1="${y}" x2="${
-        imageMetadata.width - tickSize
-      }" y2="${y}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
+      `<line x1="${frame_space + width}" y1="${sy}" x2="${
+        frame_space + width + tickSize
+      }" y2="${sy}" stroke="${tickColor}" stroke-width="${tickWidth}" />`
     );
 
+    // Tick labels (major only)
     if (labelSize > 0 && isMajor) {
-      const lat = bbox.maxLat - y * degPerPixelY;
+      const lat = maxLat - y * degPerPixelY;
       const label = enable_tick_label_degree
         ? `${lat.toFixed(4)}°`
-        : y.toString();
+        : lat.toFixed(4);
+      const lx = frame_space - tickSize - 2;
+      const ly = sy + labelSize / 2;
       svgElements.push(
-        `<text x="${tickSize + 2}" y="${
-          y + labelSize / 2
-        }" font-size="${labelSize}" fill="${labelColor}" transform="rotate(${rotation},${
-          tickSize + 2
-        },${y + labelSize / 2})">${label}</text>`
+        `<text x="${lx}" y="${ly}" font-size="${labelSize}" font-family="${labelFont}" fill="${labelColor}" text-anchor="end" transform="rotate(${labelRotation},${lx},${ly})">${label}</text>`
       );
     }
   }
 
-  return `
-<svg width="${imageMetadata.width}" height="${
-    imageMetadata.height
-  }" xmlns="http://www.w3.org/2000/svg">
-  ${svgElements.join("\n")}
-</svg>`;
+  return `<svg width="${totalWidth}" height="${totalHeight}" xmlns="http://www.w3.org/2000/svg">\n${svgElements.join(
+    "\n"
+  )}\n</svg>`;
 }
 
 /**
