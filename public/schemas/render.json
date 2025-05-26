@@ -43,8 +43,8 @@
       "type": "integer",
       "minimum": 1
     },
-    "addFrame": {
-      "type": "boolean"
+    "frame": {
+      "type": "object"
     },
     "overlays": {
       "type": "array"

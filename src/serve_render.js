@@ -27,7 +27,7 @@ function renderStyleJSONHandler() {
       }
 
       const fileName =
-        req.body.addFrame === true
+        req.body.frame !== undefined
           ? `${req.body.id}.${req.body.format}`
           : `${req.body.id}.zip`;
       const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${req.body.id}`;
@@ -45,7 +45,7 @@ function renderStyleJSONHandler() {
         req.body.storeTransparent ?? true,
         req.body.tileScale || 1,
         req.body.tileSize || 256,
-        req.body.addFrame ?? false,
+        req.body.frame,
         req.body.overlays
       );
 
@@ -55,7 +55,7 @@ function renderStyleJSONHandler() {
         "content-length": stats.size,
         "content-disposition": `attachment; filename="${fileName}"`,
         "content-type":
-          req.body.addFrame === true
+          req.body.frame !== undefined
             ? detectContentTypeFromFormat(req.body.format)
             : "application/zip",
       });

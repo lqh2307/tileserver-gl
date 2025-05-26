@@ -559,7 +559,7 @@ export async function renderImageTileDataWithPool(
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
- * @param {boolean} addFrame Is add frame?
+ * @param {object} frame Add frame options?
  * @param {{name: string, content: string, bbox: [number, number, number, number]}[]} overlays Overlays
  * @returns {Promise<void>}
  */
@@ -574,7 +574,7 @@ export async function renderStyleJSONToImage(
   storeTransparent,
   tileScale,
   tileSize,
-  addFrame,
+  frame,
   overlays
 ) {
   const startTime = Date.now();
@@ -584,7 +584,7 @@ export async function renderStyleJSONToImage(
 
   const filePathWithoutExt = dirPath.slice(dirPath.lastIndexOf("/") + 1);
   const outputFilePath =
-    addFrame === true
+    frame !== undefined
       ? `${dirPath}/${filePathWithoutExt}.${format}`
       : `${dirPath}/${filePathWithoutExt}.zip`;
   const outputDirPath = `${dirPath}/output`;
@@ -611,7 +611,7 @@ export async function renderStyleJSONToImage(
     log += `\n\tFormat: ${format}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tAdd frame: ${addFrame}`;
+    log += `\n\tAdd frame: ${frame === undefined ? false : true}`;
     log += `\n\tOverlays: ${overlays === undefined ? false : true}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
@@ -885,7 +885,7 @@ export async function renderStyleJSONToImage(
       printLog("info", `Gdal command output: ${commandOutput}`);
     }
 
-    if (addFrame === true) {
+    if (frame !== undefined) {
       const command = `tools/add_frame_to_image --i_file_path ${imageFilePath} --o_file_path ${outputFilePath} --dpi 300`;
 
       printLog("info", `Adding frame with command: ${command}`);
