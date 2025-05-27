@@ -78,6 +78,20 @@
           "type": "integer",
           "minLength": 0
         },
+        "majorGrid": {
+          "type": "boolean"
+        },
+        "majorGridStyle": {
+          "type": "string",
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashDot"]
+        },
+        "minorGrid": {
+          "type": "boolean"
+        },
+        "minorGridStyle": {
+          "type": "string",
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashDot"]
+        },
         "tickLabelFormat": {
           "type": "string",
           "enum": ["D", "DMS", "DMSD"]

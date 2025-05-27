@@ -1472,6 +1472,11 @@ export async function addFrameToImage(input, options, output) {
 
     frameSpace = 120,
 
+    majorGrid = false,
+    majorGridStyle = "longDashed",
+    minorGrid = false,
+    minorGridStyle = "longDashed",
+
     tickLabelFormat = "DMSD",
 
     tickMajorTickStep = 0.5,
@@ -1536,6 +1541,32 @@ export async function addFrameToImage(input, options, output) {
     outerStrokeDasharray = `stroke-dasharray="1,3" `;
   } else if (frameOuterStyle === "dashDot") {
     outerStrokeDasharray = `stroke-dasharray="5,3,1,3" `;
+  }
+
+  let majorGridStrokeDasharray = "";
+  if (majorGridStyle === "solid") {
+    majorGridStrokeDasharray = "";
+  } else if (majorGridStyle === "dashed") {
+    majorGridStrokeDasharray = `stroke-dasharray="5,5"`;
+  } else if (majorGridStyle === "longDashed") {
+    majorGridStrokeDasharray = `stroke-dasharray="10,5"`;
+  } else if (majorGridStyle === "dotted") {
+    majorGridStrokeDasharray = `stroke-dasharray="1,3"`;
+  } else if (majorGridStyle === "dashDot") {
+    majorGridStrokeDasharray = `stroke-dasharray="5,3,1,3"`;
+  }
+
+  let minorGridStrokeDasharray = "";
+  if (minorGridStyle === "solid") {
+    minorGridStrokeDasharray = "";
+  } else if (minorGridStyle === "dashed") {
+    minorGridStrokeDasharray = `stroke-dasharray="5,5"`;
+  } else if (majorGridStyle === "longDashed") {
+    minorGridStrokeDasharray = `stroke-dasharray="10,5"`;
+  } else if (majorGridStyle === "dotted") {
+    minorGridStrokeDasharray = `stroke-dasharray="1,3"`;
+  } else if (majorGridStyle === "dashDot") {
+    minorGridStrokeDasharray = `stroke-dasharray="5,3,1,3"`;
   }
 
   const degPerPixelX = (bbox[2] - bbox[0]) / width;
@@ -1612,6 +1643,16 @@ export async function addFrameToImage(input, options, output) {
         })">${label}</text>`
       );
     }
+
+    if (majorGrid === true) {
+      svgElements.push(
+        `<line x1="${padding + x + frameSpace}" y1="${
+          padding + frameSpace
+        }" x2="${padding + x + frameSpace}" y2="${
+          padding + frameSpace + height
+        }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}"  ${majorGridStrokeDasharray}/>`
+      );
+    }
   }
 
   // X-axis minor & labels
@@ -1664,6 +1705,16 @@ export async function addFrameToImage(input, options, output) {
         },${
           padding + height + frameSpace + tickMinorTickSize + xTickLabelOffset
         })">${label}</text>`
+      );
+    }
+
+    if (minorGrid === true) {
+      svgElements.push(
+        `<line x1="${padding + x + frameSpace}" y1="${
+          padding + frameSpace
+        }" x2="${padding + x + frameSpace}" y2="${
+          padding + frameSpace + height
+        }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" ${minorGridStrokeDasharray}/>`
       );
     }
   }
@@ -1721,6 +1772,16 @@ export async function addFrameToImage(input, options, output) {
         },${padding + y + frameSpace})">${label}</text>`
       );
     }
+
+    if (majorGrid === true) {
+      svgElements.push(
+        `<line x1="${padding + frameSpace}" y1="${
+          padding + y + frameSpace
+        }" x2="${padding + frameSpace + width}" y2="${
+          padding + y + frameSpace
+        }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}"  ${majorGridStrokeDasharray}/>`
+      );
+    }
   }
 
   // Y-axis minor ticks & labels
@@ -1774,6 +1835,16 @@ export async function addFrameToImage(input, options, output) {
           padding + width + frameSpace + tickMinorTickSize + yTickLabelOffset
         },${padding + y + frameSpace})">${label}</text>`
       );
+
+      if (minorGrid === true) {
+        svgElements.push(
+          `<line x1="${padding + frameSpace}" y1="${
+            padding + y + frameSpace
+          }" x2="${padding + frameSpace + width}" y2="${
+            padding + y + frameSpace
+          }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" ${minorGridStrokeDasharray}/>`
+        );
+      }
     }
   }
 
