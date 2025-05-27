@@ -1459,7 +1459,7 @@ export function formatDegree(deg, isLat, format) {
  * @returns {Promise<string>}
  */
 export async function addFrameToImage(input, options, output) {
-  let {
+  const {
     padding = 10,
 
     frameInnerColor = "black",
