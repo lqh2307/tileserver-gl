@@ -445,52 +445,7 @@ export function validateTileMetadata(metadata) {
   }
 
   /* Validate json */
-  /*
-  if (metadata.format === "pbf" && metadata.json === undefined) {
-    throw new Error(`"json" property is invalid`);
-  }
-  */
-
-  /* Validate minzoom */
-  if (metadata.minzoom < 0 || metadata.minzoom > 25) {
-    throw new Error(`"minzoom" property is invalid`);
-  }
-
-  /* Validate maxzoom */
-  if (metadata.maxzoom < 0 || metadata.maxzoom > 25) {
-    throw new Error(`"maxzoom" property is invalid`);
-  }
-
-  /* Validate minzoom & maxzoom */
-  if (metadata.minzoom > metadata.maxzoom) {
-    throw new Error(`"zoom" property is invalid`);
-  }
-
-  /* Validate bounds */
-  if (metadata.bounds !== undefined) {
-    if (
-      metadata.bounds.length !== 4 ||
-      Math.abs(metadata.bounds[0]) > 180 ||
-      Math.abs(metadata.bounds[2]) > 180 ||
-      Math.abs(metadata.bounds[1]) > 90 ||
-      Math.abs(metadata.bounds[3]) > 90 ||
-      metadata.bounds[0] >= metadata.bounds[2] ||
-      metadata.bounds[1] >= metadata.bounds[3]
-    ) {
-      throw new Error(`"bounds" property is invalid`);
-    }
-  }
-
-  /* Validate center */
-  if (metadata.center !== undefined) {
-    if (
-      metadata.center.length !== 3 ||
-      Math.abs(metadata.center[0]) > 180 ||
-      Math.abs(metadata.center[1]) > 90 ||
-      metadata.center[2] < 0 ||
-      metadata.center[2] > 25
-    ) {
-      throw new Error(`"center" property is invalid`);
-    }
+  if (metadata.format === "pbf" && metadata.vector_layers === undefined) {
+    throw new Error(`"vector_layers" property is invalid`);
   }
 }

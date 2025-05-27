@@ -7,10 +7,6 @@
         "type": "integer",
         "minimum": 1
       },
-      "pixelRatio": {
-        "type": "integer",
-        "minimum": 1
-      },
       "width": {
         "type": "integer",
         "minimum": 1
@@ -22,6 +18,10 @@
       "y": {
         "type": "integer",
         "minimum": 0
+      },
+      "pixelRatio": {
+        "type": "number",
+        "minimum": 1
       }
     },
     "required": ["height", "pixelRatio", "width", "x", "y"]

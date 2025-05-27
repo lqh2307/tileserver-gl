@@ -1464,9 +1464,11 @@ export async function addFrameToImage(input, options, output) {
 
     frameInnerColor = "black",
     frameInnerWidth = 6,
+    frameInnerStyle = "solid",
 
     frameOuterColor = "black",
     frameOuterWidth = 6,
+    frameOuterStyle = "solid",
 
     frameSpace = 120,
 
@@ -1510,6 +1512,32 @@ export async function addFrameToImage(input, options, output) {
   const { width, height } = await image.metadata();
   const bbox = input.bbox;
 
+  let innerStrokeDasharray = "";
+  if (frameInnerStyle === "solid") {
+    innerStrokeDasharray = "";
+  } else if (frameInnerStyle === "dashed") {
+    innerStrokeDasharray = `stroke-dasharray="5,5"`;
+  } else if (frameInnerStyle === "longDashed") {
+    innerStrokeDasharray = `stroke-dasharray="10,5"`;
+  } else if (frameInnerStyle === "dotted") {
+    innerStrokeDasharray = `stroke-dasharray="1,3"`;
+  } else if (frameInnerStyle === "dashDot") {
+    innerStrokeDasharray = `stroke-dasharray="5,3,1,3"`;
+  }
+
+  let outerStrokeDasharray = " ";
+  if (frameOuterStyle === "solid") {
+    outerStrokeDasharray = " ";
+  } else if (frameOuterStyle === "dashed ") {
+    outerStrokeDasharray = `stroke-dasharray="5,5" `;
+  } else if (frameOuterStyle === "longDashed") {
+    outerStrokeDasharray = `stroke-dasharray="10,5" `;
+  } else if (frameOuterStyle === "dotted") {
+    outerStrokeDasharray = `stroke-dasharray="1,3" `;
+  } else if (frameOuterStyle === "dashDot") {
+    outerStrokeDasharray = `stroke-dasharray="5,3,1,3" `;
+  }
+
   const degPerPixelX = (bbox[2] - bbox[0]) / width;
   const degPerPixelY = (bbox[3] - bbox[1]) / height;
 
@@ -1520,7 +1548,7 @@ export async function addFrameToImage(input, options, output) {
   svgElements.push(
     `<rect x="${padding + frameSpace}" y="${
       padding + frameSpace
-    }" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" />`
+    }" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${innerStrokeDasharray}/>`
   );
 
   // Outer frame
@@ -1529,7 +1557,7 @@ export async function addFrameToImage(input, options, output) {
       width + frameSpace * 2
     }" height="${
       height + frameSpace * 2
-    }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" />`
+    }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${outerStrokeDasharray}/>`
   );
 
   // X-axis major ticks & labels

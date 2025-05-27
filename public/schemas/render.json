@@ -58,6 +58,10 @@
           "type": "integer",
           "minLength": 0
         },
+        "frameInnerStyle": {
+          "type": "string",
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashDot"]
+        },
         "frameOuterColor": {
           "type": "string",
           "minLength": 1
@@ -65,6 +69,10 @@
         "frameOuterWidth": {
           "type": "integer",
           "minLength": 0
+        },
+        "frameOuterStyle": {
+          "type": "string",
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashDot"]
         },
         "frameSpace": {
           "type": "integer",
