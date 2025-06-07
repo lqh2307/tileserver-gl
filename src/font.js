@@ -160,10 +160,28 @@ export async function getFont(dirPath, fileName) {
 export async function getFallbackFont(fontName, fileName) {
   let fallbackFont = "Open Sans Regular";
 
-  if (fontName.indexOf("Italic") >= 0) {
-    fallbackFont = "Open Sans Italic";
-  } else if (fontName.indexOf("Bold") >= 0) {
+  if (fontName.indexOf("Extrabold Italic") > 0) {
+    fallbackFont = "Open Sans Extrabold Italic";
+  } else if (fontName.indexOf("Semibold Italic") > 0) {
+    fallbackFont = "Open Sans Semibold Italic";
+  } else if (fontName.indexOf("Bold Italic") > 0) {
+    fallbackFont = "Open Sans Bold Italic";
+  } else if (fontName.indexOf("Medium Italic") > 0) {
+    fallbackFont = "Open Sans Medium Italic";
+  } else if (fontName.indexOf("Light Italic") > 0) {
+    fallbackFont = "Open Sans Light Italic";
+  } else if (fontName.indexOf("Extrabold") > 0) {
+    fallbackFont = "Open Sans Extrabold";
+  } else if (fontName.indexOf("Semibold") > 0) {
+    fallbackFont = "Open Sans Semibold";
+  } else if (fontName.indexOf("Bold") > 0) {
     fallbackFont = "Open Sans Bold";
+  } else if (fontName.indexOf("Light") > 0) {
+    fallbackFont = "Open Sans Light";
+  } else if (fontName.indexOf("Medium") > 0) {
+    fallbackFont = "Open Sans Medium";
+  } else if (fontName.indexOf("Italic") > 0) {
+    fallbackFont = "Open Sans Italic";
   }
 
   return await readFile(`public/resources/fonts/${fallbackFont}/${fileName}`);

@@ -764,8 +764,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "concurrency": 5,
       "maxTry": 5
     },
-    "Open Sans ExtraBold": {
-      "url": "https://api.maptiler.com/fonts/Open Sans ExtraBold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+    "Open Sans Extrabold": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Extrabold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -773,8 +773,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "concurrency": 5,
       "maxTry": 5
     },
-    "Open Sans ExtraBold Italic": {
-      "url": "https://api.maptiler.com/fonts/Open Sans ExtraBold Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+    "Open Sans Extrabold Italic": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Extrabold Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
