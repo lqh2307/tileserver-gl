@@ -65,7 +65,9 @@
             }
           }
         },
-        "required": ["style"]
+        "required": [
+          "style"
+        ]
       }
     },
     "geojsons": {
@@ -91,7 +93,9 @@
               }
             }
           },
-          "required": ["geojson"]
+          "required": [
+            "geojson"
+          ]
         }
       }
     },
@@ -129,11 +133,31 @@
           }
         },
         "anyOf": [
-          { "required": ["mbtiles"] },
-          { "required": ["pmtiles"] },
-          { "required": ["xyz"] },
-          { "required": ["pg"] },
-          { "required": ["geojson"] }
+          {
+            "required": [
+              "mbtiles"
+            ]
+          },
+          {
+            "required": [
+              "pmtiles"
+            ]
+          },
+          {
+            "required": [
+              "xyz"
+            ]
+          },
+          {
+            "required": [
+              "pg"
+            ]
+          },
+          {
+            "required": [
+              "geojson"
+            ]
+          }
         ]
       }
     },
@@ -156,7 +180,9 @@
                 "type": "boolean"
               }
             },
-            "required": ["sprite"]
+            "required": [
+              "sprite"
+            ]
           }
         }
       }
@@ -182,7 +208,9 @@
             }
           }
         },
-        "required": ["font"]
+        "required": [
+          "font"
+        ]
       }
     }
   }

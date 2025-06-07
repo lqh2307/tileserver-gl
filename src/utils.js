@@ -361,9 +361,9 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz", tileSize = 256) {
   let y = Math.floor(
     (scheme === "tms"
       ? size -
-        (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
+      (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
       : zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) /
-      tileSize
+    tileSize
   );
 
   // Limit x
@@ -420,8 +420,8 @@ export function getLonLatFromXYZ(
   return [
     (px - zc) / bc,
     (360 / Math.PI) *
-      (Math.atan(Math.exp((zc - (scheme === "tms" ? size - py : py)) / cc)) -
-        Math.PI / 4),
+    (Math.atan(Math.exp((zc - (scheme === "tms" ? size - py : py)) / cc)) -
+      Math.PI / 4),
   ];
 }
 
@@ -1451,428 +1451,22 @@ export function formatDegree(deg, isLat, format) {
 }
 
 /**
- * Add frame to image
- * @param {{ filePath: string, bbox: [number, number, number, number] }} input Input object
- * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
- * @param {object} options Frame options object
+ * Convert SVG to Image
+ * @param {string|Buffer} svg File path or buffer of SVG
  * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
- * @returns {Promise<string>}
+ * @returns {Promise<Buffer>}
  */
-export async function addFrameToImage(input, options, output) {
-  const {
-    padding = 10,
-
-    frameInnerColor = "black",
-    frameInnerWidth = 6,
-    frameInnerStyle = "solid",
-
-    frameOuterColor = "black",
-    frameOuterWidth = 6,
-    frameOuterStyle = "solid",
-
-    frameSpace = 120,
-
-    majorGrid = false,
-    majorGridStyle = "longDashed",
-    minorGrid = false,
-    minorGridStyle = "longDashed",
-
-    tickLabelFormat = "DMSD",
-
-    tickMajorTickStep = 0.5,
-    tickMinorTickStep = 0.05,
-
-    tickMajorTickWidth = 6,
-    tickMinorTickWidth = 4,
-
-    tickMajorTickSize = 20,
-    tickMinorTickSize = 15,
-
-    tickMajorLabelSize = 18,
-    tickMinorLabelSize = 0,
-
-    tickMajorColor = "black",
-    tickMinorColor = "black",
-
-    tickMajorLabelColor = "black",
-    tickMinorLabelColor = "black",
-
-    tickMajorLabelFont = "sans-serif",
-    tickMinorLabelFont = "sans-serif",
-
-    xTickLabelOffset = 5,
-    yTickLabelOffset = 5,
-
-    xTickMajorLabelRotation = 0,
-    xTickMinorLabelRotation = 0,
-
-    yTickMajorLabelRotation = 0,
-    yTickMinorLabelRotation = 0,
-  } = options;
-
-  const image = sharp(input.filePath, {
+export async function convertSVGToImage(svg, output) {
+  const image = sharp(svg, {
     limitInputPixels: false,
   });
 
-  const { width, height } = await image.metadata();
-  const bbox = input.bbox;
-
-  let innerStrokeDasharray = "";
-  if (frameInnerStyle === "solid") {
-    innerStrokeDasharray = "";
-  } else if (frameInnerStyle === "dashed") {
-    innerStrokeDasharray = `stroke-dasharray="5,5"`;
-  } else if (frameInnerStyle === "longDashed") {
-    innerStrokeDasharray = `stroke-dasharray="10,5"`;
-  } else if (frameInnerStyle === "dotted") {
-    innerStrokeDasharray = `stroke-dasharray="1,3"`;
-  } else if (frameInnerStyle === "dashDot") {
-    innerStrokeDasharray = `stroke-dasharray="5,3,1,3"`;
-  }
-
-  let outerStrokeDasharray = " ";
-  if (frameOuterStyle === "solid") {
-    outerStrokeDasharray = " ";
-  } else if (frameOuterStyle === "dashed ") {
-    outerStrokeDasharray = `stroke-dasharray="5,5" `;
-  } else if (frameOuterStyle === "longDashed") {
-    outerStrokeDasharray = `stroke-dasharray="10,5" `;
-  } else if (frameOuterStyle === "dotted") {
-    outerStrokeDasharray = `stroke-dasharray="1,3" `;
-  } else if (frameOuterStyle === "dashDot") {
-    outerStrokeDasharray = `stroke-dasharray="5,3,1,3" `;
-  }
-
-  let majorGridStrokeDasharray = "";
-  if (majorGridStyle === "solid") {
-    majorGridStrokeDasharray = "";
-  } else if (majorGridStyle === "dashed") {
-    majorGridStrokeDasharray = `stroke-dasharray="5,5"`;
-  } else if (majorGridStyle === "longDashed") {
-    majorGridStrokeDasharray = `stroke-dasharray="10,5"`;
-  } else if (majorGridStyle === "dotted") {
-    majorGridStrokeDasharray = `stroke-dasharray="1,3"`;
-  } else if (majorGridStyle === "dashDot") {
-    majorGridStrokeDasharray = `stroke-dasharray="5,3,1,3"`;
-  }
-
-  let minorGridStrokeDasharray = "";
-  if (minorGridStyle === "solid") {
-    minorGridStrokeDasharray = "";
-  } else if (minorGridStyle === "dashed") {
-    minorGridStrokeDasharray = `stroke-dasharray="5,5"`;
-  } else if (majorGridStyle === "longDashed") {
-    minorGridStrokeDasharray = `stroke-dasharray="10,5"`;
-  } else if (majorGridStyle === "dotted") {
-    minorGridStrokeDasharray = `stroke-dasharray="1,3"`;
-  } else if (majorGridStyle === "dashDot") {
-    minorGridStrokeDasharray = `stroke-dasharray="5,3,1,3"`;
-  }
-
-  const degPerPixelX = (bbox[2] - bbox[0]) / width;
-  const degPerPixelY = (bbox[3] - bbox[1]) / height;
-
-  const esp = 1e-9;
-  const svgElements = [];
-
-  // Inner frame
-  svgElements.push(
-    `<rect x="${padding + frameSpace}" y="${
-      padding + frameSpace
-    }" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${innerStrokeDasharray}/>`
-  );
-
-  // Outer frame
-  svgElements.push(
-    `<rect x="${padding}" y="${padding}" width="${
-      width + frameSpace * 2
-    }" height="${
-      height + frameSpace * 2
-    }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${outerStrokeDasharray}/>`
-  );
-
-  // X-axis major ticks & labels
-  let xMajorStart = Math.round(bbox[0] / tickMajorTickStep) * tickMajorTickStep;
-  for (let lon = xMajorStart; lon <= bbox[2] + esp; lon += tickMajorTickStep) {
-    const x = (lon - bbox[0]) / degPerPixelX;
-
-    // Top tick
-    svgElements.push(
-      `<line x1="${padding + x + frameSpace}" y1="${
-        padding + frameSpace
-      }" x2="${padding + x + frameSpace}" y2="${
-        padding + frameSpace - tickMajorTickSize
-      }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
-    );
-
-    // Bottom tick
-    svgElements.push(
-      `<line x1="${padding + x + frameSpace}" y1="${
-        padding + height + frameSpace
-      }" x2="${padding + x + frameSpace}" y2="${
-        padding + height + frameSpace + tickMajorTickSize
-      }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
-    );
-
-    if (tickMajorLabelSize > 0) {
-      const label = formatDegree(
-        bbox[0] + x * degPerPixelX,
-        false,
-        tickLabelFormat
-      );
-
-      // Top label
-      svgElements.push(
-        `<text x="${padding + x + frameSpace}" y="${
-          padding + frameSpace - tickMajorTickSize - xTickLabelOffset
-        }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${
-          padding + x + frameSpace
-        },${
-          padding + frameSpace - tickMajorTickSize - xTickLabelOffset
-        })">${label}</text>`
-      );
-
-      // Bottom label
-      svgElements.push(
-        `<text x="${padding + x + frameSpace}" y="${
-          padding + height + frameSpace + tickMajorTickSize + xTickLabelOffset
-        }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${
-          padding + x + frameSpace
-        },${
-          padding + height + frameSpace + tickMajorTickSize + xTickLabelOffset
-        })">${label}</text>`
-      );
-    }
-
-    if (majorGrid === true) {
-      svgElements.push(
-        `<line x1="${padding + x + frameSpace}" y1="${
-          padding + frameSpace
-        }" x2="${padding + x + frameSpace}" y2="${
-          padding + frameSpace + height
-        }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}"  ${majorGridStrokeDasharray}/>`
-      );
-    }
-  }
-
-  // X-axis minor & labels
-  let xMinorStart = Math.round(bbox[0] / tickMinorTickStep) * tickMinorTickStep;
-  for (let lon = xMinorStart; lon <= bbox[2] + esp; lon += tickMinorTickStep) {
-    const x = (lon - bbox[0]) / degPerPixelX;
-
-    // Top tick
-    svgElements.push(
-      `<line x1="${padding + x + frameSpace}" y1="${
-        padding + frameSpace
-      }" x2="${padding + x + frameSpace}" y2="${
-        padding + frameSpace - tickMinorTickSize
-      }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
-    );
-
-    // Bottom tick
-    svgElements.push(
-      `<line x1="${padding + x + frameSpace}" y1="${
-        padding + height + frameSpace
-      }" x2="${padding + x + frameSpace}" y2="${
-        padding + height + frameSpace + tickMinorTickSize
-      }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
-    );
-
-    if (tickMinorLabelSize > 0) {
-      const label = formatDegree(
-        bbox[0] + x * degPerPixelX,
-        false,
-        tickLabelFormat
-      );
-
-      // Top label
-      svgElements.push(
-        `<text x="${padding + x + frameSpace}" y="${
-          padding + frameSpace - tickMinorTickSize - xTickLabelOffset
-        }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${
-          padding + x + frameSpace
-        },${
-          padding + frameSpace - tickMinorTickSize - xTickLabelOffset
-        })">${label}</text>`
-      );
-
-      // Bottom label
-      svgElements.push(
-        `<text x="${padding + x + frameSpace}" y="${
-          padding + height + frameSpace + tickMinorTickSize + xTickLabelOffset
-        }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${
-          padding + x + frameSpace
-        },${
-          padding + height + frameSpace + tickMinorTickSize + xTickLabelOffset
-        })">${label}</text>`
-      );
-    }
-
-    if (minorGrid === true) {
-      svgElements.push(
-        `<line x1="${padding + x + frameSpace}" y1="${
-          padding + frameSpace
-        }" x2="${padding + x + frameSpace}" y2="${
-          padding + frameSpace + height
-        }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" ${minorGridStrokeDasharray}/>`
-      );
-    }
-  }
-
-  // Y-axis major ticks & labels
-  let yMajorStart =
-    Math.round((bbox[1] + esp) / tickMajorTickStep) * tickMajorTickStep;
-  for (let lat = yMajorStart; lat <= bbox[3] + esp; lat += tickMajorTickStep) {
-    const y = (bbox[3] - lat) / degPerPixelY;
-
-    // Left tick
-    svgElements.push(
-      `<line x1="${padding + frameSpace}" y1="${
-        padding + y + frameSpace
-      }" x2="${padding + frameSpace - tickMajorTickSize}" y2="${
-        padding + y + frameSpace
-      }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
-    );
-
-    // Right tick
-    svgElements.push(
-      `<line x1="${padding + width + frameSpace}" y1="${
-        padding + y + frameSpace
-      }" x2="${padding + width + frameSpace + tickMajorTickSize}" y2="${
-        padding + y + frameSpace
-      }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
-    );
-
-    if (tickMajorLabelSize > 0) {
-      const label = formatDegree(
-        bbox[3] - y * degPerPixelY,
-        true,
-        tickLabelFormat
-      );
-
-      // Left label
-      svgElements.push(
-        `<text x="${
-          padding + frameSpace - tickMajorTickSize - yTickLabelOffset
-        }" y="${
-          padding + y + frameSpace
-        }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
-          padding + frameSpace - tickMajorTickSize - yTickLabelOffset
-        },${padding + y + frameSpace})">${label}</text>`
-      );
-
-      // Right label
-      svgElements.push(
-        `<text x="${
-          padding + width + frameSpace + tickMajorTickSize + yTickLabelOffset
-        }" y="${
-          padding + y + frameSpace
-        }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
-          padding + width + frameSpace + tickMajorTickSize + yTickLabelOffset
-        },${padding + y + frameSpace})">${label}</text>`
-      );
-    }
-
-    if (majorGrid === true) {
-      svgElements.push(
-        `<line x1="${padding + frameSpace}" y1="${
-          padding + y + frameSpace
-        }" x2="${padding + frameSpace + width}" y2="${
-          padding + y + frameSpace
-        }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}"  ${majorGridStrokeDasharray}/>`
-      );
-    }
-  }
-
-  // Y-axis minor ticks & labels
-  let yMinorStart = Math.round(bbox[1] / tickMinorTickStep) * tickMinorTickStep;
-  for (let lat = yMinorStart; lat <= bbox[3] + esp; lat += tickMinorTickStep) {
-    const y = (bbox[3] - lat) / degPerPixelY;
-
-    // Left tick
-    svgElements.push(
-      `<line x1="${padding + frameSpace}" y1="${
-        padding + y + frameSpace
-      }" x2="${padding + frameSpace - tickMinorTickSize}" y2="${
-        padding + y + frameSpace
-      }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
-    );
-
-    // Right tick
-    svgElements.push(
-      `<line x1="${padding + width + frameSpace}" y1="${
-        padding + y + frameSpace
-      }" x2="${padding + width + frameSpace + tickMinorTickSize}" y2="${
-        padding + y + frameSpace
-      }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
-    );
-
-    if (tickMinorLabelSize > 0) {
-      const label = formatDegree(
-        bbox[3] - y * degPerPixelY,
-        true,
-        tickLabelFormat
-      );
-
-      // Left label
-      svgElements.push(
-        `<text x="${
-          padding + frameSpace - tickMinorTickSize - yTickLabelOffset
-        }" y="${
-          padding + y + frameSpace
-        }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
-          padding + frameSpace - tickMinorTickSize - yTickLabelOffset
-        },${padding + y + frameSpace})">${label}</text>`
-      );
-
-      // Right label
-      svgElements.push(
-        `<text x="${
-          padding + width + frameSpace + tickMinorTickSize + yTickLabelOffset
-        }" y="${
-          padding + y + frameSpace
-        }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
-          padding + width + frameSpace + tickMinorTickSize + yTickLabelOffset
-        },${padding + y + frameSpace})">${label}</text>`
-      );
-
-      if (minorGrid === true) {
-        svgElements.push(
-          `<line x1="${padding + frameSpace}" y1="${
-            padding + y + frameSpace
-          }" x2="${padding + frameSpace + width}" y2="${
-            padding + y + frameSpace
-          }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" ${minorGridStrokeDasharray}/>`
-        );
-      }
-    }
-  }
-
-  // Create image
-  image
-    .extend({
-      top: padding + frameSpace,
-      left: padding + frameSpace,
-      bottom: padding + frameSpace,
-      right: padding + frameSpace,
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
-    })
-    .composite([
-      {
-        input: Buffer.from(
-          `<svg width="${padding * 2 + width + frameSpace * 2}" height="${
-            padding * 2 + height + frameSpace * 2
-          }" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
-        ),
-        left: 0,
-        top: 0,
-      },
-    ]);
-
+  // Resize image
   if (output.width > 0 || output.height > 0) {
     image.resize(output.width, output.height);
   }
 
+  // Create format
   switch (output.format) {
     case "gif": {
       image.gif({});
@@ -1906,7 +1500,502 @@ export async function addFrameToImage(input, options, output) {
     }
   }
 
+  // Write to output
+  if (output.filePath !== undefined) {
+    return await image.toFile(output.filePath);
+  } else {
+    return await image.toBuffer();
+  }
+}
+
+/**
+ * Add frame to image
+ * @param {{ filePath: string, bbox: [number, number, number, number] }} input Input object
+ * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @param {object} frame Frame options object
+ * @param {object} grid Grid options object
+ * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
+ * @returns {Promise<{width: number, height: number}>}
+ */
+export async function addFrameToImage(input, frame, grid, output) {
+  const image = sharp(input.filePath, {
+    limitInputPixels: false,
+  });
+
+  let metadata;
+
+  const imageMetadata = await image.metadata();
+
+  // Process image
+  if (frame !== undefined) {
+    let {
+      padding,
+
+      frameInnerColor = "black",
+      frameInnerWidth = 6,
+      frameInnerStyle = "solid",
+
+      frameOuterColor = "black",
+      frameOuterWidth = 6,
+      frameOuterStyle = "solid",
+
+      frameSpace = 120,
+
+      tickLabelFormat = "DMSD",
+
+      tickMajorTickStep = 0.5,
+      tickMinorTickStep = 0.05,
+
+      tickMajorTickWidth = 6,
+      tickMinorTickWidth = 4,
+
+      tickMajorTickSize = 20,
+      tickMinorTickSize = 15,
+
+      tickMajorLabelSize = 18,
+      tickMinorLabelSize = 0,
+
+      tickMajorColor = "black",
+      tickMinorColor = "black",
+
+      tickMajorLabelColor = "black",
+      tickMinorLabelColor = "black",
+
+      tickMajorLabelFont = "sans-serif",
+      tickMinorLabelFont = "sans-serif",
+
+      xTickLabelOffset = 5,
+      yTickLabelOffset = 5,
+
+      xTickMajorLabelRotation = 0,
+      xTickMinorLabelRotation = 0,
+
+      yTickMajorLabelRotation = 0,
+      yTickMinorLabelRotation = 0,
+    } = frame;
+
+    let {
+      majorGrid = false,
+      majorGridStyle = "longDashed",
+      minorGrid = false,
+      minorGridStyle = "longDashed",
+    } = grid || {};
+
+    const originWidth = imageMetadata.width;
+    const originHeight = imageMetadata.height;
+    const bbox = input.bbox;
+
+    if (padding === undefined) {
+      padding = Math.ceil(frameOuterWidth / 2);
+    }
+
+    if (frameInnerStyle === "solid") {
+      frameInnerStyle = "";
+    } else if (frameInnerStyle === "dashed") {
+      frameInnerStyle = `stroke-dasharray="5,5"`;
+    } else if (frameInnerStyle === "longDashed") {
+      frameInnerStyle = `stroke-dasharray="10,5"`;
+    } else if (frameInnerStyle === "dotted") {
+      frameInnerStyle = `stroke-dasharray="1,3"`;
+    } else if (frameInnerStyle === "dashDot") {
+      frameInnerStyle = `stroke-dasharray="5,3,1,3"`;
+    }
+
+    if (frameOuterStyle === "solid") {
+      frameOuterStyle = " ";
+    } else if (frameOuterStyle === "dashed ") {
+      frameOuterStyle = `stroke-dasharray="5,5" `;
+    } else if (frameOuterStyle === "longDashed") {
+      frameOuterStyle = `stroke-dasharray="10,5" `;
+    } else if (frameOuterStyle === "dotted") {
+      frameOuterStyle = `stroke-dasharray="1,3" `;
+    } else if (frameOuterStyle === "dashDot") {
+      frameOuterStyle = `stroke-dasharray="5,3,1,3" `;
+    }
+
+    if (majorGridStyle === "solid") {
+      majorGridStyle = "";
+    } else if (majorGridStyle === "dashed") {
+      majorGridStyle = `stroke-dasharray="5,5"`;
+    } else if (majorGridStyle === "longDashed") {
+      majorGridStyle = `stroke-dasharray="10,5"`;
+    } else if (majorGridStyle === "dotted") {
+      majorGridStyle = `stroke-dasharray="1,3"`;
+    } else if (majorGridStyle === "dashDot") {
+      majorGridStyle = `stroke-dasharray="5,3,1,3"`;
+    }
+
+    if (minorGridStyle === "solid") {
+      minorGridStyle = "";
+    } else if (minorGridStyle === "dashed") {
+      minorGridStyle = `stroke-dasharray="5,5"`;
+    } else if (minorGridStyle === "longDashed") {
+      minorGridStyle = `stroke-dasharray="10,5"`;
+    } else if (minorGridStyle === "dotted") {
+      minorGridStyle = `stroke-dasharray="1,3"`;
+    } else if (minorGridStyle === "dashDot") {
+      minorGridStyle = `stroke-dasharray="5,3,1,3"`;
+    }
+
+    const totalWidth = padding * 2 + frameSpace * 2 + originWidth;
+    const totalHeigh = padding * 2 + frameSpace * 2 + originHeight;
+
+    const degPerPixelX = (bbox[2] - bbox[0]) / originWidth;
+    const degPerPixelY = (bbox[3] - bbox[1]) / originHeight;
+
+    const esp = 1e-9;
+    const svgElements = [];
+
+    // Inner frame
+    svgElements.push(
+      `<rect x="${padding + frameSpace}" y="${padding + frameSpace
+      }" width="${originWidth}" height="${originHeight}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`
+    );
+
+    // Outer frame
+    svgElements.push(
+      `<rect x="${padding}" y="${padding}" width="${originWidth + frameSpace * 2
+      }" height="${originHeight + frameSpace * 2
+      }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`
+    );
+
+    // X-axis major ticks & labels
+    let xMajorStart =
+      Math.round(bbox[0] / tickMajorTickStep) * tickMajorTickStep;
+    for (
+      let lon = xMajorStart;
+      lon <= bbox[2] + esp;
+      lon += tickMajorTickStep
+    ) {
+      const x = (lon - bbox[0]) / degPerPixelX;
+
+      // Top tick
+      svgElements.push(
+        `<line x1="${padding + x + frameSpace}" y1="${padding + frameSpace
+        }" x2="${padding + x + frameSpace}" y2="${padding + frameSpace - tickMajorTickSize
+        }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
+      );
+
+      // Bottom tick
+      svgElements.push(
+        `<line x1="${padding + x + frameSpace}" y1="${padding + originHeight + frameSpace
+        }" x2="${padding + x + frameSpace}" y2="${padding + originHeight + frameSpace + tickMajorTickSize
+        }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
+      );
+
+      if (tickMajorLabelSize > 0) {
+        const label = formatDegree(
+          bbox[0] + x * degPerPixelX,
+          false,
+          tickLabelFormat
+        );
+
+        // Top label
+        svgElements.push(
+          `<text x="${padding + x + frameSpace}" y="${padding + frameSpace - tickMajorTickSize - xTickLabelOffset
+          }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${padding + x + frameSpace
+          },${padding + frameSpace - tickMajorTickSize - xTickLabelOffset
+          })">${label}</text>`
+        );
+
+        // Bottom label
+        svgElements.push(
+          `<text x="${padding + x + frameSpace}" y="${padding +
+          originHeight +
+          frameSpace +
+          tickMajorTickSize +
+          xTickLabelOffset
+          }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${padding + x + frameSpace
+          },${padding +
+          originHeight +
+          frameSpace +
+          tickMajorTickSize +
+          xTickLabelOffset
+          })">${label}</text>`
+        );
+      }
+
+      // Grid
+      if (majorGrid === true) {
+        svgElements.push(
+          `<line x1="${padding + x + frameSpace}" y1="${padding + frameSpace
+          }" x2="${padding + x + frameSpace}" y2="${padding + frameSpace + originHeight
+          }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" ${majorGridStyle}/>`
+        );
+      }
+    }
+
+    // X-axis minor & labels
+    let xMinorStart =
+      Math.round(bbox[0] / tickMinorTickStep) * tickMinorTickStep;
+    for (
+      let lon = xMinorStart;
+      lon <= bbox[2] + esp;
+      lon += tickMinorTickStep
+    ) {
+      const x = (lon - bbox[0]) / degPerPixelX;
+
+      // Top tick
+      svgElements.push(
+        `<line x1="${padding + x + frameSpace}" y1="${padding + frameSpace
+        }" x2="${padding + x + frameSpace}" y2="${padding + frameSpace - tickMinorTickSize
+        }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
+      );
+
+      // Bottom tick
+      svgElements.push(
+        `<line x1="${padding + x + frameSpace}" y1="${padding + originHeight + frameSpace
+        }" x2="${padding + x + frameSpace}" y2="${padding + originHeight + frameSpace + tickMinorTickSize
+        }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
+      );
+
+      if (tickMinorLabelSize > 0) {
+        const label = formatDegree(
+          bbox[0] + x * degPerPixelX,
+          false,
+          tickLabelFormat
+        );
+
+        // Top label
+        svgElements.push(
+          `<text x="${padding + x + frameSpace}" y="${padding + frameSpace - tickMinorTickSize - xTickLabelOffset
+          }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${padding + x + frameSpace
+          },${padding + frameSpace - tickMinorTickSize - xTickLabelOffset
+          })">${label}</text>`
+        );
+
+        // Bottom label
+        svgElements.push(
+          `<text x="${padding + x + frameSpace}" y="${padding +
+          originHeight +
+          frameSpace +
+          tickMinorTickSize +
+          xTickLabelOffset
+          }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${padding + x + frameSpace
+          },${padding +
+          originHeight +
+          frameSpace +
+          tickMinorTickSize +
+          xTickLabelOffset
+          })">${label}</text>`
+        );
+      }
+
+      // Grid
+      if (minorGrid === true) {
+        svgElements.push(
+          `<line x1="${padding + x + frameSpace}" y1="${padding + frameSpace
+          }" x2="${padding + x + frameSpace}" y2="${padding + frameSpace + originHeight
+          }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" ${minorGridStyle}/>`
+        );
+      }
+    }
+
+    // Y-axis major ticks & labels
+    let yMajorStart =
+      Math.round((bbox[1] + esp) / tickMajorTickStep) * tickMajorTickStep;
+    for (
+      let lat = yMajorStart;
+      lat <= bbox[3] + esp;
+      lat += tickMajorTickStep
+    ) {
+      const y = (bbox[3] - lat) / degPerPixelY;
+
+      // Left tick
+      svgElements.push(
+        `<line x1="${padding + frameSpace}" y1="${padding + y + frameSpace
+        }" x2="${padding + frameSpace - tickMajorTickSize}" y2="${padding + y + frameSpace
+        }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
+      );
+
+      // Right tick
+      svgElements.push(
+        `<line x1="${padding + originWidth + frameSpace}" y1="${padding + y + frameSpace
+        }" x2="${padding + originWidth + frameSpace + tickMajorTickSize}" y2="${padding + y + frameSpace
+        }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" />`
+      );
+
+      if (tickMajorLabelSize > 0) {
+        const label = formatDegree(
+          bbox[3] - y * degPerPixelY,
+          true,
+          tickLabelFormat
+        );
+
+        // Left label
+        svgElements.push(
+          `<text x="${padding + frameSpace - tickMajorTickSize - yTickLabelOffset
+          }" y="${padding + y + frameSpace
+          }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${padding + frameSpace - tickMajorTickSize - yTickLabelOffset
+          },${padding + y + frameSpace})">${label}</text>`
+        );
+
+        // Right label
+        svgElements.push(
+          `<text x="${padding +
+          originWidth +
+          frameSpace +
+          tickMajorTickSize +
+          yTickLabelOffset
+          }" y="${padding + y + frameSpace
+          }" font-size="${tickMajorLabelSize}" font-family="${tickMajorLabelFont}" fill="${tickMajorLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${padding +
+          originWidth +
+          frameSpace +
+          tickMajorTickSize +
+          yTickLabelOffset
+          },${padding + y + frameSpace})">${label}</text>`
+        );
+      }
+
+      // Grid
+      if (majorGrid === true) {
+        svgElements.push(
+          `<line x1="${padding + frameSpace}" y1="${padding + y + frameSpace
+          }" x2="${padding + frameSpace + originWidth}" y2="${padding + y + frameSpace
+          }" stroke="${tickMajorColor}" stroke-width="${tickMajorTickWidth}" ${majorGridStyle}/>`
+        );
+      }
+    }
+
+    // Y-axis minor ticks & labels
+    let yMinorStart =
+      Math.round(bbox[1] / tickMinorTickStep) * tickMinorTickStep;
+    for (
+      let lat = yMinorStart;
+      lat <= bbox[3] + esp;
+      lat += tickMinorTickStep
+    ) {
+      const y = (bbox[3] - lat) / degPerPixelY;
+
+      // Left tick
+      svgElements.push(
+        `<line x1="${padding + frameSpace}" y1="${padding + y + frameSpace
+        }" x2="${padding + frameSpace - tickMinorTickSize}" y2="${padding + y + frameSpace
+        }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
+      );
+
+      // Right tick
+      svgElements.push(
+        `<line x1="${padding + originWidth + frameSpace}" y1="${padding + y + frameSpace
+        }" x2="${padding + originWidth + frameSpace + tickMinorTickSize}" y2="${padding + y + frameSpace
+        }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" />`
+      );
+
+      if (tickMinorLabelSize > 0) {
+        const label = formatDegree(
+          bbox[3] - y * degPerPixelY,
+          true,
+          tickLabelFormat
+        );
+
+        // Left label
+        svgElements.push(
+          `<text x="${padding + frameSpace - tickMinorTickSize - yTickLabelOffset
+          }" y="${padding + y + frameSpace
+          }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${padding + frameSpace - tickMinorTickSize - yTickLabelOffset
+          },${padding + y + frameSpace})">${label}</text>`
+        );
+
+        // Right label
+        svgElements.push(
+          `<text x="${padding +
+          originWidth +
+          frameSpace +
+          tickMinorTickSize +
+          yTickLabelOffset
+          }" y="${padding + y + frameSpace
+          }" font-size="${tickMinorLabelSize}" font-family="${tickMinorLabelFont}" fill="${tickMinorLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${padding +
+          originWidth +
+          frameSpace +
+          tickMinorTickSize +
+          yTickLabelOffset
+          },${padding + y + frameSpace})">${label}</text>`
+        );
+      }
+
+      // Grid
+      if (minorGrid === true) {
+        svgElements.push(
+          `<line x1="${padding + frameSpace}" y1="${padding + y + frameSpace
+          }" x2="${padding + frameSpace + originWidth}" y2="${padding + y + frameSpace
+          }" stroke="${tickMinorColor}" stroke-width="${tickMinorTickWidth}" ${minorGridStyle}/>`
+        );
+      }
+    }
+
+    // Create image
+    image
+      .extend({
+        top: padding + frameSpace,
+        left: padding + frameSpace,
+        bottom: padding + frameSpace,
+        right: padding + frameSpace,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      })
+      .composite([
+        {
+          input: Buffer.from(
+            `<svg width="${totalWidth}" height="${totalHeigh}" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
+          ),
+          left: 0,
+          top: 0,
+        },
+      ]);
+
+    metadata = {
+      width: totalWidth,
+      height: totalHeigh,
+    };
+  } else {
+    metadata = {
+      width: imageMetadata.width,
+      height: imageMetadata.height,
+    };
+  }
+
+  // Resize image
+  if (output.width > 0 || output.height > 0) {
+    image.resize(output.width, output.height);
+  }
+
+  // Create format
+  switch (output.format) {
+    case "gif": {
+      image.gif({});
+
+      break;
+    }
+
+    case "png": {
+      image.png({
+        compressionLevel: 9,
+      });
+
+      break;
+    }
+
+    case "jpg":
+    case "jpeg": {
+      image.jpeg({
+        quality: 100,
+      });
+
+      break;
+    }
+
+    case "webp": {
+      image.webp({
+        quality: 100,
+      });
+
+      break;
+    }
+  }
+
+  // Write to file
   await image.toFile(output.filePath);
+
+  return metadata;
 }
 
 /**
@@ -1921,14 +2010,9 @@ export async function mergeImages(baselayer, overlays, output) {
     recursive: true,
   });
 
-  const baseImage = sharp(
-    (await isExistFile(baselayer.content))
-      ? baselayer.content
-      : Buffer.from(baselayer.content),
-    {
-      limitInputPixels: false,
-    }
-  );
+  const baseImage = sharp(baselayer.content, {
+    limitInputPixels: false,
+  });
   const baseImageMetadata = await baseImage.metadata();
   const baseImageExtent = [
     ...lonLat4326ToXY3857(baselayer.bbox[0], baselayer.bbox[1]),
@@ -1942,14 +2026,9 @@ export async function mergeImages(baselayer, overlays, output) {
   baseImage.composite(
     await Promise.all(
       overlays.map(async (overlay) => {
-        const overlayImage = sharp(
-          (await isExistFile(overlay.content))
-            ? overlay.content
-            : Buffer.from(overlay.content),
-          {
-            limitInputPixels: false,
-          }
-        );
+        const overlayImage = sharp(overlay.content, {
+          limitInputPixels: false,
+        });
         const overlayExtent = [
           ...lonLat4326ToXY3857(overlay.bbox[0], overlay.bbox[1]),
           ...lonLat4326ToXY3857(overlay.bbox[2], overlay.bbox[3]),
@@ -1963,7 +2042,7 @@ export async function mergeImages(baselayer, overlays, output) {
               ),
               Math.ceil(
                 (overlayExtent[3] - overlayExtent[1]) *
-                  baseImageHeightResolution
+                baseImageHeightResolution
               )
             )
             .toBuffer(),

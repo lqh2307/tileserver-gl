@@ -99,16 +99,24 @@
       },
       "anyOf": [
         {
-          "required": ["time"]
+          "required": [
+            "time"
+          ]
         },
         {
-          "required": ["day"]
+          "required": [
+            "day"
+          ]
         },
         {
-          "required": ["md5"]
+          "required": [
+            "md5"
+          ]
         }
       ]
     }
   },
-  "required": ["id"]
+  "required": [
+    "id"
+  ]
 }

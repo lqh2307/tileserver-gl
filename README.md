@@ -507,17 +507,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "name": "osm",
         "description": "osm",
         "format": "png",
-        "bounds": [
-          96,
-          4,
-          120,
-          28
-        ],
-        "center": [
-          108,
-          16,
-          10
-        ],
+        "bounds": [96, 4, 120, 28],
+        "center": [108, 16, 10],
         "minzoom": 0,
         "maxzoom": 18
       },
@@ -527,30 +518,15 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       "coverages": [
         {
-          "bbox": [
-            96,
-            4,
-            120,
-            28
-          ],
+          "bbox": [96, 4, 120, 28],
           "zoom": 0
         },
         {
-          "bbox": [
-            96,
-            4,
-            120,
-            28
-          ],
+          "bbox": [96, 4, 120, 28],
           "zoom": 5
         },
         {
-          "bbox": [
-            96,
-            4,
-            120,
-            28
-          ],
+          "bbox": [96, 4, 120, 28],
           "zoom": 9
         }
       ],
@@ -565,17 +541,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "name": "planet",
         "description": "planet",
         "format": "pbf",
-        "bounds": [
-          96,
-          4,
-          120,
-          28
-        ],
-        "center": [
-          108,
-          16,
-          10
-        ],
+        "bounds": [96, 4, 120, 28],
+        "center": [108, 16, 10],
         "vector_layers": [
           {
             "id": "aerodrome_label"
@@ -635,39 +602,19 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "url": "https://dwuxtsziek7cf.cloudfront.net/planet/{z}/{x}/{y}.pbf",
       "coverages": [
         {
-          "bbox": [
-            108,
-            20,
-            114,
-            28
-          ],
+          "bbox": [108, 20, 114, 28],
           "zoom": 0
         },
         {
-          "bbox": [
-            96,
-            8,
-            102,
-            16
-          ],
+          "bbox": [96, 8, 102, 16],
           "zoom": 5
         },
         {
-          "bbox": [
-            96,
-            8,
-            102,
-            16
-          ],
+          "bbox": [96, 8, 102, 16],
           "zoom": 10
         },
         {
-          "bbox": [
-            96,
-            4,
-            120,
-            28
-          ],
+          "bbox": [96, 4, 120, 28],
           "zoom": 10
         }
       ],
@@ -683,17 +630,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "name": "satellite",
         "description": "satellite",
         "format": "jpeg",
-        "bounds": [
-          -180,
-          -90,
-          180,
-          90
-        ],
-        "center": [
-          108,
-          16,
-          10
-        ],
+        "bounds": [-180, -90, 180, 90],
+        "center": [108, 16, 10],
         "minzoom": 0,
         "maxzoom": 18
       },
@@ -703,75 +641,35 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       "coverages": [
         {
-          "bbox": [
-            104.4,
-            8.55,
-            106.8,
-            10.42
-          ],
+          "bbox": [104.4, 8.55, 106.8, 10.42],
           "zoom": 17
         },
         {
-          "bbox": [
-            102.5,
-            20.5,
-            108,
-            21.5
-          ],
+          "bbox": [102.5, 20.5, 108, 21.5],
           "zoom": 17
         },
         {
-          "bbox": [
-            103.8,
-            20.15,
-            106.65,
-            20.5
-          ],
+          "bbox": [103.8, 20.15, 106.65, 20.5],
           "zoom": 17
         },
         {
-          "bbox": [
-            103.8,
-            19,
-            106.39,
-            20.15
-          ],
+          "bbox": [103.8, 19, 106.39, 20.15],
           "zoom": 17
         },
         {
-          "bbox": [
-            104.4,
-            8.55,
-            106.8,
-            10.42
-          ],
+          "bbox": [104.4, 8.55, 106.8, 10.42],
           "zoom": 18
         },
         {
-          "bbox": [
-            102.5,
-            20.5,
-            108,
-            21.5
-          ],
+          "bbox": [102.5, 20.5, 108, 21.5],
           "zoom": 18
         },
         {
-          "bbox": [
-            103.8,
-            20.15,
-            106.65,
-            20.5
-          ],
+          "bbox": [103.8, 20.15, 106.65, 20.5],
           "zoom": 18
         },
         {
-          "bbox": [
-            103.8,
-            19,
-            106.39,
-            20.15
-          ],
+          "bbox": [103.8, 19, 106.39, 20.15],
           "zoom": 18
         }
       ],
@@ -854,16 +752,70 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "time": "2024-10-10T00:00:00"
       },
       "timeout": 60000,
-      "concurrency": 50,
+      "concurrency": 5,
       "maxTry": 5
     },
-    "Open Sans Italic": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+    "Open Sans Bold Italic": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Bold Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
       "timeout": 60000,
-      "concurrency": 50,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans ExtraBold": {
+      "url": "https://api.maptiler.com/fonts/Open Sans ExtraBold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans ExtraBold Italic": {
+      "url": "https://api.maptiler.com/fonts/Open Sans ExtraBold Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans Semibold": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Semibold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans Semibold Italic": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Semibold Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans Light": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Light/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans Light Italic": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Light Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
       "maxTry": 5
     },
     "Open Sans Regular": {
@@ -872,7 +824,34 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "time": "2024-10-10T00:00:00"
       },
       "timeout": 60000,
-      "concurrency": 50,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans Italic": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans Medium": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Medium/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
+      "maxTry": 5
+    },
+    "Open Sans Medium Italic": {
+      "url": "https://api.maptiler.com/fonts/Open Sans Medium Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "concurrency": 5,
       "maxTry": 5
     },
     "Roboto Condensed Italic": {
@@ -1046,6 +1025,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
   "maxRendererPoolSize": 200,
   "concurrency": 200,
   "tileScale": 2,
+  "frame": {},
+  "grid": {},
   "storeTransparent": true,
   "styleJSON": {
     "version": 8,
