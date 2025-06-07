@@ -107,59 +107,59 @@
             "DMSD"
           ]
         },
-        "tickMajorTickStep": {
+        "majorTickStep": {
           "type": "number",
           "minLength": 0
         },
-        "tickMinorTickStep": {
+        "minorTickStep": {
           "type": "number",
           "minLength": 0
         },
-        "tickMajorTickWidth": {
+        "majorTickWidth": {
           "type": "integer",
           "minLength": 0
         },
-        "tickMinorTickWidth": {
+        "minorTickWidth": {
           "type": "integer",
           "minLength": 0
         },
-        "tickMajorTickSize": {
+        "majorTickSize": {
           "type": "integer",
           "minLength": 0
         },
-        "tickMinorTickSize": {
+        "minorTickSize": {
           "type": "integer",
           "minLength": 0
         },
-        "tickMajorLabelSize": {
+        "majorTickLabelSize": {
           "type": "integer",
           "minLength": 0
         },
-        "tickMinorLabelSize": {
+        "minorTickLabelSize": {
           "type": "integer",
           "minLength": 0
         },
-        "tickMajorColor": {
+        "majorTickColor": {
           "type": "string",
           "minLength": 1
         },
-        "tickMinorColor": {
+        "minorTickColor": {
           "type": "string",
           "minLength": 1
         },
-        "tickMajorLabelColor": {
+        "majorTickLabelColor": {
           "type": "string",
           "minLength": 1
         },
-        "tickMinorLabelColor": {
+        "minorTickLabelColor": {
           "type": "string",
           "minLength": 1
         },
-        "tickMajorLabelFont": {
+        "majorTickLabelFont": {
           "type": "string",
           "minLength": 1
         },
-        "tickMinorLabelFont": {
+        "minorTickLabelFont": {
           "type": "string",
           "minLength": 1
         },
