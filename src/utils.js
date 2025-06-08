@@ -1531,11 +1531,11 @@ export async function addFrameToImage(input, frame, grid, output) {
     let {
       frameMargin,
 
-      frameInnerColor = "black",
+      frameInnerColor = "rgba(0,0,0,1)",
       frameInnerWidth = 6,
       frameInnerStyle = "solid",
 
-      frameOuterColor = "black",
+      frameOuterColor = "rgba(0,0,0,1)",
       frameOuterWidth = 6,
       frameOuterStyle = "solid",
 
@@ -1555,11 +1555,11 @@ export async function addFrameToImage(input, frame, grid, output) {
       majorTickLabelSize = 18,
       minorTickLabelSize = 0,
 
-      majorTickColor = "black",
-      minorTickColor = "black",
+      majorTickColor = "rgba(0,0,0,1)",
+      minorTickColor = "rgba(0,0,0,1)",
 
-      majorTickLabelColor = "black",
-      minorTickLabelColor = "black",
+      majorTickLabelColor = "rgba(0,0,0,1)",
+      minorTickLabelColor = "rgba(0,0,0,1)",
 
       majorTickLabelFont = "sans-serif",
       minorTickLabelFont = "sans-serif",
@@ -1579,13 +1579,13 @@ export async function addFrameToImage(input, frame, grid, output) {
       majorGridStyle = "longDashed",
       majorGridWidth = majorTickWidth,
       majorGridStep = majorTickStep,
-      majorGridColor = majorTickColor,
+      majorGridColor = "rgba(0,0,0,0.5)",
 
       minorGrid = false,
       minorGridStyle = "longDashed",
       minorGridWidth = minorTickWidth,
       minorGridStep = minorTickStep,
-      minorGridColor = minorTickColor,
+      minorGridColor = "rgba(0,0,0,0.5)",
     } = grid || {};
 
     const bbox = input.bbox;
