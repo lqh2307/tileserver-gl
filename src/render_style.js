@@ -720,6 +720,7 @@ export async function renderStyleJSONToImage(
         targetOverlays.push({
           content: Buffer.from(overlay.content),
           bbox: overlay.bbox,
+          format: overlay.format,
         });
       }
     }
@@ -870,9 +871,11 @@ export async function renderStyleJSONToImage(
       await mergeImages(targetBaselayer, targetOverlays, targetOutput);
 
       /* Add SRID */
-      const command = `gdal_translate -if ${driver} -of ${driver}${format === "png" ? " -co ZLEVEL=9" : ""
-        } -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]
-        } ${mergedFilePath} ${imageFilePath}`;
+      const command = `gdal_translate -if ${driver} -of ${driver}${
+        format === "png" ? " -co ZLEVEL=9" : ""
+      } -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${
+        bbox[1]
+      } ${mergedFilePath} ${imageFilePath}`;
 
       printLog("info", `Adding SRID for image with gdal command: ${command}`);
 
@@ -881,10 +884,13 @@ export async function renderStyleJSONToImage(
       printLog("info", `Gdal command output: ${commandOutput}`);
     } else {
       /* Crop image */
-      const command = `gdal_translate -if ${driver} -of ${driver}${format === "png" ? " -co ZLEVEL=9" : ""
-        } -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${bbox[2]
-        } ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${bbox[1]
-        } ${baselayerFilePath} ${imageFilePath}`;
+      const command = `gdal_translate -if ${driver} -of ${driver}${
+        format === "png" ? " -co ZLEVEL=9" : ""
+      } -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${
+        bbox[2]
+      } ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${
+        bbox[1]
+      } ${baselayerFilePath} ${imageFilePath}`;
 
       printLog("info", `Creating image with gdal command: ${command}`);
 
@@ -910,7 +916,8 @@ export async function renderStyleJSONToImage(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style JSON to ${driver} after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style JSON to ${driver} after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
 
@@ -918,7 +925,8 @@ export async function renderStyleJSONToImage(
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style JSON to ${driver} after ${(Date.now() - startTime) / 1000
+      `Failed to render style JSON to ${driver} after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
 
@@ -971,7 +979,7 @@ export async function renderSVGToImage(format, overlays, concurrency) {
       completeTasks: 0,
     };
 
-    async function renderPNGData(idx, tasks) {
+    async function renderImageData(idx, tasks) {
       const completeTasks = tasks.completeTasks;
 
       printLog(
@@ -984,7 +992,7 @@ export async function renderSVGToImage(format, overlays, concurrency) {
         targetOverlays[idx] = {
           name: overlays[idx].name,
           content: await convertSVGToImage(Buffer.from(overlays[idx].content), {
-            format: format,
+            format: overlays[idx].format || format,
             width: overlays[idx].width,
             height: overlays[idx].height,
           }),
@@ -1013,7 +1021,7 @@ export async function renderSVGToImage(format, overlays, concurrency) {
       });
 
       /* Run a task */
-      renderPNGData(idx, tasks).finally(() =>
+      renderImageData(idx, tasks).finally(() =>
         tasks.mutex.runExclusive(() => {
           tasks.activeTasks--;
         })
@@ -1027,7 +1035,8 @@ export async function renderSVGToImage(format, overlays, concurrency) {
 
     printLog(
       "info",
-      `Completed render ${total} SVGs to ${driver}s after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} SVGs to ${driver}s after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
 
@@ -1035,7 +1044,8 @@ export async function renderSVGToImage(format, overlays, concurrency) {
   } catch (error) {
     printLog(
       "error",
-      `Failed to render SVGs to ${driver}s after ${(Date.now() - startTime) / 1000
+      `Failed to render SVGs to ${driver}s after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
 
@@ -1323,13 +1333,15 @@ export async function renderMBTilesTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1638,13 +1650,15 @@ export async function renderXYZTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to xyz after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to xyz after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1939,13 +1953,15 @@ export async function renderPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {

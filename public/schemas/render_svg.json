@@ -27,6 +27,16 @@
           "height": {
             "type": "integer",
             "minimum": 1
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "gif",
+              "png",
+              "jpg",
+              "jpeg",
+              "webp"
+            ]
           }
         }
       }

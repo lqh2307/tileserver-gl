@@ -4,9 +4,9 @@ import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import {
-  getPNGImageMetadata,
   removeFileWithLock,
   createFileWithLock,
+  getImageMetadata,
   getDataFromURL,
   getJSONSchema,
   validateJSON,
@@ -129,7 +129,7 @@ export async function validateSprite(spriteDirPath) {
       );
 
       /* Validate PNG sprite */
-      const pngMetadata = await getPNGImageMetadata(`${fileNameWoExt}.png`);
+      const pngMetadata = await getImageMetadata(`${fileNameWoExt}.png`);
 
       if (pngMetadata.format !== "png") {
         throw new Error("Invalid PNG file");

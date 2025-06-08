@@ -1389,11 +1389,11 @@ export async function runCommand(command, interval, callback) {
 }
 
 /**
- * Get PNG image metadata
+ * Get image metadata
  * @param {string} filePath File path to store file
  * @returns {Promise<object>}
  */
-export async function getPNGImageMetadata(filePath) {
+export async function getImageMetadata(filePath) {
   return await sharp(filePath, {
     limitInputPixels: false,
   }).metadata();
@@ -2110,26 +2110,57 @@ export async function mergeImages(baselayer, overlays, output) {
   baseImage.composite(
     await Promise.all(
       overlays.map(async (overlay) => {
-        const overlayImage = sharp(overlay.content, {
-          limitInputPixels: false,
-        });
         const overlayExtent = [
           ...lonLat4326ToXY3857(overlay.bbox[0], overlay.bbox[1]),
           ...lonLat4326ToXY3857(overlay.bbox[2], overlay.bbox[3]),
         ];
 
+        const input = sharp(overlay.content, {
+          limitInputPixels: false,
+        }).resize(
+          Math.ceil(
+            (overlayExtent[2] - overlayExtent[0]) * baseImageWidthResolution
+          ),
+          Math.ceil(
+            (overlayExtent[3] - overlayExtent[1]) * baseImageHeightResolution
+          )
+        );
+
+        switch (overlay.format) {
+          case "gif": {
+            input.gif({});
+
+            break;
+          }
+
+          case "png": {
+            input.png({
+              compressionLevel: 9,
+            });
+
+            break;
+          }
+
+          case "jpg":
+          case "jpeg": {
+            input.jpeg({
+              quality: 100,
+            });
+
+            break;
+          }
+
+          case "webp": {
+            input.webp({
+              quality: 100,
+            });
+
+            break;
+          }
+        }
+
         return {
-          input: await overlayImage
-            .resize(
-              Math.ceil(
-                (overlayExtent[2] - overlayExtent[0]) * baseImageWidthResolution
-              ),
-              Math.ceil(
-                (overlayExtent[3] - overlayExtent[1]) *
-                  baseImageHeightResolution
-              )
-            )
-            .toBuffer(),
+          input: await input.toBuffer(),
           left: Math.floor(
             (overlayExtent[0] - baseImageExtent[0]) * baseImageWidthResolution
           ),
