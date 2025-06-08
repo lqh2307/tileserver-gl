@@ -55,7 +55,7 @@
     "frame": {
       "type": "object",
       "properties": {
-        "padding": {
+        "frameMargin": {
           "type": "integer",
           "minLength": 0
         },
@@ -74,7 +74,7 @@
             "dashed",
             "longDashed",
             "dotted",
-            "dashDot"
+            "dashedDot"
           ]
         },
         "frameOuterColor": {
@@ -92,7 +92,7 @@
             "dashed",
             "longDashed",
             "dotted",
-            "dashDot"
+            "dashedDot"
           ]
         },
         "frameSpace": {
@@ -196,8 +196,20 @@
             "dashed",
             "longDashed",
             "dotted",
-            "dashDot"
+            "dashedDot"
           ]
+        },
+        "majorGridWidth": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "majorGridStep": {
+          "type": "number",
+          "minLength": 0
+        },
+        "majorGridColor": {
+          "type": "string",
+          "minLength": 1
         },
         "minorGrid": {
           "type": "boolean"
@@ -209,8 +221,20 @@
             "dashed",
             "longDashed",
             "dotted",
-            "dashDot"
+            "dashedDot"
           ]
+        },
+        "minorGridWidth": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "minorGridStep": {
+          "type": "number",
+          "minLength": 0
+        },
+        "minorGridColor": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
