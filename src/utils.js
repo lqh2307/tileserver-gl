@@ -28,6 +28,7 @@ import {
 } from "node:fs/promises";
 
 // sharp.cache(false);
+sharp.tim
 
 /**
  * Compile template
@@ -346,7 +347,6 @@ export async function calculateResolution(input) {
   } else {
     return [(maxX - minX) / input.width, (maxY - minY) / input.height];
   }
-
 }
 
 /**
@@ -456,7 +456,6 @@ export function getLonLatFromXYZ(
  * @returns {Promise<{minZoom: number, maxZoom: number}>} Zoom levels
  */
 export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
-  const resolution = (2 * Math.PI * 6378137.0) / tileSize;
   const [xRes, yRes] = await calculateResolution({
     bbox: bbox,
     width: width,
@@ -464,9 +463,7 @@ export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
   });
 
   let maxZoom = Math.round(
-    Math.log2(
-      resolution / Math.min(xRes, yRes)
-    )
+    Math.log2((2 * Math.PI * 6378137.0) / tileSize / Math.min(xRes, yRes))
   );
   if (maxZoom > 25) {
     maxZoom = 25;
@@ -839,29 +836,9 @@ export function getIntersectBBox(bbox1, bbox2) {
  */
 export function zoomToScale(zoom) {
   const zooms = [
-    500000000,
-    250000000,
-    150000000,
-    70000000,
-    35000000,
-    15000000,
-    10000000,
-    4000000,
-    2000000,
-    1000000,
-    500000,
-    250000,
-    150000,
-    70000,
-    35000,
-    15000,
-    8000,
-    4000,
-    2000,
-    1000,
-    500,
-    250,
-    150,
+    500000000, 250000000, 150000000, 70000000, 35000000, 15000000, 10000000,
+    4000000, 2000000, 1000000, 500000, 250000, 150000, 70000, 35000, 15000,
+    8000, 4000, 2000, 1000, 500, 250, 150,
   ];
 
   return zooms[zoom];
@@ -874,29 +851,9 @@ export function zoomToScale(zoom) {
  */
 export function scaleToZoom(scale) {
   const zooms = [
-    500000000,
-    250000000,
-    150000000,
-    70000000,
-    35000000,
-    15000000,
-    10000000,
-    4000000,
-    2000000,
-    1000000,
-    500000,
-    250000,
-    150000,
-    70000,
-    35000,
-    15000,
-    8000,
-    4000,
-    2000,
-    1000,
-    500,
-    250,
-    150,
+    500000000, 250000000, 150000000, 70000000, 35000000, 15000000, 10000000,
+    4000000, 2000000, 1000000, 500000, 250000, 150000, 70000, 35000, 15000,
+    8000, 4000, 2000, 1000, 500, 250, 150,
   ];
 
   return zooms.indexOf(scale);
@@ -1796,19 +1753,11 @@ export async function addFrameToImage(input, frame, grid, output) {
         // Bottom label
         svgElements.push(
           `<text x="${frameMargin + x + frameSpace}" y="${
-            frameMargin +
-            height +
-            frameSpace +
-            majorTickSize +
-            xTickLabelOffset
+            frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
           }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${
             frameMargin + x + frameSpace
           },${
-            frameMargin +
-            height +
-            frameSpace +
-            majorTickSize +
-            xTickLabelOffset
+            frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
           })">${label}</text>`
         );
       }
@@ -1865,19 +1814,11 @@ export async function addFrameToImage(input, frame, grid, output) {
         // Bottom label
         svgElements.push(
           `<text x="${frameMargin + x + frameSpace}" y="${
-            frameMargin +
-            height +
-            frameSpace +
-            minorTickSize +
-            xTickLabelOffset
+            frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
           }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${
             frameMargin + x + frameSpace
           },${
-            frameMargin +
-            height +
-            frameSpace +
-            minorTickSize +
-            xTickLabelOffset
+            frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
           })">${label}</text>`
         );
       }
@@ -1934,19 +1875,11 @@ export async function addFrameToImage(input, frame, grid, output) {
         // Right label
         svgElements.push(
           `<text x="${
-            frameMargin +
-            width +
-            frameSpace +
-            majorTickSize +
-            yTickLabelOffset
+            frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
           }" y="${
             frameMargin + y + frameSpace
           }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
-            frameMargin +
-            width +
-            frameSpace +
-            majorTickSize +
-            yTickLabelOffset
+            frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
       }
@@ -2003,19 +1936,11 @@ export async function addFrameToImage(input, frame, grid, output) {
         // Right label
         svgElements.push(
           `<text x="${
-            frameMargin +
-            width +
-            frameSpace +
-            minorTickSize +
-            yTickLabelOffset
+            frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
           }" y="${
             frameMargin + y + frameSpace
           }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
-            frameMargin +
-            width +
-            frameSpace +
-            minorTickSize +
-            yTickLabelOffset
+            frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
       }
@@ -2039,7 +1964,8 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // X-axis major grids
       if (majorGridWidth > 0) {
-        let xGridMajorStart = Math.round(bbox[0] / majorGridStep) * majorGridStep;
+        let xGridMajorStart =
+          Math.round(bbox[0] / majorGridStep) * majorGridStep;
         if (xGridMajorStart < bbox[2]) {
           xGridMajorStart += majorGridStep;
         }
@@ -2062,7 +1988,8 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // X-axis minor grids
       if (minorGridWidth > 0) {
-        let xGridMinorStart = Math.round(bbox[0] / minorGridStep) * minorGridStep;
+        let xGridMinorStart =
+          Math.round(bbox[0] / minorGridStep) * minorGridStep;
         if (xGridMinorStart < bbox[2]) {
           xGridMinorStart += minorGridStep;
         }
@@ -2085,7 +2012,8 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Y-axis major grids
       if (majorGridWidth > 0) {
-        let yGridMajorStart = Math.round(bbox[1] / majorGridStep) * majorGridStep;
+        let yGridMajorStart =
+          Math.round(bbox[1] / majorGridStep) * majorGridStep;
         if (yGridMajorStart < bbox[3]) {
           yGridMajorStart += majorGridStep;
         }
@@ -2108,7 +2036,8 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Y-axis minor grids
       if (minorGridWidth > 0) {
-        let yGridMinorStart = Math.round(bbox[1] / minorGridStep) * minorGridStep;
+        let yGridMinorStart =
+          Math.round(bbox[1] / minorGridStep) * minorGridStep;
         if (yGridMinorStart < bbox[3]) {
           yGridMinorStart += minorGridStep;
         }
@@ -2210,8 +2139,14 @@ export async function mergeImages(baselayer, overlays, output) {
     limitInputPixels: false,
   });
   const { width, height } = await baseImage.metadata();
-  const [baseImageMinX, baseImageMinY] = lonLat4326ToXY3857(baselayer.bbox[0], baselayer.bbox[1]);
-  const [baseImageMaxX, baseImageMaxY] = lonLat4326ToXY3857(baselayer.bbox[2], baselayer.bbox[3]);
+  const [baseImageMinX, baseImageMinY] = lonLat4326ToXY3857(
+    baselayer.bbox[0],
+    baselayer.bbox[1]
+  );
+  const [baseImageMaxX, baseImageMaxY] = lonLat4326ToXY3857(
+    baselayer.bbox[2],
+    baselayer.bbox[3]
+  );
 
   const baseImageWidthResolution = width / (baseImageMaxX - baseImageMinX);
   const baseImageHeightResolution = height / (baseImageMaxY - baseImageMinY);
@@ -2220,8 +2155,14 @@ export async function mergeImages(baselayer, overlays, output) {
   baseImage.composite(
     await Promise.all(
       overlays.map(async (overlay) => {
-        const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(overlay.bbox[0], overlay.bbox[1]);
-        const [overlayMaxX, overlayMaxY] = lonLat4326ToXY3857(overlay.bbox[2], overlay.bbox[3]);
+        const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(
+          overlay.bbox[0],
+          overlay.bbox[1]
+        );
+        const [overlayMaxX, overlayMaxY] = lonLat4326ToXY3857(
+          overlay.bbox[2],
+          overlay.bbox[3]
+        );
 
         const input = sharp(overlay.content, {
           limitInputPixels: false,
@@ -2265,8 +2206,12 @@ export async function mergeImages(baselayer, overlays, output) {
 
         return {
           input: await input.toBuffer(),
-          left: Math.floor((overlayMinX - baseImageMinX) * baseImageWidthResolution),
-          top: Math.floor((baseImageMaxY - overlayMaxY) * baseImageHeightResolution),
+          left: Math.floor(
+            (overlayMinX - baseImageMinX) * baseImageWidthResolution
+          ),
+          top: Math.floor(
+            (baseImageMaxY - overlayMaxY) * baseImageHeightResolution
+          ),
         };
       })
     )
@@ -2367,11 +2312,19 @@ export async function splitImage(input, preview, output) {
         const extractTop = y * stepHeightPX;
 
         if (lineWidth > 0) {
-          svgElements.push(`<rect x="${extractLeft}" y="${extractTop}" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`);
+          svgElements.push(
+            `<rect x="${extractLeft}" y="${extractTop}" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`
+          );
         }
 
         if (pageSize > 0) {
-          svgElements.push(`<text x="${extractLeft + stepWidthPX / 2}" y="${extractTop + stepHeightPX / 2}" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${y + x + 1}</text>`);
+          svgElements.push(
+            `<text x="${extractLeft + stepWidthPX / 2}" y="${
+              extractTop + stepHeightPX / 2
+            }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
+              y + x + 1
+            }</text>`
+          );
         }
       }
     }
@@ -2390,9 +2343,9 @@ export async function splitImage(input, preview, output) {
       .composite([
         {
           input: Buffer.from(
-            `<svg width="${xPageNum * stepWidthPX}" height="${yPageNum * stepHeightPX}" xmlns="http://www.w3.org/2000/svg">${svgElements.join(
-              ""
-            )}</svg>`
+            `<svg width="${xPageNum * stepWidthPX}" height="${
+              yPageNum * stepHeightPX
+            }" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
           ),
           left: 0,
           top: 0,
@@ -2464,22 +2417,29 @@ export async function splitImage(input, preview, output) {
         const imageData = await sharp(input.image, {
           limitInputPixels: false,
         })
-        .extract({
-          left: extractLeft,
-          top: extractTop,
-          width: extractWidth,
-          height: extractHeight,
-        })
-        .png({
-          compressionLevel: 9,
-        })
-        .toBuffer();
+          .extract({
+            left: extractLeft,
+            top: extractTop,
+            width: extractWidth,
+            height: extractHeight,
+          })
+          .png({
+            compressionLevel: 9,
+          })
+          .toBuffer();
 
         if (x > 0 || y > 0) {
           doc.addPage(output.paperSize, output.orientation);
         }
 
-        doc.addImage(imageData, "png", 0, 0, extractWidth * input.res[0], extractHeight * input.res[1]);
+        doc.addImage(
+          imageData,
+          "png",
+          0,
+          0,
+          extractWidth * input.res[0],
+          extractHeight * input.res[1]
+        );
       }
     }
 
@@ -2488,12 +2448,6 @@ export async function splitImage(input, preview, output) {
       await mkdir(path.dirname(output.filePath), {
         recursive: true,
       });
-
-      // return await createFileWithLock(
-      //   output.filePath,
-      //   doc.output("arraybuffer"),
-      //   300000 // 5 mins
-      // );
 
       return doc.save(output.filePath);
     } else {

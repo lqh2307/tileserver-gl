@@ -911,7 +911,8 @@ export async function renderStyleJSONToImage(
         bbox: bbox,
         format: format,
       },
-      frame, grid,
+      frame,
+      grid,
       {
         filePath: outputFilePath,
         format: format,
@@ -1050,8 +1051,7 @@ export async function renderSVGToImage(format, overlays, concurrency) {
  * @param {object} output Output object
  * @returns {Promise<Buffer>}
  */
-export async function renderImageToPDF(input, preview, output) {
-}
+export async function renderImageToPDF(input, preview, output) {}
 
 /**
  * Render MBTiles tiles

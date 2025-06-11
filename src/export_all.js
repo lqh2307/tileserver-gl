@@ -220,7 +220,7 @@ export async function exportAll(
           };
 
           seedObj.sprites[spriteFolder] = {
-            url: `${parentServerHost}/sptites/${spriteID}/{name}`,
+            url: `${parentServerHost}/sprites/${spriteID}/{name}`,
             refreshBefore: {
               md5: true,
             },
@@ -639,7 +639,7 @@ export async function exportAll(
         };
 
         seedObj.sprites[spriteFolder] = {
-          url: `${parentServerHost}/sptites/${spriteID}/{name}`,
+          url: `${parentServerHost}/sprites/${spriteID}/{name}`,
           refreshBefore: {
             md5: true,
           },

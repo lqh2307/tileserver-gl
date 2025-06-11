@@ -681,10 +681,19 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "skip": true
     }
   },
-  "sprites": {},
+  "sprites": {
+    "common": {
+      "url": "https://api.maptiler.com/sprites/common/{name}",
+      "refreshBefore": {
+        "time": "2024-10-10T00:00:00"
+      },
+      "timeout": 60000,
+      "maxTry": 5
+    },
+  },
   "fonts": {
     "Roboto Medium": {
-      "url": "https://api.maptiler.com/fonts/Roboto Medium/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Roboto Medium/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -693,7 +702,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Roboto Italic": {
-      "url": "https://api.maptiler.com/fonts/Roboto Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Roboto Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -702,7 +711,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Roboto Bold": {
-      "url": "https://api.maptiler.com/fonts/Roboto Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Roboto Bold/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -711,7 +720,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Roboto Regular": {
-      "url": "https://api.maptiler.com/fonts/Roboto Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Roboto Regular/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -720,7 +729,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Noto Sans Regular": {
-      "url": "https://api.maptiler.com/fonts/Noto Sans Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Noto Sans Regular/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -729,7 +738,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Noto Sans Italic": {
-      "url": "https://api.maptiler.com/fonts/Noto Sans Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Noto Sans Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -738,7 +747,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Noto Sans Bold": {
-      "url": "https://api.maptiler.com/fonts/Noto Sans Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Noto Sans Bold/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -747,7 +756,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Bold": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Bold/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -756,7 +765,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Bold Italic": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Bold Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Bold Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -765,7 +774,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Extrabold": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Extrabold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Extrabold/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -774,7 +783,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Extrabold Italic": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Extrabold Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Extrabold Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -783,7 +792,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Semibold": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Semibold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Semibold/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -792,7 +801,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Semibold Italic": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Semibold Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Semibold Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -801,7 +810,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Light": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Light/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Light/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -810,7 +819,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Light Italic": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Light Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Light Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -819,7 +828,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Regular": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Regular/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -828,7 +837,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Italic": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -837,7 +846,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Medium": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Medium/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Medium/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -846,7 +855,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Open Sans Medium Italic": {
-      "url": "https://api.maptiler.com/fonts/Open Sans Medium Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Open Sans Medium Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -855,7 +864,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Roboto Condensed Italic": {
-      "url": "https://api.maptiler.com/fonts/Roboto Condensed Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Roboto Condensed Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -864,7 +873,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Roboto Condensed Regular": {
-      "url": "https://api.maptiler.com/fonts/Roboto Condensed Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Roboto Condensed Regular/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -873,7 +882,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Roboto Condensed Bold": {
-      "url": "https://api.maptiler.com/fonts/Roboto Condensed Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Roboto Condensed Bold/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -882,7 +891,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Frutiger Neue Condensed Italic": {
-      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Italic/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Italic/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -891,7 +900,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Frutiger Neue Condensed Regular": {
-      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Regular/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Regular/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
@@ -900,7 +909,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
       "maxTry": 5
     },
     "Frutiger Neue Condensed Bold": {
-      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Bold/{range}.pbf?key=aXcjPEauI4sBZOUkbLlP&mtsid=d7a93ef3-ffe6-4930-aa29-e9533fa57b83",
+      "url": "https://api.maptiler.com/fonts/Frutiger Neue Condensed Bold/{range}.pbf",
       "refreshBefore": {
         "time": "2024-10-10T00:00:00"
       },
