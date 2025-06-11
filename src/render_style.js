@@ -852,7 +852,9 @@ export async function renderStyleJSONToImage(
     /* Create image */
     const command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -outsize ${
       Math.pow(2, zoom - targetZoom) * 100
-    }% -a_srs EPSG:4326 -a_ullr ${realBBox[0]} ${realBBox[3]} ${realBBox[2]} ${
+    }% ${Math.pow(2, zoom - targetZoom) * 100}% -a_srs EPSG:4326 -a_ullr ${
+      realBBox[0]
+    } ${realBBox[3]} ${realBBox[2]} ${
       realBBox[1]
     } ${mbtilesFilePath} ${baselayerFilePath}`;
 
