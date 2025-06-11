@@ -8,8 +8,8 @@ import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
-  createTileMetadataFromTemplate,
   detectContentTypeFromFormat,
+  createTileMetadata,
   calculateMD5OfFile,
   compileTemplate,
   getRequestHost,
@@ -979,7 +979,7 @@ export const serve_style = {
           ) {
             try {
               /* Rendered info */
-              const tileJSON = createTileMetadataFromTemplate({
+              const tileJSON = createTileMetadata({
                 name: styleInfo.name,
                 description: styleInfo.name,
               });

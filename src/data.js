@@ -313,7 +313,7 @@ export async function getAndCacheDataSprite(id, fileName) {
       item.sourceURL !== undefined &&
       error.message === "Sprite does not exist"
     ) {
-      const targetURL = item.sourceURL.replace("/sprite", `/${fileName}`);
+      const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
 
       printLog(
         "info",

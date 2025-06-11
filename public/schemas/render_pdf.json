@@ -1,0 +1,95 @@
+{
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "res": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "res"
+      ]
+    },
+    "preview": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": [
+            "gif",
+            "png",
+            "jpg",
+            "jpeg",
+            "webp"
+          ]
+        },
+        "lineColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineWidth": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "lineStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "longDashed",
+            "dotted",
+            "dashedDot"
+          ]
+        },
+        "pageColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pageSize": {
+          "type": "integer",
+          "minLength": 0
+        },
+        "pageFont": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "orientation": {
+          "type": "string",
+          "enum": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        "paperSize": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "paperSize"
+      ]
+    }
+  },
+  "required": [
+    "input",
+    "output"
+  ]
+}

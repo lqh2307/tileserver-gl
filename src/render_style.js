@@ -32,11 +32,12 @@ import {
 } from "./tile_mbtiles.js";
 import {
   createCoveragesFromBBoxAndZooms,
-  createTileMetadataFromTemplate,
   getTileBoundsFromCoverages,
   detectFormatAndHeaders,
   createFallbackTileData,
   removeFilesOrFolders,
+  calculateResolution,
+  createTileMetadata,
   removeEmptyFolders,
   convertSVGToImage,
   processImageData,
@@ -550,7 +551,7 @@ export async function renderImageTileDataWithPool(
 }
 
 /**
- * Render styleJSON to image
+ * Render styleJSON to Image
  * @param {object} styleJSON Style JSON
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} zoom Zoom level
@@ -565,7 +566,7 @@ export async function renderImageTileDataWithPool(
  * @param {object} frame Add frame options?
  * @param {object} grid Add grid options?
  * @param {{name: string, content: string, bbox: [number, number, number, number]}[]} overlays Overlays
- * @returns {Promise<{width: number, height: number}>}
+ * @returns {Promise<{filePath: number, res: [number, number]}>} Response
  */
 export async function renderStyleJSONToImage(
   styleJSON,
@@ -636,7 +637,7 @@ export async function renderStyleJSONToImage(
 
     await updateMBTilesMetadata(
       source,
-      createTileMetadataFromTemplate({
+      createTileMetadata({
         name: id,
         format: format,
         bounds: realBBox,
@@ -857,18 +858,20 @@ export async function renderStyleJSONToImage(
     if (targetOverlays.length > 0) {
       /* Merge overlays to image */
       const mergedFilePath = `${mergedDirPath}/${id}.${format}`;
-      const targetBaselayer = {
-        content: baselayerFilePath,
-        bbox: bbox,
-      };
-      const targetOutput = {
-        filePath: mergedFilePath,
-        format: format,
-      };
 
       printLog("info", "Merging overlays to image...");
 
-      await mergeImages(targetBaselayer, targetOverlays, targetOutput);
+      await mergeImages(
+        {
+          content: baselayerFilePath,
+          bbox: bbox,
+        },
+        targetOverlays,
+        {
+          filePath: mergedFilePath,
+          format: format,
+        }
+      );
 
       /* Add SRID */
       const command = `gdal_translate -if ${driver} -of ${driver}${
@@ -902,17 +905,18 @@ export async function renderStyleJSONToImage(
     /* Add frame */
     printLog("info", "Adding frame to image...");
 
-    const input = {
-      filePath: imageFilePath,
-      bbox: bbox,
-      format: format,
-    };
-    const output = {
-      filePath: outputFilePath,
-      format: format,
-    };
-
-    const metadata = await addFrameToImage(input, frame, grid, output);
+    await addFrameToImage(
+      {
+        filePath: imageFilePath,
+        bbox: bbox,
+        format: format,
+      },
+      frame, grid,
+      {
+        filePath: outputFilePath,
+        format: format,
+      }
+    );
 
     printLog(
       "info",
@@ -921,7 +925,13 @@ export async function renderStyleJSONToImage(
       }s!`
     );
 
-    return metadata;
+    return {
+      filePath: outputFilePath,
+      res: await calculateResolution({
+        filePath: imageFilePath,
+        bbox: bbox,
+      }),
+    };
   } catch (error) {
     printLog(
       "error",
@@ -953,104 +963,94 @@ export async function renderStyleJSONToImage(
 }
 
 /**
- * Render SVG to image
+ * Render SVG to Image
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
  * @param {string[]} overlays SVG overlays
  * @param {number} concurrency Concurrency to download
  * @returns {Promise<{name: string, content: Buffer}[]>}
  */
 export async function renderSVGToImage(format, overlays, concurrency) {
-  const startTime = Date.now();
-
   const total = overlays.length;
   const targetOverlays = Array(total);
   const driver = format.toUpperCase();
 
-  try {
-    let log = `Rendering ${total} SVGs to ${driver}s with:`;
-    log += `\n\tConcurrency: ${concurrency}`;
+  let log = `Rendering ${total} SVGs to ${driver}s with:`;
+  log += `\n\tConcurrency: ${concurrency}`;
 
-    printLog("info", log);
+  printLog("info", log);
 
-    /* Render SVGs */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
+  /* Render SVGs */
+  const tasks = {
+    mutex: new Mutex(),
+    activeTasks: 0,
+    completeTasks: 0,
+  };
 
-    async function renderImageData(idx, tasks) {
-      const completeTasks = tasks.completeTasks;
-
-      printLog(
-        "info",
-        `Rendering SVG - Name "${overlays[idx].name}" - ${completeTasks}/${total}...`
-      );
-
-      try {
-        // Rendered data
-        targetOverlays[idx] = {
-          name: overlays[idx].name,
-          content: await convertSVGToImage(Buffer.from(overlays[idx].content), {
-            format: overlays[idx].format || format,
-            width: overlays[idx].width,
-            height: overlays[idx].height,
-          }),
-        };
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to render SVG - Name "${overlays[idx].name}" - ${completeTasks}/${total}: ${error}`
-        );
-
-        throw error;
-      }
-    }
-
-    printLog("info", `Rendering SVGs to ${driver}s...`);
-
-    for (let idx = 0; idx < total; idx++) {
-      /* Wait slot for a task */
-      while (tasks.activeTasks >= concurrency) {
-        await wait25ms();
-      }
-
-      await tasks.mutex.runExclusive(() => {
-        tasks.activeTasks++;
-        tasks.completeTasks++;
-      });
-
-      /* Run a task */
-      renderImageData(idx, tasks).finally(() =>
-        tasks.mutex.runExclusive(() => {
-          tasks.activeTasks--;
-        })
-      );
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await wait25ms();
-    }
+  async function renderImageData(idx, tasks) {
+    const completeTasks = tasks.completeTasks;
 
     printLog(
       "info",
-      `Completed render ${total} SVGs to ${driver}s after ${
-        (Date.now() - startTime) / 1000
-      }s!`
+      `Rendering SVG - Name "${overlays[idx].name}" - ${completeTasks}/${total}...`
     );
 
-    return targetOverlays;
-  } catch (error) {
-    printLog(
-      "error",
-      `Failed to render SVGs to ${driver}s after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
+    try {
+      // Rendered data
+      targetOverlays[idx] = {
+        name: overlays[idx].name,
+        content: await convertSVGToImage(Buffer.from(overlays[idx].content), {
+          format: overlays[idx].format || format,
+          width: overlays[idx].width,
+          height: overlays[idx].height,
+        }),
+      };
+    } catch (error) {
+      printLog(
+        "error",
+        `Failed to render SVG - Name "${overlays[idx].name}" - ${completeTasks}/${total}: ${error}`
+      );
 
-    throw error;
+      throw error;
+    }
   }
+
+  printLog("info", `Rendering SVGs to ${driver}s...`);
+
+  for (let idx = 0; idx < total; idx++) {
+    /* Wait slot for a task */
+    while (tasks.activeTasks >= concurrency) {
+      await wait25ms();
+    }
+
+    await tasks.mutex.runExclusive(() => {
+      tasks.activeTasks++;
+      tasks.completeTasks++;
+    });
+
+    /* Run a task */
+    renderImageData(idx, tasks).finally(() =>
+      tasks.mutex.runExclusive(() => {
+        tasks.activeTasks--;
+      })
+    );
+  }
+
+  /* Wait all tasks done */
+  while (tasks.activeTasks > 0) {
+    await wait25ms();
+  }
+
+  return targetOverlays;
+}
+
+/**
+ * Render Image to PDF
+ * @param {object} input Input object
+ * @param {object} preview Preview object
+ * @param {object} output Output object
+ * @returns {Promise<Buffer>}
+ */
+export async function renderImageToPDF(input, preview, output) {
 }
 
 /**

@@ -7,6 +7,7 @@ import { spawn } from "child_process";
 import handlebars from "handlebars";
 import archiver from "archiver";
 import https from "node:https";
+import { jsPDF } from "jspdf";
 import http from "node:http";
 import path from "node:path";
 import crypto from "crypto";
@@ -328,6 +329,27 @@ export function xy3857ToLonLat4326(x, y) {
 }
 
 /**
+ * Calculate resolution
+ * @param {{ filePath: string|Buffer, bbox: [number, number, number, number], width: number, height: number}} input Input object
+ * @returns {Promise<[number, number]>} [X resolution (m/pixel), Y resolution (m/pixel)]
+ */
+export async function calculateResolution(input) {
+  const [minX, minY] = lonLat4326ToXY3857(input.bbox[0], input.bbox[1]);
+  const [maxX, maxY] = lonLat4326ToXY3857(input.bbox[2], input.bbox[3]);
+
+  if (input.filePath !== undefined) {
+    const { width, height } = await sharp(input.filePath, {
+      limitInputPixels: false,
+    }).metadata();
+
+    return [(maxX - minX) / width, (maxY - minY) / height];
+  } else {
+    return [(maxX - minX) / input.width, (maxY - minY) / input.height];
+  }
+
+}
+
+/**
  * Get xyz tile indices from longitude, latitude, and zoom level
  * @param {number} lon Longitude in EPSG:4326
  * @param {number} lat Latitude in EPSG:4326
@@ -431,17 +453,19 @@ export function getLonLatFromXYZ(
  * @param {number} width Width of image
  * @param {number} height Height of image
  * @param {256|512} tileSize Tile size
- * @returns {{minZoom: number, maxZoom: number}} Zoom levels
+ * @returns {Promise<{minZoom: number, maxZoom: number}>} Zoom levels
  */
-export function calculateZoomLevels(bbox, width, height, tileSize = 256) {
-  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
-  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
-
-  const resolution = (6378137.0 * (2 * Math.PI)) / tileSize;
+export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
+  const resolution = (2 * Math.PI * 6378137.0) / tileSize;
+  const [xRes, yRes] = await calculateResolution({
+    bbox: bbox,
+    width: width,
+    height: height,
+  });
 
   let maxZoom = Math.round(
     Math.log2(
-      resolution / Math.min((maxX - minX) / width, (maxY - minY) / height)
+      resolution / Math.min(xRes, yRes)
     )
   );
   if (maxZoom > 25) {
@@ -476,7 +500,7 @@ export function calculateSizes(z, bbox, tileSize = 256) {
   const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1], tileSize);
   const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3], tileSize);
 
-  const resolution = (6378137.0 * (2 * Math.PI)) / tileSize;
+  const resolution = (2 * Math.PI * 6378137.0) / tileSize;
 
   return {
     width: Math.round(((1 << z) * (maxX - minX)) / resolution),
@@ -806,6 +830,76 @@ export function getIntersectBBox(bbox1, bbox2) {
   }
 
   return [minLon, minLat, maxLon, maxLat];
+}
+
+/**
+ * Convert zoom to scale
+ * @param {number} zoom Zoom
+ * @returns {number} Scale
+ */
+export function zoomToScale(zoom) {
+  const zooms = [
+    500000000,
+    250000000,
+    150000000,
+    70000000,
+    35000000,
+    15000000,
+    10000000,
+    4000000,
+    2000000,
+    1000000,
+    500000,
+    250000,
+    150000,
+    70000,
+    35000,
+    15000,
+    8000,
+    4000,
+    2000,
+    1000,
+    500,
+    250,
+    150,
+  ];
+
+  return zooms[zoom];
+}
+
+/**
+ * Convert scale to zoom
+ * @param {number} scale Scale
+ * @returns {number} Zoom
+ */
+export function scaleToZoom(scale) {
+  const zooms = [
+    500000000,
+    250000000,
+    150000000,
+    70000000,
+    35000000,
+    15000000,
+    10000000,
+    4000000,
+    2000000,
+    1000000,
+    500000,
+    250000,
+    150000,
+    70000,
+    35000,
+    15000,
+    8000,
+    4000,
+    2000,
+    1000,
+    500,
+    250,
+    150,
+  ];
+
+  return zooms.indexOf(scale);
 }
 
 /**
@@ -1390,7 +1484,7 @@ export async function runCommand(command, interval, callback) {
 
 /**
  * Get image metadata
- * @param {string} filePath File path to store file
+ * @param {string|Buffer} filePath File path to store file
  * @returns {Promise<object>}
  */
 export async function getImageMetadata(filePath) {
@@ -1454,7 +1548,7 @@ export function formatDegree(deg, isLat, format) {
  * Convert SVG to Image
  * @param {string|Buffer} svg File path or buffer of SVG
  * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
- * @returns {Promise<Buffer>}
+ * @returns {Promise<sharp.OutputInfo|Buffer>}
  */
 export async function convertSVGToImage(svg, output) {
   const image = sharp(svg, {
@@ -1502,6 +1596,10 @@ export async function convertSVGToImage(svg, output) {
 
   // Write to output
   if (output.filePath !== undefined) {
+    await mkdir(path.dirname(output.filePath), {
+      recursive: true,
+    });
+
     return await image.toFile(output.filePath);
   } else {
     return await image.toBuffer();
@@ -1509,22 +1607,64 @@ export async function convertSVGToImage(svg, output) {
 }
 
 /**
+ * Get SVG stroke dash array
+ * @param {"solid"|"dashed"|"longDashed"|"dotted"|"dashedDot"} style Stroke style
+ * @returns {string}
+ */
+export function getSVGStrokeDashArray(style) {
+  let strokeDashArray = "";
+
+  switch (style) {
+    case "solid": {
+      strokeDashArray = "";
+
+      break;
+    }
+
+    case "dashed": {
+      strokeDashArray = `stroke-dasharray="5,5"`;
+
+      break;
+    }
+
+    case "longDashed": {
+      strokeDashArray = `stroke-dasharray="10,5"`;
+
+      break;
+    }
+
+    case "dotted": {
+      strokeDashArray = `stroke-dasharray="1,3"`;
+
+      break;
+    }
+
+    case "dashedDot": {
+      strokeDashArray = `stroke-dasharray="5,3,1,3"`;
+
+      break;
+    }
+  }
+
+  return strokeDashArray;
+}
+
+/**
  * Add frame to image
- * @param {{ filePath: string, bbox: [number, number, number, number] }} input Input object
+ * @param {{ filePath: string|Buffer, bbox: [number, number, number, number] }} input Input object
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {object} frame Frame options object
  * @param {object} grid Grid options object
- * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
- * @returns {Promise<{width: number, height: number}>}
+ * @param {{ format: string, filePath: string }} output Output object
+ * @returns {Promise<sharp.OutputInfo|Buffer>}
  */
 export async function addFrameToImage(input, frame, grid, output) {
   const image = sharp(input.filePath, {
     limitInputPixels: false,
   });
 
-  let metadata;
-
-  const { width: originWidth, height: originHeight } = await image.metadata();
+  const bbox = input.bbox;
+  const { width, height } = await image.metadata();
 
   // Process image
   if (frame !== undefined) {
@@ -1544,15 +1684,15 @@ export async function addFrameToImage(input, frame, grid, output) {
       tickLabelFormat = "DMSD",
 
       majorTickStep = 0.5,
-      minorTickStep = 0.05,
+      minorTickStep = 0.1,
 
       majorTickWidth = 6,
       minorTickWidth = 4,
 
-      majorTickSize = 20,
+      majorTickSize = 30,
       minorTickSize = 15,
 
-      majorTickLabelSize = 18,
+      majorTickLabelSize = 15,
       minorTickLabelSize = 0,
 
       majorTickColor = "rgba(0,0,0,1)",
@@ -1574,74 +1714,18 @@ export async function addFrameToImage(input, frame, grid, output) {
       yTickMinorLabelRotation = 0,
     } = frame;
 
-    let {
-      majorGrid = false,
-      majorGridStyle = "longDashed",
-      majorGridWidth = majorTickWidth,
-      majorGridStep = majorTickStep,
-      majorGridColor = "rgba(0,0,0,0.5)",
-
-      minorGrid = false,
-      minorGridStyle = "longDashed",
-      minorGridWidth = minorTickWidth,
-      minorGridStep = minorTickStep,
-      minorGridColor = "rgba(0,0,0,0.5)",
-    } = grid || {};
-
-    const bbox = input.bbox;
-
     if (frameMargin === undefined) {
       frameMargin = Math.ceil(frameOuterWidth / 2);
     }
 
-    function getStrokeDashArray(style) {
-      let strokeDashArray = "";
+    frameInnerStyle = getSVGStrokeDashArray(frameInnerStyle);
+    frameOuterStyle = getSVGStrokeDashArray(frameOuterStyle);
 
-      switch (style) {
-        case "solid": {
-          strokeDashArray = "";
+    const totalWidth = frameMargin * 2 + frameSpace * 2 + width;
+    const totalHeigh = frameMargin * 2 + frameSpace * 2 + height;
 
-          break;
-        }
-
-        case "dashed": {
-          strokeDashArray = `stroke-dasharray="5,5"`;
-
-          break;
-        }
-
-        case "longDashed": {
-          strokeDashArray = `stroke-dasharray="10,5"`;
-
-          break;
-        }
-
-        case "dotted": {
-          strokeDashArray = `stroke-dasharray="1,3"`;
-
-          break;
-        }
-
-        case "dashedDot": {
-          strokeDashArray = `stroke-dasharray="5,3,1,3"`;
-
-          break;
-        }
-      }
-
-      return strokeDashArray;
-    }
-
-    frameInnerStyle = getStrokeDashArray(frameInnerStyle);
-    frameOuterStyle = getStrokeDashArray(frameOuterStyle);
-    majorGridStyle = getStrokeDashArray(majorGridStyle);
-    minorGridStyle = getStrokeDashArray(minorGridStyle);
-
-    const totalWidth = frameMargin * 2 + frameSpace * 2 + originWidth;
-    const totalHeigh = frameMargin * 2 + frameSpace * 2 + originHeight;
-
-    const degPerPixelX = (bbox[2] - bbox[0]) / originWidth;
-    const degPerPixelY = (bbox[3] - bbox[1]) / originHeight;
+    const degPerPixelX = (bbox[2] - bbox[0]) / width;
+    const degPerPixelY = (bbox[3] - bbox[1]) / height;
 
     const svgElements = [];
 
@@ -1649,20 +1733,23 @@ export async function addFrameToImage(input, frame, grid, output) {
     svgElements.push(
       `<rect x="${frameMargin + frameSpace}" y="${
         frameMargin + frameSpace
-      }" width="${originWidth}" height="${originHeight}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`
+      }" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`
     );
 
     // Outer frame
     svgElements.push(
       `<rect x="${frameMargin}" y="${frameMargin}" width="${
-        originWidth + frameSpace * 2
+        width + frameSpace * 2
       }" height="${
-        originHeight + frameSpace * 2
+        height + frameSpace * 2
       }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`
     );
 
     // X-axis major ticks & labels
     let xTickMajorStart = Math.round(bbox[0] / majorTickStep) * majorTickStep;
+    if (xTickMajorStart < bbox[2]) {
+      xTickMajorStart += majorTickStep;
+    }
     for (
       let lon = xTickMajorStart;
       lon <= bbox[2] + 1e-9;
@@ -1682,9 +1769,9 @@ export async function addFrameToImage(input, frame, grid, output) {
       // Bottom tick
       svgElements.push(
         `<line x1="${frameMargin + x + frameSpace}" y1="${
-          frameMargin + originHeight + frameSpace
+          frameMargin + height + frameSpace
         }" x2="${frameMargin + x + frameSpace}" y2="${
-          frameMargin + originHeight + frameSpace + majorTickSize
+          frameMargin + height + frameSpace + majorTickSize
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
@@ -1710,7 +1797,7 @@ export async function addFrameToImage(input, frame, grid, output) {
         svgElements.push(
           `<text x="${frameMargin + x + frameSpace}" y="${
             frameMargin +
-            originHeight +
+            height +
             frameSpace +
             majorTickSize +
             xTickLabelOffset
@@ -1718,7 +1805,7 @@ export async function addFrameToImage(input, frame, grid, output) {
             frameMargin + x + frameSpace
           },${
             frameMargin +
-            originHeight +
+            height +
             frameSpace +
             majorTickSize +
             xTickLabelOffset
@@ -1727,28 +1814,11 @@ export async function addFrameToImage(input, frame, grid, output) {
       }
     }
 
-    // X-axis major grids
-    if (majorGrid === true) {
-      let xGridMajorStart = Math.round(bbox[0] / majorGridStep) * majorGridStep;
-      for (
-        let lon = xGridMajorStart;
-        lon <= bbox[2] + 1e-9;
-        lon += majorGridStep
-      ) {
-        const x = (lon - bbox[0]) / degPerPixelX;
-
-        svgElements.push(
-          `<line x1="${frameMargin + x + frameSpace}" y1="${
-            frameMargin + frameSpace
-          }" x2="${frameMargin + x + frameSpace}" y2="${
-            frameMargin + frameSpace + originHeight
-          }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
-        );
-      }
-    }
-
     // X-axis minor ticks & labels
     let xTickMinorStart = Math.round(bbox[0] / minorTickStep) * minorTickStep;
+    if (xTickMinorStart < bbox[2]) {
+      xTickMinorStart += minorTickStep;
+    }
     for (
       let lon = xTickMinorStart;
       lon <= bbox[2] + 1e-9;
@@ -1768,9 +1838,9 @@ export async function addFrameToImage(input, frame, grid, output) {
       // Bottom tick
       svgElements.push(
         `<line x1="${frameMargin + x + frameSpace}" y1="${
-          frameMargin + originHeight + frameSpace
+          frameMargin + height + frameSpace
         }" x2="${frameMargin + x + frameSpace}" y2="${
-          frameMargin + originHeight + frameSpace + minorTickSize
+          frameMargin + height + frameSpace + minorTickSize
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
@@ -1796,7 +1866,7 @@ export async function addFrameToImage(input, frame, grid, output) {
         svgElements.push(
           `<text x="${frameMargin + x + frameSpace}" y="${
             frameMargin +
-            originHeight +
+            height +
             frameSpace +
             minorTickSize +
             xTickLabelOffset
@@ -1804,7 +1874,7 @@ export async function addFrameToImage(input, frame, grid, output) {
             frameMargin + x + frameSpace
           },${
             frameMargin +
-            originHeight +
+            height +
             frameSpace +
             minorTickSize +
             xTickLabelOffset
@@ -1813,28 +1883,11 @@ export async function addFrameToImage(input, frame, grid, output) {
       }
     }
 
-    // X-axis minor grids
-    if (minorGrid === true) {
-      let xGridMinorStart = Math.round(bbox[0] / minorGridStep) * minorGridStep;
-      for (
-        let lon = xGridMinorStart;
-        lon <= bbox[2] + 1e-9;
-        lon += minorGridStep
-      ) {
-        const x = (lon - bbox[0]) / degPerPixelX;
-
-        svgElements.push(
-          `<line x1="${frameMargin + x + frameSpace}" y1="${
-            frameMargin + frameSpace
-          }" x2="${frameMargin + x + frameSpace}" y2="${
-            frameMargin + frameSpace + originHeight
-          }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
-        );
-      }
-    }
-
     // Y-axis major ticks & labels
     let yTickMajorStart = Math.round(bbox[1] / majorTickStep) * majorTickStep;
+    if (yTickMajorStart < bbox[3]) {
+      yTickMajorStart += majorTickStep;
+    }
     for (
       let lat = yTickMajorStart;
       lat <= bbox[3] + 1e-9;
@@ -1853,9 +1906,9 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Right tick
       svgElements.push(
-        `<line x1="${frameMargin + originWidth + frameSpace}" y1="${
+        `<line x1="${frameMargin + width + frameSpace}" y1="${
           frameMargin + y + frameSpace
-        }" x2="${frameMargin + originWidth + frameSpace + majorTickSize}" y2="${
+        }" x2="${frameMargin + width + frameSpace + majorTickSize}" y2="${
           frameMargin + y + frameSpace
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
@@ -1882,7 +1935,7 @@ export async function addFrameToImage(input, frame, grid, output) {
         svgElements.push(
           `<text x="${
             frameMargin +
-            originWidth +
+            width +
             frameSpace +
             majorTickSize +
             yTickLabelOffset
@@ -1890,7 +1943,7 @@ export async function addFrameToImage(input, frame, grid, output) {
             frameMargin + y + frameSpace
           }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
             frameMargin +
-            originWidth +
+            width +
             frameSpace +
             majorTickSize +
             yTickLabelOffset
@@ -1899,28 +1952,11 @@ export async function addFrameToImage(input, frame, grid, output) {
       }
     }
 
-    // Y-axis major grids
-    if (majorGrid === true) {
-      let yGridMajorStart = Math.round(bbox[1] / majorGridStep) * majorGridStep;
-      for (
-        let lat = yGridMajorStart;
-        lat <= bbox[3] + 1e-9;
-        lat += majorGridStep
-      ) {
-        const y = (bbox[3] - lat) / degPerPixelY;
-
-        svgElements.push(
-          `<line x1="${frameMargin + frameSpace}" y1="${
-            frameMargin + y + frameSpace
-          }" x2="${frameMargin + frameSpace + originWidth}" y2="${
-            frameMargin + y + frameSpace
-          }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
-        );
-      }
-    }
-
     // Y-axis minor ticks & labels
     let yTickMinorStart = Math.round(bbox[1] / minorTickStep) * minorTickStep;
+    if (yTickMinorStart < bbox[3]) {
+      yTickMinorStart += minorTickStep;
+    }
     for (
       let lat = yTickMinorStart;
       lat <= bbox[3] + 1e-9;
@@ -1939,9 +1975,9 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Right tick
       svgElements.push(
-        `<line x1="${frameMargin + originWidth + frameSpace}" y1="${
+        `<line x1="${frameMargin + width + frameSpace}" y1="${
           frameMargin + y + frameSpace
-        }" x2="${frameMargin + originWidth + frameSpace + minorTickSize}" y2="${
+        }" x2="${frameMargin + width + frameSpace + minorTickSize}" y2="${
           frameMargin + y + frameSpace
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
@@ -1968,7 +2004,7 @@ export async function addFrameToImage(input, frame, grid, output) {
         svgElements.push(
           `<text x="${
             frameMargin +
-            originWidth +
+            width +
             frameSpace +
             minorTickSize +
             yTickLabelOffset
@@ -1976,7 +2012,7 @@ export async function addFrameToImage(input, frame, grid, output) {
             frameMargin + y + frameSpace
           }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
             frameMargin +
-            originWidth +
+            width +
             frameSpace +
             minorTickSize +
             yTickLabelOffset
@@ -1985,23 +2021,112 @@ export async function addFrameToImage(input, frame, grid, output) {
       }
     }
 
-    // Y-axis minor grids
-    if (minorGrid === true) {
-      let yGridMinorStart = Math.round(bbox[1] / minorGridStep) * minorGridStep;
-      for (
-        let lat = yGridMinorStart;
-        lat <= bbox[3] + 1e-9;
-        lat += minorGridStep
-      ) {
-        const y = (bbox[3] - lat) / degPerPixelY;
+    if (grid !== undefined) {
+      let {
+        majorGridStyle = "longDashed",
+        majorGridWidth = 6,
+        majorGridStep = 0.5,
+        majorGridColor = "rgba(0,0,0,0.3)",
 
-        svgElements.push(
-          `<line x1="${frameMargin + frameSpace}" y1="${
-            frameMargin + y + frameSpace
-          }" x2="${frameMargin + frameSpace + originWidth}" y2="${
-            frameMargin + y + frameSpace
-          }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
-        );
+        minorGridStyle = "longDashed",
+        minorGridWidth = 0,
+        minorGridStep = 0.1,
+        minorGridColor = "rgba(0,0,0,0.3)",
+      } = grid;
+
+      majorGridStyle = getSVGStrokeDashArray(majorGridStyle);
+      minorGridStyle = getSVGStrokeDashArray(minorGridStyle);
+
+      // X-axis major grids
+      if (majorGridWidth > 0) {
+        let xGridMajorStart = Math.round(bbox[0] / majorGridStep) * majorGridStep;
+        if (xGridMajorStart < bbox[2]) {
+          xGridMajorStart += majorGridStep;
+        }
+        for (
+          let lon = xGridMajorStart;
+          lon <= bbox[2] + 1e-9;
+          lon += majorGridStep
+        ) {
+          const x = (lon - bbox[0]) / degPerPixelX;
+
+          svgElements.push(
+            `<line x1="${frameMargin + x + frameSpace}" y1="${
+              frameMargin + frameSpace
+            }" x2="${frameMargin + x + frameSpace}" y2="${
+              frameMargin + frameSpace + height
+            }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
+          );
+        }
+      }
+
+      // X-axis minor grids
+      if (minorGridWidth > 0) {
+        let xGridMinorStart = Math.round(bbox[0] / minorGridStep) * minorGridStep;
+        if (xGridMinorStart < bbox[2]) {
+          xGridMinorStart += minorGridStep;
+        }
+        for (
+          let lon = xGridMinorStart;
+          lon <= bbox[2] + 1e-9;
+          lon += minorGridStep
+        ) {
+          const x = (lon - bbox[0]) / degPerPixelX;
+
+          svgElements.push(
+            `<line x1="${frameMargin + x + frameSpace}" y1="${
+              frameMargin + frameSpace
+            }" x2="${frameMargin + x + frameSpace}" y2="${
+              frameMargin + frameSpace + height
+            }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
+          );
+        }
+      }
+
+      // Y-axis major grids
+      if (majorGridWidth > 0) {
+        let yGridMajorStart = Math.round(bbox[1] / majorGridStep) * majorGridStep;
+        if (yGridMajorStart < bbox[3]) {
+          yGridMajorStart += majorGridStep;
+        }
+        for (
+          let lat = yGridMajorStart;
+          lat <= bbox[3] + 1e-9;
+          lat += majorGridStep
+        ) {
+          const y = (bbox[3] - lat) / degPerPixelY;
+
+          svgElements.push(
+            `<line x1="${frameMargin + frameSpace}" y1="${
+              frameMargin + y + frameSpace
+            }" x2="${frameMargin + frameSpace + width}" y2="${
+              frameMargin + y + frameSpace
+            }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
+          );
+        }
+      }
+
+      // Y-axis minor grids
+      if (minorGridWidth > 0) {
+        let yGridMinorStart = Math.round(bbox[1] / minorGridStep) * minorGridStep;
+        if (yGridMinorStart < bbox[3]) {
+          yGridMinorStart += minorGridStep;
+        }
+        for (
+          let lat = yGridMinorStart;
+          lat <= bbox[3] + 1e-9;
+          lat += minorGridStep
+        ) {
+          const y = (bbox[3] - lat) / degPerPixelY;
+
+          svgElements.push(
+            `<line x1="${frameMargin + frameSpace}" y1="${
+              frameMargin + y + frameSpace
+            }" x2="${frameMargin + frameSpace + width}" y2="${
+              frameMargin + y + frameSpace
+            }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
+          );
+        }
       }
     }
 
@@ -2012,7 +2137,7 @@ export async function addFrameToImage(input, frame, grid, output) {
         left: frameMargin + frameSpace,
         bottom: frameMargin + frameSpace,
         right: frameMargin + frameSpace,
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
       })
       .composite([
         {
@@ -2025,21 +2150,6 @@ export async function addFrameToImage(input, frame, grid, output) {
           top: 0,
         },
       ]);
-
-    metadata = {
-      width: totalWidth,
-      height: totalHeigh,
-    };
-  } else {
-    metadata = {
-      width: originWidth,
-      height: originHeight,
-    };
-  }
-
-  // Resize image
-  if (output.width > 0 || output.height > 0) {
-    image.resize(output.width, output.height);
   }
 
   // Create format
@@ -2076,54 +2186,48 @@ export async function addFrameToImage(input, frame, grid, output) {
     }
   }
 
-  // Write to file
-  await image.toFile(output.filePath);
+  // Write to output
+  if (output.filePath !== undefined) {
+    await mkdir(path.dirname(output.filePath), {
+      recursive: true,
+    });
 
-  return metadata;
+    return await image.toFile(output.filePath);
+  } else {
+    return await image.toBuffer();
+  }
 }
 
 /**
  * Merge images
- * @param {{ content: string, bbox: [number, number, number, number] }} baselayer Baselayer object
- * @param {{ content: string, bbox: [number, number, number, number] }[]} overlays Array of overlay object
- * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
- * @returns {Promise<void>}
+ * @param {{ content: string|Buffer, bbox: [number, number, number, number] }} baselayer Baselayer object
+ * @param {{ content: string|Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number }} output Output object
+ * @returns {Promise<sharp.OutputInfo|Buffer>}
  */
 export async function mergeImages(baselayer, overlays, output) {
-  await mkdir(path.dirname(output.filePath), {
-    recursive: true,
-  });
-
   const baseImage = sharp(baselayer.content, {
     limitInputPixels: false,
   });
-  const baseImageMetadata = await baseImage.metadata();
-  const baseImageExtent = [
-    ...lonLat4326ToXY3857(baselayer.bbox[0], baselayer.bbox[1]),
-    ...lonLat4326ToXY3857(baselayer.bbox[2], baselayer.bbox[3]),
-  ];
-  const baseImageWidthResolution =
-    baseImageMetadata.width / (baseImageExtent[2] - baseImageExtent[0]);
-  const baseImageHeightResolution =
-    baseImageMetadata.height / (baseImageExtent[3] - baseImageExtent[1]);
+  const { width, height } = await baseImage.metadata();
+  const [baseImageMinX, baseImageMinY] = lonLat4326ToXY3857(baselayer.bbox[0], baselayer.bbox[1]);
+  const [baseImageMaxX, baseImageMaxY] = lonLat4326ToXY3857(baselayer.bbox[2], baselayer.bbox[3]);
 
+  const baseImageWidthResolution = width / (baseImageMaxX - baseImageMinX);
+  const baseImageHeightResolution = height / (baseImageMaxY - baseImageMinY);
+
+  // Process overlays
   baseImage.composite(
     await Promise.all(
       overlays.map(async (overlay) => {
-        const overlayExtent = [
-          ...lonLat4326ToXY3857(overlay.bbox[0], overlay.bbox[1]),
-          ...lonLat4326ToXY3857(overlay.bbox[2], overlay.bbox[3]),
-        ];
+        const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(overlay.bbox[0], overlay.bbox[1]);
+        const [overlayMaxX, overlayMaxY] = lonLat4326ToXY3857(overlay.bbox[2], overlay.bbox[3]);
 
         const input = sharp(overlay.content, {
           limitInputPixels: false,
         }).resize(
-          Math.ceil(
-            (overlayExtent[2] - overlayExtent[0]) * baseImageWidthResolution
-          ),
-          Math.ceil(
-            (overlayExtent[3] - overlayExtent[1]) * baseImageHeightResolution
-          )
+          Math.ceil((overlayMaxX - overlayMinX) * baseImageWidthResolution),
+          Math.ceil((overlayMaxY - overlayMinY) * baseImageHeightResolution)
         );
 
         switch (overlay.format) {
@@ -2161,21 +2265,19 @@ export async function mergeImages(baselayer, overlays, output) {
 
         return {
           input: await input.toBuffer(),
-          left: Math.floor(
-            (overlayExtent[0] - baseImageExtent[0]) * baseImageWidthResolution
-          ),
-          top: Math.floor(
-            (baseImageExtent[3] - overlayExtent[3]) * baseImageHeightResolution
-          ),
+          left: Math.floor((overlayMinX - baseImageMinX) * baseImageWidthResolution),
+          top: Math.floor((baseImageMaxY - overlayMaxY) * baseImageHeightResolution),
         };
       })
     )
   );
 
+  // Resize image
   if (output.width > 0 || output.height > 0) {
     baseImage.resize(output.width, output.height);
   }
 
+  // Create format
   switch (output.format) {
     case "gif": {
       baseImage.gif({});
@@ -2209,7 +2311,195 @@ export async function mergeImages(baselayer, overlays, output) {
     }
   }
 
-  await baseImage.toFile(output.filePath);
+  // Write to output
+  if (output.filePath !== undefined) {
+    await mkdir(path.dirname(output.filePath), {
+      recursive: true,
+    });
+
+    return await baseImage.toFile(output.filePath);
+  } else {
+    return await baseImage.toBuffer();
+  }
+}
+
+/**
+ * Split image to PDF
+ * @param {{ image: string|Buffer, res: [number, number] }} input Input object
+ * @param {object} preview Preview options object
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape" }} output Output object
+ * @returns {Promise<jsPDF|sharp.OutputInfo|Buffer>}
+ */
+export async function splitImage(input, preview, output) {
+  const { width, height } = await sharp(input.image, {
+    limitInputPixels: false,
+  }).metadata();
+
+  let [paperWidth, paperHeight] = output.paperSize;
+  if (output.orientation === "landscape") {
+    [paperHeight, paperWidth] = output.paperSize;
+  }
+
+  const stepWidthPX = Math.round(paperWidth / input.res[0]);
+  const stepHeightPX = Math.round(paperHeight / input.res[1]);
+
+  const xPageNum = Math.ceil((width * input.res[0]) / paperWidth);
+  const yPageNum = Math.ceil((height * input.res[1]) / paperHeight);
+
+  if (preview !== undefined) {
+    let {
+      format = "png",
+      lineColor = "rgba(255,0,0,1)",
+      lineWidth = 6,
+      lineStyle = "solid",
+      pageColor = "rgba(255,0,0,1)",
+      pageSize = 100,
+      pageFont = "sans-serif",
+    } = preview;
+
+    lineStyle = getSVGStrokeDashArray(lineStyle);
+
+    const svgElements = [];
+
+    for (let y = 0; y < yPageNum; y++) {
+      for (let x = 0; x < xPageNum; x++) {
+        const extractLeft = x * stepWidthPX;
+        const extractTop = y * stepHeightPX;
+
+        if (lineWidth > 0) {
+          svgElements.push(`<rect x="${extractLeft}" y="${extractTop}" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`);
+        }
+
+        if (pageSize > 0) {
+          svgElements.push(`<text x="${extractLeft + stepWidthPX / 2}" y="${extractTop + stepHeightPX / 2}" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${y + x + 1}</text>`);
+        }
+      }
+    }
+
+    // Create image
+    const image = sharp(input.image, {
+      limitInputPixels: false,
+    })
+      .extend({
+        top: 0,
+        left: 0,
+        bottom: yPageNum * stepHeightPX - height,
+        right: xPageNum * stepWidthPX - width,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .composite([
+        {
+          input: Buffer.from(
+            `<svg width="${xPageNum * stepWidthPX}" height="${yPageNum * stepHeightPX}" xmlns="http://www.w3.org/2000/svg">${svgElements.join(
+              ""
+            )}</svg>`
+          ),
+          left: 0,
+          top: 0,
+        },
+      ]);
+
+    // Create format
+    switch (format) {
+      case "gif": {
+        image.gif({});
+
+        break;
+      }
+
+      case "png": {
+        image.png({
+          compressionLevel: 9,
+        });
+
+        break;
+      }
+
+      case "jpg":
+      case "jpeg": {
+        image.jpeg({
+          quality: 100,
+        });
+
+        break;
+      }
+
+      case "webp": {
+        image.webp({
+          quality: 100,
+        });
+
+        break;
+      }
+    }
+
+    // Write to output
+    if (output.filePath !== undefined) {
+      await mkdir(path.dirname(output.filePath), {
+        recursive: true,
+      });
+
+      return await image.toFile(output.filePath);
+    } else {
+      return await image.toBuffer();
+    }
+  } else {
+    const doc = new jsPDF({
+      orientation: output.orientation,
+      unit: "mm",
+      format: output.paperSize,
+      compress: true,
+    });
+
+    for (let y = 0; y < yPageNum; y++) {
+      for (let x = 0; x < xPageNum; x++) {
+        const extractLeft = x * stepWidthPX;
+        const otherLeft = width - extractLeft;
+        const extractTop = y * stepHeightPX;
+        const otherTop = height - extractTop;
+
+        const extractWidth = stepWidthPX > otherLeft ? otherLeft : stepWidthPX;
+        const extractHeight = stepHeightPX > otherTop ? otherTop : stepHeightPX;
+
+        const imageData = await sharp(input.image, {
+          limitInputPixels: false,
+        })
+        .extract({
+          left: extractLeft,
+          top: extractTop,
+          width: extractWidth,
+          height: extractHeight,
+        })
+        .png({
+          compressionLevel: 9,
+        })
+        .toBuffer();
+
+        if (x > 0 || y > 0) {
+          doc.addPage(output.paperSize, output.orientation);
+        }
+
+        doc.addImage(imageData, "png", 0, 0, extractWidth * input.res[0], extractHeight * input.res[1]);
+      }
+    }
+
+    // Write to output
+    if (output.filePath !== undefined) {
+      await mkdir(path.dirname(output.filePath), {
+        recursive: true,
+      });
+
+      // return await createFileWithLock(
+      //   output.filePath,
+      //   doc.output("arraybuffer"),
+      //   300000 // 5 mins
+      // );
+
+      return doc.save(output.filePath);
+    } else {
+      return doc.output("arraybuffer");
+    }
+  }
 }
 
 /**
@@ -2258,7 +2548,7 @@ export async function isFullTransparentPNGImage(buffer) {
 
 /**
  * Process image data
- * @param {Buffer} data Image data
+ * @param {Buffer} data Image data buffer
  * @param {number} originWidth Image origin width size
  * @param {number} originHeight Image origin height size
  * @param {number} targetWidth Image origin width size
@@ -2331,7 +2621,7 @@ export async function processImageData(
 }
 
 /**
- * Create fallback tile data
+ * Create fallback tile data (1px x 1px)
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"|"pbf"} format Tile format
  * @returns {Buffer}
  */
@@ -2525,11 +2815,11 @@ export async function removeFileWithLock(filePath, timeout) {
 }
 
 /**
- * Create tile metadata from template
+ * Create tile metadata
  * @param {object} metadata Metadata object
  * @returns {object}
  */
-export function createTileMetadataFromTemplate(metadata) {
+export function createTileMetadata(metadata = {}) {
   const data = {};
 
   if (metadata.name !== undefined) {

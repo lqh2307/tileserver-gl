@@ -20,8 +20,8 @@ import {
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
-  createTileMetadataFromTemplate,
   detectContentTypeFromFormat,
+  createTileMetadata,
   calculateMD5OfFile,
   processCoverages,
   compileTemplate,
@@ -994,7 +994,7 @@ export const serve_data = {
                 );
 
                 /* Get MBTiles metadata */
-                dataInfo.tileJSON = createTileMetadataFromTemplate({
+                dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
                   cacheCoverages: processCoverages(
                     cacheSource.coverages,
@@ -1074,7 +1074,7 @@ export const serve_data = {
                 );
 
                 /* Get XYZ metadata */
-                dataInfo.tileJSON = createTileMetadataFromTemplate({
+                dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
                   cacheCoverages: processCoverages(
                     cacheSource.coverages,
@@ -1128,7 +1128,7 @@ export const serve_data = {
                 dataInfo.source = await openPostgreSQLDB(dataInfo.path, true);
 
                 /* Get PostgreSQL metadata */
-                dataInfo.tileJSON = createTileMetadataFromTemplate({
+                dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
                   cacheCoverages: processCoverages(
                     cacheSource.coverages,

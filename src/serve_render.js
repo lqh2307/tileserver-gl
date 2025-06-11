@@ -11,6 +11,7 @@ import {
   detectContentTypeFromFormat,
   getJSONSchema,
   validateJSON,
+  splitImage,
   gzipAsync,
 } from "./utils.js";
 
@@ -28,18 +29,17 @@ function renderStyleJSONHandler() {
         throw new SyntaxError(error);
       }
 
-      const tmpFolder = v4();
-      const id = req.body.id ? req.body.id : tmpFolder;
+      const id = v4();
       const fileName = `${id}.${req.body.format}`;
-      const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${tmpFolder}`;
-      const filePath = `${dirPath}/${fileName}`;
+      const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${id}`;
+      const bbox = req.body.bbox !== undefined ? req.body.bbox : [req.body.extent[0], req.body.extent[3], req.body.extent[2], req.body.extent[1]];
 
       /* Render style */
       const metadata = await renderStyleJSONToImage(
         req.body.styleJSON,
-        req.body.bbox,
+        bbox,
         req.body.zoom,
-        req.body.format,
+        req.body.format || "png",
         id,
         dirPath,
         req.body.maxRendererPoolSize,
@@ -52,7 +52,7 @@ function renderStyleJSONHandler() {
         req.body.overlays
       );
 
-      const stats = await stat(filePath);
+      const stats = await stat(metadata.filePath);
 
       res.set({
         "content-length": stats.size,
@@ -61,7 +61,7 @@ function renderStyleJSONHandler() {
         "content-metadata": JSON.stringify(metadata),
       });
 
-      const readStream = createReadStream(filePath);
+      const readStream = createReadStream(metadata.filePath);
 
       readStream.pipe(res);
 
@@ -99,7 +99,7 @@ function renderSVGHandler() {
       }
 
       const result = await renderSVGToImage(
-        req.body.format,
+        req.body.format || "png",
         req.body.overlays,
         req.body.concurrency || os.cpus().length
       );
@@ -119,6 +119,56 @@ function renderSVGHandler() {
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
       printLog("error", `Failed to render SVG: ${error}`);
+
+      if (error instanceof SyntaxError) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send(`Options parameter is invalid: ${error}`);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Render PDF handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function renderPDFHandler() {
+  return async (req, res, next) => {
+    try {
+      /* Validate options */
+      try {
+        validateJSON(await getJSONSchema("render_pdf"), req.body);
+      } catch (error) {
+        throw new SyntaxError(error);
+      }
+
+      const result = await splitImage(
+        {
+          image: Buffer.from(
+            req.body.input.image.slice(req.url.indexOf(",") + 1),
+            "base64"
+          ),
+          res: req.body.input.res,
+        },
+        req.body.preview,
+        {
+          orientation: req.body.output.orientation,
+          paperSize: req.body.output.paperSize,
+        }
+      );
+
+      res.set({
+        "content-type": req.body.preview === undefined ? "application/pdf" : detectContentTypeFromFormat(req.body.preview.format),
+      });
+
+      return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+      printLog("error", `Failed to render PDF: ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -225,5 +275,44 @@ export const serve_render = {
      *         description: Internal server error
      */
     app.post("/renders/svg", renderSVGHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Render
+     *     description: Render related endpoints
+     * /renders/pdf:
+     *   post:
+     *     tags:
+     *       - Render
+     *     summary: Render PDF
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *             schema:
+     *               type: object
+     *               example: {}
+     *       description: Render PDF options
+     *     responses:
+     *       201:
+     *         description: PDF rendered
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.post("/renders/pdf", renderPDFHandler());
   },
 };

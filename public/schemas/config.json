@@ -166,25 +166,25 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "sprite": {
+            "type": "string",
+            "minLength": 1
+          },
           "cache": {
             "type": "object",
             "properties": {
-              "sprite": {
-                "type": "string",
-                "minLength": 1
-              },
               "forward": {
                 "type": "boolean"
               },
               "store": {
                 "type": "boolean"
               }
-            },
-            "required": [
-              "sprite"
-            ]
+            }
           }
-        }
+        },
+        "required": [
+          "sprite"
+        ]
       }
     },
     "fonts": {
@@ -192,13 +192,13 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "font": {
+            "type": "string",
+            "minLength": 1
+          },
           "cache": {
             "type": "object",
             "properties": {
-              "font": {
-                "type": "string",
-                "minLength": 1
-              },
               "forward": {
                 "type": "boolean"
               },
