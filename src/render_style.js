@@ -598,8 +598,15 @@ export async function renderStyleJSONToImage(
   const driver = format.toUpperCase();
 
   try {
+    const targetZoom = Math.round(zoom);
+    const targetTileScale = tileScale * Math.pow(2, zoom - targetZoom);
+
     /* Calculate summary */
-    const targetCoverages = createCoveragesFromBBoxAndZooms(bbox, zoom, zoom);
+    const targetCoverages = createCoveragesFromBBoxAndZooms(
+      bbox,
+      targetZoom,
+      targetZoom
+    );
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
@@ -617,6 +624,8 @@ export async function renderStyleJSONToImage(
     log += `\n\tFrame: ${JSON.stringify(frame === undefined ? {} : frame)}`;
     log += `\n\tGrid: ${JSON.stringify(grid === undefined ? {} : grid)}`;
     log += `\n\tOverlays: ${overlays === undefined ? false : true}`;
+    log += `\n\tTarget zoom: ${targetZoom}`;
+    log += `\n\tTarget tile scale: ${targetTileScale}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     printLog("info", log);
@@ -641,8 +650,8 @@ export async function renderStyleJSONToImage(
         name: id,
         format: format,
         bounds: realBBox,
-        minzoom: zoom,
-        maxzoom: zoom,
+        minzoom: targetZoom,
+        maxzoom: targetZoom,
       }),
       30000 // 30 secs
     );
@@ -739,7 +748,7 @@ export async function renderStyleJSONToImage(
     if (maxRendererPoolSize > 0) {
       pool = createPool(
         {
-          create: () => createRenderer("tile", tileScale, styleJSON),
+          create: () => createRenderer("tile", targetTileScale, styleJSON),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -762,7 +771,7 @@ export async function renderStyleJSONToImage(
           // Rendered data
           const data = await renderImageTileDataWithPool(
             pool,
-            tileScale,
+            targetTileScale,
             tileSize,
             z,
             x,
@@ -794,7 +803,7 @@ export async function renderStyleJSONToImage(
           // Rendered data
           const data = await renderImageTileData(
             styleJSON,
-            tileScale,
+            targetTileScale,
             tileSize,
             z,
             x,

@@ -188,8 +188,8 @@
       ]
     },
     "tileScale": {
-      "type": "integer",
-      "minimum": 1
+      "type": "number",
+      "minimum": 0
     }
   },
   "required": [

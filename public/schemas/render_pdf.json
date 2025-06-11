@@ -31,6 +31,14 @@
             "webp"
           ]
         },
+        "width": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0
+        },
         "lineColor": {
           "type": "string",
           "minLength": 1

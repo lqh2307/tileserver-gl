@@ -2346,6 +2346,11 @@ export async function splitImage(input, preview, output) {
         },
       ]);
 
+    // Resize image
+    if (preview.width > 0 || preview.height > 0) {
+      image.resize(preview.width, preview.height);
+    }
+
     // Create format
     switch (format) {
       case "gif": {
