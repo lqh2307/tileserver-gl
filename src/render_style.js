@@ -426,10 +426,8 @@ export async function renderImageTileData(
   });
 
   const originTileSize = hackTileSize * tileScale;
-  let targetTileSize;
-  if (isNeedHack === true) {
-    targetTileSize = (hackTileSize / 2) * tileScale;
-  }
+  const targetTileSize =
+    isNeedHack === true ? (hackTileSize / 2) * tileScale : undefined;
 
   return await processImageData(
     data,
@@ -535,10 +533,8 @@ export async function renderImageTileDataWithPool(
   });
 
   const originTileSize = hackTileSize * tileScale;
-  let targetTileSize;
-  if (isNeedHack === true) {
-    targetTileSize = (hackTileSize / 2) * tileScale;
-  }
+  const targetTileSize =
+    isNeedHack === true ? (hackTileSize / 2) * tileScale : undefined;
 
   return await processImageData(
     data,
@@ -599,7 +595,6 @@ export async function renderStyleJSONToImage(
 
   try {
     const targetZoom = Math.round(zoom);
-    const targetTileScale = tileScale * Math.pow(2, zoom - targetZoom);
 
     /* Calculate summary */
     const targetCoverages = createCoveragesFromBBoxAndZooms(
@@ -625,7 +620,6 @@ export async function renderStyleJSONToImage(
     log += `\n\tGrid: ${JSON.stringify(grid === undefined ? {} : grid)}`;
     log += `\n\tOverlays: ${overlays === undefined ? false : true}`;
     log += `\n\tTarget zoom: ${targetZoom}`;
-    log += `\n\tTarget tile scale: ${targetTileScale}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     printLog("info", log);
@@ -748,7 +742,7 @@ export async function renderStyleJSONToImage(
     if (maxRendererPoolSize > 0) {
       pool = createPool(
         {
-          create: () => createRenderer("tile", targetTileScale, styleJSON),
+          create: () => createRenderer("tile", tileScale, styleJSON),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -771,7 +765,7 @@ export async function renderStyleJSONToImage(
           // Rendered data
           const data = await renderImageTileDataWithPool(
             pool,
-            targetTileScale,
+            tileScale,
             tileSize,
             z,
             x,
@@ -803,7 +797,7 @@ export async function renderStyleJSONToImage(
           // Rendered data
           const data = await renderImageTileData(
             styleJSON,
-            targetTileScale,
+            tileScale,
             tileSize,
             z,
             x,
@@ -856,7 +850,11 @@ export async function renderStyleJSONToImage(
     const imageFilePath = `${outputDirPath}/${id}.${format}`;
 
     /* Create image */
-    const command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -a_srs EPSG:4326 -a_ullr ${realBBox[0]} ${realBBox[3]} ${realBBox[2]} ${realBBox[1]} ${mbtilesFilePath} ${baselayerFilePath}`;
+    const command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -outsize ${
+      Math.pow(2, zoom - targetZoom) * 100
+    }% -a_srs EPSG:4326 -a_ullr ${realBBox[0]} ${realBBox[3]} ${realBBox[2]} ${
+      realBBox[1]
+    } ${mbtilesFilePath} ${baselayerFilePath}`;
 
     printLog("info", `Creating ${id} baselayer with gdal command: ${command}`);
 

@@ -1027,7 +1027,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 
 ```json
 {
-  "id": "base",
   "format": "png",
   "zoom": 10,
   "bbox": [102, 8, 110, 24],
