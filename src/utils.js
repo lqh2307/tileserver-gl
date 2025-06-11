@@ -28,7 +28,9 @@ import {
 } from "node:fs/promises";
 
 // sharp.cache(false);
-sharp.tim
+// sharp.timeout({
+//   seconds: 300,
+// });
 
 /**
  * Compile template
@@ -868,14 +870,6 @@ export async function delay(ms) {
   if (ms >= 0) {
     await new Promise((resolve) => setTimeout(resolve, ms));
   }
-}
-
-/**
- * Delay 25ms
- * @returns {Promise<void>}
- */
-export async function wait25ms() {
-  await new Promise((resolve) => setTimeout(resolve, 25));
 }
 
 /**
@@ -2701,7 +2695,7 @@ export async function createFileWithLock(filePath, data, timeout) {
 
         continue;
       } else if (error.code === "EEXIST") {
-        await wait25ms();
+        await delay(25);
       } else {
         if (lockFileHandle !== undefined) {
           await lockFileHandle.close();
@@ -2750,7 +2744,7 @@ export async function removeFileWithLock(filePath, timeout) {
       if (error.code === "ENOENT") {
         return;
       } else if (error.code === "EEXIST") {
-        await wait25ms();
+        await delay(25);
       } else {
         if (lockFileHandle !== undefined) {
           await lockFileHandle.close();

@@ -2,7 +2,7 @@
 
 import { mkdir } from "node:fs/promises";
 import Database from "better-sqlite3";
-import { wait25ms } from "./utils.js";
+import { delay } from "./utils.js";
 import path from "node:path";
 
 /**
@@ -35,7 +35,7 @@ export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
       return source;
     } catch (error) {
       if (error.code === "SQLITE_BUSY") {
-        await wait25ms();
+        await delay(25);
       } else {
         if (source !== undefined) {
           source.close();
@@ -67,7 +67,7 @@ export async function runSQLWithTimeout(source, sql, params, timeout) {
       return;
     } catch (error) {
       if (error.code === "SQLITE_BUSY") {
-        await wait25ms();
+        await delay(25);
       } else {
         throw error;
       }
@@ -94,7 +94,7 @@ export async function execSQLWithTimeout(source, sql, timeout) {
       return;
     } catch (error) {
       if (error.code === "SQLITE_BUSY") {
-        await wait25ms();
+        await delay(25);
       } else {
         throw error;
       }

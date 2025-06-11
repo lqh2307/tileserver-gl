@@ -29,7 +29,7 @@ import {
   processCoverages,
   getJSONSchema,
   validateJSON,
-  wait25ms,
+  delay,
 } from "./utils.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -206,7 +206,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
           /* Wait slot for a task */
           while (tasks.activeTasks >= 256) {
-            await wait25ms();
+            await delay(25);
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -226,7 +226,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait25ms();
+      await delay(25);
     }
 
     /* Compact MBTiles (Block DB) */
@@ -360,7 +360,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
           /* Wait slot for a task */
           while (tasks.activeTasks >= 256) {
-            await wait25ms();
+            await delay(25);
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -380,7 +380,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait25ms();
+      await delay(25);
     }
 
     printLog(
@@ -519,7 +519,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
           /* Wait slot for a task */
           while (tasks.activeTasks >= 256) {
-            await wait25ms();
+            await delay(25);
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -539,7 +539,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait25ms();
+      await delay(25);
     }
 
     /* Compact XYZ (Block DB) */

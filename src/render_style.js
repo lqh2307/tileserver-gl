@@ -50,7 +50,7 @@ import {
   mergeImages,
   unzipAsync,
   runCommand,
-  wait25ms,
+  delay,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -820,7 +820,7 @@ export async function renderStyleJSONToImage(
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait25ms();
+            await delay(25);
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -840,7 +840,7 @@ export async function renderStyleJSONToImage(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait25ms();
+      await delay(25);
     }
 
     const baselayerFilePath = `${baselayerDirPath}/${id}.${format}`;
@@ -1020,7 +1020,7 @@ export async function renderSVGToImage(format, overlays, concurrency) {
   for (let idx = 0; idx < total; idx++) {
     /* Wait slot for a task */
     while (tasks.activeTasks >= concurrency) {
-      await wait25ms();
+      await delay(25);
     }
 
     await tasks.mutex.runExclusive(() => {
@@ -1038,7 +1038,7 @@ export async function renderSVGToImage(format, overlays, concurrency) {
 
   /* Wait all tasks done */
   while (tasks.activeTasks > 0) {
-    await wait25ms();
+    await delay(25);
   }
 
   return targetOverlays;
@@ -1293,7 +1293,7 @@ export async function renderMBTilesTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait25ms();
+            await delay(25);
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -1313,7 +1313,7 @@ export async function renderMBTilesTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait25ms();
+      await delay(25);
     }
 
     /* Create overviews */
@@ -1617,7 +1617,7 @@ export async function renderXYZTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait25ms();
+            await delay(25);
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -1637,7 +1637,7 @@ export async function renderXYZTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait25ms();
+      await delay(25);
     }
 
     /* Remove parent folders if empty */
@@ -1923,7 +1923,7 @@ export async function renderPostgreSQLTiles(
 
           /* Wait slot for a task */
           while (tasks.activeTasks >= concurrency) {
-            await wait25ms();
+            await delay(25);
           }
 
           await tasks.mutex.runExclusive(() => {
@@ -1943,7 +1943,7 @@ export async function renderPostgreSQLTiles(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await wait25ms();
+      await delay(25);
     }
 
     /* Create overviews */
