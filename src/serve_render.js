@@ -27,7 +27,15 @@ function renderStyleJSONHandler() {
       }
 
       const format = req.body.format || "png";
-      const bbox = req.body.bbox !== undefined ? req.body.bbox : [req.body.extent[0], req.body.extent[3], req.body.extent[2], req.body.extent[1]];
+      const bbox =
+        req.body.bbox !== undefined
+          ? req.body.bbox
+          : [
+              req.body.extent[0],
+              req.body.extent[3],
+              req.body.extent[2],
+              req.body.extent[1],
+            ];
 
       /* Render style */
       const result = await renderStyleJSONToImage(
@@ -145,14 +153,16 @@ function renderPDFHandler() {
             req.body.input.image.slice(req.body.input.image.indexOf(",") + 1),
             "base64"
           ),
-          resolution: req.body.input.resolution
+          resolution: req.body.input.resolution,
         },
         req.body.preview,
         req.body.output
       );
 
       res.set({
-        "content-type": detectContentTypeFromFormat(req.body.preview === undefined ? "pdf" : req.body.preview.format),
+        "content-type": detectContentTypeFromFormat(
+          req.body.preview === undefined ? "pdf" : req.body.preview.format
+        ),
       });
 
       return res.status(StatusCodes.CREATED).send(result);

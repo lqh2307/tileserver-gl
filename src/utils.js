@@ -375,7 +375,7 @@ export async function calculateResolution(input, unit) {
 
     case "mm": {
       return [resolution[0] * 1000, resolution[1] * 1000];
-    }    
+    }
   }
 }
 
@@ -413,9 +413,9 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz", tileSize = 256) {
   let y = Math.floor(
     (scheme === "tms"
       ? size -
-      (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
+        (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
       : zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) /
-    tileSize
+      tileSize
   );
 
   // Limit x
@@ -472,8 +472,8 @@ export function getLonLatFromXYZ(
   return [
     (px - zc) / bc,
     (360 / Math.PI) *
-    (Math.atan(Math.exp((zc - (scheme === "tms" ? size - py : py)) / cc)) -
-      Math.PI / 4),
+      (Math.atan(Math.exp((zc - (scheme === "tms" ? size - py : py)) / cc)) -
+        Math.PI / 4),
   ];
 }
 
@@ -867,7 +867,9 @@ export function getIntersectBBox(bbox1, bbox2) {
  * @returns {number} Scale
  */
 export function zoomToScale(zoom, ppi = 96, tileSize = 256) {
-  return (ppi * ((2 * Math.PI * 6378137.0) / tileSize / Math.pow(2, zoom))) / 0.0254;
+  return (
+    (ppi * ((2 * Math.PI * 6378137.0) / tileSize / Math.pow(2, zoom))) / 0.0254
+  );
 }
 
 /**
@@ -878,7 +880,9 @@ export function zoomToScale(zoom, ppi = 96, tileSize = 256) {
  * @returns {number} zoom
  */
 export function scaleToZoom(scale, ppi = 96, tileSize = 256) {
-  return Math.log2(ppi * ((2 * Math.PI * 6378137.0) / tileSize / scale / 0.0254));
+  return Math.log2(
+    ppi * ((2 * Math.PI * 6378137.0) / tileSize / scale / 0.0254)
+  );
 }
 
 /**
@@ -969,10 +973,7 @@ export async function removeEmptyFolders(folderPath, regex) {
     entries.map(async (entry) => {
       const fullPath = `${folderPath}/${entry.name}`;
 
-      if (
-        entry.isFile() &&
-        (regex === undefined || regex.test(entry.name))
-      ) {
+      if (entry.isFile() && (regex === undefined || regex.test(entry.name))) {
         hasMatchingFile = true;
       } else if (entry.isDirectory()) {
         await removeEmptyFolders(fullPath, regex);
@@ -1708,14 +1709,17 @@ export async function addFrameToImage(input, frame, grid, output) {
 
     // Inner frame
     svgElements.push(
-      `<rect x="${frameMargin + frameSpace}" y="${frameMargin + frameSpace
+      `<rect x="${frameMargin + frameSpace}" y="${
+        frameMargin + frameSpace
       }" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`
     );
 
     // Outer frame
     svgElements.push(
-      `<rect x="${frameMargin}" y="${frameMargin}" width="${width + frameSpace * 2
-      }" height="${height + frameSpace * 2
+      `<rect x="${frameMargin}" y="${frameMargin}" width="${
+        width + frameSpace * 2
+      }" height="${
+        height + frameSpace * 2
       }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`
     );
 
@@ -1733,15 +1737,19 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Top tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + frameSpace - majorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${
+          frameMargin + frameSpace
+        }" x2="${frameMargin + x + frameSpace}" y2="${
+          frameMargin + frameSpace - majorTickSize
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
       // Bottom tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + height + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + height + frameSpace + majorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${
+          frameMargin + height + frameSpace
+        }" x2="${frameMargin + x + frameSpace}" y2="${
+          frameMargin + height + frameSpace + majorTickSize
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
@@ -1754,17 +1762,23 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Top label
         svgElements.push(
-          `<text x="${frameMargin + x + frameSpace}" y="${frameMargin + frameSpace - majorTickSize - xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${frameMargin + x + frameSpace
-          },${frameMargin + frameSpace - majorTickSize - xTickLabelOffset
+          `<text x="${frameMargin + x + frameSpace}" y="${
+            frameMargin + frameSpace - majorTickSize - xTickLabelOffset
+          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${
+            frameMargin + x + frameSpace
+          },${
+            frameMargin + frameSpace - majorTickSize - xTickLabelOffset
           })">${label}</text>`
         );
 
         // Bottom label
         svgElements.push(
-          `<text x="${frameMargin + x + frameSpace}" y="${frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${frameMargin + x + frameSpace
-          },${frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
+          `<text x="${frameMargin + x + frameSpace}" y="${
+            frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
+          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${
+            frameMargin + x + frameSpace
+          },${
+            frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
           })">${label}</text>`
         );
       }
@@ -1784,15 +1798,19 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Top tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + frameSpace - minorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${
+          frameMargin + frameSpace
+        }" x2="${frameMargin + x + frameSpace}" y2="${
+          frameMargin + frameSpace - minorTickSize
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
       // Bottom tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + height + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + height + frameSpace + minorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${
+          frameMargin + height + frameSpace
+        }" x2="${frameMargin + x + frameSpace}" y2="${
+          frameMargin + height + frameSpace + minorTickSize
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
@@ -1805,17 +1823,23 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Top label
         svgElements.push(
-          `<text x="${frameMargin + x + frameSpace}" y="${frameMargin + frameSpace - minorTickSize - xTickLabelOffset
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${frameMargin + x + frameSpace
-          },${frameMargin + frameSpace - minorTickSize - xTickLabelOffset
+          `<text x="${frameMargin + x + frameSpace}" y="${
+            frameMargin + frameSpace - minorTickSize - xTickLabelOffset
+          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${
+            frameMargin + x + frameSpace
+          },${
+            frameMargin + frameSpace - minorTickSize - xTickLabelOffset
           })">${label}</text>`
         );
 
         // Bottom label
         svgElements.push(
-          `<text x="${frameMargin + x + frameSpace}" y="${frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${frameMargin + x + frameSpace
-          },${frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
+          `<text x="${frameMargin + x + frameSpace}" y="${
+            frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
+          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${
+            frameMargin + x + frameSpace
+          },${
+            frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
           })">${label}</text>`
         );
       }
@@ -1835,15 +1859,19 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Left tick
       svgElements.push(
-        `<line x1="${frameMargin + frameSpace}" y1="${frameMargin + y + frameSpace
-        }" x2="${frameMargin + frameSpace - majorTickSize}" y2="${frameMargin + y + frameSpace
+        `<line x1="${frameMargin + frameSpace}" y1="${
+          frameMargin + y + frameSpace
+        }" x2="${frameMargin + frameSpace - majorTickSize}" y2="${
+          frameMargin + y + frameSpace
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
       // Right tick
       svgElements.push(
-        `<line x1="${frameMargin + width + frameSpace}" y1="${frameMargin + y + frameSpace
-        }" x2="${frameMargin + width + frameSpace + majorTickSize}" y2="${frameMargin + y + frameSpace
+        `<line x1="${frameMargin + width + frameSpace}" y1="${
+          frameMargin + y + frameSpace
+        }" x2="${frameMargin + width + frameSpace + majorTickSize}" y2="${
+          frameMargin + y + frameSpace
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
@@ -1856,17 +1884,23 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Left label
         svgElements.push(
-          `<text x="${frameMargin + frameSpace - majorTickSize - yTickLabelOffset
-          }" y="${frameMargin + y + frameSpace
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${frameMargin + frameSpace - majorTickSize - yTickLabelOffset
+          `<text x="${
+            frameMargin + frameSpace - majorTickSize - yTickLabelOffset
+          }" y="${
+            frameMargin + y + frameSpace
+          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
+            frameMargin + frameSpace - majorTickSize - yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
 
         // Right label
         svgElements.push(
-          `<text x="${frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
-          }" y="${frameMargin + y + frameSpace
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
+          `<text x="${
+            frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
+          }" y="${
+            frameMargin + y + frameSpace
+          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
+            frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
       }
@@ -1886,15 +1920,19 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Left tick
       svgElements.push(
-        `<line x1="${frameMargin + frameSpace}" y1="${frameMargin + y + frameSpace
-        }" x2="${frameMargin + frameSpace - minorTickSize}" y2="${frameMargin + y + frameSpace
+        `<line x1="${frameMargin + frameSpace}" y1="${
+          frameMargin + y + frameSpace
+        }" x2="${frameMargin + frameSpace - minorTickSize}" y2="${
+          frameMargin + y + frameSpace
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
       // Right tick
       svgElements.push(
-        `<line x1="${frameMargin + width + frameSpace}" y1="${frameMargin + y + frameSpace
-        }" x2="${frameMargin + width + frameSpace + minorTickSize}" y2="${frameMargin + y + frameSpace
+        `<line x1="${frameMargin + width + frameSpace}" y1="${
+          frameMargin + y + frameSpace
+        }" x2="${frameMargin + width + frameSpace + minorTickSize}" y2="${
+          frameMargin + y + frameSpace
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
@@ -1907,17 +1945,23 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Left label
         svgElements.push(
-          `<text x="${frameMargin + frameSpace - minorTickSize - yTickLabelOffset
-          }" y="${frameMargin + y + frameSpace
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${frameMargin + frameSpace - minorTickSize - yTickLabelOffset
+          `<text x="${
+            frameMargin + frameSpace - minorTickSize - yTickLabelOffset
+          }" y="${
+            frameMargin + y + frameSpace
+          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
+            frameMargin + frameSpace - minorTickSize - yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
 
         // Right label
         svgElements.push(
-          `<text x="${frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
-          }" y="${frameMargin + y + frameSpace
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
+          `<text x="${
+            frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
+          }" y="${
+            frameMargin + y + frameSpace
+          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
+            frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
       }
@@ -1954,8 +1998,10 @@ export async function addFrameToImage(input, frame, grid, output) {
           const x = (lon - bbox[0]) / degPerPixelX;
 
           svgElements.push(
-            `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + frameSpace
-            }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + frameSpace + height
+            `<line x1="${frameMargin + x + frameSpace}" y1="${
+              frameMargin + frameSpace
+            }" x2="${frameMargin + x + frameSpace}" y2="${
+              frameMargin + frameSpace + height
             }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
           );
         }
@@ -1976,8 +2022,10 @@ export async function addFrameToImage(input, frame, grid, output) {
           const x = (lon - bbox[0]) / degPerPixelX;
 
           svgElements.push(
-            `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + frameSpace
-            }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + frameSpace + height
+            `<line x1="${frameMargin + x + frameSpace}" y1="${
+              frameMargin + frameSpace
+            }" x2="${frameMargin + x + frameSpace}" y2="${
+              frameMargin + frameSpace + height
             }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
           );
         }
@@ -1998,8 +2046,10 @@ export async function addFrameToImage(input, frame, grid, output) {
           const y = (bbox[3] - lat) / degPerPixelY;
 
           svgElements.push(
-            `<line x1="${frameMargin + frameSpace}" y1="${frameMargin + y + frameSpace
-            }" x2="${frameMargin + frameSpace + width}" y2="${frameMargin + y + frameSpace
+            `<line x1="${frameMargin + frameSpace}" y1="${
+              frameMargin + y + frameSpace
+            }" x2="${frameMargin + frameSpace + width}" y2="${
+              frameMargin + y + frameSpace
             }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
           );
         }
@@ -2020,8 +2070,10 @@ export async function addFrameToImage(input, frame, grid, output) {
           const y = (bbox[3] - lat) / degPerPixelY;
 
           svgElements.push(
-            `<line x1="${frameMargin + frameSpace}" y1="${frameMargin + y + frameSpace
-            }" x2="${frameMargin + frameSpace + width}" y2="${frameMargin + y + frameSpace
+            `<line x1="${frameMargin + frameSpace}" y1="${
+              frameMargin + y + frameSpace
+            }" x2="${frameMargin + frameSpace + width}" y2="${
+              frameMargin + y + frameSpace
             }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
           );
         }
@@ -2283,8 +2335,8 @@ export async function splitImage(input, preview, output) {
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
     .png({
-        compressionLevel: 9,
-      })
+      compressionLevel: 9,
+    })
     .toBuffer();
 
   if (preview !== undefined) {
@@ -2306,14 +2358,18 @@ export async function splitImage(input, preview, output) {
       for (let x = 0; x < xPageNum; x++) {
         if (lineWidth > 0) {
           svgElements.push(
-            `<rect x="${x * stepWidthPX}" y="${y * stepHeightPX}" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`
+            `<rect x="${x * stepWidthPX}" y="${
+              y * stepHeightPX
+            }" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`
           );
         }
 
         if (pageSize > 0) {
           svgElements.push(
-            `<text x="${(x * stepWidthPX) + (stepWidthPX / 2)}" y="${(y * stepHeightPX) + (stepHeightPX / 2)
-            }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${y + x + 1
+            `<text x="${x * stepWidthPX + stepWidthPX / 2}" y="${
+              y * stepHeightPX + stepHeightPX / 2
+            }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
+              y + x + 1
             }</text>`
           );
         }
@@ -2323,18 +2379,18 @@ export async function splitImage(input, preview, output) {
     // Create image
     const image = sharp(newImage, {
       limitInputPixels: false,
-    })
-      .composite([
-        {
-          limitInputPixels: false,
-          input: Buffer.from(
-            `<svg width="${newWidth}" height="${newHeight
-            }" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
-          ),
-          left: 0,
-          top: 0,
-        },
-      ]);
+    }).composite([
+      {
+        limitInputPixels: false,
+        input: Buffer.from(
+          `<svg width="${newWidth}" height="${newHeight}" xmlns="http://www.w3.org/2000/svg">${svgElements.join(
+            ""
+          )}</svg>`
+        ),
+        left: 0,
+        top: 0,
+      },
+    ]);
 
     // Resize image
     if (preview.width > 0 || preview.height > 0) {
@@ -2847,5 +2903,7 @@ export function createTileMetadata(metadata = {}) {
  * @returns {string} Base64 string
  */
 export function createBase64(buffer, format) {
-  return `data:${detectContentTypeFromFormat(format)};base64,${buffer.toString("base64")}`;
+  return `data:${detectContentTypeFromFormat(format)};base64,${buffer.toString(
+    "base64"
+  )}`;
 }

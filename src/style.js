@@ -94,8 +94,8 @@ export async function validateStyle(styleJSON) {
   /* Validate font */
   if (styleJSON.glyphs !== undefined) {
     if (
-      !["fonts://", "https://", "http://"].some(
-        (scheme) => styleJSON.glyphs.startsWith(scheme)
+      !["fonts://", "https://", "http://"].some((scheme) =>
+        styleJSON.glyphs.startsWith(scheme)
       )
     ) {
       throw new Error(`Invalid font url "${styleJSON.glyphs}"`);
@@ -111,8 +111,8 @@ export async function validateStyle(styleJSON) {
         throw new Error(`Sprite "${spriteID}" is not found`);
       }
     } else if (
-      !["https://", "http://"].some(
-        (scheme) => styleJSON.sprite.startsWith(scheme)
+      !["https://", "http://"].some((scheme) =>
+        styleJSON.sprite.startsWith(scheme)
       )
     ) {
       throw new Error(`Invalid sprite url "${styleJSON.sprite}"`);
@@ -152,8 +152,8 @@ export async function validateStyle(styleJSON) {
             );
           }
         } else if (
-          !["https://", "http://", "data:"].some(
-            (scheme) => source.url.startsWith(scheme)
+          !["https://", "http://", "data:"].some((scheme) =>
+            source.url.startsWith(scheme)
           )
         ) {
           throw new Error(`Source "${id}" is invalid data url "${source.url}"`);
@@ -175,9 +175,7 @@ export async function validateStyle(styleJSON) {
               );
             }
           } else if (
-            !["https://", "http://"].some(
-              (scheme) => url.startsWith(scheme)
-            )
+            !["https://", "http://"].some((scheme) => url.startsWith(scheme))
           ) {
             throw new Error(`Source "${id}" is invalid data url "${url}"`);
           }
@@ -199,9 +197,7 @@ export async function validateStyle(styleJSON) {
               );
             }
           } else if (
-            !["https://", "http://"].some(
-              (scheme) => tile.startsWith(scheme)
-            )
+            !["https://", "http://"].some((scheme) => tile.startsWith(scheme))
           ) {
             throw new Error(`Source "${id}" is invalid tile url "${tile}"`);
           }

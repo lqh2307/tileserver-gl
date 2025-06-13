@@ -315,22 +315,25 @@ export async function getAndCacheDataSprite(id, fileName) {
         error.message === "Sprite does not exist"
       ) {
         const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
-  
+
         printLog(
           "info",
           `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
         );
-  
+
         /* Get sprite */
         const sprite = await getDataFileFromURL(
           targetURL,
           30000 // 30 secs
         );
-  
+
         /* Cache */
         if (item.storeCache) {
-          printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
-  
+          printLog(
+            "info",
+            `Caching sprite "${id}" - Filename "${fileName}"...`
+          );
+
           cacheSpriteFile(item.path, fileName, sprite).catch((error) =>
             printLog(
               "error",
@@ -338,7 +341,7 @@ export async function getAndCacheDataSprite(id, fileName) {
             )
           );
         }
-  
+
         return sprite;
       } else {
         throw error;

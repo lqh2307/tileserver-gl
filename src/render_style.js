@@ -428,8 +428,9 @@ export async function renderImageTileData(
   });
 
   const originTileSize = hackTileSize * tileScale;
-  const targetTileSize =
-    isNeedHack ? (hackTileSize / 2) * tileScale : undefined;
+  const targetTileSize = isNeedHack
+    ? (hackTileSize / 2) * tileScale
+    : undefined;
 
   return await processImageData(
     data,
@@ -535,8 +536,9 @@ export async function renderImageTileDataWithPool(
   });
 
   const originTileSize = hackTileSize * tileScale;
-  const targetTileSize =
-    isNeedHack ? (hackTileSize / 2) * tileScale : undefined;
+  const targetTileSize = isNeedHack
+    ? (hackTileSize / 2) * tileScale
+    : undefined;
 
   return await processImageData(
     data,
@@ -1013,15 +1015,12 @@ export async function renderSVGToImage(format, overlays, concurrency, base64) {
       // Rendered data
       targetOverlays[idx] = {
         name: overlays[idx].name,
-        content: await convertSVGToImage(
-          Buffer.from(overlays[idx].content),
-          {
-            format: overlays[idx].format || format,
-            width: overlays[idx].width,
-            height: overlays[idx].height,
-            base64: base64,
-          }
-        ),
+        content: await convertSVGToImage(Buffer.from(overlays[idx].content), {
+          format: overlays[idx].format || format,
+          width: overlays[idx].width,
+          height: overlays[idx].height,
+          base64: base64,
+        }),
       };
     } catch (error) {
       printLog(

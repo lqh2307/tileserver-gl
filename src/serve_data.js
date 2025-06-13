@@ -101,9 +101,7 @@ function getDataTileHandler() {
     /* Check data tile format */
     if (
       req.params.format !== item.tileJSON.format ||
-      !["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(
-        req.params.format
-      )
+      !["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(req.params.format)
     ) {
       return res
         .status(StatusCodes.BAD_REQUEST)
@@ -300,7 +298,7 @@ function downloadDataHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      if ((await isExistFile(item.path))) {
+      if (await isExistFile(item.path)) {
         const stats = await stat(item.path);
         const fileName = path.basename(item.path);
 
@@ -1019,8 +1017,8 @@ export const serve_data = {
               dataInfo.sourceType = "pmtiles";
 
               if (
-                ["https://", "http://"].some(
-                  (scheme) => item.pmtiles.startsWith(scheme)
+                ["https://", "http://"].some((scheme) =>
+                  item.pmtiles.startsWith(scheme)
                 )
               ) {
                 /* Get PMTiles path */

@@ -698,10 +698,7 @@ export async function cachePostgreSQLTileData(
   data,
   storeTransparent
 ) {
-  if (
-    storeTransparent === false &&
-    (await isFullTransparentPNGImage(data))
-  ) {
+  if (storeTransparent === false && (await isFullTransparentPNGImage(data))) {
     return;
   } else {
     await createPostgreSQLTile(

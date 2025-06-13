@@ -730,10 +730,7 @@ export async function cacheMBtilesTileData(
   data,
   storeTransparent
 ) {
-  if (
-    storeTransparent === false &&
-    (await isFullTransparentPNGImage(data))
-  ) {
+  if (storeTransparent === false && (await isFullTransparentPNGImage(data))) {
     return;
   } else {
     await createMBTilesTile(

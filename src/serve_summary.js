@@ -35,9 +35,7 @@ function serveSummaryHandler() {
         await Promise.all([
           ...Object.keys(seed.styles || {}).map(async (id) => {
             if (
-              (await isExistFolder(
-                `${process.env.DATA_DIR}/caches/styles/${id}`
-              ))
+              await isExistFolder(`${process.env.DATA_DIR}/caches/styles/${id}`)
             ) {
               result.styles[id] = {
                 actual: 1,
@@ -52,9 +50,9 @@ function serveSummaryHandler() {
           }),
           ...Object.keys(seed.geojsons || {}).map(async (id) => {
             if (
-              (await isExistFolder(
+              await isExistFolder(
                 `${process.env.DATA_DIR}/caches/geojsons/${id}`
-              ))
+              )
             ) {
               result.geojsons[id] = {
                 actual: 1,
@@ -134,9 +132,9 @@ function serveSummaryHandler() {
           }),
           ...Object.keys(seed.sprites || {}).map(async (id) => {
             if (
-              (await isExistFolder(
+              await isExistFolder(
                 `${process.env.DATA_DIR}/caches/sprites/${id}`
-              ))
+              )
             ) {
               result.sprites[id] = {
                 actual: 1,
@@ -151,9 +149,7 @@ function serveSummaryHandler() {
           }),
           ...Object.keys(seed.fonts || {}).map(async (id) => {
             if (
-              (await isExistFolder(
-                `${process.env.DATA_DIR}/caches/fonts/${id}`
-              ))
+              await isExistFolder(`${process.env.DATA_DIR}/caches/fonts/${id}`)
             ) {
               result.fonts[id] = {
                 actual: 1,
@@ -271,8 +267,8 @@ function serveSummaryHandler() {
 
               case "pmtiles": {
                 if (
-                  !["https://", "http://"].some(
-                    (scheme) => item.path.startsWith(scheme)
+                  !["https://", "http://"].some((scheme) =>
+                    item.path.startsWith(scheme)
                   )
                 ) {
                   result.datas.pmtiles.size += await getPMTilesSize(item.path);

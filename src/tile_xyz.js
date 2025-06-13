@@ -751,10 +751,7 @@ export async function cacheXYZTileFile(
   data,
   storeTransparent
 ) {
-  if (
-    storeTransparent === false &&
-    (await isFullTransparentPNGImage(data))
-  ) {
+  if (storeTransparent === false && (await isFullTransparentPNGImage(data))) {
     return;
   } else {
     await createXYZTile(

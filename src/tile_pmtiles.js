@@ -39,11 +39,7 @@ class PMTilesFileSource {
 export function openPMTiles(filePath) {
   let source;
 
-  if (
-    ["https://", "http://"].some(
-      (scheme) => filePath.startsWith(scheme)
-    )
-  ) {
+  if (["https://", "http://"].some((scheme) => filePath.startsWith(scheme))) {
     source = new FetchSource(filePath);
   } else {
     source = new PMTilesFileSource(openSync(filePath, "r"));

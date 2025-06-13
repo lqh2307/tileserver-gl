@@ -315,7 +315,7 @@ function downloadGeoJSONHandler() {
           .send("GeoJSON layer does not exist");
       }
 
-      if ((await isExistFile(geoJSONLayer.path))) {
+      if (await isExistFile(geoJSONLayer.path)) {
         const stats = await stat(geoJSONLayer.path);
         const fileName = path.basename(geoJSONLayer.path);
 

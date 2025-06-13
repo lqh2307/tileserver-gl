@@ -973,10 +973,7 @@ export const serve_style = {
           }
 
           /* Serve rendered */
-          if (
-            process.env.BACKEND_RENDER === "true" &&
-            isCanServeRendered
-          ) {
+          if (process.env.BACKEND_RENDER === "true" && isCanServeRendered) {
             try {
               /* Rendered info */
               const tileJSON = createTileMetadata({

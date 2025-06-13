@@ -317,10 +317,7 @@ export function validateAndGetGeometryTypes(geoJSON) {
     case "MultiLineString":
     case "Point":
     case "MultiPoint": {
-      if (
-        geoJSON.coordinates !== null &&
-        !Array.isArray(geoJSON.coordinates)
-      ) {
+      if (geoJSON.coordinates !== null && !Array.isArray(geoJSON.coordinates)) {
         throw new Error(`"coordinates" property is invalid`);
       }
 
