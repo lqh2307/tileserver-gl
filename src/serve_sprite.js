@@ -22,7 +22,7 @@ function getSpriteHandler() {
 
     try {
       /* Check sprite format? */
-      if (["png", "json"].includes(req.params.format) === false) {
+      if (!["png", "json"].includes(req.params.format)) {
         return res
           .status(StatusCodes.BAD_REQUEST)
           .send("Sprite format is not support");
@@ -246,7 +246,7 @@ export const serve_sprite = {
                 throw new Error(`Cache sprite "${item.sprite}" is invalid`);
               }
 
-              if (item.cache.forward === true) {
+              if (item.cache.forward) {
                 spriteInfo.sourceURL = cacheSource.url;
                 spriteInfo.storeCache = item.cache.store;
               }

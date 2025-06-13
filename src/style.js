@@ -94,9 +94,9 @@ export async function validateStyle(styleJSON) {
   /* Validate font */
   if (styleJSON.glyphs !== undefined) {
     if (
-      ["fonts://", "https://", "http://"].some(
-        (scheme) => styleJSON.glyphs.startsWith(scheme) === true
-      ) === false
+      !["fonts://", "https://", "http://"].some(
+        (scheme) => styleJSON.glyphs.startsWith(scheme)
+      )
     ) {
       throw new Error(`Invalid font url "${styleJSON.glyphs}"`);
     }
@@ -104,16 +104,16 @@ export async function validateStyle(styleJSON) {
 
   /* Validate sprite */
   if (styleJSON.sprite !== undefined) {
-    if (styleJSON.sprite.startsWith("sprites://") === true) {
+    if (styleJSON.sprite.startsWith("sprites://")) {
       const spriteID = styleJSON.sprite.split("/")[2];
 
       if (config.sprites[spriteID] === undefined) {
         throw new Error(`Sprite "${spriteID}" is not found`);
       }
     } else if (
-      ["https://", "http://"].some(
-        (scheme) => styleJSON.sprite.startsWith(scheme) === true
-      ) === false
+      !["https://", "http://"].some(
+        (scheme) => styleJSON.sprite.startsWith(scheme)
+      )
     ) {
       throw new Error(`Invalid sprite url "${styleJSON.sprite}"`);
     }
@@ -125,7 +125,7 @@ export async function validateStyle(styleJSON) {
       const source = styleJSON.sources[id];
 
       if (source.data !== undefined) {
-        if (isLocalURL(source.data) === true) {
+        if (isLocalURL(source.data)) {
           const parts = source.data.split("/");
 
           if (config.geojsons[parts[2]] === undefined) {
@@ -143,7 +143,7 @@ export async function validateStyle(styleJSON) {
       }
 
       if (source.url !== undefined) {
-        if (isLocalURL(source.url) === true) {
+        if (isLocalURL(source.url)) {
           const sourceID = source.url.split("/")[2];
 
           if (config.datas[sourceID] === undefined) {
@@ -152,9 +152,9 @@ export async function validateStyle(styleJSON) {
             );
           }
         } else if (
-          ["https://", "http://", "data:"].some(
-            (scheme) => source.url.startsWith(scheme) === true
-          ) === false
+          !["https://", "http://", "data:"].some(
+            (scheme) => source.url.startsWith(scheme)
+          )
         ) {
           throw new Error(`Source "${id}" is invalid data url "${source.url}"`);
         }
@@ -166,7 +166,7 @@ export async function validateStyle(styleJSON) {
         }
 
         source.urls.forEach((url) => {
-          if (isLocalURL(url) === true) {
+          if (isLocalURL(url)) {
             const sourceID = url.split("/")[2];
 
             if (config.datas[sourceID] === undefined) {
@@ -175,9 +175,9 @@ export async function validateStyle(styleJSON) {
               );
             }
           } else if (
-            ["https://", "http://"].some(
-              (scheme) => url.startsWith(scheme) === true
-            ) === false
+            !["https://", "http://"].some(
+              (scheme) => url.startsWith(scheme)
+            )
           ) {
             throw new Error(`Source "${id}" is invalid data url "${url}"`);
           }
@@ -190,7 +190,7 @@ export async function validateStyle(styleJSON) {
         }
 
         source.tiles.forEach((tile) => {
-          if (isLocalURL(tile) === true) {
+          if (isLocalURL(tile)) {
             const sourceID = tile.split("/")[2];
 
             if (config.datas[sourceID] === undefined) {
@@ -199,9 +199,9 @@ export async function validateStyle(styleJSON) {
               );
             }
           } else if (
-            ["https://", "http://"].some(
-              (scheme) => tile.startsWith(scheme) === true
-            ) === false
+            !["https://", "http://"].some(
+              (scheme) => tile.startsWith(scheme)
+            )
           ) {
             throw new Error(`Source "${id}" is invalid tile url "${tile}"`);
           }
@@ -244,7 +244,7 @@ export async function getRenderedStyleJSON(filePath) {
         if (source.tiles !== undefined) {
           const tiles = new Set(
             source.tiles.map((tile) => {
-              if (isLocalURL(tile) === true) {
+              if (isLocalURL(tile)) {
                 const sourceID = tile.split("/")[2];
                 const sourceData = config.datas[sourceID];
 
@@ -262,21 +262,21 @@ export async function getRenderedStyleJSON(filePath) {
           const otherUrls = [];
 
           source.urls.forEach((url) => {
-            if (isLocalURL(url) === true) {
+            if (isLocalURL(url)) {
               const sourceID = url.split("/")[2];
               const sourceData = config.datas[sourceID];
 
               const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
 
               if (source.tiles !== undefined) {
-                if (source.tiles.includes(tile) === false) {
+                if (!source.tiles.includes(tile)) {
                   source.tiles.push(tile);
                 }
               } else {
                 source.tiles = [tile];
               }
             } else {
-              if (otherUrls.includes(url) === false) {
+              if (!otherUrls.includes(url)) {
                 otherUrls.push(url);
               }
             }
@@ -290,14 +290,14 @@ export async function getRenderedStyleJSON(filePath) {
         }
 
         if (source.url !== undefined) {
-          if (isLocalURL(source.url) === true) {
+          if (isLocalURL(source.url)) {
             const sourceID = source.url.split("/")[2];
             const sourceData = config.datas[sourceID];
 
             const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
 
             if (source.tiles !== undefined) {
-              if (source.tiles.includes(tile) === false) {
+              if (!source.tiles.includes(tile)) {
                 source.tiles.push(tile);
               }
             } else {
@@ -314,7 +314,7 @@ export async function getRenderedStyleJSON(filePath) {
           source.tiles !== undefined
         ) {
           if (source.tiles.length === 1) {
-            if (isLocalURL(source.tiles[0]) === true) {
+            if (isLocalURL(source.tiles[0])) {
               const sourceID = source.tiles[0].split("/")[2];
               const sourceData = config.datas[sourceID];
 

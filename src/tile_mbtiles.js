@@ -234,7 +234,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "tms");
 
   let query = "";
-  const extraInfoType = isCreated === true ? "created" : "hash";
+  const extraInfoType = isCreated ? "created" : "hash";
 
   tileBounds.forEach((tileBound, idx) => {
     if (idx > 0) {
@@ -348,7 +348,7 @@ export async function removeMBTilesTile(source, z, x, y, timeout) {
 export async function openMBTilesDB(filePath, isCreate, timeout) {
   const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
 
-  if (isCreate === true) {
+  if (isCreate) {
     await execSQLWithTimeout(
       source,
       `
@@ -381,7 +381,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
 
     const tableInfos = source.prepare("PRAGMA table_info(tiles);").all();
 
-    if (tableInfos.some((col) => col.name === "hash") === false) {
+    if (!tableInfos.some((col) => col.name === "hash")) {
       try {
         await execSQLWithTimeout(
           source,
@@ -400,7 +400,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
       }
     }
 
-    if (tableInfos.some((col) => col.name === "created") === false) {
+    if (!tableInfos.some((col) => col.name === "created")) {
       try {
         await execSQLWithTimeout(
           source,
@@ -732,7 +732,7 @@ export async function cacheMBtilesTileData(
 ) {
   if (
     storeTransparent === false &&
-    (await isFullTransparentPNGImage(data)) === true
+    (await isFullTransparentPNGImage(data))
   ) {
     return;
   } else {

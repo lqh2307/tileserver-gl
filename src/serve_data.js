@@ -101,9 +101,9 @@ function getDataTileHandler() {
     /* Check data tile format */
     if (
       req.params.format !== item.tileJSON.format ||
-      ["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(
+      !["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(
         req.params.format
-      ) === false
+      )
     ) {
       return res
         .status(StatusCodes.BAD_REQUEST)
@@ -300,7 +300,7 @@ function downloadDataHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      if ((await isExistFile(item.path)) === true) {
+      if ((await isExistFile(item.path))) {
         const stats = await stat(item.path);
         const fileName = path.basename(item.path);
 
@@ -413,7 +413,7 @@ function getDataTileExtraInfoHandler() {
 
       res.set(headers);
 
-      return res.status(StatusCodes.OK).send(extraInfo);
+      return res.status(StatusCodes.CREATED).send(extraInfo);
     } catch (error) {
       printLog("error", `Failed to get tile extra info "${id}": ${error}`);
 
@@ -976,7 +976,7 @@ export const serve_data = {
                   );
                 }
 
-                if (item.cache.forward === true) {
+                if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
@@ -1020,8 +1020,8 @@ export const serve_data = {
 
               if (
                 ["https://", "http://"].some(
-                  (scheme) => item.pmtiles.startsWith(scheme) === true
-                ) === true
+                  (scheme) => item.pmtiles.startsWith(scheme)
+                )
               ) {
                 /* Get PMTiles path */
                 dataInfo.path = item.pmtiles;
@@ -1055,7 +1055,7 @@ export const serve_data = {
                   throw new Error(`Cache xyz data "${item.xyz}" is invalid`);
                 }
 
-                if (item.cache.forward === true) {
+                if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
@@ -1114,7 +1114,7 @@ export const serve_data = {
                   throw new Error(`Cache pg data "${item.pg}" is invalid`);
                 }
 
-                if (item.cache.forward === true) {
+                if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;

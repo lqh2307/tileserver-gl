@@ -41,8 +41,8 @@ export function openPMTiles(filePath) {
 
   if (
     ["https://", "http://"].some(
-      (scheme) => filePath.startsWith(scheme) === true
-    ) === true
+      (scheme) => filePath.startsWith(scheme)
+    )
   ) {
     source = new FetchSource(filePath);
   } else {

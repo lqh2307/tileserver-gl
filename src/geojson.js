@@ -154,7 +154,7 @@ export function validateAndGetGeometryTypes(geoJSON) {
 
   switch (geoJSON.type) {
     case "FeatureCollection": {
-      if (Array.isArray(geoJSON.features) === false) {
+      if (!Array.isArray(geoJSON.features)) {
         throw new Error(`"features" property is invalid`);
       }
 
@@ -168,27 +168,27 @@ export function validateAndGetGeometryTypes(geoJSON) {
         }
 
         if (feature.geometry.type === "GeometryCollection") {
-          if (Array.isArray(feature.geometry.geometries) === false) {
+          if (!Array.isArray(feature.geometry.geometries)) {
             throw new Error(`"geometries" property is invalid`);
           }
 
           for (const geometry of feature.geometry.geometries) {
             if (
-              [
+              ![
                 "Polygon",
                 "MultiPolygon",
                 "LineString",
                 "MultiLineString",
                 "Point",
                 "MultiPoint",
-              ].includes(geometry.type) === false
+              ].includes(geometry.type)
             ) {
               throw new Error(`"type" property is invalid`);
             }
 
             if (
               geometry.coordinates !== null &&
-              Array.isArray(geometry.coordinates) === false
+              !Array.isArray(geometry.coordinates)
             ) {
               throw new Error(`"coordinates" property is invalid`);
             }
@@ -203,11 +203,11 @@ export function validateAndGetGeometryTypes(geoJSON) {
             "MultiLineString",
             "Point",
             "MultiPoint",
-          ].includes(feature.geometry.type) === true
+          ].includes(feature.geometry.type)
         ) {
           if (
             feature.geometry.coordinates !== null &&
-            Array.isArray(feature.geometry.coordinates) === false
+            !Array.isArray(feature.geometry.coordinates)
           ) {
             throw new Error(`"coordinates" property is invalid`);
           }
@@ -227,27 +227,27 @@ export function validateAndGetGeometryTypes(geoJSON) {
       }
 
       if (geoJSON.geometry.type === "GeometryCollection") {
-        if (Array.isArray(geoJSON.geometry.geometries) === false) {
+        if (!Array.isArray(geoJSON.geometry.geometries)) {
           throw new Error(`"geometries" property is invalid`);
         }
 
         for (const geometry of geoJSON.geometry.geometries) {
           if (
-            [
+            ![
               "Polygon",
               "MultiPolygon",
               "LineString",
               "MultiLineString",
               "Point",
               "MultiPoint",
-            ].includes(geometry.type) === false
+            ].includes(geometry.type)
           ) {
             throw new Error(`"type" property is invalid`);
           }
 
           if (
             geometry.coordinates !== null &&
-            Array.isArray(geometry.coordinates) === false
+            !Array.isArray(geometry.coordinates)
           ) {
             throw new Error(`"coordinates" property is invalid`);
           }
@@ -262,11 +262,11 @@ export function validateAndGetGeometryTypes(geoJSON) {
           "MultiLineString",
           "Point",
           "MultiPoint",
-        ].includes(geoJSON.geometry.type) === true
+        ].includes(geoJSON.geometry.type)
       ) {
         if (
           geoJSON.geometry.coordinates !== null &&
-          Array.isArray(geoJSON.geometry.coordinates) === false
+          !Array.isArray(geoJSON.geometry.coordinates)
         ) {
           throw new Error(`"coordinates" property is invalid`);
         }
@@ -280,27 +280,27 @@ export function validateAndGetGeometryTypes(geoJSON) {
     }
 
     case "GeometryCollection": {
-      if (Array.isArray(geoJSON.geometries) === false) {
+      if (!Array.isArray(geoJSON.geometries)) {
         throw new Error(`"geometries" property is invalid`);
       }
 
       for (const geometry of geoJSON.geometries) {
         if (
-          [
+          ![
             "Polygon",
             "MultiPolygon",
             "LineString",
             "MultiLineString",
             "Point",
             "MultiPoint",
-          ].includes(geometry.type) === false
+          ].includes(geometry.type)
         ) {
           throw new Error(`"type" property is invalid`);
         }
 
         if (
           geometry.coordinates !== null &&
-          Array.isArray(geometry.coordinates) === false
+          !Array.isArray(geometry.coordinates)
         ) {
           throw new Error(`"coordinates" property is invalid`);
         }
@@ -319,7 +319,7 @@ export function validateAndGetGeometryTypes(geoJSON) {
     case "MultiPoint": {
       if (
         geoJSON.coordinates !== null &&
-        Array.isArray(geoJSON.coordinates) === false
+        !Array.isArray(geoJSON.coordinates)
       ) {
         throw new Error(`"coordinates" property is invalid`);
       }

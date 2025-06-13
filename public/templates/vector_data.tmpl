@@ -178,7 +178,7 @@
                 map.setLayoutProperty(`${zoom}_circle`, "visibility", "none");
               }
 
-              if (isCoverageVisible === true) {
+              if (isCoverageVisible) {
                 const currentZoom = Math.floor(map.getZoom());
 
                 if (cacheCoverageLayers[currentZoom] !== undefined) {
@@ -196,7 +196,7 @@
             cacheCoveragesButton.style.cssText = "position:absolute;bottom:50px;left:10px;padding:5px 10px;font-size:14px;cursor:pointer;background:rgba(0, 150, 255, 0.5);color:white;border:none;border-radius:5px;display:inline-block;z-index:1000;";
 
             cacheCoveragesButton.onclick = () => {
-              if (isCoverageVisible === true) {
+              if (isCoverageVisible) {
                 cacheCoveragesButton.innerHTML = "Show cache Coverages";
 
                 isCoverageVisible = false;

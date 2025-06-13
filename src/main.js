@@ -20,7 +20,7 @@ import {
  * @returns {Promise<void>}
  */
 async function startClusterServer() {
-  if (cluster.isPrimary === true) {
+  if (cluster.isPrimary) {
     /* Set default ENVs */
     process.env.DATA_DIR = process.env.DATA_DIR || "data"; // Data dir
     process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name

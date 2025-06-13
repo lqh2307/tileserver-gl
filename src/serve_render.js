@@ -3,9 +3,6 @@
 import { renderStyleJSONToImage, renderSVGToImage } from "./render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
-import { createReadStream } from "fs";
-import { stat } from "fs/promises";
-import { v4 } from "uuid";
 import os from "os";
 import {
   detectContentTypeFromFormat,
@@ -29,19 +26,15 @@ function renderStyleJSONHandler() {
         throw new SyntaxError(error);
       }
 
-      const id = v4();
-      const fileName = `${id}.${req.body.format}`;
-      const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${req.body.format}s/${id}`;
+      const format = req.body.format || "png";
       const bbox = req.body.bbox !== undefined ? req.body.bbox : [req.body.extent[0], req.body.extent[3], req.body.extent[2], req.body.extent[1]];
 
       /* Render style */
-      const metadata = await renderStyleJSONToImage(
+      const result = await renderStyleJSONToImage(
         req.body.styleJSON,
         bbox,
         req.body.zoom,
-        req.body.format || "png",
-        id,
-        dirPath,
+        format,
         req.body.maxRendererPoolSize,
         req.body.concurrency || os.cpus().length,
         req.body.storeTransparent ?? true,
@@ -49,25 +42,23 @@ function renderStyleJSONHandler() {
         req.body.tileSize || 256,
         req.body.frame,
         req.body.grid,
+        req.body.base64,
         req.body.overlays
       );
 
-      const stats = await stat(metadata.filePath);
+      const headers = {
+        "content-type": "application/json",
+      };
 
-      res.set({
-        "content-length": stats.size,
-        "content-disposition": `attachment; filename="${fileName}"`,
-        "content-type": detectContentTypeFromFormat(req.body.format),
-        "content-metadata": JSON.stringify(metadata),
-      });
+      if (req.query.compression === "true") {
+        result = await gzipAsync(JSON.stringify(result));
 
-      const readStream = createReadStream(metadata.filePath);
+        headers["content-encoding"] = "gzip";
+      }
 
-      readStream.pipe(res);
+      res.set(headers);
 
-      readStream.on("error", (error) => {
-        throw error;
-      });
+      return res.status(StatusCodes.CREATED).send(result);
     } catch (error) {
       printLog("error", `Failed to render style JSON: ${error}`);
 
@@ -101,7 +92,8 @@ function renderSVGHandler() {
       const result = await renderSVGToImage(
         req.body.format || "png",
         req.body.overlays,
-        req.body.concurrency || os.cpus().length
+        req.body.concurrency || os.cpus().length,
+        req.body.base64
       );
 
       const headers = {
@@ -116,7 +108,7 @@ function renderSVGHandler() {
 
       res.set(headers);
 
-      return res.status(StatusCodes.OK).send(result);
+      return res.status(StatusCodes.CREATED).send(result);
     } catch (error) {
       printLog("error", `Failed to render SVG: ${error}`);
 
@@ -150,23 +142,20 @@ function renderPDFHandler() {
       const result = await splitImage(
         {
           image: Buffer.from(
-            req.body.input.image.slice(req.url.indexOf(",") + 1),
+            req.body.input.image.slice(req.body.input.image.indexOf(",") + 1),
             "base64"
           ),
-          res: req.body.input.res,
+          resolution: req.body.input.resolution
         },
         req.body.preview,
-        {
-          orientation: req.body.output.orientation,
-          paperSize: req.body.output.paperSize,
-        }
+        req.body.output
       );
 
       res.set({
-        "content-type": req.body.preview === undefined ? "application/pdf" : detectContentTypeFromFormat(req.body.preview.format),
+        "content-type": detectContentTypeFromFormat(req.body.preview === undefined ? "pdf" : req.body.preview.format),
       });
 
-      return res.status(StatusCodes.OK).send(result);
+      return res.status(StatusCodes.CREATED).send(result);
     } catch (error) {
       printLog("error", `Failed to render PDF: ${error}`);
 
@@ -200,6 +189,13 @@ export const serve_render = {
      *     tags:
      *       - Render
      *     summary: Render style JSON
+     *     parameters:
+     *       - in: query
+     *         name: compression
+     *         schema:
+     *           type: boolean
+     *         required: false
+     *         description: Compressed response
      *     requestBody:
      *       required: true
      *       content:
@@ -212,10 +208,9 @@ export const serve_render = {
      *       201:
      *         description: Style JSON rendered
      *         content:
-     *           application/octet-stream:
+     *           application/json:
      *             schema:
-     *               type: string
-     *               format: binary
+     *               type: object
      *       404:
      *         description: Not found
      *       503:

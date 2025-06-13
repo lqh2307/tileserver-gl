@@ -44,7 +44,7 @@ async function validateConfigFile() {
 async function readConfigFile(isParse) {
   const data = await readFile(`${process.env.DATA_DIR}/config.json`, "utf8");
 
-  if (isParse === true) {
+  if (isParse) {
     return JSON.parse(data);
   } else {
     return data;

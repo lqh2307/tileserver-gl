@@ -157,6 +157,15 @@ export async function getSprite(dirPath, fileName) {
 }
 
 /**
+ * Get fallback sprite
+ * @param {string} fileName Sprite file name
+ * @returns {Promise<Buffer>}
+ */
+export async function getFallbackSprite(fileName) {
+  return await readFile(`public/resources/sprites/osm/${fileName}`);
+}
+
+/**
  * Get the size of Sprite folder path
  * @param {string} spriteDirPath Sprite dir path
  * @returns {Promise<number>}

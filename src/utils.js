@@ -273,7 +273,7 @@ export function isLocalURL(url) {
   }
 
   return ["mbtiles://", "pmtiles://", "xyz://", "pg://", "geojson://"].some(
-    (scheme) => url.startsWith(scheme) === true
+    (scheme) => url.startsWith(scheme)
   );
 }
 
@@ -333,21 +333,49 @@ export function xy3857ToLonLat4326(x, y) {
 
 /**
  * Calculate resolution
- * @param {{ filePath: string|Buffer, bbox: [number, number, number, number], width: number, height: number}} input Input object
+ * @param {{ filePath: string|Buffer, bbox: [number, number, number, number], width: number, height: number }} input Input object
+ * @param {"km"|"m"|"dm"|"cm"|"mm"} unit unit
  * @returns {Promise<[number, number]>} [X resolution (m/pixel), Y resolution (m/pixel)]
  */
-export async function calculateResolution(input) {
+export async function calculateResolution(input, unit) {
   const [minX, minY] = lonLat4326ToXY3857(input.bbox[0], input.bbox[1]);
   const [maxX, maxY] = lonLat4326ToXY3857(input.bbox[2], input.bbox[3]);
+  let resolution;
 
   if (input.filePath !== undefined) {
     const { width, height } = await sharp(input.filePath, {
       limitInputPixels: false,
     }).metadata();
 
-    return [(maxX - minX) / width, (maxY - minY) / height];
+    resolution = [(maxX - minX) / width, (maxY - minY) / height];
   } else {
-    return [(maxX - minX) / input.width, (maxY - minY) / input.height];
+    resolution = [(maxX - minX) / input.width, (maxY - minY) / input.height];
+  }
+
+  switch (unit) {
+    default: {
+      return resolution;
+    }
+
+    case "km": {
+      return [resolution[0] / 1000, resolution[1] / 1000];
+    }
+
+    case "m": {
+      return resolution;
+    }
+
+    case "dm": {
+      return [resolution[0] * 10, resolution[1] * 10];
+    }
+
+    case "cm": {
+      return [resolution[0] * 100, resolution[1] * 100];
+    }
+
+    case "mm": {
+      return [resolution[0] * 1000, resolution[1] * 1000];
+    }    
   }
 }
 
@@ -385,9 +413,9 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz", tileSize = 256) {
   let y = Math.floor(
     (scheme === "tms"
       ? size -
-        (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
+      (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
       : zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) /
-      tileSize
+    tileSize
   );
 
   // Limit x
@@ -444,8 +472,8 @@ export function getLonLatFromXYZ(
   return [
     (px - zc) / bc,
     (360 / Math.PI) *
-      (Math.atan(Math.exp((zc - (scheme === "tms" ? size - py : py)) / cc)) -
-        Math.PI / 4),
+    (Math.atan(Math.exp((zc - (scheme === "tms" ? size - py : py)) / cc)) -
+      Math.PI / 4),
   ];
 }
 
@@ -834,31 +862,23 @@ export function getIntersectBBox(bbox1, bbox2) {
 /**
  * Convert zoom to scale
  * @param {number} zoom Zoom
+ * @param {number} ppi Pixel per inch
+ * @param {256|512} tileSize Tile size
  * @returns {number} Scale
  */
-export function zoomToScale(zoom) {
-  const zooms = [
-    500000000, 250000000, 150000000, 70000000, 35000000, 15000000, 10000000,
-    4000000, 2000000, 1000000, 500000, 250000, 150000, 70000, 35000, 15000,
-    8000, 4000, 2000, 1000, 500, 250, 150,
-  ];
-
-  return zooms[zoom];
+export function zoomToScale(zoom, ppi = 96, tileSize = 256) {
+  return (ppi * ((2 * Math.PI * 6378137.0) / tileSize / Math.pow(2, zoom))) / 0.0254;
 }
 
 /**
  * Convert scale to zoom
  * @param {number} scale Scale
- * @returns {number} Zoom
+ * @param {number} ppi Pixel per inch
+ * @param {256|512} tileSize Tile size
+ * @returns {number} zoom
  */
-export function scaleToZoom(scale) {
-  const zooms = [
-    500000000, 250000000, 150000000, 70000000, 35000000, 15000000, 10000000,
-    4000000, 2000000, 1000000, 500000, 250000, 150000, 70000, 35000, 15000,
-    8000, 4000, 2000, 1000, 500, 250, 150,
-  ];
-
-  return zooms.indexOf(scale);
+export function scaleToZoom(scale, ppi = 96, tileSize = 256) {
+  return Math.log2(ppi * ((2 * Math.PI * 6378137.0) / tileSize / scale / 0.0254));
 }
 
 /**
@@ -950,11 +970,11 @@ export async function removeEmptyFolders(folderPath, regex) {
       const fullPath = `${folderPath}/${entry.name}`;
 
       if (
-        entry.isFile() === true &&
-        (regex === undefined || regex.test(entry.name) === true)
+        entry.isFile() &&
+        (regex === undefined || regex.test(entry.name))
       ) {
         hasMatchingFile = true;
-      } else if (entry.isDirectory() === true) {
+      } else if (entry.isDirectory()) {
         await removeEmptyFolders(fullPath, regex);
 
         const subEntries = await readdir(fullPath).catch(() => []);
@@ -965,7 +985,7 @@ export async function removeEmptyFolders(folderPath, regex) {
     })
   );
 
-  if (hasMatchingFile === false) {
+  if (!hasMatchingFile) {
     await rm(folderPath, {
       recursive: true,
       force: true,
@@ -1053,8 +1073,8 @@ export async function findFiles(
   const results = [];
 
   for (const entry of entries) {
-    if (entry.isDirectory() === true) {
-      if (recurse === true) {
+    if (entry.isDirectory()) {
+      if (recurse) {
         const fileNames = await findFiles(
           `${dirPath}/${entry.name}`,
           regex,
@@ -1063,15 +1083,15 @@ export async function findFiles(
         );
 
         fileNames.forEach((fileName) => {
-          if (includeDirPath === true) {
+          if (includeDirPath) {
             results.push(`${dirPath}/${entry.name}/${fileName}`);
           } else {
             results.push(`${entry.name}/${fileName}`);
           }
         });
       }
-    } else if (regex.test(entry.name) === true) {
-      if (includeDirPath === true) {
+    } else if (regex.test(entry.name)) {
+      if (includeDirPath) {
         results.push(`${dirPath}/${entry.name}`);
       } else {
         results.push(entry.name);
@@ -1103,16 +1123,16 @@ export async function findFolders(
   const results = [];
 
   for (const entry of entries) {
-    if (entry.isDirectory() === true) {
-      if (regex.test(entry.name) === true) {
-        if (includeDirPath === true) {
+    if (entry.isDirectory()) {
+      if (regex.test(entry.name)) {
+        if (includeDirPath) {
           results.push(`${dirPath}/${entry.name}`);
         } else {
           results.push(entry.name);
         }
       }
 
-      if (recurse === true) {
+      if (recurse) {
         const directoryNames = await findFolders(
           `${dirPath}/${entry.name}`,
           regex,
@@ -1121,7 +1141,7 @@ export async function findFolders(
         );
 
         directoryNames.forEach((directoryName) => {
-          if (includeDirPath === true) {
+          if (includeDirPath) {
             results.push(`${dirPath}/${entry.name}/${directoryName}`);
           } else {
             results.push(`${entry.name}/${directoryName}`);
@@ -1269,6 +1289,10 @@ export function detectContentTypeFromFormat(format) {
       return "application/json";
     }
 
+    case "pdf": {
+      return "application/pdf";
+    }
+
     default: {
       return "application/octet-stream";
     }
@@ -1342,7 +1366,7 @@ export function validateJSON(schema, jsonData) {
       allErrors: true,
     }).compile(schema);
 
-    if (validate(jsonData) === false) {
+    if (!validate(jsonData)) {
       throw validate.errors
         .map((error) => `\n\t${error.instancePath} ${error.message}`)
         .join();
@@ -1473,7 +1497,7 @@ export function formatDegree(deg, isLat, format) {
     let direction = "";
     let sign = "";
     if (format === "DMSD") {
-      if (isLat === true) {
+      if (isLat) {
         direction = rounded >= 0 ? "N" : "S";
       } else {
         direction = rounded >= 0 ? "E" : "W";
@@ -1487,7 +1511,7 @@ export function formatDegree(deg, isLat, format) {
 
     return `${sign}${d}°${sFormat}${mFormat}${direction}`;
   } else {
-    if (Number.isInteger(rounded) === true) {
+    if (Number.isInteger(rounded)) {
       return Math.round(rounded).toString();
     }
 
@@ -1498,8 +1522,8 @@ export function formatDegree(deg, isLat, format) {
 /**
  * Convert SVG to Image
  * @param {string|Buffer} svg File path or buffer of SVG
- * @param {{ format: string, filePath: string, width: number, height: number }} output Output object
- * @returns {Promise<sharp.OutputInfo|Buffer>}
+ * @param {{ format: string, filePath: string, width: number, height: number, base64: boolean }} output Output object
+ * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function convertSVGToImage(svg, output) {
   const image = sharp(svg, {
@@ -1552,6 +1576,8 @@ export async function convertSVGToImage(svg, output) {
     });
 
     return await image.toFile(output.filePath);
+  } else if (output.base64) {
+    return createBase64(await image.toBuffer(), format);
   } else {
     return await image.toBuffer();
   }
@@ -1606,8 +1632,8 @@ export function getSVGStrokeDashArray(style) {
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {object} frame Frame options object
  * @param {object} grid Grid options object
- * @param {{ format: string, filePath: string }} output Output object
- * @returns {Promise<sharp.OutputInfo|Buffer>}
+ * @param {{ format: string, filePath: string, base64: boolean }} output Output object
+ * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function addFrameToImage(input, frame, grid, output) {
   const image = sharp(input.filePath, {
@@ -1682,17 +1708,14 @@ export async function addFrameToImage(input, frame, grid, output) {
 
     // Inner frame
     svgElements.push(
-      `<rect x="${frameMargin + frameSpace}" y="${
-        frameMargin + frameSpace
+      `<rect x="${frameMargin + frameSpace}" y="${frameMargin + frameSpace
       }" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`
     );
 
     // Outer frame
     svgElements.push(
-      `<rect x="${frameMargin}" y="${frameMargin}" width="${
-        width + frameSpace * 2
-      }" height="${
-        height + frameSpace * 2
+      `<rect x="${frameMargin}" y="${frameMargin}" width="${width + frameSpace * 2
+      }" height="${height + frameSpace * 2
       }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`
     );
 
@@ -1710,19 +1733,15 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Top tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${
-          frameMargin + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${
-          frameMargin + frameSpace - majorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + frameSpace
+        }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + frameSpace - majorTickSize
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
       // Bottom tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${
-          frameMargin + height + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${
-          frameMargin + height + frameSpace + majorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + height + frameSpace
+        }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + height + frameSpace + majorTickSize
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
@@ -1735,23 +1754,17 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Top label
         svgElements.push(
-          `<text x="${frameMargin + x + frameSpace}" y="${
-            frameMargin + frameSpace - majorTickSize - xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${
-            frameMargin + x + frameSpace
-          },${
-            frameMargin + frameSpace - majorTickSize - xTickLabelOffset
+          `<text x="${frameMargin + x + frameSpace}" y="${frameMargin + frameSpace - majorTickSize - xTickLabelOffset
+          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${frameMargin + x + frameSpace
+          },${frameMargin + frameSpace - majorTickSize - xTickLabelOffset
           })">${label}</text>`
         );
 
         // Bottom label
         svgElements.push(
-          `<text x="${frameMargin + x + frameSpace}" y="${
-            frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${
-            frameMargin + x + frameSpace
-          },${
-            frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
+          `<text x="${frameMargin + x + frameSpace}" y="${frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
+          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${frameMargin + x + frameSpace
+          },${frameMargin + height + frameSpace + majorTickSize + xTickLabelOffset
           })">${label}</text>`
         );
       }
@@ -1771,19 +1784,15 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Top tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${
-          frameMargin + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${
-          frameMargin + frameSpace - minorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + frameSpace
+        }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + frameSpace - minorTickSize
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
       // Bottom tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${
-          frameMargin + height + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${
-          frameMargin + height + frameSpace + minorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + height + frameSpace
+        }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + height + frameSpace + minorTickSize
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
@@ -1796,23 +1805,17 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Top label
         svgElements.push(
-          `<text x="${frameMargin + x + frameSpace}" y="${
-            frameMargin + frameSpace - minorTickSize - xTickLabelOffset
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${
-            frameMargin + x + frameSpace
-          },${
-            frameMargin + frameSpace - minorTickSize - xTickLabelOffset
+          `<text x="${frameMargin + x + frameSpace}" y="${frameMargin + frameSpace - minorTickSize - xTickLabelOffset
+          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${frameMargin + x + frameSpace
+          },${frameMargin + frameSpace - minorTickSize - xTickLabelOffset
           })">${label}</text>`
         );
 
         // Bottom label
         svgElements.push(
-          `<text x="${frameMargin + x + frameSpace}" y="${
-            frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${
-            frameMargin + x + frameSpace
-          },${
-            frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
+          `<text x="${frameMargin + x + frameSpace}" y="${frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
+          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${frameMargin + x + frameSpace
+          },${frameMargin + height + frameSpace + minorTickSize + xTickLabelOffset
           })">${label}</text>`
         );
       }
@@ -1832,19 +1835,15 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Left tick
       svgElements.push(
-        `<line x1="${frameMargin + frameSpace}" y1="${
-          frameMargin + y + frameSpace
-        }" x2="${frameMargin + frameSpace - majorTickSize}" y2="${
-          frameMargin + y + frameSpace
+        `<line x1="${frameMargin + frameSpace}" y1="${frameMargin + y + frameSpace
+        }" x2="${frameMargin + frameSpace - majorTickSize}" y2="${frameMargin + y + frameSpace
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
       // Right tick
       svgElements.push(
-        `<line x1="${frameMargin + width + frameSpace}" y1="${
-          frameMargin + y + frameSpace
-        }" x2="${frameMargin + width + frameSpace + majorTickSize}" y2="${
-          frameMargin + y + frameSpace
+        `<line x1="${frameMargin + width + frameSpace}" y1="${frameMargin + y + frameSpace
+        }" x2="${frameMargin + width + frameSpace + majorTickSize}" y2="${frameMargin + y + frameSpace
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
@@ -1857,23 +1856,17 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Left label
         svgElements.push(
-          `<text x="${
-            frameMargin + frameSpace - majorTickSize - yTickLabelOffset
-          }" y="${
-            frameMargin + y + frameSpace
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
-            frameMargin + frameSpace - majorTickSize - yTickLabelOffset
+          `<text x="${frameMargin + frameSpace - majorTickSize - yTickLabelOffset
+          }" y="${frameMargin + y + frameSpace
+          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${frameMargin + frameSpace - majorTickSize - yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
 
         // Right label
         svgElements.push(
-          `<text x="${
-            frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
-          }" y="${
-            frameMargin + y + frameSpace
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
-            frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
+          `<text x="${frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
+          }" y="${frameMargin + y + frameSpace
+          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${frameMargin + width + frameSpace + majorTickSize + yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
       }
@@ -1893,19 +1886,15 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Left tick
       svgElements.push(
-        `<line x1="${frameMargin + frameSpace}" y1="${
-          frameMargin + y + frameSpace
-        }" x2="${frameMargin + frameSpace - minorTickSize}" y2="${
-          frameMargin + y + frameSpace
+        `<line x1="${frameMargin + frameSpace}" y1="${frameMargin + y + frameSpace
+        }" x2="${frameMargin + frameSpace - minorTickSize}" y2="${frameMargin + y + frameSpace
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
       // Right tick
       svgElements.push(
-        `<line x1="${frameMargin + width + frameSpace}" y1="${
-          frameMargin + y + frameSpace
-        }" x2="${frameMargin + width + frameSpace + minorTickSize}" y2="${
-          frameMargin + y + frameSpace
+        `<line x1="${frameMargin + width + frameSpace}" y1="${frameMargin + y + frameSpace
+        }" x2="${frameMargin + width + frameSpace + minorTickSize}" y2="${frameMargin + y + frameSpace
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
@@ -1918,23 +1907,17 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Left label
         svgElements.push(
-          `<text x="${
-            frameMargin + frameSpace - minorTickSize - yTickLabelOffset
-          }" y="${
-            frameMargin + y + frameSpace
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
-            frameMargin + frameSpace - minorTickSize - yTickLabelOffset
+          `<text x="${frameMargin + frameSpace - minorTickSize - yTickLabelOffset
+          }" y="${frameMargin + y + frameSpace
+          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${frameMargin + frameSpace - minorTickSize - yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
 
         // Right label
         svgElements.push(
-          `<text x="${
-            frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
-          }" y="${
-            frameMargin + y + frameSpace
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
-            frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
+          `<text x="${frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
+          }" y="${frameMargin + y + frameSpace
+          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${frameMargin + width + frameSpace + minorTickSize + yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
       }
@@ -1971,10 +1954,8 @@ export async function addFrameToImage(input, frame, grid, output) {
           const x = (lon - bbox[0]) / degPerPixelX;
 
           svgElements.push(
-            `<line x1="${frameMargin + x + frameSpace}" y1="${
-              frameMargin + frameSpace
-            }" x2="${frameMargin + x + frameSpace}" y2="${
-              frameMargin + frameSpace + height
+            `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + frameSpace
+            }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + frameSpace + height
             }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
           );
         }
@@ -1995,10 +1976,8 @@ export async function addFrameToImage(input, frame, grid, output) {
           const x = (lon - bbox[0]) / degPerPixelX;
 
           svgElements.push(
-            `<line x1="${frameMargin + x + frameSpace}" y1="${
-              frameMargin + frameSpace
-            }" x2="${frameMargin + x + frameSpace}" y2="${
-              frameMargin + frameSpace + height
+            `<line x1="${frameMargin + x + frameSpace}" y1="${frameMargin + frameSpace
+            }" x2="${frameMargin + x + frameSpace}" y2="${frameMargin + frameSpace + height
             }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
           );
         }
@@ -2019,10 +1998,8 @@ export async function addFrameToImage(input, frame, grid, output) {
           const y = (bbox[3] - lat) / degPerPixelY;
 
           svgElements.push(
-            `<line x1="${frameMargin + frameSpace}" y1="${
-              frameMargin + y + frameSpace
-            }" x2="${frameMargin + frameSpace + width}" y2="${
-              frameMargin + y + frameSpace
+            `<line x1="${frameMargin + frameSpace}" y1="${frameMargin + y + frameSpace
+            }" x2="${frameMargin + frameSpace + width}" y2="${frameMargin + y + frameSpace
             }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
           );
         }
@@ -2043,10 +2020,8 @@ export async function addFrameToImage(input, frame, grid, output) {
           const y = (bbox[3] - lat) / degPerPixelY;
 
           svgElements.push(
-            `<line x1="${frameMargin + frameSpace}" y1="${
-              frameMargin + y + frameSpace
-            }" x2="${frameMargin + frameSpace + width}" y2="${
-              frameMargin + y + frameSpace
+            `<line x1="${frameMargin + frameSpace}" y1="${frameMargin + y + frameSpace
+            }" x2="${frameMargin + frameSpace + width}" y2="${frameMargin + y + frameSpace
             }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
           );
         }
@@ -2064,6 +2039,7 @@ export async function addFrameToImage(input, frame, grid, output) {
       })
       .composite([
         {
+          limitInputPixels: false,
           input: Buffer.from(
             `<svg width="${totalWidth}" height="${totalHeigh}" xmlns="http://www.w3.org/2000/svg">${svgElements.join(
               ""
@@ -2116,6 +2092,8 @@ export async function addFrameToImage(input, frame, grid, output) {
     });
 
     return await image.toFile(output.filePath);
+  } else if (output.base64) {
+    return createBase64(await image.toBuffer(), format);
   } else {
     return await image.toBuffer();
   }
@@ -2126,7 +2104,7 @@ export async function addFrameToImage(input, frame, grid, output) {
  * @param {{ content: string|Buffer, bbox: [number, number, number, number] }} baselayer Baselayer object
  * @param {{ content: string|Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
  * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number }} output Output object
- * @returns {Promise<sharp.OutputInfo|Buffer>}
+ * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function mergeImages(baselayer, overlays, output) {
   const baseImage = sharp(baselayer.content, {
@@ -2199,6 +2177,7 @@ export async function mergeImages(baselayer, overlays, output) {
         }
 
         return {
+          limitInputPixels: false,
           input: await input.toBuffer(),
           left: Math.floor(
             (overlayMinX - baseImageMinX) * baseImageWidthResolution
@@ -2266,8 +2245,8 @@ export async function mergeImages(baselayer, overlays, output) {
  * Split image to PDF
  * @param {{ image: string|Buffer, res: [number, number] }} input Input object
  * @param {object} preview Preview options object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape" }} output Output object
- * @returns {Promise<jsPDF|sharp.OutputInfo|Buffer>}
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, center: boolean }} output Output object
+ * @returns {Promise<jsPDF|sharp.OutputInfo|Buffer|string>}
  */
 export async function splitImage(input, preview, output) {
   const { width, height } = await sharp(input.image, {
@@ -2279,11 +2258,34 @@ export async function splitImage(input, preview, output) {
     [paperHeight, paperWidth] = output.paperSize;
   }
 
-  const stepWidthPX = Math.round(paperWidth / input.res[0]);
-  const stepHeightPX = Math.round(paperHeight / input.res[1]);
+  const stepHeightPX = Math.round(paperHeight / input.resolution[1]);
+  const stepWidthPX = Math.round(paperWidth / input.resolution[0]);
 
-  const xPageNum = Math.ceil((width * input.res[0]) / paperWidth);
-  const yPageNum = Math.ceil((height * input.res[1]) / paperHeight);
+  const yPageNum = Math.ceil((height * input.resolution[1]) / paperHeight);
+  const xPageNum = Math.ceil((width * input.resolution[0]) / paperWidth);
+
+  const newHeight = yPageNum * stepHeightPX;
+  const newWidth = xPageNum * stepWidthPX;
+
+  const extendTop = output.center ? Math.floor((newHeight - height) / 2) : 0;
+  const extendLeft = output.center ? Math.floor((newWidth - width) / 2) : 0;
+  const extendBottom = newHeight - height - extendTop;
+  const extendRight = newWidth - width - extendLeft;
+
+  const newImage = await sharp(input.image, {
+    limitInputPixels: false,
+  })
+    .extend({
+      top: extendTop,
+      left: extendLeft,
+      bottom: extendBottom,
+      right: extendRight,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png({
+        compressionLevel: 9,
+      })
+    .toBuffer();
 
   if (preview !== undefined) {
     let {
@@ -2302,21 +2304,16 @@ export async function splitImage(input, preview, output) {
 
     for (let y = 0; y < yPageNum; y++) {
       for (let x = 0; x < xPageNum; x++) {
-        const extractLeft = x * stepWidthPX;
-        const extractTop = y * stepHeightPX;
-
         if (lineWidth > 0) {
           svgElements.push(
-            `<rect x="${extractLeft}" y="${extractTop}" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`
+            `<rect x="${x * stepWidthPX}" y="${y * stepHeightPX}" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`
           );
         }
 
         if (pageSize > 0) {
           svgElements.push(
-            `<text x="${extractLeft + stepWidthPX / 2}" y="${
-              extractTop + stepHeightPX / 2
-            }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
-              y + x + 1
+            `<text x="${(x * stepWidthPX) + (stepWidthPX / 2)}" y="${(y * stepHeightPX) + (stepHeightPX / 2)
+            }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${y + x + 1
             }</text>`
           );
         }
@@ -2324,21 +2321,14 @@ export async function splitImage(input, preview, output) {
     }
 
     // Create image
-    const image = sharp(input.image, {
+    const image = sharp(newImage, {
       limitInputPixels: false,
     })
-      .extend({
-        top: 0,
-        left: 0,
-        bottom: yPageNum * stepHeightPX - height,
-        right: xPageNum * stepWidthPX - width,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
       .composite([
         {
+          limitInputPixels: false,
           input: Buffer.from(
-            `<svg width="${xPageNum * stepWidthPX}" height="${
-              yPageNum * stepHeightPX
+            `<svg width="${newWidth}" height="${newHeight
             }" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
           ),
           left: 0,
@@ -2392,6 +2382,8 @@ export async function splitImage(input, preview, output) {
       });
 
       return await image.toFile(output.filePath);
+    } else if (output.base64) {
+      return createBase64(await image.toBuffer(), format);
     } else {
       return await image.toBuffer();
     }
@@ -2405,22 +2397,14 @@ export async function splitImage(input, preview, output) {
 
     for (let y = 0; y < yPageNum; y++) {
       for (let x = 0; x < xPageNum; x++) {
-        const extractLeft = x * stepWidthPX;
-        const otherLeft = width - extractLeft;
-        const extractTop = y * stepHeightPX;
-        const otherTop = height - extractTop;
-
-        const extractWidth = stepWidthPX > otherLeft ? otherLeft : stepWidthPX;
-        const extractHeight = stepHeightPX > otherTop ? otherTop : stepHeightPX;
-
-        const imageData = await sharp(input.image, {
+        const image = await sharp(newImage, {
           limitInputPixels: false,
         })
           .extract({
-            left: extractLeft,
-            top: extractTop,
-            width: extractWidth,
-            height: extractHeight,
+            left: x * stepWidthPX,
+            top: y * stepHeightPX,
+            width: stepWidthPX,
+            height: stepHeightPX,
           })
           .png({
             compressionLevel: 9,
@@ -2432,12 +2416,12 @@ export async function splitImage(input, preview, output) {
         }
 
         doc.addImage(
-          imageData,
+          image,
           "png",
           0,
           0,
-          extractWidth * input.res[0],
-          extractHeight * input.res[1]
+          stepWidthPX * input.resolution[0],
+          stepHeightPX * input.resolution[1]
         );
       }
     }
@@ -2449,6 +2433,8 @@ export async function splitImage(input, preview, output) {
       });
 
       return doc.save(output.filePath);
+    } else if (output.base64) {
+      return createBase64(Buffer.from(doc.output("arraybuffer")), "pdf");
     } else {
       return doc.output("arraybuffer");
     }
@@ -2852,4 +2838,14 @@ export function createTileMetadata(metadata = {}) {
   }
 
   return data;
+}
+
+/**
+ * Create base64 string from buffer
+ * @param {Buffer} buffer Input data
+ * @param {format} format Data format
+ * @returns {string} Base64 string
+ */
+export function createBase64(buffer, format) {
+  return `data:${detectContentTypeFromFormat(format)};base64,${buffer.toString("base64")}`;
 }

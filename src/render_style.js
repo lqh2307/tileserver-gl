@@ -5,8 +5,10 @@ import { getRenderedStyleJSON } from "./style.js";
 import mlgl from "@maplibre/maplibre-gl-native";
 import { createPool } from "generic-pool";
 import { printLog } from "./logger.js";
+import { rm } from "node:fs/promises";
 import { config } from "./config.js";
 import { Mutex } from "async-mutex";
+import { v4 } from "uuid";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   updatePostgreSQLMetadata,
@@ -35,7 +37,6 @@ import {
   getTileBoundsFromCoverages,
   detectFormatAndHeaders,
   createFallbackTileData,
-  removeFilesOrFolders,
   calculateResolution,
   createTileMetadata,
   removeEmptyFolders,
@@ -47,6 +48,7 @@ import {
   calculateSizes,
   createFolders,
   calculateMD5,
+  createBase64,
   mergeImages,
   unzipAsync,
   runCommand,
@@ -399,7 +401,7 @@ export async function renderImageTileData(
   format
 ) {
   const isNeedHack = z === 0 && tileSize === 256;
-  const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+  const hackTileSize = !isNeedHack ? tileSize : tileSize * 2;
 
   const renderer = createRenderer("tile", tileScale, styleJSON);
 
@@ -427,7 +429,7 @@ export async function renderImageTileData(
 
   const originTileSize = hackTileSize * tileScale;
   const targetTileSize =
-    isNeedHack === true ? (hackTileSize / 2) * tileScale : undefined;
+    isNeedHack ? (hackTileSize / 2) * tileScale : undefined;
 
   return await processImageData(
     data,
@@ -506,7 +508,7 @@ export async function renderImageTileDataWithPool(
   format
 ) {
   const isNeedHack = z === 0 && tileSize === 256;
-  const hackTileSize = isNeedHack === false ? tileSize : tileSize * 2;
+  const hackTileSize = !isNeedHack ? tileSize : tileSize * 2;
 
   const renderer = await pool.acquire();
 
@@ -534,7 +536,7 @@ export async function renderImageTileDataWithPool(
 
   const originTileSize = hackTileSize * tileScale;
   const targetTileSize =
-    isNeedHack === true ? (hackTileSize / 2) * tileScale : undefined;
+    isNeedHack ? (hackTileSize / 2) * tileScale : undefined;
 
   return await processImageData(
     data,
@@ -552,8 +554,6 @@ export async function renderImageTileDataWithPool(
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} zoom Zoom level
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @param {string} id Image id
- * @param {string} dirPath Exported image dir path
  * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -561,16 +561,15 @@ export async function renderImageTileDataWithPool(
  * @param {256|512} tileSize Tile size
  * @param {object} frame Add frame options?
  * @param {object} grid Add grid options?
+ * @param {boolean} base64 Is base64?
  * @param {{name: string, content: string, bbox: [number, number, number, number]}[]} overlays Overlays
- * @returns {Promise<{filePath: number, res: [number, number]}>} Response
+ * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
  */
 export async function renderStyleJSONToImage(
   styleJSON,
   bbox,
   zoom,
   format,
-  id,
-  dirPath,
   maxRendererPoolSize,
   concurrency,
   storeTransparent,
@@ -578,6 +577,7 @@ export async function renderStyleJSONToImage(
   tileSize,
   frame,
   grid,
+  base64,
   overlays
 ) {
   const startTime = Date.now();
@@ -585,7 +585,8 @@ export async function renderStyleJSONToImage(
   let source;
   let pool;
 
-  const outputFilePath = `${dirPath}/${id}.${format}`;
+  const id = v4();
+  const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${format}s/${id}`;
   const outputDirPath = `${dirPath}/output`;
   const mergedDirPath = `${dirPath}/merged`;
   const mbtilesDirPath = `${dirPath}/mbtiles`;
@@ -608,7 +609,7 @@ export async function renderStyleJSONToImage(
     );
 
     let log = `Rendering ${total} tiles of style JSON to ${driver} with:`;
-    log += `\n\tDir path: ${dirPath}`;
+    log += `\n\tTemporary dir path: ${dirPath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -618,6 +619,7 @@ export async function renderStyleJSONToImage(
     log += `\n\tTile size: ${tileSize}`;
     log += `\n\tFrame: ${JSON.stringify(frame === undefined ? {} : frame)}`;
     log += `\n\tGrid: ${JSON.stringify(grid === undefined ? {} : grid)}`;
+    log += `\n\tIs base64: ${base64}`;
     log += `\n\tOverlays: ${overlays === undefined ? false : true}`;
     log += `\n\tTarget zoom: ${targetZoom}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
@@ -664,7 +666,7 @@ export async function renderStyleJSONToImage(
     for (const sourceStyleName of Object.keys(styleJSON.sources)) {
       const sourceStyle = styleJSON.sources[sourceStyleName];
 
-      if (sourceStyle.url?.startsWith("data:") === true) {
+      if (sourceStyle.url?.startsWith("data:")) {
         delete styleJSON.sources[sourceStyleName];
 
         for (let i = styleJSON.layers.length - 1; i >= 0; i--) {
@@ -914,7 +916,7 @@ export async function renderStyleJSONToImage(
     /* Add frame */
     printLog("info", "Adding frame to image...");
 
-    await addFrameToImage(
+    const image = await addFrameToImage(
       {
         filePath: imageFilePath,
         bbox: bbox,
@@ -923,9 +925,16 @@ export async function renderStyleJSONToImage(
       frame,
       grid,
       {
-        filePath: outputFilePath,
         format: format,
       }
+    );
+
+    const resolution = await calculateResolution(
+      {
+        filePath: image,
+        bbox: bbox,
+      },
+      "mm"
     );
 
     printLog(
@@ -936,11 +945,8 @@ export async function renderStyleJSONToImage(
     );
 
     return {
-      filePath: outputFilePath,
-      res: await calculateResolution({
-        filePath: imageFilePath,
-        bbox: bbox,
-      }),
+      image: base64 ? createBase64(image, format) : image,
+      resolution: resolution,
     };
   } catch (error) {
     printLog(
@@ -963,23 +969,22 @@ export async function renderStyleJSONToImage(
     }
 
     /* Remove tmp */
-    removeFilesOrFolders([
-      mbtilesDirPath,
-      baselayerDirPath,
-      mergedDirPath,
-      outputDirPath,
-    ]);
+    await rm(dirPath, {
+      recursive: true,
+      force: true,
+    });
   }
 }
 
 /**
  * Render SVG to Image
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @param {string[]} overlays SVG overlays
+ * @param {{name: string, content: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif"}[]} overlays SVG overlays
  * @param {number} concurrency Concurrency to download
- * @returns {Promise<{name: string, content: Buffer}[]>}
+ * @param {boolean} base64 Is base64?
+ * @returns {Promise<{name: string, content: string}[]>}
  */
-export async function renderSVGToImage(format, overlays, concurrency) {
+export async function renderSVGToImage(format, overlays, concurrency, base64) {
   const total = overlays.length;
   const targetOverlays = Array(total);
   const driver = format.toUpperCase();
@@ -1008,11 +1013,15 @@ export async function renderSVGToImage(format, overlays, concurrency) {
       // Rendered data
       targetOverlays[idx] = {
         name: overlays[idx].name,
-        content: await convertSVGToImage(Buffer.from(overlays[idx].content), {
-          format: overlays[idx].format || format,
-          width: overlays[idx].width,
-          height: overlays[idx].height,
-        }),
+        content: await convertSVGToImage(
+          Buffer.from(overlays[idx].content),
+          {
+            format: overlays[idx].format || format,
+            width: overlays[idx].width,
+            height: overlays[idx].height,
+            base64: base64,
+          }
+        ),
       };
     } catch (error) {
       printLog(
@@ -1296,7 +1305,7 @@ export async function renderMBTilesTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export === true) {
+          if (item.export) {
             return;
           }
 
@@ -1326,7 +1335,7 @@ export async function renderMBTilesTiles(
     }
 
     /* Create overviews */
-    if (createOverview === true) {
+    if (createOverview) {
       const command = `gdaladdo -r lanczos -oo ZLEVEL=9 ${filePath} 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304`;
 
       printLog("info", `Creating overviews with gdal command: ${command}`);
@@ -1620,7 +1629,7 @@ export async function renderXYZTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export === true) {
+          if (item.export) {
             return;
           }
 
@@ -1653,7 +1662,7 @@ export async function renderXYZTiles(
     await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp)$/);
 
     /* Create overviews */
-    if (createOverview === true) {
+    if (createOverview) {
       // Do nothing
     }
 
@@ -1926,7 +1935,7 @@ export async function renderPostgreSQLTiles(
     for (const { z, x, y } of tileBounds) {
       for (let xCount = x[0]; xCount <= x[1]; xCount++) {
         for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export === true) {
+          if (item.export) {
             return;
           }
 
@@ -1956,7 +1965,7 @@ export async function renderPostgreSQLTiles(
     }
 
     /* Create overviews */
-    if (createOverview === true) {
+    if (createOverview) {
       // Do nothing
     }
 

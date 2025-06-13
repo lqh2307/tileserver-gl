@@ -37,7 +37,7 @@ function serveSummaryHandler() {
             if (
               (await isExistFolder(
                 `${process.env.DATA_DIR}/caches/styles/${id}`
-              )) === true
+              ))
             ) {
               result.styles[id] = {
                 actual: 1,
@@ -54,7 +54,7 @@ function serveSummaryHandler() {
             if (
               (await isExistFolder(
                 `${process.env.DATA_DIR}/caches/geojsons/${id}`
-              )) === true
+              ))
             ) {
               result.geojsons[id] = {
                 actual: 1,
@@ -136,7 +136,7 @@ function serveSummaryHandler() {
             if (
               (await isExistFolder(
                 `${process.env.DATA_DIR}/caches/sprites/${id}`
-              )) === true
+              ))
             ) {
               result.sprites[id] = {
                 actual: 1,
@@ -153,7 +153,7 @@ function serveSummaryHandler() {
             if (
               (await isExistFolder(
                 `${process.env.DATA_DIR}/caches/fonts/${id}`
-              )) === true
+              ))
             ) {
               result.fonts[id] = {
                 actual: 1,
@@ -271,9 +271,9 @@ function serveSummaryHandler() {
 
               case "pmtiles": {
                 if (
-                  ["https://", "http://"].some(
-                    (scheme) => item.path.startsWith(scheme) === true
-                  ) === false
+                  !["https://", "http://"].some(
+                    (scheme) => item.path.startsWith(scheme)
+                  )
                 ) {
                   result.datas.pmtiles.size += await getPMTilesSize(item.path);
                 }

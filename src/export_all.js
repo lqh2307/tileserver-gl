@@ -30,7 +30,7 @@ import {
  * @param {number} concurrency Concurrency to download
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string} parentServerHost Parent server host
- * @param {string} exportData Is export data?
+ * @param {boolean} exportData Is export data?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
@@ -140,7 +140,7 @@ export async function exportAll(
           skip: false,
         };
 
-        if (exportData === true) {
+        if (exportData) {
           const styleBuffer = await getStyle(style.path);
 
           await cacheStyleFile(
@@ -150,7 +150,7 @@ export async function exportAll(
         }
 
         // Get font
-        if (renderedStyleJSON.sprite.startsWith("fonts://") === true) {
+        if (renderedStyleJSON.sprite.startsWith("fonts://")) {
           const fonts = [];
 
           for (const layer of renderedStyleJSON.layers) {
@@ -184,7 +184,7 @@ export async function exportAll(
               skip: false,
             };
 
-            if (exportData === true) {
+            if (exportData) {
               await Promise.all(
                 Array.from({ length: 256 }, async (_, i) => {
                   const fileName = `${i * 256}-${i * 256 + 255}.pbf`;
@@ -206,7 +206,7 @@ export async function exportAll(
         }
 
         // Get sprite
-        if (renderedStyleJSON.sprite.startsWith("sprites://") === true) {
+        if (renderedStyleJSON.sprite.startsWith("sprites://")) {
           const spriteID = renderedStyleJSON.sprite.split("/")[2];
 
           const spriteFolder = `${spriteID}_cache`;
@@ -229,7 +229,7 @@ export async function exportAll(
             skip: false,
           };
 
-          if (exportData === true) {
+          if (exportData) {
             const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
               getAndCacheDataSprite(spriteID, "sprite.json"),
               getAndCacheDataSprite(spriteID, "sprite.png"),
@@ -256,7 +256,7 @@ export async function exportAll(
           const source = renderedStyleJSON.sources[sourceName];
 
           if (source.data !== undefined) {
-            if (isLocalURL(source.data) === true) {
+            if (isLocalURL(source.data)) {
               const parts = source.data.split("/");
 
               const geojsonFolder = `${parts[3]}_cache`;
@@ -281,7 +281,7 @@ export async function exportAll(
                 skip: false,
               };
 
-              if (exportData === true) {
+              if (exportData) {
                 const geoJSONBuffer = await getAndCacheDataGeoJSON(
                   parts[2],
                   parts[3]
@@ -298,7 +298,7 @@ export async function exportAll(
           // Get tile source
           if (source.tiles !== undefined) {
             for (const tile of source.tiles) {
-              if (isLocalURL(tile) === true) {
+              if (isLocalURL(tile)) {
                 const dataID = tile.split("/")[2];
 
                 const dataFolder = `${dataID}_cache`;
@@ -337,7 +337,7 @@ export async function exportAll(
                       skip: false,
                     };
 
-                    if (exportData === true) {
+                    if (exportData) {
                       await exportXYZTiles(
                         dataID,
                         `${dirPath}/caches/datas/xyzs/${dataFolder}`,
@@ -378,7 +378,7 @@ export async function exportAll(
                       skip: false,
                     };
 
-                    if (exportData === true) {
+                    if (exportData) {
                       await exportMBTilesTiles(
                         dataID,
                         `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
@@ -418,7 +418,7 @@ export async function exportAll(
                       skip: false,
                     };
 
-                    if (exportData === true) {
+                    if (exportData) {
                       await exportPostgreSQLTiles(
                         dataID,
                         `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
@@ -482,7 +482,7 @@ export async function exportAll(
               skip: false,
             };
 
-            if (exportData === true) {
+            if (exportData) {
               await exportXYZTiles(
                 dataID,
                 `${dirPath}/caches/datas/xyzs/${dataFolder}`,
@@ -523,7 +523,7 @@ export async function exportAll(
               skip: false,
             };
 
-            if (exportData === true) {
+            if (exportData) {
               await exportMBTilesTiles(
                 dataID,
                 `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`,
@@ -563,7 +563,7 @@ export async function exportAll(
               skip: false,
             };
 
-            if (exportData === true) {
+            if (exportData) {
               await exportPostgreSQLTiles(
                 dataID,
                 `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`,
@@ -610,7 +610,7 @@ export async function exportAll(
             skip: false,
           };
 
-          if (exportData === true) {
+          if (exportData) {
             const geoJSONBuffer = await getAndCacheDataGeoJSON(group, layer);
 
             await cacheGeoJSONFile(
@@ -648,7 +648,7 @@ export async function exportAll(
           skip: false,
         };
 
-        if (exportData === true) {
+        if (exportData) {
           const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
             getAndCacheDataSprite(spriteID, "sprite.json"),
             getAndCacheDataSprite(spriteID, "sprite.png"),
@@ -695,7 +695,7 @@ export async function exportAll(
           skip: false,
         };
 
-        if (exportData === true) {
+        if (exportData) {
           await Promise.all(
             Array.from({ length: 256 }, async (_, i) => {
               const fileName = `${i * 256}-${i * 256 + 255}.pbf`;

@@ -33,19 +33,19 @@ export async function runTasks(opts) {
     printLog("info", "Starting seed and clean up tasks...");
 
     if (
-      opts.cleanUpSprites === true ||
-      opts.cleanUpFonts === true ||
-      opts.cleanUpStyles === true ||
-      opts.cleanUpGeoJSONs === true ||
-      opts.cleanUpDatas === true ||
-      opts.seedSprites === true ||
-      opts.seedFonts === true ||
-      opts.seedStyles === true ||
-      opts.seedGeoJSONs === true ||
-      opts.seedDatas === true
+      opts.cleanUpSprites ||
+      opts.cleanUpFonts ||
+      opts.cleanUpStyles ||
+      opts.cleanUpGeoJSONs ||
+      opts.cleanUpDatas ||
+      opts.seedSprites ||
+      opts.seedFonts ||
+      opts.seedStyles ||
+      opts.seedGeoJSONs ||
+      opts.seedDatas
     ) {
       /* Clean up sprites */
-      if (opts.cleanUpSprites === true) {
+      if (opts.cleanUpSprites) {
         try {
           if (cleanUp.sprites === undefined) {
             printLog("info", "No sprites in cleanup. Skipping...");
@@ -59,7 +59,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = cleanUp.sprites[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping clean up sprite "${id}"...`);
 
                 continue;
@@ -91,7 +91,7 @@ export async function runTasks(opts) {
       }
 
       /* Clean up fonts */
-      if (opts.cleanUpFonts === true) {
+      if (opts.cleanUpFonts) {
         try {
           if (cleanUp.fonts === undefined) {
             printLog("info", "No fonts in cleanup. Skipping...");
@@ -105,7 +105,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = cleanUp.fonts[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping clean up font "${id}"...`);
 
                 continue;
@@ -137,7 +137,7 @@ export async function runTasks(opts) {
       }
 
       /* Clean up styles */
-      if (opts.cleanUpStyles === true) {
+      if (opts.cleanUpStyles) {
         try {
           if (cleanUp.styles === undefined) {
             printLog("info", "No styles in cleanup. Skipping...");
@@ -151,7 +151,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = cleanUp.styles[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping clean up style "${id}"...`);
 
                 continue;
@@ -183,7 +183,7 @@ export async function runTasks(opts) {
       }
 
       /* Clean up geojsons */
-      if (opts.cleanUpGeoJSONs === true) {
+      if (opts.cleanUpGeoJSONs) {
         try {
           if (cleanUp.geojsons === undefined) {
             printLog("info", "No geojsons in cleanup. Skipping...");
@@ -197,7 +197,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = cleanUp.geojsons[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping clean up geojson "${id}"...`);
 
                 continue;
@@ -229,7 +229,7 @@ export async function runTasks(opts) {
       }
 
       /* Clean up datas */
-      if (opts.cleanUpDatas === true) {
+      if (opts.cleanUpDatas) {
         try {
           if (cleanUp.datas === undefined) {
             printLog("info", "No datas in cleanup. Skipping...");
@@ -244,7 +244,7 @@ export async function runTasks(opts) {
               const seedDataItem = seed.datas[id];
               const cleanUpDataItem = cleanUp.datas[id];
 
-              if (cleanUpDataItem.skip === true) {
+              if (cleanUpDataItem.skip) {
                 printLog("info", `Skipping clean up data "${id}"...`);
 
                 continue;
@@ -307,7 +307,7 @@ export async function runTasks(opts) {
       }
 
       /* Run seed sprites */
-      if (opts.seedSprites === true) {
+      if (opts.seedSprites) {
         try {
           if (seed.sprites === undefined) {
             printLog("info", "No sprites in seed. Skipping...");
@@ -321,7 +321,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = seed.sprites[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping seed font "${id}"...`);
 
                 continue;
@@ -358,7 +358,7 @@ export async function runTasks(opts) {
       }
 
       /* Run seed fonts */
-      if (opts.seedFonts === true) {
+      if (opts.seedFonts) {
         try {
           if (seed.fonts === undefined) {
             printLog("info", "No fonts in seed. Skipping...");
@@ -372,7 +372,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = seed.fonts[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping seed font "${id}"...`);
 
                 continue;
@@ -410,7 +410,7 @@ export async function runTasks(opts) {
       }
 
       /* Run seed styles */
-      if (opts.seedStyles === true) {
+      if (opts.seedStyles) {
         try {
           if (seed.styles === undefined) {
             printLog("info", "No styles in seed. Skipping...");
@@ -424,7 +424,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = seed.styles[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping seed style "${id}"...`);
 
                 continue;
@@ -461,7 +461,7 @@ export async function runTasks(opts) {
       }
 
       /* Run seed geojsons */
-      if (opts.seedGeoJSONs === true) {
+      if (opts.seedGeoJSONs) {
         try {
           if (seed.geojsons === undefined) {
             printLog("info", "No geojsons in seed. Skipping...");
@@ -475,7 +475,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = seed.geojsons[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping seed geojson "${id}"...`);
 
                 continue;
@@ -512,7 +512,7 @@ export async function runTasks(opts) {
       }
 
       /* Run seed datas */
-      if (opts.seedDatas === true) {
+      if (opts.seedDatas) {
         try {
           if (seed.datas === undefined) {
             printLog("info", "No datas in seed. Skipping...");
@@ -526,7 +526,7 @@ export async function runTasks(opts) {
             for (const id of ids) {
               const item = seed.datas[id];
 
-              if (item.skip === true) {
+              if (item.skip) {
                 printLog("info", `Skipping seed data "${id}"...`);
 
                 continue;

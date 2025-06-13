@@ -13,7 +13,7 @@ import path from "node:path";
  * @returns {Promise<Database>} SQLite database instance
  */
 export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
-  if (isCreate === true) {
+  if (isCreate) {
     await mkdir(path.dirname(filePath), {
       recursive: true,
     });

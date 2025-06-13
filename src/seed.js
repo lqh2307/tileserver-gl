@@ -78,7 +78,7 @@ async function validateSeedFile() {
 async function readSeedFile(isParse) {
   const data = await readFile(`${process.env.DATA_DIR}/seed.json`, "utf8");
 
-  if (isParse === true) {
+  if (isParse) {
     return JSON.parse(data);
   } else {
     return data;
@@ -919,7 +919,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
 
     printLog("info", "Downloading geojson...");
 
-    if (needDownload === true) {
+    if (needDownload) {
       printLog(
         "info",
         `Downloading geojson "${id}" - File "${filePath}" - From "${url}"...`
@@ -998,7 +998,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
         needDownload = true;
       }
 
-      if (needDownload === true) {
+      if (needDownload) {
         const targetURL = url.replace("{name}", `${fileName}`);
 
         printLog(
@@ -1104,7 +1104,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
         needDownload = true;
       }
 
-      if (needDownload === true) {
+      if (needDownload) {
         const targetURL = url.replace("{range}.pbf", `${range}.pbf`);
 
         printLog(
@@ -1263,7 +1263,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
 
     printLog("info", "Downloading style...");
 
-    if (needDownload === true) {
+    if (needDownload) {
       printLog(
         "info",
         `Downloading style "${id}" - File "${filePath}" - From "${url}"...`

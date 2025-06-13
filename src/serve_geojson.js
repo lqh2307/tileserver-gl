@@ -315,7 +315,7 @@ function downloadGeoJSONHandler() {
           .send("GeoJSON layer does not exist");
       }
 
-      if ((await isExistFile(geoJSONLayer.path)) === true) {
+      if ((await isExistFile(geoJSONLayer.path))) {
         const stats = await stat(geoJSONLayer.path);
         const fileName = path.basename(geoJSONLayer.path);
 
@@ -818,7 +818,7 @@ export const serve_geojson = {
                       );
                     }
 
-                    if (item.cache.forward === true) {
+                    if (item.cache.forward) {
                       geojsonInfo.sourceURL = cacheSource.url;
                       geojsonInfo.storeCache = item.cache.store;
                     }

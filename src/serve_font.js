@@ -217,7 +217,7 @@ export const serve_font = {
                 throw new Error(`Cache font "${item.font}" is invalid`);
               }
 
-              if (item.cache.forward === true) {
+              if (item.cache.forward) {
                 fontInfo.sourceURL = cacheSource.url;
                 fontInfo.storeCache = item.cache.store;
               }

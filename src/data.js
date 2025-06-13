@@ -1,10 +1,10 @@
 "use strict";
 
+import { cacheSpriteFile, getFallbackSprite, getSprite } from "./sprite.js";
 import { cacheMBtilesTileData, getMBTilesTile } from "./tile_mbtiles.js";
 import { getDataTileFromURL, getDataFileFromURL } from "./utils.js";
 import { cacheXYZTileFile, getXYZTile } from "./tile_xyz.js";
 import { cacheGeoJSONFile, getGeoJSON } from "./geojson.js";
-import { cacheSpriteFile, getSprite } from "./sprite.js";
 import { cacheStyleFile, getStyle } from "./style.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
@@ -57,7 +57,7 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
       );
 
       /* Cache */
-      if (item.storeCache === true) {
+      if (item.storeCache) {
         printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
 
         cacheMBtilesTileData(
@@ -120,7 +120,7 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
       );
 
       /* Cache */
-      if (item.storeCache === true) {
+      if (item.storeCache) {
         printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
 
         cacheXYZTileFile(
@@ -185,7 +185,7 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
       );
 
       /* Cache */
-      if (item.storeCache === true) {
+      if (item.storeCache) {
         printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
 
         cachePostgreSQLTileData(
@@ -232,7 +232,7 @@ export async function getAndCacheDataStyleJSON(id) {
         30000 // 30 secs
       );
 
-      if (item.storeCache === true) {
+      if (item.storeCache) {
         printLog("info", `Caching style "${id}" - File "${item.path}"...`);
 
         cacheStyleFile(item.path, styleJSON).catch((error) =>
@@ -276,7 +276,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
         30000 // 30 secs
       );
 
-      if (geoJSONLayer.storeCache === true) {
+      if (geoJSONLayer.storeCache) {
         printLog(
           "info",
           `Caching GeoJSON "${id}" - File "${geoJSONLayer.path}"...`
@@ -309,38 +309,47 @@ export async function getAndCacheDataSprite(id, fileName) {
   try {
     return await getSprite(item.path, fileName);
   } catch (error) {
-    if (
-      item.sourceURL !== undefined &&
-      error.message === "Sprite does not exist"
-    ) {
-      const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
-
-      printLog(
-        "info",
-        `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
-      );
-
-      /* Get sprite */
-      const sprite = await getDataFileFromURL(
-        targetURL,
-        30000 // 30 secs
-      );
-
-      /* Cache */
-      if (item.storeCache === true) {
-        printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
-
-        cacheSpriteFile(item.path, fileName, sprite).catch((error) =>
-          printLog(
-            "error",
-            `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
-          )
+    try {
+      if (
+        item.sourceURL !== undefined &&
+        error.message === "Sprite does not exist"
+      ) {
+        const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
+  
+        printLog(
+          "info",
+          `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
         );
+  
+        /* Get sprite */
+        const sprite = await getDataFileFromURL(
+          targetURL,
+          30000 // 30 secs
+        );
+  
+        /* Cache */
+        if (item.storeCache) {
+          printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
+  
+          cacheSpriteFile(item.path, fileName, sprite).catch((error) =>
+            printLog(
+              "error",
+              `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
+            )
+          );
+        }
+  
+        return sprite;
+      } else {
+        throw error;
       }
+    } catch (error) {
+      printLog(
+        "warn",
+        `Failed to get sprite "${id}" - Filename "${fileName}": ${error}. Using fallback sprite "osm"...`
+      );
 
-      return sprite;
-    } else {
-      throw error;
+      return await getFallbackSprite(fileName);
     }
   }
 }
@@ -384,7 +393,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
             );
 
             /* Cache */
-            if (item.storeCache === true) {
+            if (item.storeCache) {
               printLog(
                 "info",
                 `Caching font "${id}" - Filename "${fileName}"...`
@@ -431,7 +440,7 @@ export function validateTileMetadata(metadata) {
 
   /* Validate type */
   if (metadata.type !== undefined) {
-    if (["baselayer", "overlay"].includes(metadata.type) === false) {
+    if (!["baselayer", "overlay"].includes(metadata.type)) {
       throw new Error(`"type" property is invalid`);
     }
   }

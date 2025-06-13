@@ -69,7 +69,7 @@ async function validateCleanUpFile() {
 async function readCleanUpFile(isParse) {
   const data = await readFile(`${process.env.DATA_DIR}/cleanup.json`, "utf8");
 
-  if (isParse === true) {
+  if (isParse) {
     return JSON.parse(data);
   } else {
     return data;
@@ -617,7 +617,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
     printLog("info", "Removing geojson...");
 
-    if (needRemove === true) {
+    if (needRemove) {
       printLog("info", `Removing geojson "${id}" - File "${filePath}"...`);
 
       await removeGeoJSONFile(
@@ -693,7 +693,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
         needRemove = true;
       }
 
-      if (needRemove === true) {
+      if (needRemove) {
         printLog("info", `Removing sprite "${id}" - File "${fileName}"...`);
 
         await removeSpriteFile(
@@ -784,7 +784,7 @@ async function cleanUpFont(id, cleanUpBefore) {
         needRemove = true;
       }
 
-      if (needRemove === true) {
+      if (needRemove) {
         printLog("info", `Removing font "${id}" - Range "${range}"...`);
 
         await removeFontFile(
@@ -872,7 +872,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
     printLog("info", "Removing style...");
 
-    if (needRemove === true) {
+    if (needRemove) {
       printLog("info", `Removing style "${id}" - File "${filePath}"...`);
 
       await removeStyleFile(

@@ -10,7 +10,7 @@ import pg from "pg";
  * @returns {Promise<pg.Client>} PostgreSQL database instance
  */
 export async function openPostgreSQL(uri, isCreate) {
-  if (isCreate === true) {
+  if (isCreate) {
     const client = new pg.Client({
       connectionString: path.dirname(uri),
     });

@@ -225,7 +225,7 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
   const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
   let query = "";
-  const extraInfoType = isCreated === true ? "created" : "hash";
+  const extraInfoType = isCreated ? "created" : "hash";
 
   tileBounds.forEach((tileBound, idx) => {
     if (idx > 0) {
@@ -330,7 +330,7 @@ export async function removePostgreSQLTile(source, z, x, y, timeout) {
 export async function openPostgreSQLDB(uri, isCreate) {
   const source = await openPostgreSQL(uri, isCreate);
 
-  if (isCreate === true) {
+  if (isCreate) {
     await source.query(
       `
       CREATE TABLE IF NOT EXISTS
@@ -700,7 +700,7 @@ export async function cachePostgreSQLTileData(
 ) {
   if (
     storeTransparent === false &&
-    (await isFullTransparentPNGImage(data)) === true
+    (await isFullTransparentPNGImage(data))
   ) {
     return;
   } else {

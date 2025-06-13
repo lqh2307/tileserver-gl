@@ -115,8 +115,8 @@ function exportDataHandler() {
       }
 
       if (req.query.cancel === "true") {
-        /* Check export is not running? (export === true is not running) */
-        if (item.export === true) {
+        /* Check export is not running? (export is not running) */
+        if (item.export) {
           printLog(
             "warn",
             "No export is currently running. Skipping cancel export..."
@@ -252,8 +252,8 @@ function renderStyleHandler() {
       }
 
       if (req.query.cancel === "true") {
-        /* Check export is not running? (export === true is not running) */
-        if (item.export === true) {
+        /* Check export is not running? (export is not running) */
+        if (item.export) {
           printLog(
             "warn",
             "No render is currently running. Skipping cancel render..."

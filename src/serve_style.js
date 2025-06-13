@@ -107,7 +107,7 @@ function getStyleHandler() {
 
         /* Fix sprite url */
         if (styleJSON.sprite !== undefined) {
-          if (styleJSON.sprite.startsWith("sprites://") === true) {
+          if (styleJSON.sprite.startsWith("sprites://")) {
             styleJSON.sprite = styleJSON.sprite.replace(
               "sprites://",
               `${requestHost}/sprites/`
@@ -117,7 +117,7 @@ function getStyleHandler() {
 
         /* Fix font url */
         if (styleJSON.glyphs !== undefined) {
-          if (styleJSON.glyphs.startsWith("fonts://") === true) {
+          if (styleJSON.glyphs.startsWith("fonts://")) {
             styleJSON.glyphs = styleJSON.glyphs.replace(
               "fonts://",
               `${requestHost}/fonts/`
@@ -132,7 +132,7 @@ function getStyleHandler() {
 
             // Fix geoJSON URL
             if (source.data !== undefined) {
-              if (isLocalURL(source.data) === true) {
+              if (isLocalURL(source.data)) {
                 const parts = source.data.split("/");
 
                 source.data = `${requestHost}/geojsons/${parts[2]}/${parts[3]}.geojson`;
@@ -141,7 +141,7 @@ function getStyleHandler() {
 
             // Fix tileJSON URL
             if (source.url !== undefined) {
-              if (isLocalURL(source.url) === true) {
+              if (isLocalURL(source.url)) {
                 const sourceID = source.url.split("/")[2];
 
                 source.url = `${requestHost}/datas/${sourceID}.json`;
@@ -152,7 +152,7 @@ function getStyleHandler() {
             if (source.urls !== undefined) {
               const urls = new Set(
                 source.urls.map((url) => {
-                  if (isLocalURL(url) === true) {
+                  if (isLocalURL(url)) {
                     const sourceID = url.split("/")[2];
 
                     url = `${requestHost}/datas/${sourceID}.json`;
@@ -169,7 +169,7 @@ function getStyleHandler() {
             if (source.tiles !== undefined) {
               const tiles = new Set(
                 source.tiles.map((tile) => {
-                  if (isLocalURL(tile) === true) {
+                  if (isLocalURL(tile)) {
                     const sourceID = tile.split("/")[2];
                     const sourceData = config.datas[sourceID];
 
@@ -275,7 +275,7 @@ function getRenderedTileHandler() {
 
     if (
       req.query.tileSize !== undefined &&
-      ["256", "512"].includes(req.query.tileSize) === false
+      !["256", "512"].includes(req.query.tileSize)
     ) {
       return res
         .status(StatusCodes.BAD_REQUEST)
@@ -343,7 +343,7 @@ function getRenderedHandler() {
     const queryStrings = [];
 
     if (req.query.tileSize !== undefined) {
-      if (["256", "512"].includes(req.query.tileSize) === false) {
+      if (!["256", "512"].includes(req.query.tileSize)) {
         return res
           .status(StatusCodes.BAD_REQUEST)
           .send("Tile size is not support");
@@ -922,7 +922,7 @@ export const serve_style = {
                 throw new Error(`Cache style "${item.style}" is invalid`);
               }
 
-              if (item.cache.forward === true) {
+              if (item.cache.forward) {
                 styleInfo.sourceURL = cacheSource.url;
                 styleInfo.storeCache = item.cache.store;
               }
@@ -975,7 +975,7 @@ export const serve_style = {
           /* Serve rendered */
           if (
             process.env.BACKEND_RENDER === "true" &&
-            isCanServeRendered === true
+            isCanServeRendered
           ) {
             try {
               /* Rendered info */
