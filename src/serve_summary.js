@@ -1,8 +1,8 @@
 "use strict";
 
 import { countPostgreSQLTiles, getPostgreSQLSize } from "./tile_postgresql.js";
-import { getTileBoundsFromCoverages, isExistFolder } from "./utils.js";
 import { countMBTilesTiles, getMBTilesSize } from "./tile_mbtiles.js";
+import { getTileBoundsFromCoverages, isExistFile } from "./utils.js";
 import { countXYZTiles, getXYZSize } from "./tile_xyz.js";
 import { getPMTilesSize } from "./tile_pmtiles.js";
 import { StatusCodes } from "http-status-codes";
@@ -35,7 +35,10 @@ function serveSummaryHandler() {
         await Promise.all([
           ...Object.keys(seed.styles || {}).map(async (id) => {
             if (
-              await isExistFolder(`${process.env.DATA_DIR}/caches/styles/${id}`)
+              await isExistFile(
+                `${process.env.DATA_DIR}/caches/styles/${id}`,
+                true
+              )
             ) {
               result.styles[id] = {
                 actual: 1,
@@ -50,8 +53,9 @@ function serveSummaryHandler() {
           }),
           ...Object.keys(seed.geojsons || {}).map(async (id) => {
             if (
-              await isExistFolder(
-                `${process.env.DATA_DIR}/caches/geojsons/${id}`
+              await isExistFile(
+                `${process.env.DATA_DIR}/caches/geojsons/${id}`,
+                true
               )
             ) {
               result.geojsons[id] = {
@@ -132,8 +136,9 @@ function serveSummaryHandler() {
           }),
           ...Object.keys(seed.sprites || {}).map(async (id) => {
             if (
-              await isExistFolder(
-                `${process.env.DATA_DIR}/caches/sprites/${id}`
+              await isExistFile(
+                `${process.env.DATA_DIR}/caches/sprites/${id}`,
+                true
               )
             ) {
               result.sprites[id] = {
@@ -149,7 +154,10 @@ function serveSummaryHandler() {
           }),
           ...Object.keys(seed.fonts || {}).map(async (id) => {
             if (
-              await isExistFolder(`${process.env.DATA_DIR}/caches/fonts/${id}`)
+              await isExistFile(
+                `${process.env.DATA_DIR}/caches/fonts/${id}`,
+                true
+              )
             ) {
               result.fonts[id] = {
                 actual: 1,

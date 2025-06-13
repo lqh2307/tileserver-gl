@@ -121,12 +121,7 @@ export async function getFontCreated(filePath) {
  * @returns {Promise<void>}
  */
 export async function validateFont(pbfDirPath) {
-  const pbfFileNames = await findFiles(
-    pbfDirPath,
-    /^\d{1,5}-\d{1,5}\.pbf$/,
-    false,
-    false
-  );
+  const pbfFileNames = await findFiles(pbfDirPath, /^\d{1,5}-\d{1,5}\.pbf$/);
 
   if (pbfFileNames.length === 0) {
     throw new Error("Missing some PBF files");

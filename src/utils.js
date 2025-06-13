@@ -361,6 +361,14 @@ export async function calculateResolution(input, unit) {
       return [resolution[0] / 1000, resolution[1] / 1000];
     }
 
+    case "hm": {
+      return [resolution[0] / 100, resolution[1] / 100];
+    }
+
+    case "dam": {
+      return [resolution[0] / 10, resolution[1] / 10];
+    }
+
     case "m": {
       return resolution;
     }
@@ -1016,15 +1024,16 @@ export async function removeOldCacheLocks() {
 }
 
 /**
- * Check folder is exist?
- * @param {string} dirPath Directory path
+ * Check file or folder is exist?
+ * @param {string} fileOrDirPath File or directory path
+ * @param {string} isDir Is Folder?
  * @returns {Promise<boolean>}
  */
-export async function isExistFolder(dirPath) {
+export async function isExistFile(fileOrDirPath, isDir) {
   try {
-    const stats = await stat(dirPath);
+    const stats = await stat(fileOrDirPath);
 
-    return stats.isDirectory();
+    return isDir ? stats.isDirectory() : stats.isFile();
   } catch (error) {
     if (error.code === "ENOENT") {
       return false;
@@ -1035,119 +1044,66 @@ export async function isExistFolder(dirPath) {
 }
 
 /**
- * Check file is exist?
- * @param {string} filePath File path
- * @returns {Promise<boolean>}
- */
-export async function isExistFile(filePath) {
-  try {
-    const stats = await stat(filePath);
-
-    return stats.isFile();
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return false;
-    } else {
-      throw error;
-    }
-  }
-}
-
-/**
- * Find matching files in a directory
- * @param {string} dirPath The directory path to search
- * @param {RegExp} regex The regex to match files
+ * Find matching files or folders in a directory
+ * @param {string} filePath Directory path
+ * @param {RegExp} regex The regex to match file or folder names
  * @param {boolean} recurse Whether to search recursively in subdirectories
- * @param {boolean} includeDirPath Whether to include directory path
- * @returns {Promise<string[]>} Array of filepaths matching the regex
+ * @param {boolean} includeDirPath Whether to include full directory path in results
+ * @param {boolean} isDir If true, search for directories; otherwise, search for files
+ * @returns {Promise<string[]>} Array of matching file or folder paths
  */
 export async function findFiles(
-  dirPath,
+  filePath,
   regex,
-  recurse = false,
-  includeDirPath = false
+  recurse,
+  includeDirPath,
+  isDir
 ) {
-  const entries = await readdir(dirPath, {
+  const entries = await readdir(filePath, {
     withFileTypes: true,
   });
 
   const results = [];
 
   for (const entry of entries) {
-    if (entry.isDirectory()) {
-      if (recurse) {
-        const fileNames = await findFiles(
-          `${dirPath}/${entry.name}`,
+    const fullPath = `${filePath}/${entry.name}`;
+    const isDirectory = entry.isDirectory();
+
+    if (isDir) {
+      if (isDirectory && regex.test(entry.name)) {
+        results.push(includeDirPath ? fullPath : entry.name);
+      }
+
+      if (isDirectory && recurse) {
+        const subEntries = await findFiles(
+          fullPath,
           regex,
           recurse,
-          includeDirPath
+          includeDirPath,
+          isDir
         );
-
-        fileNames.forEach((fileName) => {
-          if (includeDirPath) {
-            results.push(`${dirPath}/${entry.name}/${fileName}`);
-          } else {
-            results.push(`${entry.name}/${fileName}`);
-          }
-        });
+        subEntries.forEach((sub) =>
+          results.push(includeDirPath ? `${sub}` : `${entry.name}/${sub}`)
+        );
       }
-    } else if (regex.test(entry.name)) {
-      if (includeDirPath) {
-        results.push(`${dirPath}/${entry.name}`);
-      } else {
-        results.push(entry.name);
-      }
-    }
-  }
-
-  return results;
-}
-
-/**
- * Find matching folders in a directory
- * @param {string} dirPath The directory path to search
- * @param {RegExp} regex The regex to match folders
- * @param {boolean} recurse Whether to search recursively in subdirectories
- * @param {boolean} includeDirPath Whether to include directory path
- * @returns {Promise<string[]>} Array of folder paths matching the regex
- */
-export async function findFolders(
-  dirPath,
-  regex,
-  recurse = false,
-  includeDirPath = false
-) {
-  const entries = await readdir(dirPath, {
-    withFileTypes: true,
-  });
-
-  const results = [];
-
-  for (const entry of entries) {
-    if (entry.isDirectory()) {
-      if (regex.test(entry.name)) {
-        if (includeDirPath) {
-          results.push(`${dirPath}/${entry.name}`);
-        } else {
-          results.push(entry.name);
-        }
+    } else {
+      if (!isDirectory && regex.test(entry.name)) {
+        results.push(includeDirPath ? fullPath : entry.name);
       }
 
-      if (recurse) {
-        const directoryNames = await findFolders(
-          `${dirPath}/${entry.name}`,
+      if (isDirectory && recurse) {
+        const subEntries = await findFiles(
+          fullPath,
           regex,
           recurse,
-          includeDirPath
+          includeDirPath,
+          isDir
         );
-
-        directoryNames.forEach((directoryName) => {
-          if (includeDirPath) {
-            results.push(`${dirPath}/${entry.name}/${directoryName}`);
-          } else {
-            results.push(`${entry.name}/${directoryName}`);
-          }
-        });
+        subEntries.forEach((sub) =>
+          results.push(
+            includeDirPath ? `${fullPath}/${sub}` : `${entry.name}/${sub}`
+          )
+        );
       }
     }
   }
@@ -1349,7 +1305,7 @@ export async function zipFolder(iDirPath, oFilePath) {
 
     archive.pipe(output);
 
-    archive.directory(iDirPath, false);
+    archive.directory(iDirPath);
 
     archive.finalize();
   });
@@ -2145,7 +2101,7 @@ export async function addFrameToImage(input, frame, grid, output) {
 
     return await image.toFile(output.filePath);
   } else if (output.base64) {
-    return createBase64(await image.toBuffer(), format);
+    return createBase64(await image.toBuffer(), output.format);
   } else {
     return await image.toBuffer();
   }

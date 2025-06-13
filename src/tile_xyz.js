@@ -20,7 +20,6 @@ import {
   getBBoxFromTiles,
   getDataFromURL,
   calculateMD5,
-  findFolders,
   findFiles,
   delay,
   retry,
@@ -85,15 +84,16 @@ async function getXYZLayersFromTiles(sourcePath) {
  * @returns {Promise<[number, number, number, number]>} Bounding box in format [minLon, minLat, maxLon, maxLat]
  */
 async function getXYZBBoxFromTiles(sourcePath) {
-  const zFolders = await findFolders(sourcePath, /^\d+$/, false, false);
+  const zFolders = await findFiles(sourcePath, /^\d+$/, false, false, true);
   const boundsArr = [];
 
   for (const zFolder of zFolders) {
-    const xFolders = await findFolders(
+    const xFolders = await findFiles(
       `${sourcePath}/${zFolder}`,
       /^\d+$/,
       false,
-      false
+      false,
+      true
     );
 
     if (xFolders.length > 0) {
@@ -139,7 +139,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
  * @returns {Promise<number>}
  */
 async function getXYZZoomLevelFromTiles(sourcePath, zoomType) {
-  const folders = await findFolders(sourcePath, /^\d+$/, false, false);
+  const folders = await findFiles(sourcePath, /^\d+$/, false, false, true);
 
   return zoomType === "minzoom"
     ? Math.min(...folders.map((folder) => Number(folder)))
@@ -152,22 +152,21 @@ async function getXYZZoomLevelFromTiles(sourcePath, zoomType) {
  * @returns {Promise<string>}
  */
 async function getXYZFormatFromTiles(sourcePath) {
-  const zFolders = await findFolders(sourcePath, /^\d+$/, false, false);
+  const zFolders = await findFiles(sourcePath, /^\d+$/, false, false, true);
 
   for (const zFolder of zFolders) {
-    const xFolders = await findFolders(
+    const xFolders = await findFiles(
       `${sourcePath}/${zFolder}`,
       /^\d+$/,
       false,
-      false
+      false,
+      true
     );
 
     for (const xFolder of xFolders) {
       const yFiles = await findFiles(
         `${sourcePath}/${zFolder}/${xFolder}`,
-        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
-        false,
-        false
+        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/
       );
 
       if (yFiles.length > 0) {
