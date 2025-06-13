@@ -1113,12 +1113,12 @@ export async function findFiles(
 
 /**
  * Remove files or folders
- * @param {string[]} fileOrFolders File or folder paths
+ * @param {string[]} fileOrDirPath File or folder paths
  * @returns {Promise<void>}
  */
-export async function removeFilesOrFolders(fileOrFolders) {
+export async function removeFiles(fileOrDirPath) {
   await Promise.all(
-    fileOrFolders.map((fileOrFolder) =>
+    fileOrDirPath.map((fileOrFolder) =>
       rm(fileOrFolder, {
         force: true,
         recursive: true,
@@ -1417,7 +1417,7 @@ export async function runCommand(command, interval, callback) {
 /**
  * Get image metadata
  * @param {string|Buffer} filePath File path to store file
- * @returns {Promise<object>}
+ * @returns {Promise<sharp.Metadata>}
  */
 export async function getImageMetadata(filePath) {
   return await sharp(filePath, {
@@ -1655,8 +1655,7 @@ export async function addFrameToImage(input, frame, grid, output) {
     frameInnerStyle = getSVGStrokeDashArray(frameInnerStyle);
     frameOuterStyle = getSVGStrokeDashArray(frameOuterStyle);
 
-    const totalWidth = frameMargin * 2 + frameSpace * 2 + width;
-    const totalHeigh = frameMargin * 2 + frameSpace * 2 + height;
+    const totalMargin = frameMargin + frameSpace;
 
     const degPerPixelX = (bbox[2] - bbox[0]) / width;
     const degPerPixelY = (bbox[3] - bbox[1]) / height;
@@ -1665,9 +1664,7 @@ export async function addFrameToImage(input, frame, grid, output) {
 
     // Inner frame
     svgElements.push(
-      `<rect x="${frameMargin + frameSpace}" y="${
-        frameMargin + frameSpace
-      }" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`
+      `<rect x="${totalMargin}" y="${totalMargin}" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`
     );
 
     // Outer frame
@@ -1693,10 +1690,10 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Top tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${
-          frameMargin + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${
-          frameMargin + frameSpace - majorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${totalMargin}" x2="${
+          frameMargin + x + frameSpace
+        }" y2="${
+          totalMargin - majorTickSize
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
 
@@ -1719,12 +1716,10 @@ export async function addFrameToImage(input, frame, grid, output) {
         // Top label
         svgElements.push(
           `<text x="${frameMargin + x + frameSpace}" y="${
-            frameMargin + frameSpace - majorTickSize - xTickLabelOffset
+            totalMargin - majorTickSize - xTickLabelOffset
           }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${
             frameMargin + x + frameSpace
-          },${
-            frameMargin + frameSpace - majorTickSize - xTickLabelOffset
-          })">${label}</text>`
+          },${totalMargin - majorTickSize - xTickLabelOffset})">${label}</text>`
         );
 
         // Bottom label
@@ -1754,10 +1749,10 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Top tick
       svgElements.push(
-        `<line x1="${frameMargin + x + frameSpace}" y1="${
-          frameMargin + frameSpace
-        }" x2="${frameMargin + x + frameSpace}" y2="${
-          frameMargin + frameSpace - minorTickSize
+        `<line x1="${frameMargin + x + frameSpace}" y1="${totalMargin}" x2="${
+          frameMargin + x + frameSpace
+        }" y2="${
+          totalMargin - minorTickSize
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
 
@@ -1780,12 +1775,10 @@ export async function addFrameToImage(input, frame, grid, output) {
         // Top label
         svgElements.push(
           `<text x="${frameMargin + x + frameSpace}" y="${
-            frameMargin + frameSpace - minorTickSize - xTickLabelOffset
+            totalMargin - minorTickSize - xTickLabelOffset
           }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${
             frameMargin + x + frameSpace
-          },${
-            frameMargin + frameSpace - minorTickSize - xTickLabelOffset
-          })">${label}</text>`
+          },${totalMargin - minorTickSize - xTickLabelOffset})">${label}</text>`
         );
 
         // Bottom label
@@ -1815,9 +1808,9 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Left tick
       svgElements.push(
-        `<line x1="${frameMargin + frameSpace}" y1="${
-          frameMargin + y + frameSpace
-        }" x2="${frameMargin + frameSpace - majorTickSize}" y2="${
+        `<line x1="${totalMargin}" y1="${frameMargin + y + frameSpace}" x2="${
+          totalMargin - majorTickSize
+        }" y2="${
           frameMargin + y + frameSpace
         }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`
       );
@@ -1840,12 +1833,10 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Left label
         svgElements.push(
-          `<text x="${
-            frameMargin + frameSpace - majorTickSize - yTickLabelOffset
-          }" y="${
+          `<text x="${totalMargin - majorTickSize - yTickLabelOffset}" y="${
             frameMargin + y + frameSpace
           }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
-            frameMargin + frameSpace - majorTickSize - yTickLabelOffset
+            totalMargin - majorTickSize - yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
 
@@ -1876,9 +1867,9 @@ export async function addFrameToImage(input, frame, grid, output) {
 
       // Left tick
       svgElements.push(
-        `<line x1="${frameMargin + frameSpace}" y1="${
-          frameMargin + y + frameSpace
-        }" x2="${frameMargin + frameSpace - minorTickSize}" y2="${
+        `<line x1="${totalMargin}" y1="${frameMargin + y + frameSpace}" x2="${
+          totalMargin - minorTickSize
+        }" y2="${
           frameMargin + y + frameSpace
         }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`
       );
@@ -1901,12 +1892,10 @@ export async function addFrameToImage(input, frame, grid, output) {
 
         // Left label
         svgElements.push(
-          `<text x="${
-            frameMargin + frameSpace - minorTickSize - yTickLabelOffset
-          }" y="${
+          `<text x="${totalMargin - minorTickSize - yTickLabelOffset}" y="${
             frameMargin + y + frameSpace
           }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
-            frameMargin + frameSpace - minorTickSize - yTickLabelOffset
+            totalMargin - minorTickSize - yTickLabelOffset
           },${frameMargin + y + frameSpace})">${label}</text>`
         );
 
@@ -1954,10 +1943,10 @@ export async function addFrameToImage(input, frame, grid, output) {
           const x = (lon - bbox[0]) / degPerPixelX;
 
           svgElements.push(
-            `<line x1="${frameMargin + x + frameSpace}" y1="${
-              frameMargin + frameSpace
-            }" x2="${frameMargin + x + frameSpace}" y2="${
-              frameMargin + frameSpace + height
+            `<line x1="${
+              frameMargin + x + frameSpace
+            }" y1="${totalMargin}" x2="${frameMargin + x + frameSpace}" y2="${
+              totalMargin + height
             }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
           );
         }
@@ -1978,10 +1967,10 @@ export async function addFrameToImage(input, frame, grid, output) {
           const x = (lon - bbox[0]) / degPerPixelX;
 
           svgElements.push(
-            `<line x1="${frameMargin + x + frameSpace}" y1="${
-              frameMargin + frameSpace
-            }" x2="${frameMargin + x + frameSpace}" y2="${
-              frameMargin + frameSpace + height
+            `<line x1="${
+              frameMargin + x + frameSpace
+            }" y1="${totalMargin}" x2="${frameMargin + x + frameSpace}" y2="${
+              totalMargin + height
             }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
           );
         }
@@ -2002,9 +1991,9 @@ export async function addFrameToImage(input, frame, grid, output) {
           const y = (bbox[3] - lat) / degPerPixelY;
 
           svgElements.push(
-            `<line x1="${frameMargin + frameSpace}" y1="${
+            `<line x1="${totalMargin}" y1="${
               frameMargin + y + frameSpace
-            }" x2="${frameMargin + frameSpace + width}" y2="${
+            }" x2="${totalMargin + width}" y2="${
               frameMargin + y + frameSpace
             }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`
           );
@@ -2026,9 +2015,9 @@ export async function addFrameToImage(input, frame, grid, output) {
           const y = (bbox[3] - lat) / degPerPixelY;
 
           svgElements.push(
-            `<line x1="${frameMargin + frameSpace}" y1="${
+            `<line x1="${totalMargin}" y1="${
               frameMargin + y + frameSpace
-            }" x2="${frameMargin + frameSpace + width}" y2="${
+            }" x2="${totalMargin + width}" y2="${
               frameMargin + y + frameSpace
             }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`
           );
@@ -2039,19 +2028,19 @@ export async function addFrameToImage(input, frame, grid, output) {
     // Create image
     image
       .extend({
-        top: frameMargin + frameSpace,
-        left: frameMargin + frameSpace,
-        bottom: frameMargin + frameSpace,
-        right: frameMargin + frameSpace,
+        top: totalMargin,
+        left: totalMargin,
+        bottom: totalMargin,
+        right: totalMargin,
         background: { r: 0, g: 0, b: 0, alpha: 0 },
       })
       .composite([
         {
           limitInputPixels: false,
           input: Buffer.from(
-            `<svg width="${totalWidth}" height="${totalHeigh}" xmlns="http://www.w3.org/2000/svg">${svgElements.join(
-              ""
-            )}</svg>`
+            `<svg width="${totalMargin * 2 + width}" height="${
+              totalMargin * 2 + height
+            }" xmlns="http://www.w3.org/2000/svg">${svgElements.join("")}</svg>`
           ),
           left: 0,
           top: 0,
@@ -2111,14 +2100,14 @@ export async function addFrameToImage(input, frame, grid, output) {
  * Merge images
  * @param {{ content: string|Buffer, bbox: [number, number, number, number] }} baselayer Baselayer object
  * @param {{ content: string|Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number }} output Output object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean }} output Output object
  * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function mergeImages(baselayer, overlays, output) {
-  const baseImage = sharp(baselayer.content, {
+  const image = sharp(baselayer.content, {
     limitInputPixels: false,
   });
-  const { width, height } = await baseImage.metadata();
+  const { width, height } = await image.metadata();
   const [baseImageMinX, baseImageMinY] = lonLat4326ToXY3857(
     baselayer.bbox[0],
     baselayer.bbox[1]
@@ -2132,7 +2121,7 @@ export async function mergeImages(baselayer, overlays, output) {
   const baseImageHeightResolution = height / (baseImageMaxY - baseImageMinY);
 
   // Process overlays
-  baseImage.composite(
+  image.composite(
     await Promise.all(
       overlays.map(async (overlay) => {
         const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(
@@ -2200,19 +2189,19 @@ export async function mergeImages(baselayer, overlays, output) {
 
   // Resize image
   if (output.width > 0 || output.height > 0) {
-    baseImage.resize(output.width, output.height);
+    image.resize(output.width, output.height);
   }
 
   // Create format
   switch (output.format) {
     case "gif": {
-      baseImage.gif({});
+      image.gif({});
 
       break;
     }
 
     case "png": {
-      baseImage.png({
+      image.png({
         compressionLevel: 9,
       });
 
@@ -2221,7 +2210,7 @@ export async function mergeImages(baselayer, overlays, output) {
 
     case "jpg":
     case "jpeg": {
-      baseImage.jpeg({
+      image.jpeg({
         quality: 100,
       });
 
@@ -2229,7 +2218,7 @@ export async function mergeImages(baselayer, overlays, output) {
     }
 
     case "webp": {
-      baseImage.webp({
+      image.webp({
         quality: 100,
       });
 
@@ -2243,9 +2232,11 @@ export async function mergeImages(baselayer, overlays, output) {
       recursive: true,
     });
 
-    return await baseImage.toFile(output.filePath);
+    return await image.toFile(output.filePath);
+  } else if (output.base64) {
+    return createBase64(await image.toBuffer(), output.format);
   } else {
-    return await baseImage.toBuffer();
+    return await image.toBuffer();
   }
 }
 
