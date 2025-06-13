@@ -1578,7 +1578,7 @@ export async function convertSVGToImage(svg, output) {
 
     return await image.toFile(output.filePath);
   } else if (output.base64) {
-    return createBase64(await image.toBuffer(), format);
+    return createBase64(await image.toBuffer(), output.format);
   } else {
     return await image.toBuffer();
   }
