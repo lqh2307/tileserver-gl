@@ -111,7 +111,7 @@ function createRenderer(mode, scale, styleJSON) {
 
             if (
               headers["content-type"] === "application/x-protobuf" &&
-              headers["content-encoding"] !== undefined
+              headers["content-encoding"]
             ) {
               data = await unzipAsync(data);
             }
@@ -160,7 +160,7 @@ function createRenderer(mode, scale, styleJSON) {
 
             if (
               dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"] !== undefined
+              dataTile.headers["content-encoding"]
             ) {
               data = await unzipAsync(dataTile.data);
             } else {
@@ -198,7 +198,7 @@ function createRenderer(mode, scale, styleJSON) {
 
             if (
               dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"] !== undefined
+              dataTile.headers["content-encoding"]
             ) {
               data = await unzipAsync(dataTile.data);
             } else {
@@ -231,7 +231,7 @@ function createRenderer(mode, scale, styleJSON) {
 
             if (
               dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"] !== undefined
+              dataTile.headers["content-encoding"]
             ) {
               data = await unzipAsync(dataTile.data);
             } else {
@@ -269,7 +269,7 @@ function createRenderer(mode, scale, styleJSON) {
 
             if (
               dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"] !== undefined
+              dataTile.headers["content-encoding"]
             ) {
               data = await unzipAsync(dataTile.data);
             } else {
@@ -304,7 +304,7 @@ function createRenderer(mode, scale, styleJSON) {
 
             if (
               headers["content-type"] === "application/x-protobuf" &&
-              headers["content-encoding"] !== undefined
+              headers["content-encoding"]
             ) {
               data = await unzipAsync(dataRemote.data);
             } else {
@@ -339,7 +339,7 @@ function createRenderer(mode, scale, styleJSON) {
 
             if (
               headers["content-type"] === "application/x-protobuf" &&
-              headers["content-encoding"] !== undefined
+              headers["content-encoding"]
             ) {
               data = await unzipAsync(dataBase64);
             } else {
@@ -414,7 +414,7 @@ export async function renderImageTileData(
         height: hackTileSize,
       },
       (error, data) => {
-        if (renderer !== undefined) {
+        if (renderer) {
           renderer.release();
         }
 
@@ -465,7 +465,7 @@ export async function renderImageData(styleJSON, tileScale, z, bbox, format) {
         height: sizes.height,
       },
       (error, data) => {
-        if (renderer !== undefined) {
+        if (renderer) {
           renderer.release();
         }
 
@@ -522,7 +522,7 @@ export async function renderImageTileDataWithPool(
         height: hackTileSize,
       },
       (error, data) => {
-        if (renderer !== undefined) {
+        if (renderer) {
           pool.release(renderer);
         }
 
@@ -709,7 +709,7 @@ export async function renderStyleJSONToImage(
     }
 
     /* Process SVG layers */
-    if (overlays !== undefined) {
+    if (overlays) {
       for (const overlay of overlays) {
         if (
           overlay.bbox[2] <= bbox[0] ||
@@ -961,12 +961,12 @@ export async function renderStyleJSONToImage(
     throw error;
   } finally {
     /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0 && pool !== undefined) {
+    if (maxRendererPoolSize > 0 && pool) {
       pool.drain().then(() => pool.clear());
     }
 
     // Close MBTiles SQLite database
-    if (source !== undefined) {
+    if (source) {
       closeMBTilesDB(source);
     }
 
@@ -1363,12 +1363,12 @@ export async function renderMBTilesTiles(
     );
   } finally {
     /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0 && pool !== undefined) {
+    if (maxRendererPoolSize > 0 && pool) {
       pool.drain().then(() => pool.clear());
     }
 
     // Close MBTiles SQLite database
-    if (source !== undefined) {
+    if (source) {
       closeMBTilesDB(source);
     }
   }
@@ -1680,12 +1680,12 @@ export async function renderXYZTiles(
     );
   } finally {
     /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0 && pool !== undefined) {
+    if (maxRendererPoolSize > 0 && pool) {
       pool.drain().then(() => pool.clear());
     }
 
     /* Close MD5 SQLite database */
-    if (source !== undefined) {
+    if (source) {
       closeXYZMD5DB(source);
     }
   }
@@ -1983,12 +1983,12 @@ export async function renderPostgreSQLTiles(
     );
   } finally {
     /* Destroy renderer pool */
-    if (maxRendererPoolSize > 0 && pool !== undefined) {
+    if (maxRendererPoolSize > 0 && pool) {
       pool.drain().then(() => pool.clear());
     }
 
     /* Close PostgreSQL database */
-    if (source !== undefined) {
+    if (source) {
       closePostgreSQLDB(source);
     }
   }
