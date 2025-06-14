@@ -26,7 +26,7 @@ function serveGeoJSONGroupHandler() {
     const id = req.params.id;
 
     try {
-      if (config.geojsons[id] === undefined) {
+      if (!config.geojsons[id]) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON group does not exist");
@@ -59,13 +59,13 @@ function serveGeoJSONHandler() {
     try {
       const item = config.geojsons[id];
 
-      if (item === undefined) {
+      if (!item) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON group does not exist");
       }
 
-      if (item[req.params.layer] === undefined) {
+      if (!item[req.params.layer]) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON layer does not exist");
@@ -103,7 +103,7 @@ function getGeoJSONGroupInfoHandler() {
       const item = config.geojsons[id];
 
       /* Check GeoJSON group is used? */
-      if (item === undefined) {
+      if (!item) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON group does not exist");
@@ -149,7 +149,7 @@ function getGeoJSONInfoHandler() {
       const item = config.geojsons[id];
 
       /* Check GeoJSON is used? */
-      if (item === undefined) {
+      if (!item) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON group does not exist");
@@ -190,7 +190,7 @@ function getGeoJSONHandler() {
       const item = config.geojsons[id];
 
       /* Check GeoJSON is used? */
-      if (item === undefined) {
+      if (!item) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON group does not exist");
@@ -199,7 +199,7 @@ function getGeoJSONHandler() {
       const geoJSONLayer = item[req.params.layer];
 
       /* Check GeoJSON layer is used? */
-      if (geoJSONLayer === undefined) {
+      if (!geoJSONLayer) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON layer does not exist");
@@ -250,7 +250,7 @@ function getGeoJSONMD5Handler() {
       const item = config.geojsons[id];
 
       /* Check GeoJSON is used? */
-      if (item === undefined) {
+      if (!item) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON group does not exist");
@@ -259,7 +259,7 @@ function getGeoJSONMD5Handler() {
       const geoJSONLayer = item[req.params.layer];
 
       /* Check GeoJSON layer is used? */
-      if (geoJSONLayer === undefined) {
+      if (!geoJSONLayer) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON layer does not exist");
@@ -300,7 +300,7 @@ function downloadGeoJSONHandler() {
       const item = config.geojsons[id];
 
       /* Check GeoJSON is used? */
-      if (item === undefined) {
+      if (!item) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON group does not exist");
@@ -309,7 +309,7 @@ function downloadGeoJSONHandler() {
       const geoJSONLayer = item[req.params.layer];
 
       /* Check GeoJSON layer is used? */
-      if (geoJSONLayer === undefined) {
+      if (!geoJSONLayer) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("GeoJSON layer does not exist");
@@ -772,7 +772,7 @@ export const serve_geojson = {
    * @returns {void}
    */
   add: async () => {
-    if (config.geojsons === undefined) {
+    if (!config.geojsons) {
       printLog("info", "No GeoJSON groups in config. Skipping...");
     } else {
       const ids = Object.keys(config.geojsons);
@@ -784,7 +784,7 @@ export const serve_geojson = {
       await Promise.all(
         ids.map(async (id) => {
           try {
-            if (config.geojsons[id] === undefined) {
+            if (!config.geojsons[id]) {
               printLog(
                 "info",
                 `No geojson group in GeoJSON groups id "${id}". Skipping...`
@@ -812,7 +812,7 @@ export const serve_geojson = {
 
                     const cacheSource = seed.geojsons?.[item.geojson];
 
-                    if (cacheSource === undefined) {
+                    if (!cacheSource) {
                       throw new Error(
                         `Cache GeoJSON "${item.geojson}" is invalid`
                       );

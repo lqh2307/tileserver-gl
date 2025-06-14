@@ -160,7 +160,7 @@ function renderPDFHandler() {
 
       res.set({
         "content-type": detectContentTypeFromFormat(
-          req.body.preview === undefined ? "pdf" : req.body.preview.format
+          !req.body.preview ? "pdf" : req.body.preview.format
         ),
       });
 

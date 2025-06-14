@@ -47,7 +47,7 @@ export async function runTasks(opts) {
       /* Clean up sprites */
       if (opts.cleanUpSprites) {
         try {
-          if (cleanUp.sprites === undefined) {
+          if (!cleanUp.sprites) {
             printLog("info", "No sprites in cleanup. Skipping...");
           } else {
             const ids = Object.keys(cleanUp.sprites);
@@ -93,7 +93,7 @@ export async function runTasks(opts) {
       /* Clean up fonts */
       if (opts.cleanUpFonts) {
         try {
-          if (cleanUp.fonts === undefined) {
+          if (!cleanUp.fonts) {
             printLog("info", "No fonts in cleanup. Skipping...");
           } else {
             const ids = Object.keys(cleanUp.fonts);
@@ -139,7 +139,7 @@ export async function runTasks(opts) {
       /* Clean up styles */
       if (opts.cleanUpStyles) {
         try {
-          if (cleanUp.styles === undefined) {
+          if (!cleanUp.styles) {
             printLog("info", "No styles in cleanup. Skipping...");
           } else {
             const ids = Object.keys(cleanUp.styles);
@@ -185,7 +185,7 @@ export async function runTasks(opts) {
       /* Clean up geojsons */
       if (opts.cleanUpGeoJSONs) {
         try {
-          if (cleanUp.geojsons === undefined) {
+          if (!cleanUp.geojsons) {
             printLog("info", "No geojsons in cleanup. Skipping...");
           } else {
             const ids = Object.keys(cleanUp.geojsons);
@@ -231,7 +231,7 @@ export async function runTasks(opts) {
       /* Clean up datas */
       if (opts.cleanUpDatas) {
         try {
-          if (cleanUp.datas === undefined) {
+          if (!cleanUp.datas) {
             printLog("info", "No datas in cleanup. Skipping...");
           } else {
             const ids = Object.keys(cleanUp.datas);
@@ -309,7 +309,7 @@ export async function runTasks(opts) {
       /* Run seed sprites */
       if (opts.seedSprites) {
         try {
-          if (seed.sprites === undefined) {
+          if (!seed.sprites) {
             printLog("info", "No sprites in seed. Skipping...");
           } else {
             const ids = Object.keys(seed.sprites);
@@ -360,7 +360,7 @@ export async function runTasks(opts) {
       /* Run seed fonts */
       if (opts.seedFonts) {
         try {
-          if (seed.fonts === undefined) {
+          if (!seed.fonts) {
             printLog("info", "No fonts in seed. Skipping...");
           } else {
             const ids = Object.keys(seed.fonts);
@@ -412,7 +412,7 @@ export async function runTasks(opts) {
       /* Run seed styles */
       if (opts.seedStyles) {
         try {
-          if (seed.styles === undefined) {
+          if (!seed.styles) {
             printLog("info", "No styles in seed. Skipping...");
           } else {
             const ids = Object.keys(seed.styles);
@@ -463,7 +463,7 @@ export async function runTasks(opts) {
       /* Run seed geojsons */
       if (opts.seedGeoJSONs) {
         try {
-          if (seed.geojsons === undefined) {
+          if (!seed.geojsons) {
             printLog("info", "No geojsons in seed. Skipping...");
           } else {
             const ids = Object.keys(seed.geojsons);
@@ -514,7 +514,7 @@ export async function runTasks(opts) {
       /* Run seed datas */
       if (opts.seedDatas) {
         try {
-          if (seed.datas === undefined) {
+          if (!seed.datas) {
             printLog("info", "No datas in seed. Skipping...");
           } else {
             const ids = Object.keys(seed.datas);

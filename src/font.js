@@ -15,7 +15,7 @@ import {
 
 let glyphsProto;
 
-if (cluster.isPrimary !== true) {
+if (!cluster.isPrimary) {
   readFile("public/protos/glyphs.proto")
     .then((data) => {
       glyphsProto = protobuf(data);

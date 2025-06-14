@@ -60,7 +60,7 @@ function serveDataHandler() {
     try {
       const item = config.datas[id];
 
-      if (item === undefined) {
+      if (!item) {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
@@ -94,7 +94,7 @@ function getDataTileHandler() {
     const item = config.datas[id];
 
     /* Check data is exist? */
-    if (item === undefined) {
+    if (!item) {
       return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
     }
 
@@ -147,7 +147,7 @@ function getDataTileHandler() {
       /* Gzip pbf data tile */
       if (
         dataTile.headers["content-type"] === "application/x-protobuf" &&
-        dataTile.headers["content-encoding"] === undefined
+        !dataTile.headers["content-encoding"]
       ) {
         dataTile.data = await gzipAsync(dataTile.data);
 
@@ -185,7 +185,7 @@ function getDataHandler() {
     try {
       const item = config.datas[id];
 
-      if (item === undefined) {
+      if (!item) {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
@@ -224,7 +224,7 @@ function getDataMD5Handler() {
       const item = config.datas[id];
 
       /* Check data is used? */
-      if (item === undefined) {
+      if (!item) {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
@@ -294,7 +294,7 @@ function downloadDataHandler() {
       const item = config.datas[id];
 
       /* Check data is used? */
-      if (item === undefined) {
+      if (!item) {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
@@ -342,7 +342,7 @@ function getDataTileExtraInfoHandler() {
     const item = config.datas[id];
 
     /* Check data is exist? */
-    if (item === undefined) {
+    if (!item) {
       return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
     }
 
@@ -432,7 +432,7 @@ function calculateDataExtraInfoHandler() {
     const item = config.datas[id];
 
     /* Check data is exist? */
-    if (item === undefined) {
+    if (!item) {
       return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
     }
 
@@ -942,7 +942,7 @@ export const serve_data = {
    * @returns {void}
    */
   add: async () => {
-    if (config.datas === undefined) {
+    if (!config.datas) {
       printLog("info", "No datas in config. Skipping...");
     } else {
       const ids = Object.keys(config.datas);
@@ -965,10 +965,7 @@ export const serve_data = {
                 /* Get MBTiles cache options */
                 const cacheSource = seed.datas?.[item.mbtiles];
 
-                if (
-                  cacheSource === undefined ||
-                  cacheSource.storeType !== "mbtiles"
-                ) {
+                if (!cacheSource || cacheSource.storeType !== "mbtiles") {
                   throw new Error(
                     `Cache mbtiles data "${item.mbtiles}" is invalid`
                   );
@@ -1046,10 +1043,7 @@ export const serve_data = {
                 /* Get XYZ cache options */
                 const cacheSource = seed.datas?.[item.xyz];
 
-                if (
-                  cacheSource === undefined ||
-                  cacheSource.storeType !== "xyz"
-                ) {
+                if (!cacheSource || cacheSource.storeType !== "xyz") {
                   throw new Error(`Cache xyz data "${item.xyz}" is invalid`);
                 }
 
@@ -1105,10 +1099,7 @@ export const serve_data = {
                 /* Get PostgreSQL cache options */
                 const cacheSource = seed.datas?.[item.pg];
 
-                if (
-                  cacheSource === undefined ||
-                  cacheSource.storeType !== "pg"
-                ) {
+                if (!cacheSource || cacheSource.storeType !== "pg") {
                   throw new Error(`Cache pg data "${item.pg}" is invalid`);
                 }
 

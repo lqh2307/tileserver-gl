@@ -29,7 +29,7 @@ function getSpriteHandler() {
       }
 
       /* Check sprite is used? */
-      if (config.sprites[id] === undefined) {
+      if (!config.sprites[id]) {
         return res.status(StatusCodes.NOT_FOUND).send("Sprite does not exist");
       }
 
@@ -222,7 +222,7 @@ export const serve_sprite = {
    * @returns {void}
    */
   add: async () => {
-    if (config.sprites === undefined) {
+    if (!config.sprites) {
       printLog("info", "No sprites in config. Skipping...");
     } else {
       const ids = Object.keys(config.sprites);
@@ -242,7 +242,7 @@ export const serve_sprite = {
 
               const cacheSource = seed.sprites?.[item.sprite];
 
-              if (cacheSource === undefined) {
+              if (!cacheSource) {
                 throw new Error(`Cache sprite "${item.sprite}" is invalid`);
               }
 

@@ -27,7 +27,7 @@ let currentTaskWorker;
  * @returns {void}
  */
 export function startTaskInWorker(opts) {
-  if (currentTaskWorker === undefined) {
+  if (!currentTaskWorker) {
     currentTaskWorker = new Worker("./src/task_worker.js", {
       workerData: opts,
     })

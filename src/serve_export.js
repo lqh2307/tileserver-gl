@@ -32,7 +32,7 @@ function exportAllHandler() {
 
       if (req.body.styles) {
         for (const styleID of req.body.styles) {
-          if (config.styles[styleID] === undefined) {
+          if (!config.styles[styleID]) {
             return res
               .status(StatusCodes.NOT_FOUND)
               .send(`Style id "${styleID}" does not exist`);
@@ -42,7 +42,7 @@ function exportAllHandler() {
 
       if (req.body.datas) {
         for (const dataID of req.body.datas) {
-          if (config.datas[dataID] === undefined) {
+          if (!config.datas[dataID]) {
             return res
               .status(StatusCodes.NOT_FOUND)
               .send(`Data id "${dataID}" does not exist`);
@@ -52,7 +52,7 @@ function exportAllHandler() {
 
       if (req.body.geojsons) {
         for (const group of req.body.geojsons) {
-          if (config.geojsons[group] === undefined) {
+          if (!config.geojsons[group]) {
             return res
               .status(StatusCodes.NOT_FOUND)
               .send(`GeoJSON group id "${group}" does not exist`);
@@ -62,7 +62,7 @@ function exportAllHandler() {
 
       if (req.body.sprites) {
         for (const spriteID of req.body.sprites) {
-          if (config.sprites[spriteID] === undefined) {
+          if (!config.sprites[spriteID]) {
             return res
               .status(StatusCodes.NOT_FOUND)
               .send(`Sprite id "${spriteID}" does not exist`);
@@ -110,7 +110,7 @@ function exportDataHandler() {
     try {
       const item = config.datas[id];
 
-      if (item === undefined) {
+      if (!item) {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
@@ -245,7 +245,7 @@ function renderStyleHandler() {
       const item = config.styles[id];
 
       /* Check rendered is exist? */
-      if (item === undefined || item.tileJSON === undefined) {
+      if (!item || !item.tileJSON) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("Rendered does not exist");

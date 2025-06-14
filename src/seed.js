@@ -258,10 +258,10 @@ async function seedMBTilesTiles(
       if (
         refreshTimestampType === "undefined" ||
         (refreshTimestampType === "boolean" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
         (refreshTimestampType === "number" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] < refreshTimestamp))
       ) {
         const completeTasks = tasks.completeTasks;
@@ -498,10 +498,10 @@ async function seedPostgreSQLTiles(
       if (
         refreshTimestampType === "undefined" ||
         (refreshTimestampType === "boolean" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
         (refreshTimestampType === "number" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] < refreshTimestamp))
       ) {
         const completeTasks = tasks.completeTasks;
@@ -743,10 +743,10 @@ async function seedXYZTiles(
       if (
         refreshTimestampType === "undefined" ||
         (refreshTimestampType === "boolean" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
         (refreshTimestampType === "number" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] < refreshTimestamp))
       ) {
         const completeTasks = tasks.completeTasks;
@@ -887,7 +887,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
         ]);
 
         if (
-          response.headers["etag"] === undefined ||
+          !response.headers["etag"] ||
           response.headers["etag"] !== calculateMD5(geoJSONData)
         ) {
           needDownload = true;
@@ -1213,7 +1213,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
         ]);
 
         if (
-          response.headers["etag"] === undefined ||
+          !response.headers["etag"] ||
           response.headers["etag"] !== calculateMD5(styleData)
         ) {
           needDownload = true;

@@ -619,10 +619,10 @@ export async function renderStyleJSONToImage(
     log += `\n\tFormat: ${format}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tFrame: ${JSON.stringify(frame === undefined ? {} : frame)}`;
-    log += `\n\tGrid: ${JSON.stringify(grid === undefined ? {} : grid)}`;
+    log += `\n\tFrame: ${JSON.stringify(frame ? frame : {})}`;
+    log += `\n\tGrid: ${JSON.stringify(grid ? grid : {})}`;
     log += `\n\tIs base64: ${base64}`;
-    log += `\n\tOverlays: ${overlays === undefined ? false : true}`;
+    log += `\n\tOverlays: ${overlays ? true : false}`;
     log += `\n\tTarget zoom: ${targetZoom}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
@@ -1213,7 +1213,7 @@ export async function renderMBTilesTiles(
 
         if (
           refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
+          !tileExtraInfo[tileName] ||
           tileExtraInfo[tileName] < refreshTimestamp
         ) {
           const completeTasks = tasks.completeTasks;
@@ -1258,7 +1258,7 @@ export async function renderMBTilesTiles(
 
         if (
           refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
+          !tileExtraInfo[tileName] ||
           tileExtraInfo[tileName] < refreshTimestamp
         ) {
           const completeTasks = tasks.completeTasks;
@@ -1519,7 +1519,7 @@ export async function renderXYZTiles(
 
         if (
           refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
+          !tileExtraInfo[tileName] ||
           tileExtraInfo[tileName] < refreshTimestamp
         ) {
           const completeTasks = tasks.completeTasks;
@@ -1573,7 +1573,7 @@ export async function renderXYZTiles(
 
         if (
           refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
+          !tileExtraInfo[tileName] ||
           tileExtraInfo[tileName] < refreshTimestamp
         ) {
           const completeTasks = tasks.completeTasks;
@@ -1829,7 +1829,7 @@ export async function renderPostgreSQLTiles(
 
         if (
           refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
+          !tileExtraInfo[tileName] ||
           tileExtraInfo[tileName] < refreshTimestamp
         ) {
           const completeTasks = tasks.completeTasks;
@@ -1881,7 +1881,7 @@ export async function renderPostgreSQLTiles(
 
         if (
           refreshTimestampType !== "number" ||
-          tileExtraInfo[tileName] === undefined ||
+          !tileExtraInfo[tileName] ||
           tileExtraInfo[tileName] < refreshTimestamp
         ) {
           const completeTasks = tasks.completeTasks;

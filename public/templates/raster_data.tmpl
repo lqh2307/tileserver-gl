@@ -70,7 +70,7 @@
           const cacheCoverageGeoJSONLayers = {};
 
           for (const { zoom, bbox } of jsonResponse.cacheCoverages) {
-            if (cacheCoverageLayers[zoom] === undefined) {
+            if (!cacheCoverageLayers[zoom]) {
               cacheCoverageLayers[zoom] = {
                 type: "MultiLineString",
                 coordinates: []
@@ -98,7 +98,7 @@
             if (isCoverageVisible) {
               const currentZoom = map.getZoom();
 
-              if (cacheCoverageGeoJSONLayers[currentZoom] === undefined && cacheCoverageLayers[currentZoom]) {
+              if (!cacheCoverageGeoJSONLayers[currentZoom] && cacheCoverageLayers[currentZoom]) {
                 cacheCoverageGeoJSONLayers[currentZoom] = L.geoJSON(cacheCoverageLayers[currentZoom], {
                   weight: 1,
                   color: "rgba(255, 0, 0, 0.6)"

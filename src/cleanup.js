@@ -172,7 +172,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
       if (
         cleanUpTimestamp === undefined ||
-        tileExtraInfo[tileName] === undefined ||
+        !tileExtraInfo[tileName] ||
         tileExtraInfo[tileName] < cleanUpTimestamp
       ) {
         const completeTasks = tasks.completeTasks;
@@ -326,7 +326,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
       if (
         cleanUpTimestamp === undefined ||
-        tileExtraInfo[tileName] === undefined ||
+        !tileExtraInfo[tileName] ||
         tileExtraInfo[tileName] < cleanUpTimestamp
       ) {
         const completeTasks = tasks.completeTasks;
@@ -483,7 +483,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
       if (
         cleanUpTimestamp === undefined ||
-        tileExtraInfo[tileName] === undefined ||
+        !tileExtraInfo[tileName] ||
         tileExtraInfo[tileName] < cleanUpTimestamp
       ) {
         const completeTasks = tasks.completeTasks;

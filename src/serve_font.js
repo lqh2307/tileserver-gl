@@ -24,7 +24,7 @@ function getFontHandler() {
 
       /* Gzip pbf font */
       const headers = detectFormatAndHeaders(data).headers;
-      if (headers["content-encoding"] === undefined) {
+      if (!headers["content-encoding"]) {
         data = await gzipAsync(data);
 
         headers["content-encoding"] = "gzip";
@@ -193,7 +193,7 @@ export const serve_font = {
    * @returns {void}
    */
   add: async () => {
-    if (config.fonts === undefined) {
+    if (!config.fonts) {
       printLog("info", "No fonts in config. Skipping...");
     } else {
       const ids = Object.keys(config.fonts);
@@ -213,7 +213,7 @@ export const serve_font = {
 
               const cacheSource = seed.fonts?.[item.font];
 
-              if (cacheSource === undefined) {
+              if (!cacheSource) {
                 throw new Error(`Cache font "${item.font}" is invalid`);
               }
 

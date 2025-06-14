@@ -107,7 +107,7 @@ export async function validateStyle(styleJSON) {
     if (styleJSON.sprite.startsWith("sprites://")) {
       const spriteID = styleJSON.sprite.split("/")[2];
 
-      if (config.sprites[spriteID] === undefined) {
+      if (!config.sprites[spriteID]) {
         throw new Error(`Sprite "${spriteID}" is not found`);
       }
     } else if (
@@ -128,13 +128,13 @@ export async function validateStyle(styleJSON) {
         if (isLocalURL(source.data)) {
           const parts = source.data.split("/");
 
-          if (config.geojsons[parts[2]] === undefined) {
+          if (!config.geojsons[parts[2]]) {
             throw new Error(
               `Source "${id}" is not found data source "${parts[2]}"`
             );
           }
 
-          if (config.geojsons[parts[2]][parts[3]] === undefined) {
+          if (!config.geojsons[parts[2]][parts[3]]) {
             throw new Error(
               `Source "${id}" is not found data source "${parts[3]}"`
             );
@@ -146,7 +146,7 @@ export async function validateStyle(styleJSON) {
         if (isLocalURL(source.url)) {
           const sourceID = source.url.split("/")[2];
 
-          if (config.datas[sourceID] === undefined) {
+          if (!config.datas[sourceID]) {
             throw new Error(
               `Source "${id}" is not found data source "${sourceID}"`
             );
@@ -169,7 +169,7 @@ export async function validateStyle(styleJSON) {
           if (isLocalURL(url)) {
             const sourceID = url.split("/")[2];
 
-            if (config.datas[sourceID] === undefined) {
+            if (!config.datas[sourceID]) {
               throw new Error(
                 `Source "${id}" is not found data source "${sourceID}"`
               );
@@ -191,7 +191,7 @@ export async function validateStyle(styleJSON) {
           if (isLocalURL(tile)) {
             const sourceID = tile.split("/")[2];
 
-            if (config.datas[sourceID] === undefined) {
+            if (!config.datas[sourceID]) {
               throw new Error(
                 `Source "${id}" is not found data source "${sourceID}"`
               );

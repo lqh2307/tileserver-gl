@@ -87,7 +87,7 @@
 
         if (jsonResponse.cacheCoverages) {
           for (const { zoom, bbox } of jsonResponse.cacheCoverages) {
-            if (cacheCoverageLayers[zoom] === undefined) {
+            if (!cacheCoverageLayers[zoom]) {
               cacheCoverageLayers[zoom] = {
                 type: "FeatureCollection",
                 features: []

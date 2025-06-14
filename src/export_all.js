@@ -108,7 +108,7 @@ export async function exportAll(
     };
 
     // Export styles
-    if (options.styles === undefined) {
+    if (!options.styles) {
       printLog("info", "No styles to export. Skipping...");
     } else {
       for (const styleID of options.styles) {
@@ -441,7 +441,7 @@ export async function exportAll(
     }
 
     // Export datas
-    if (options.datas === undefined) {
+    if (!options.datas) {
       printLog("info", "No datas to export. Skipping...");
     } else {
       for (const dataID of options.datas) {
@@ -582,7 +582,7 @@ export async function exportAll(
     }
 
     // Export geojsons
-    if (options.geojsons === undefined) {
+    if (!options.geojsons) {
       printLog("info", "No GeoJSONs to export. Skipping...");
     } else {
       // Get geojson
@@ -623,7 +623,7 @@ export async function exportAll(
     }
 
     // Export sprite
-    if (options.sprites === undefined) {
+    if (!options.sprites) {
       printLog("info", "No sprites to export. Skipping...");
     } else {
       // Get sprite
@@ -669,7 +669,7 @@ export async function exportAll(
     }
 
     // Export fonts
-    if (options.fonts === undefined) {
+    if (!options.fonts) {
       printLog("info", "No fonts to export. Skipping...");
     } else {
       // Get font

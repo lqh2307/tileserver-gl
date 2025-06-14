@@ -352,7 +352,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
       const item = config.fonts[id];
 
       try {
-        if (item === undefined) {
+        if (!item) {
           throw new Error("Font does not exist");
         }
 

@@ -28,7 +28,7 @@ function serveStyleHandler() {
     try {
       const item = config.styles[id];
 
-      if (item === undefined) {
+      if (!item) {
         return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
       }
 
@@ -60,7 +60,7 @@ function serveWMTSHandler() {
     try {
       const item = config.styles[id].tileJSON;
 
-      if (item === undefined) {
+      if (!item) {
         return res.status(StatusCodes.NOT_FOUND).send("WMTS does not exist");
       }
 
@@ -93,7 +93,7 @@ function getStyleHandler() {
 
     try {
       /* Check style is used? */
-      if (config.styles[id] === undefined) {
+      if (!config.styles[id]) {
         return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
       }
 
@@ -283,7 +283,7 @@ function getRenderedTileHandler() {
     const item = config.styles[id];
 
     /* Check rendered is exist? */
-    if (item === undefined || item.tileJSON === undefined) {
+    if (!item || !item.tileJSON) {
       return res.status(StatusCodes.NOT_FOUND).send("Rendered does not exist");
     }
 
@@ -357,7 +357,7 @@ function getRenderedHandler() {
       const item = config.styles[id];
 
       /* Check rendered is exist? */
-      if (item === undefined || item.tileJSON === undefined) {
+      if (!item || !item.tileJSON) {
         return res
           .status(StatusCodes.NOT_FOUND)
           .send("Rendered does not exist");
@@ -401,7 +401,7 @@ function getStyleMD5Handler() {
       const item = config.styles[id];
 
       /* Check style is used? */
-      if (item === undefined) {
+      if (!item) {
         return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
       }
 
@@ -889,7 +889,7 @@ export const serve_style = {
    * @returns {void}
    */
   add: async () => {
-    if (config.styles === undefined) {
+    if (!config.styles) {
       printLog("info", "No styles in config. Skipping...");
     } else {
       const ids = Object.keys(config.styles);
@@ -915,7 +915,7 @@ export const serve_style = {
 
               const cacheSource = seed.styles?.[item.style];
 
-              if (cacheSource === undefined) {
+              if (!cacheSource) {
                 throw new Error(`Cache style "${item.style}" is invalid`);
               }
 

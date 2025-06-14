@@ -21,7 +21,7 @@ import {
 function serveFrontPageHandler() {
   return async (req, res, next) => {
     try {
-      if (config.isStarted !== true) {
+      if (!config.isStarted) {
         return res.status(StatusCodes.SERVICE_UNAVAILABLE).send("Starting...");
       }
 
@@ -192,7 +192,7 @@ function serveConfigUpdateHandler() {
 
         const seedData = await readSeedFile(true);
 
-        if (req.body.styles === undefined) {
+        if (!req.body.styles) {
           printLog("info", "No styles to update in seed. Skipping...");
         } else {
           const ids = Object.keys(req.body.styles);
@@ -204,7 +204,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.geojsons === undefined) {
+        if (!req.body.geojsons) {
           printLog("info", "No GeoJSONs to update in seed. Skipping...");
         } else {
           const ids = Object.keys(req.body.geojsons);
@@ -216,7 +216,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.datas === undefined) {
+        if (!req.body.datas) {
           printLog("info", "No datas to update in seed. Skipping...");
         } else {
           const ids = Object.keys(req.body.datas);
@@ -228,7 +228,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.sprites === undefined) {
+        if (!req.body.sprites) {
           printLog("info", "No sprites to update in seed. Skipping...");
         } else {
           const ids = Object.keys(req.body.sprites);
@@ -240,7 +240,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.fonts === undefined) {
+        if (!req.body.fonts) {
           printLog("info", "No fonts to update in seed. Skipping...");
         } else {
           const ids = Object.keys(req.body.fonts);
@@ -264,7 +264,7 @@ function serveConfigUpdateHandler() {
 
         const cleanUpData = await readCleanUpFile(true);
 
-        if (req.body.styles === undefined) {
+        if (!req.body.styles) {
           printLog("info", "No styles to update in cleanup. Skipping...");
         } else {
           const ids = Object.keys(req.body.styles);
@@ -276,7 +276,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.geojsons === undefined) {
+        if (!req.body.geojsons) {
           printLog("info", "No GeoJSONs to update in cleanup. Skipping...");
         } else {
           const ids = Object.keys(req.body.geojsons);
@@ -288,7 +288,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.datas === undefined) {
+        if (!req.body.datas) {
           printLog("info", "No datas to update in cleanup. Skipping...");
         } else {
           const ids = Object.keys(req.body.datas);
@@ -300,7 +300,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.sprites === undefined) {
+        if (!req.body.sprites) {
           printLog("info", "No sprites to update in cleanup. Skipping...");
         } else {
           const ids = Object.keys(req.body.sprites);
@@ -312,7 +312,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.fonts === undefined) {
+        if (!req.body.fonts) {
           printLog("info", "No fonts to update in cleanup. Skipping...");
         } else {
           const ids = Object.keys(req.body.fonts);
@@ -336,7 +336,7 @@ function serveConfigUpdateHandler() {
 
         const configData = await readConfigFile(true);
 
-        if (req.body.styles === undefined) {
+        if (!req.body.styles) {
           printLog("info", "No styles to update in config. Skipping...");
         } else {
           const ids = Object.keys(req.body.styles);
@@ -348,7 +348,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.geojsons === undefined) {
+        if (!req.body.geojsons) {
           printLog(
             "info",
             "No GeoJSON groups to update in config. Skipping..."
@@ -366,7 +366,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.datas === undefined) {
+        if (!req.body.datas) {
           printLog("info", "No datas to update in config. Skipping...");
         } else {
           const ids = Object.keys(req.body.datas);
@@ -378,7 +378,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.sprites === undefined) {
+        if (!req.body.sprites) {
           printLog("info", "No sprites to update in config. Skipping...");
         } else {
           const ids = Object.keys(req.body.sprites);
@@ -390,7 +390,7 @@ function serveConfigUpdateHandler() {
           });
         }
 
-        if (req.body.fonts === undefined) {
+        if (!req.body.fonts) {
           printLog("info", "No fonts to update in config. Skipping...");
         } else {
           const ids = Object.keys(req.body.fonts);
@@ -444,7 +444,7 @@ function serveConfigDeleteHandler() {
       if (req.query.type === "seed") {
         const seedData = await readSeedFile(true);
 
-        if (req.body.styles === undefined) {
+        if (!req.body.styles) {
           printLog("info", "No styles to remove in seed. Skipping...");
         } else {
           printLog(
@@ -457,7 +457,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.geojsons === undefined) {
+        if (!req.body.geojsons) {
           printLog("info", "No GeoJSONs to remove in seed. Skipping...");
         } else {
           printLog(
@@ -470,7 +470,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.datas === undefined) {
+        if (!req.body.datas) {
           printLog("info", "No datas to remove in seed. Skipping...");
         } else {
           printLog(
@@ -483,7 +483,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.sprites === undefined) {
+        if (!req.body.sprites) {
           printLog("info", "No sprites to remove in seed. Skipping...");
         } else {
           printLog(
@@ -496,7 +496,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.fonts === undefined) {
+        if (!req.body.fonts) {
           printLog("info", "No fonts to remove in seed. Skipping...");
         } else {
           printLog(
@@ -513,7 +513,7 @@ function serveConfigDeleteHandler() {
       } else if (req.query.type === "cleanUp") {
         const cleanUpData = await readCleanUpFile(true);
 
-        if (req.body.styles === undefined) {
+        if (!req.body.styles) {
           printLog("info", "No styles to remove in cleanup. Skipping...");
         } else {
           printLog(
@@ -526,7 +526,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.geojsons === undefined) {
+        if (!req.body.geojsons) {
           printLog("info", "No GeoJSONs to remove in cleanup. Skipping...");
         } else {
           printLog(
@@ -539,7 +539,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.datas === undefined) {
+        if (!req.body.datas) {
           printLog("info", "No datas to remove in cleanup. Skipping...");
         } else {
           printLog(
@@ -552,7 +552,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.sprites === undefined) {
+        if (!req.body.sprites) {
           printLog("info", "No sprites to remove in cleanup. Skipping...");
         } else {
           printLog(
@@ -565,7 +565,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.fonts === undefined) {
+        if (!req.body.fonts) {
           printLog("info", "No fonts to remove in cleanup. Skipping...");
         } else {
           printLog(
@@ -582,7 +582,7 @@ function serveConfigDeleteHandler() {
       } else {
         const configData = await readConfigFile(true);
 
-        if (req.body.styles === undefined) {
+        if (!req.body.styles) {
           printLog("info", "No styles to remove in cleanup. Skipping...");
         } else {
           printLog(
@@ -595,7 +595,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.geojsons === undefined) {
+        if (!req.body.geojsons) {
           printLog("info", "No GeoJSONs to remove in cleanup. Skipping...");
         } else {
           printLog(
@@ -608,7 +608,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.datas === undefined) {
+        if (!req.body.datas) {
           printLog("info", "No datas to remove in config. Skipping...");
         } else {
           printLog(
@@ -621,7 +621,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.sprites === undefined) {
+        if (!req.body.sprites) {
           printLog("info", "No sprites to remove in config. Skipping...");
         } else {
           printLog(
@@ -634,7 +634,7 @@ function serveConfigDeleteHandler() {
           });
         }
 
-        if (req.body.fonts === undefined) {
+        if (!req.body.fonts) {
           printLog("info", "No fonts to remove in config. Skipping...");
         } else {
           printLog(
@@ -716,7 +716,7 @@ function serveReadyHandler() {
 function serveHealthHandler() {
   return async (req, res, next) => {
     try {
-      if (config.isStarted !== true) {
+      if (!config.isStarted) {
         return res.status(StatusCodes.SERVICE_UNAVAILABLE).send("Starting...");
       }
 

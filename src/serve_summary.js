@@ -224,7 +224,7 @@ function serveSummaryHandler() {
             try {
               result.styles.size += await getStyleSize(item.path);
             } catch (error) {
-              if (item.cache === undefined || error.code !== "ENOENT") {
+              if (!item.cache || error.code !== "ENOENT") {
                 throw error;
               }
             }
@@ -245,7 +245,7 @@ function serveSummaryHandler() {
                   item.path
                 );
               } catch (error) {
-                if (item.cache === undefined || error.code !== "ENOENT") {
+                if (!item.cache || error.code !== "ENOENT") {
                   throw error;
                 }
               }
@@ -263,7 +263,7 @@ function serveSummaryHandler() {
                 try {
                   result.datas.mbtiles.size += await getMBTilesSize(item.path);
                 } catch (error) {
-                  if (item.cache === undefined || error.code !== "ENOENT") {
+                  if (!item.cache || error.code !== "ENOENT") {
                     throw error;
                   }
                 }
@@ -291,7 +291,7 @@ function serveSummaryHandler() {
                 try {
                   result.datas.xyzs.size += await getXYZSize(item.path);
                 } catch (error) {
-                  if (item.cache === undefined || error.code !== "ENOENT") {
+                  if (!item.cache || error.code !== "ENOENT") {
                     throw error;
                   }
                 }
@@ -318,7 +318,7 @@ function serveSummaryHandler() {
             try {
               result.sprites.size += await getSpriteSize(item.path);
             } catch (error) {
-              if (item.cache === undefined || error.code !== "ENOENT") {
+              if (!item.cache || error.code !== "ENOENT") {
                 throw error;
               }
             }
@@ -331,7 +331,7 @@ function serveSummaryHandler() {
             try {
               result.fonts.size += await getFontSize(item.path);
             } catch (error) {
-              if (item.cache === undefined || error.code !== "ENOENT") {
+              if (!item.cache || error.code !== "ENOENT") {
                 throw error;
               }
             }

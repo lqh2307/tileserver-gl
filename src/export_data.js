@@ -176,10 +176,10 @@ export async function exportMBTilesTiles(
       if (
         refreshTimestampType === "undefined" ||
         (refreshTimestampType === "boolean" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
         (refreshTimestampType === "number" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] < refreshTimestamp))
       ) {
         const completeTasks = tasks.completeTasks;
@@ -409,10 +409,10 @@ export async function exportXYZTiles(
       if (
         refreshTimestampType === "undefined" ||
         (refreshTimestampType === "boolean" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
         (refreshTimestampType === "number" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] < refreshTimestamp))
       ) {
         const completeTasks = tasks.completeTasks;
@@ -640,10 +640,10 @@ export async function exportPostgreSQLTiles(
       if (
         refreshTimestampType === "undefined" ||
         (refreshTimestampType === "boolean" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
         (refreshTimestampType === "number" &&
-          (tileExtraInfo[tileName] === undefined ||
+          (!tileExtraInfo[tileName] ||
             tileExtraInfo[tileName] < refreshTimestamp))
       ) {
         const completeTasks = tasks.completeTasks;
