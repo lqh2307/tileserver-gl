@@ -86,12 +86,11 @@ export async function exportMBTilesTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
-    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -108,7 +107,7 @@ export async function exportMBTilesTiles(
     let targetTileExtraInfo;
     let tileExtraInfo;
 
-    if (refreshTimestampType === "boolean") {
+    if (refreshTimestamp === true) {
       try {
         printLog(
           "info",
@@ -135,7 +134,7 @@ export async function exportMBTilesTiles(
         targetTileExtraInfo = {};
         tileExtraInfo = {};
       }
-    } else if (refreshTimestampType === "number") {
+    } else if (refreshTimestamp) {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -174,40 +173,39 @@ export async function exportMBTilesTiles(
       const tileName = `${z}/${x}/${y}`;
 
       if (
-        refreshTimestampType === "undefined" ||
-        (refreshTimestampType === "boolean" &&
-          (!tileExtraInfo[tileName] ||
-            tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
-        (refreshTimestampType === "number" &&
-          (!tileExtraInfo[tileName] ||
-            tileExtraInfo[tileName] < refreshTimestamp))
+        (refreshTimestamp === true &&
+          tileExtraInfo[tileName] &&
+          tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+        (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
       ) {
-        const completeTasks = tasks.completeTasks;
+        return;
+      }
 
-        printLog(
-          "info",
-          `Exporting data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      const completeTasks = tasks.completeTasks;
+
+      printLog(
+        "info",
+        `Exporting data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      );
+
+      try {
+        // Export data
+        const dataTile = await getAndCacheMBTilesDataTile(id, z, x, y);
+
+        // Store data
+        await cacheMBtilesTileData(
+          source,
+          z,
+          x,
+          y,
+          dataTile.data,
+          storeTransparent
         );
-
-        try {
-          // Export data
-          const dataTile = await getAndCacheMBTilesDataTile(id, z, x, y);
-
-          // Store data
-          await cacheMBtilesTileData(
-            source,
-            z,
-            x,
-            y,
-            dataTile.data,
-            storeTransparent
-          );
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to export data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
-        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to export data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        );
       }
     }
 
@@ -319,12 +317,11 @@ export async function exportXYZTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
-    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -341,7 +338,7 @@ export async function exportXYZTiles(
     let targetTileExtraInfo;
     let tileExtraInfo;
 
-    if (refreshTimestampType === "boolean") {
+    if (refreshTimestamp === true) {
       try {
         printLog(
           "info",
@@ -368,7 +365,7 @@ export async function exportXYZTiles(
         targetTileExtraInfo = {};
         tileExtraInfo = {};
       }
-    } else if (refreshTimestampType === "number") {
+    } else if (refreshTimestamp) {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -407,42 +404,41 @@ export async function exportXYZTiles(
       const tileName = `${z}/${x}/${y}`;
 
       if (
-        refreshTimestampType === "undefined" ||
-        (refreshTimestampType === "boolean" &&
-          (!tileExtraInfo[tileName] ||
-            tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
-        (refreshTimestampType === "number" &&
-          (!tileExtraInfo[tileName] ||
-            tileExtraInfo[tileName] < refreshTimestamp))
+        (refreshTimestamp === true &&
+          tileExtraInfo[tileName] &&
+          tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+        (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
       ) {
-        const completeTasks = tasks.completeTasks;
+        return;
+      }
 
-        printLog(
-          "info",
-          `Exporting data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      const completeTasks = tasks.completeTasks;
+
+      printLog(
+        "info",
+        `Exporting data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      );
+
+      try {
+        // Export data
+        const dataTile = await getAndCacheXYZDataTile(id, z, x, y);
+
+        // Store data
+        await cacheXYZTileFile(
+          sourcePath,
+          source,
+          z,
+          x,
+          y,
+          metadata.format,
+          dataTile.data,
+          storeTransparent
         );
-
-        try {
-          // Export data
-          const dataTile = await getAndCacheXYZDataTile(id, z, x, y);
-
-          // Store data
-          await cacheXYZTileFile(
-            sourcePath,
-            source,
-            z,
-            x,
-            y,
-            metadata.format,
-            dataTile.data,
-            storeTransparent
-          );
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to export data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
-        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to export data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        );
       }
     }
 
@@ -554,12 +550,11 @@ export async function exportPostgreSQLTiles(
       refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
       log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (typeof refreshBefore === "boolean") {
+    } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
       log += `\n\tRefresh before: check MD5`;
     }
-    const refreshTimestampType = typeof refreshTimestamp;
 
     printLog("info", log);
 
@@ -572,7 +567,7 @@ export async function exportPostgreSQLTiles(
     let targetTileExtraInfo;
     let tileExtraInfo;
 
-    if (refreshTimestampType === "boolean") {
+    if (refreshTimestamp === true) {
       try {
         printLog(
           "info",
@@ -599,7 +594,7 @@ export async function exportPostgreSQLTiles(
         targetTileExtraInfo = {};
         tileExtraInfo = {};
       }
-    } else if (refreshTimestampType === "number") {
+    } else if (refreshTimestamp) {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -638,40 +633,39 @@ export async function exportPostgreSQLTiles(
       const tileName = `${z}/${x}/${y}`;
 
       if (
-        refreshTimestampType === "undefined" ||
-        (refreshTimestampType === "boolean" &&
-          (!tileExtraInfo[tileName] ||
-            tileExtraInfo[tileName] !== targetTileExtraInfo[tileName])) ||
-        (refreshTimestampType === "number" &&
-          (!tileExtraInfo[tileName] ||
-            tileExtraInfo[tileName] < refreshTimestamp))
+        (refreshTimestamp === true &&
+          tileExtraInfo[tileName] &&
+          tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+        (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
       ) {
-        const completeTasks = tasks.completeTasks;
+        return;
+      }
 
-        printLog(
-          "info",
-          `Exporting data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      const completeTasks = tasks.completeTasks;
+
+      printLog(
+        "info",
+        `Exporting data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      );
+
+      try {
+        // Export data
+        const dataTile = await getAndCachePostgreSQLDataTile(id, z, x, y);
+
+        // Store data
+        await cachePostgreSQLTileData(
+          source,
+          z,
+          x,
+          y,
+          dataTile.data,
+          storeTransparent
         );
-
-        try {
-          // Export data
-          const dataTile = await getAndCachePostgreSQLDataTile(id, z, x, y);
-
-          // Store data
-          await cachePostgreSQLTileData(
-            source,
-            z,
-            x,
-            y,
-            dataTile.data,
-            storeTransparent
-          );
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to export data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
-        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to export data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        );
       }
     }
 

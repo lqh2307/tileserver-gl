@@ -141,7 +141,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     /* Get tile extra info */
     let tileExtraInfo;
 
-    if (cleanUpTimestamp !== undefined) {
+    if (cleanUpTimestamp) {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -170,32 +170,30 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     async function cleanUpMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
-      if (
-        cleanUpTimestamp === undefined ||
-        !tileExtraInfo[tileName] ||
-        tileExtraInfo[tileName] < cleanUpTimestamp
-      ) {
-        const completeTasks = tasks.completeTasks;
+      if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
+        return;
+      }
 
-        printLog(
-          "info",
-          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      const completeTasks = tasks.completeTasks;
+
+      printLog(
+        "info",
+        `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      );
+
+      try {
+        await removeMBTilesTile(
+          source,
+          z,
+          x,
+          y,
+          30000 // 30 secs
         );
-
-        try {
-          await removeMBTilesTile(
-            source,
-            z,
-            x,
-            y,
-            30000 // 30 secs
-          );
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
-        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        );
       }
     }
 
@@ -295,7 +293,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     /* Get tile extra info */
     let tileExtraInfo;
 
-    if (cleanUpTimestamp !== undefined) {
+    if (cleanUpTimestamp) {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -324,32 +322,30 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
-      if (
-        cleanUpTimestamp === undefined ||
-        !tileExtraInfo[tileName] ||
-        tileExtraInfo[tileName] < cleanUpTimestamp
-      ) {
-        const completeTasks = tasks.completeTasks;
+      if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
+        return;
+      }
 
-        printLog(
-          "info",
-          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      const completeTasks = tasks.completeTasks;
+
+      printLog(
+        "info",
+        `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      );
+
+      try {
+        await removePostgreSQLTile(
+          source,
+          z,
+          x,
+          y,
+          30000 // 30 secs
         );
-
-        try {
-          await removePostgreSQLTile(
-            source,
-            z,
-            x,
-            y,
-            30000 // 30 secs
-          );
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
-        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        );
       }
     }
 
@@ -452,7 +448,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     /* Get tile extra info */
     let tileExtraInfo;
 
-    if (cleanUpTimestamp !== undefined) {
+    if (cleanUpTimestamp) {
       try {
         printLog("info", `Get tile extra info from "${filePath}"...`);
 
@@ -481,34 +477,32 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     async function cleanUpXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
-      if (
-        cleanUpTimestamp === undefined ||
-        !tileExtraInfo[tileName] ||
-        tileExtraInfo[tileName] < cleanUpTimestamp
-      ) {
-        const completeTasks = tasks.completeTasks;
+      if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
+        return;
+      }
 
-        printLog(
-          "info",
-          `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      const completeTasks = tasks.completeTasks;
+
+      printLog(
+        "info",
+        `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+      );
+
+      try {
+        await removeXYZTile(
+          id,
+          source,
+          z,
+          x,
+          y,
+          format,
+          30000 // 30 secs
         );
-
-        try {
-          await removeXYZTile(
-            id,
-            source,
-            z,
-            x,
-            y,
-            format,
-            30000 // 30 secs
-          );
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-          );
-        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+        );
       }
     }
 
