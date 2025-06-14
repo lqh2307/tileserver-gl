@@ -66,7 +66,7 @@ export async function downloadSpriteFile(url, id, fileName, maxTry, timeout) {
         `Failed to download sprite file "${fileName}" - From "${url}": ${error}`
       );
 
-      if (error.statusCode !== undefined) {
+      if (error.statusCode) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
           error.statusCode === StatusCodes.NOT_FOUND

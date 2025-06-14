@@ -27,15 +27,14 @@ function renderStyleJSONHandler() {
       }
 
       const format = req.body.format || "png";
-      const bbox =
-        req.body.bbox !== undefined
-          ? req.body.bbox
-          : [
-              req.body.extent[0],
-              req.body.extent[3],
-              req.body.extent[2],
-              req.body.extent[1],
-            ];
+      const bbox = req.body.bbox
+        ? req.body.bbox
+        : [
+            req.body.extent[0],
+            req.body.extent[3],
+            req.body.extent[2],
+            req.body.extent[1],
+          ];
 
       /* Render style */
       const result = await renderStyleJSONToImage(

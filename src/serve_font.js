@@ -208,7 +208,7 @@ export const serve_font = {
           const fontInfo = {};
 
           try {
-            if (item.cache !== undefined) {
+            if (item.cache) {
               fontInfo.path = `${process.env.DATA_DIR}/caches/fonts/${item.font}`;
 
               const cacheSource = seed.fonts?.[item.font];

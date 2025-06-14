@@ -85,7 +85,7 @@
 
         const cacheCoverageLayers = {};
 
-        if (jsonResponse.cacheCoverages !== undefined) {
+        if (jsonResponse.cacheCoverages) {
           for (const { zoom, bbox } of jsonResponse.cacheCoverages) {
             if (cacheCoverageLayers[zoom] === undefined) {
               cacheCoverageLayers[zoom] = {
@@ -168,7 +168,7 @@
             }
           }
 
-          if (jsonResponse.cacheCoverages !== undefined) {
+          if (jsonResponse.cacheCoverages) {
             let isCoverageVisible = true;
 
             function updateVisibleCoverages() {
@@ -181,7 +181,7 @@
               if (isCoverageVisible) {
                 const currentZoom = Math.floor(map.getZoom());
 
-                if (cacheCoverageLayers[currentZoom] !== undefined) {
+                if (cacheCoverageLayers[currentZoom]) {
                   map.setLayoutProperty(`${currentZoom}_polygon`, "visibility", "visible");
                   map.setLayoutProperty(`${currentZoom}_line`, "visibility", "visible");
                   map.setLayoutProperty(`${currentZoom}_circle`, "visibility", "visible");

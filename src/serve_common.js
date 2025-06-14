@@ -38,7 +38,7 @@ function serveFrontPageHandler() {
         ...Object.keys(config.styles).map(async (id) => {
           const style = config.styles[id];
 
-          if (style.tileJSON !== undefined) {
+          if (style.tileJSON) {
             const { name, center } = style.tileJSON;
 
             const [x, y, z] = getXYZFromLonLatZ(

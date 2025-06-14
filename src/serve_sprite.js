@@ -237,7 +237,7 @@ export const serve_sprite = {
           const spriteInfo = {};
 
           try {
-            if (item.cache !== undefined) {
+            if (item.cache) {
               spriteInfo.path = `${process.env.DATA_DIR}/caches/sprites/${item.sprite}`;
 
               const cacheSource = seed.sprites?.[item.sprite];

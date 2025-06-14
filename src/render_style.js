@@ -868,7 +868,7 @@ export async function renderStyleJSONToImage(
 
     printLog("info", `Gdal command output: ${commandOutput}`);
 
-    if (targetOverlays.length > 0) {
+    if (targetOverlays.length) {
       /* Merge overlays to image */
       const mergedFilePath = `${mergedDirPath}/${id}.${format}`;
 

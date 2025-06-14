@@ -64,7 +64,7 @@ export function startTaskInWorker(opts) {
  * @returns {void}
  */
 export function cancelTaskInWorker() {
-  if (currentTaskWorker !== undefined) {
+  if (currentTaskWorker) {
     currentTaskWorker
       .terminate()
       .catch((error) => {

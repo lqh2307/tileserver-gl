@@ -22,7 +22,7 @@ export async function openPostgreSQL(uri, isCreate) {
 
       await client.end();
     } catch (error) {
-      if (client !== undefined) {
+      if (client) {
         await client.end();
       }
 

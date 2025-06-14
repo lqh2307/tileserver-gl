@@ -40,7 +40,7 @@ export async function downloadStyleFile(url, filePath, maxTry, timeout) {
       // Store data to file
       await cacheStyleFile(filePath, response.data);
     } catch (error) {
-      if (error.statusCode !== undefined) {
+      if (error.statusCode) {
         printLog(
           "error",
           `Failed to download style file "${filePath}" - From "${url}": ${error}`
@@ -83,7 +83,7 @@ export async function cacheStyleFile(filePath, data) {
 export async function validateStyle(styleJSON) {
   /* Validate style */
   const validationErrors = validateStyleMin(styleJSON);
-  if (validationErrors.length > 0) {
+  if (validationErrors.length) {
     throw new Error(
       validationErrors
         .map((validationError) => `\n\t${validationError.message}`)

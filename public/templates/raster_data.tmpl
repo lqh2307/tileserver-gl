@@ -65,7 +65,7 @@
           }).addTo(map);
         }
 
-        if (jsonResponse.cacheCoverages !== undefined) {
+        if (jsonResponse.cacheCoverages) {
           const cacheCoverageLayers = {};
           const cacheCoverageGeoJSONLayers = {};
 
@@ -98,7 +98,7 @@
             if (isCoverageVisible) {
               const currentZoom = map.getZoom();
 
-              if (cacheCoverageGeoJSONLayers[currentZoom] === undefined && cacheCoverageLayers[currentZoom] !== undefined) {
+              if (cacheCoverageGeoJSONLayers[currentZoom] === undefined && cacheCoverageLayers[currentZoom]) {
                 cacheCoverageGeoJSONLayers[currentZoom] = L.geoJSON(cacheCoverageLayers[currentZoom], {
                   weight: 1,
                   color: "rgba(255, 0, 0, 0.6)"
@@ -143,7 +143,7 @@
         let currentMarker;
 
         map.on("click", (event) => {
-          if (currentMarker !== undefined) {
+          if (currentMarker) {
             currentMarker.remove();
           }
 
@@ -161,7 +161,7 @@
         });
 
         map.on("contextmenu", () => {
-          if (currentMarker !== undefined) {
+          if (currentMarker) {
             currentMarker.remove();
 
             currentMarker = undefined;

@@ -30,7 +30,7 @@ function exportAllHandler() {
         throw new SyntaxError(error);
       }
 
-      if (req.body.styles !== undefined) {
+      if (req.body.styles) {
         for (const styleID of req.body.styles) {
           if (config.styles[styleID] === undefined) {
             return res
@@ -40,7 +40,7 @@ function exportAllHandler() {
         }
       }
 
-      if (req.body.datas !== undefined) {
+      if (req.body.datas) {
         for (const dataID of req.body.datas) {
           if (config.datas[dataID] === undefined) {
             return res
@@ -50,7 +50,7 @@ function exportAllHandler() {
         }
       }
 
-      if (req.body.geojsons !== undefined) {
+      if (req.body.geojsons) {
         for (const group of req.body.geojsons) {
           if (config.geojsons[group] === undefined) {
             return res
@@ -60,7 +60,7 @@ function exportAllHandler() {
         }
       }
 
-      if (req.body.sprites !== undefined) {
+      if (req.body.sprites) {
         for (const spriteID of req.body.sprites) {
           if (config.sprites[spriteID] === undefined) {
             return res

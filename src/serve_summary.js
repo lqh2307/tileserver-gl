@@ -232,7 +232,7 @@ function serveSummaryHandler() {
             result.styles.count += 1;
 
             // Rendereds info
-            if (item.tileJSON !== undefined) {
+            if (item.tileJSON) {
               result.styles.rendereds.count += 1;
             }
           }),

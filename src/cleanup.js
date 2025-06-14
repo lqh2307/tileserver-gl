@@ -242,7 +242,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     throw error;
   } finally {
     /* Close MBTiles SQLite database */
-    if (source !== undefined) {
+    if (source) {
       closeMBTilesDB(source);
     }
   }
@@ -393,7 +393,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     throw error;
   } finally {
     /* Close PostgreSQL database */
-    if (source !== undefined) {
+    if (source) {
       closePostgreSQLDB(source);
     }
   }
@@ -558,7 +558,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     throw error;
   } finally {
     /* Close XYZ MD5 SQLite database */
-    if (source !== undefined) {
+    if (source) {
       closeXYZMD5DB(source);
     }
   }

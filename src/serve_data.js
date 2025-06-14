@@ -961,7 +961,7 @@ export const serve_data = {
             if (item.mbtiles !== undefined) {
               dataInfo.sourceType = "mbtiles";
 
-              if (item.cache !== undefined) {
+              if (item.cache) {
                 /* Get MBTiles cache options */
                 const cacheSource = seed.datas?.[item.mbtiles];
 
@@ -1042,7 +1042,7 @@ export const serve_data = {
             } else if (item.xyz !== undefined) {
               dataInfo.sourceType = "xyz";
 
-              if (item.cache !== undefined) {
+              if (item.cache) {
                 /* Get XYZ cache options */
                 const cacheSource = seed.datas?.[item.xyz];
 
@@ -1101,7 +1101,7 @@ export const serve_data = {
             } else if (item.pg !== undefined) {
               dataInfo.sourceType = "pg";
 
-              if (item.cache !== undefined) {
+              if (item.cache) {
                 /* Get PostgreSQL cache options */
                 const cacheSource = seed.datas?.[item.pg];
 

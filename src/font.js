@@ -80,7 +80,7 @@ export async function downloadFontFile(url, id, fileName, maxTry, timeout) {
         `Failed to download font "${fileName}" - From "${url}": ${error}`
       );
 
-      if (error.statusCode !== undefined) {
+      if (error.statusCode) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
           error.statusCode === StatusCodes.NOT_FOUND
@@ -155,27 +155,27 @@ export async function getFont(dirPath, fileName) {
 export async function getFallbackFont(fontName, fileName) {
   let fallbackFont = "Open Sans Regular";
 
-  if (fontName.indexOf("Extrabold Italic") > 0) {
+  if (fontName.indexOf("Extrabold Italic")) {
     fallbackFont = "Open Sans Extrabold Italic";
-  } else if (fontName.indexOf("Semibold Italic") > 0) {
+  } else if (fontName.indexOf("Semibold Italic")) {
     fallbackFont = "Open Sans Semibold Italic";
-  } else if (fontName.indexOf("Bold Italic") > 0) {
+  } else if (fontName.indexOf("Bold Italic")) {
     fallbackFont = "Open Sans Bold Italic";
-  } else if (fontName.indexOf("Medium Italic") > 0) {
+  } else if (fontName.indexOf("Medium Italic")) {
     fallbackFont = "Open Sans Medium Italic";
-  } else if (fontName.indexOf("Light Italic") > 0) {
+  } else if (fontName.indexOf("Light Italic")) {
     fallbackFont = "Open Sans Light Italic";
-  } else if (fontName.indexOf("Extrabold") > 0) {
+  } else if (fontName.indexOf("Extrabold")) {
     fallbackFont = "Open Sans Extrabold";
-  } else if (fontName.indexOf("Semibold") > 0) {
+  } else if (fontName.indexOf("Semibold")) {
     fallbackFont = "Open Sans Semibold";
-  } else if (fontName.indexOf("Bold") > 0) {
+  } else if (fontName.indexOf("Bold")) {
     fallbackFont = "Open Sans Bold";
-  } else if (fontName.indexOf("Light") > 0) {
+  } else if (fontName.indexOf("Light")) {
     fallbackFont = "Open Sans Light";
-  } else if (fontName.indexOf("Medium") > 0) {
+  } else if (fontName.indexOf("Medium")) {
     fallbackFont = "Open Sans Medium";
-  } else if (fontName.indexOf("Italic") > 0) {
+  } else if (fontName.indexOf("Italic")) {
     fallbackFont = "Open Sans Italic";
   }
 

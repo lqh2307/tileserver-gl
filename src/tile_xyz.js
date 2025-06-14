@@ -96,7 +96,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
       true
     );
 
-    if (xFolders.length > 0) {
+    if (xFolders.length) {
       const xMin = Math.min(...xFolders.map((folder) => Number(folder)));
       const xMax = Math.max(...xFolders.map((folder) => Number(folder)));
 
@@ -108,7 +108,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
           false
         );
 
-        if (yFiles.length > 0) {
+        if (yFiles.length) {
           yFiles = yFiles.map((yFile) => yFile.split(".")[0]);
 
           const yMin = Math.min(...yFiles.map((file) => Number(file)));
@@ -122,7 +122,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
     }
   }
 
-  if (boundsArr.length > 0) {
+  if (boundsArr.length) {
     return [
       Math.min(...boundsArr.map((bbox) => bbox[0])),
       Math.min(...boundsArr.map((bbox) => bbox[1])),
@@ -169,7 +169,7 @@ async function getXYZFormatFromTiles(sourcePath) {
         /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/
       );
 
-      if (yFiles.length > 0) {
+      if (yFiles.length) {
         return yFiles[0].split(".")[1];
       }
     }
@@ -238,7 +238,7 @@ export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
   const extraInfoType = isCreated ? "created" : "hash";
 
   tileBounds.forEach((tileBound, idx) => {
-    if (idx > 0) {
+    if (idx) {
       query += " UNION ALL ";
     }
 
@@ -677,7 +677,7 @@ export async function downloadXYZTile(
         storeTransparent
       );
     } catch (error) {
-      if (error.statusCode !== undefined) {
+      if (error.statusCode) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
           error.statusCode === StatusCodes.NOT_FOUND

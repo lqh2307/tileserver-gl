@@ -84,7 +84,7 @@ async function getPostgreSQLBBoxFromTiles(source) {
 
   let bbox = [-180, -85.051129, 180, 85.051129];
 
-  if (data.rows.length > 0) {
+  if (data.rows.length) {
     bbox = getBBoxFromTiles(
       data.rows[0].xMin,
       data.rows[0].yMin,
@@ -228,7 +228,7 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
   const extraInfoType = isCreated ? "created" : "hash";
 
   tileBounds.forEach((tileBound, idx) => {
-    if (idx > 0) {
+    if (idx) {
       query += " UNION ALL ";
     }
 
@@ -664,7 +664,7 @@ export async function downloadPostgreSQLTile(
         storeTransparent
       );
     } catch (error) {
-      if (error.statusCode !== undefined) {
+      if (error.statusCode) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
           error.statusCode === StatusCodes.NOT_FOUND

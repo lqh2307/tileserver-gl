@@ -102,7 +102,7 @@ export async function getDataTileFromURL(url, timeout) {
       headers: detectFormatAndHeaders(response.data).headers,
     };
   } catch (error) {
-    if (error.statusCode !== undefined) {
+    if (error.statusCode) {
       if (
         error.statusCode === StatusCodes.NO_CONTENT ||
         error.statusCode === StatusCodes.NOT_FOUND
@@ -129,7 +129,7 @@ export async function getDataFileFromURL(url, timeout) {
 
     return response.data;
   } catch (error) {
-    if (error.statusCode !== undefined) {
+    if (error.statusCode) {
       if (
         error.statusCode === StatusCodes.NO_CONTENT ||
         error.statusCode === StatusCodes.NOT_FOUND
@@ -228,7 +228,7 @@ export async function downloadFileWithStream(url, filePath, timeout) {
         });
     });
   } catch (error) {
-    if (error.statusCode !== undefined) {
+    if (error.statusCode) {
       if (
         error.statusCode === StatusCodes.NO_CONTENT ||
         error.statusCode === StatusCodes.NOT_FOUND
@@ -342,7 +342,7 @@ export async function calculateResolution(input, unit) {
   const [maxX, maxY] = lonLat4326ToXY3857(input.bbox[2], input.bbox[3]);
   let resolution;
 
-  if (input.filePath !== undefined) {
+  if (input.filePath) {
     const { width, height } = await sharp(input.filePath, {
       limitInputPixels: false,
     }).metadata();
@@ -686,12 +686,11 @@ export function getTileBoundsFromCoverages(coverages, scheme, tileSize = 256) {
  */
 export function processCoverages(coverages, limitedBBox) {
   return coverages.map((coverage) => {
-    const bbox =
-      coverage.circle !== undefined
-        ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
-        : deepClone(coverage.bbox);
+    const bbox = coverage.circle
+      ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
+      : deepClone(coverage.bbox);
 
-    if (limitedBBox !== undefined) {
+    if (limitedBBox) {
       if (bbox[0] < limitedBBox[0]) {
         bbox[0] = limitedBBox[0];
       }
@@ -799,7 +798,7 @@ export function getBBoxFromCircle(center, radius) {
 export function getBBoxFromPoint(points) {
   let bbox = [-180, -85.051129, 180, 85.051129];
 
-  if (points.length > 0) {
+  if (points.length) {
     bbox = [points[0][0], points[0][1], points[0][0], points[0][1]];
 
     for (let index = 1; index < points.length; index++) {
@@ -987,7 +986,7 @@ export async function removeEmptyFolders(folderPath, regex) {
         await removeEmptyFolders(fullPath, regex);
 
         const subEntries = await readdir(fullPath).catch(() => []);
-        if (subEntries.length > 0) {
+        if (subEntries.length) {
           hasMatchingFile = true;
         }
       }
@@ -1386,7 +1385,7 @@ export async function runCommand(command, interval, callback) {
     });
 
     const intervalID =
-      interval > 0 && callback !== undefined
+      interval > 0 && callback
         ? setInterval(() => callback(stdout), interval)
         : undefined;
 
@@ -1527,7 +1526,7 @@ export async function convertSVGToImage(svg, output) {
   }
 
   // Write to output
-  if (output.filePath !== undefined) {
+  if (output.filePath) {
     await mkdir(path.dirname(output.filePath), {
       recursive: true,
     });
@@ -1728,7 +1727,7 @@ export async function mergeImages(baselayer, overlays, output) {
   }
 
   // Write to output
-  if (output.filePath !== undefined) {
+  if (output.filePath) {
     await mkdir(path.dirname(output.filePath), {
       recursive: true,
     });
@@ -1758,8 +1757,18 @@ export async function addFrameToImage(input, frame, grid, output) {
   const bbox = input.bbox;
   const { width, height } = await image.metadata();
 
+  const svg = {
+    content: "",
+    width: width,
+    height: height,
+  };
+
+  let totalMargin = 0;
+  const degPerPixelX = (bbox[2] - bbox[0]) / width;
+  const degPerPixelY = (bbox[3] - bbox[1]) / height;
+
   // Process image
-  if (frame !== undefined) {
+  if (frame) {
     let {
       frameMargin,
 
@@ -1813,16 +1822,10 @@ export async function addFrameToImage(input, frame, grid, output) {
     frameInnerStyle = getSVGStrokeDashArray(frameInnerStyle);
     frameOuterStyle = getSVGStrokeDashArray(frameOuterStyle);
 
-    const totalMargin = frameMargin + frameSpace;
+    totalMargin = frameMargin + frameSpace;
 
-    const degPerPixelX = (bbox[2] - bbox[0]) / width;
-    const degPerPixelY = (bbox[3] - bbox[1]) / height;
-
-    const svg = {
-      content: "",
-      width: totalMargin * 2 + width,
-      height: totalMargin * 2 + height,
-    };
+    svg.width = totalMargin * 2 + width;
+    svg.height = totalMargin * 2 + height;
 
     // Inner frame
     svg.content += `<rect x="${totalMargin}" y="${totalMargin}" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`;
@@ -2038,128 +2041,127 @@ export async function addFrameToImage(input, frame, grid, output) {
       }
     }
 
-    if (grid !== undefined) {
-      let {
-        majorGridStyle = "longDashed",
-        majorGridWidth = 6,
-        majorGridStep = 0.5,
-        majorGridColor = "rgba(0,0,0,0.3)",
+    // Extend image
+    image.extend({
+      top: totalMargin,
+      left: totalMargin,
+      bottom: totalMargin,
+      right: totalMargin,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    });
+  }
 
-        minorGridStyle = "longDashed",
-        minorGridWidth = 0,
-        minorGridStep = 0.1,
-        minorGridColor = "rgba(0,0,0,0.3)",
-      } = grid;
+  if (grid) {
+    let {
+      majorGridStyle = "longDashed",
+      majorGridWidth = 6,
+      majorGridStep = 0.5,
+      majorGridColor = "rgba(0,0,0,0.3)",
 
-      majorGridStyle = getSVGStrokeDashArray(majorGridStyle);
-      minorGridStyle = getSVGStrokeDashArray(minorGridStyle);
+      minorGridStyle = "longDashed",
+      minorGridWidth = 0,
+      minorGridStep = 0.1,
+      minorGridColor = "rgba(0,0,0,0.3)",
+    } = grid;
 
-      // X-axis major grids
-      if (majorGridWidth > 0) {
-        let xGridMajorStart =
-          Math.round(bbox[0] / majorGridStep) * majorGridStep;
-        if (xGridMajorStart < bbox[2]) {
-          xGridMajorStart += majorGridStep;
-        }
-        for (
-          let lon = xGridMajorStart;
-          lon <= bbox[2] + 1e-9;
-          lon += majorGridStep
-        ) {
-          const x = (lon - bbox[0]) / degPerPixelX;
+    majorGridStyle = getSVGStrokeDashArray(majorGridStyle);
+    minorGridStyle = getSVGStrokeDashArray(minorGridStyle);
 
-          svg.content += `<line x1="${
-            totalMargin + x
-          }" y1="${totalMargin}" x2="${totalMargin + x}" y2="${
-            totalMargin + height
-          }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`;
-        }
+    // X-axis major grids
+    if (majorGridWidth > 0) {
+      let xGridMajorStart = Math.round(bbox[0] / majorGridStep) * majorGridStep;
+      if (xGridMajorStart < bbox[2]) {
+        xGridMajorStart += majorGridStep;
       }
+      for (
+        let lon = xGridMajorStart;
+        lon <= bbox[2] + 1e-9;
+        lon += majorGridStep
+      ) {
+        const x = (lon - bbox[0]) / degPerPixelX;
 
-      // X-axis minor grids
-      if (minorGridWidth > 0) {
-        let xGridMinorStart =
-          Math.round(bbox[0] / minorGridStep) * minorGridStep;
-        if (xGridMinorStart < bbox[2]) {
-          xGridMinorStart += minorGridStep;
-        }
-        for (
-          let lon = xGridMinorStart;
-          lon <= bbox[2] + 1e-9;
-          lon += minorGridStep
-        ) {
-          const x = (lon - bbox[0]) / degPerPixelX;
-
-          svg.content += `<line x1="${
-            totalMargin + x
-          }" y1="${totalMargin}" x2="${totalMargin + x}" y2="${
-            totalMargin + height
-          }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`;
-        }
-      }
-
-      // Y-axis major grids
-      if (majorGridWidth > 0) {
-        let yGridMajorStart =
-          Math.round(bbox[1] / majorGridStep) * majorGridStep;
-        if (yGridMajorStart < bbox[3]) {
-          yGridMajorStart += majorGridStep;
-        }
-        for (
-          let lat = yGridMajorStart;
-          lat <= bbox[3] + 1e-9;
-          lat += majorGridStep
-        ) {
-          const y = (bbox[3] - lat) / degPerPixelY;
-
-          svg.content += `<line x1="${totalMargin}" y1="${
-            totalMargin + y
-          }" x2="${totalMargin + width}" y2="${
-            totalMargin + y
-          }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`;
-        }
-      }
-
-      // Y-axis minor grids
-      if (minorGridWidth > 0) {
-        let yGridMinorStart =
-          Math.round(bbox[1] / minorGridStep) * minorGridStep;
-        if (yGridMinorStart < bbox[3]) {
-          yGridMinorStart += minorGridStep;
-        }
-        for (
-          let lat = yGridMinorStart;
-          lat <= bbox[3] + 1e-9;
-          lat += minorGridStep
-        ) {
-          const y = (bbox[3] - lat) / degPerPixelY;
-
-          svg.content += `<line x1="${totalMargin}" y1="${
-            totalMargin + y
-          }" x2="${totalMargin + width}" y2="${
-            totalMargin + y
-          }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`;
-        }
+        svg.content += `<line x1="${
+          totalMargin + x
+        }" y1="${totalMargin}" x2="${totalMargin + x}" y2="${
+          totalMargin + height
+        }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`;
       }
     }
 
-    // Create image
-    image
-      .extend({
-        top: totalMargin,
-        left: totalMargin,
-        bottom: totalMargin,
-        right: totalMargin,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
-      .composite([
-        {
-          limitInputPixels: false,
-          input: createSVG(svg, true),
-          left: 0,
-          top: 0,
-        },
-      ]);
+    // X-axis minor grids
+    if (minorGridWidth > 0) {
+      let xGridMinorStart = Math.round(bbox[0] / minorGridStep) * minorGridStep;
+      if (xGridMinorStart < bbox[2]) {
+        xGridMinorStart += minorGridStep;
+      }
+      for (
+        let lon = xGridMinorStart;
+        lon <= bbox[2] + 1e-9;
+        lon += minorGridStep
+      ) {
+        const x = (lon - bbox[0]) / degPerPixelX;
+
+        svg.content += `<line x1="${
+          totalMargin + x
+        }" y1="${totalMargin}" x2="${totalMargin + x}" y2="${
+          totalMargin + height
+        }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`;
+      }
+    }
+
+    // Y-axis major grids
+    if (majorGridWidth > 0) {
+      let yGridMajorStart = Math.round(bbox[1] / majorGridStep) * majorGridStep;
+      if (yGridMajorStart < bbox[3]) {
+        yGridMajorStart += majorGridStep;
+      }
+      for (
+        let lat = yGridMajorStart;
+        lat <= bbox[3] + 1e-9;
+        lat += majorGridStep
+      ) {
+        const y = (bbox[3] - lat) / degPerPixelY;
+
+        svg.content += `<line x1="${totalMargin}" y1="${
+          totalMargin + y
+        }" x2="${totalMargin + width}" y2="${
+          totalMargin + y
+        }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`;
+      }
+    }
+
+    // Y-axis minor grids
+    if (minorGridWidth > 0) {
+      let yGridMinorStart = Math.round(bbox[1] / minorGridStep) * minorGridStep;
+      if (yGridMinorStart < bbox[3]) {
+        yGridMinorStart += minorGridStep;
+      }
+      for (
+        let lat = yGridMinorStart;
+        lat <= bbox[3] + 1e-9;
+        lat += minorGridStep
+      ) {
+        const y = (bbox[3] - lat) / degPerPixelY;
+
+        svg.content += `<line x1="${totalMargin}" y1="${
+          totalMargin + y
+        }" x2="${totalMargin + width}" y2="${
+          totalMargin + y
+        }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`;
+      }
+    }
+  }
+
+  // Composite image
+  if (svg.content) {
+    image.composite([
+      {
+        limitInputPixels: false,
+        input: createSVG(svg, true),
+        left: 0,
+        top: 0,
+      },
+    ]);
   }
 
   // Create format
@@ -2197,7 +2199,7 @@ export async function addFrameToImage(input, frame, grid, output) {
   }
 
   // Write to output
-  if (output.filePath !== undefined) {
+  if (output.filePath) {
     await mkdir(path.dirname(output.filePath), {
       recursive: true,
     });
@@ -2260,7 +2262,7 @@ export async function splitImage(input, preview, output) {
     })
     .toBuffer();
 
-  if (preview !== undefined) {
+  if (preview) {
     let {
       format = "png",
       lineColor = "rgba(255,0,0,1)",
@@ -2349,7 +2351,7 @@ export async function splitImage(input, preview, output) {
     }
 
     // Write to output
-    if (output.filePath !== undefined) {
+    if (output.filePath) {
       await mkdir(path.dirname(output.filePath), {
         recursive: true,
       });
@@ -2400,7 +2402,7 @@ export async function splitImage(input, preview, output) {
     }
 
     // Write to output
-    if (output.filePath !== undefined) {
+    if (output.filePath) {
       await mkdir(path.dirname(output.filePath), {
         recursive: true,
       });
@@ -2661,7 +2663,7 @@ export async function createFileWithLock(filePath, data, timeout) {
       } else if (error.code === "EEXIST") {
         await delay(25);
       } else {
-        if (lockFileHandle !== undefined) {
+        if (lockFileHandle) {
           await lockFileHandle.close();
 
           await rm(lockFilePath, {

@@ -34,10 +34,7 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
   try {
     return getMBTilesTile(item.source, z, x, y);
   } catch (error) {
-    if (
-      item.sourceURL !== undefined &&
-      error.message === "Tile does not exist"
-    ) {
+    if (item.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -97,10 +94,7 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
   try {
     return await getXYZTile(item.source, z, x, y, item.tileJSON.format);
   } catch (error) {
-    if (
-      item.sourceURL !== undefined &&
-      error.message === "Tile does not exist"
-    ) {
+    if (item.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -162,10 +156,7 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
   try {
     return await getPostgreSQLTile(item.source, z, x, y);
   } catch (error) {
-    if (
-      item.sourceURL !== undefined &&
-      error.message === "Tile does not exist"
-    ) {
+    if (item.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -221,10 +212,7 @@ export async function getAndCacheDataStyleJSON(id) {
   try {
     return await getStyle(item.path);
   } catch (error) {
-    if (
-      item.sourceURL !== undefined &&
-      error.message === "JSON does not exist"
-    ) {
+    if (item.sourceURL && error.message === "JSON does not exist") {
       printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
 
       const styleJSON = await getDataFileFromURL(
@@ -262,10 +250,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
   try {
     return await getGeoJSON(geoJSONLayer.path);
   } catch (error) {
-    if (
-      geoJSONLayer.sourceURL !== undefined &&
-      error.message === "JSON does not exist"
-    ) {
+    if (geoJSONLayer.sourceURL && error.message === "JSON does not exist") {
       printLog(
         "info",
         `Forwarding GeoJSON "${id}" - To "${geoJSONLayer.sourceURL}"...`
@@ -310,10 +295,7 @@ export async function getAndCacheDataSprite(id, fileName) {
     return await getSprite(item.path, fileName);
   } catch (error) {
     try {
-      if (
-        item.sourceURL !== undefined &&
-        error.message === "Sprite does not exist"
-      ) {
+      if (item.sourceURL && error.message === "Sprite does not exist") {
         const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
 
         printLog(
@@ -378,8 +360,8 @@ export async function getAndCacheDataFonts(ids, fileName) {
       } catch (error) {
         try {
           if (
-            item !== undefined &&
-            item.sourceURL !== undefined &&
+            item &&
+            item.sourceURL &&
             error.message === "Font does not exist"
           ) {
             const targetURL = item.sourceURL.replace("{range}.pbf", fileName);

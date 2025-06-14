@@ -92,7 +92,7 @@ function getMBTilesBBoxFromTiles(source) {
 
   let bbox = [-180, -85.051129, 180, 85.051129];
 
-  if (rows.length > 0) {
+  if (rows.length) {
     bbox = getBBoxFromTiles(
       rows[0].xMin,
       rows[0].yMin,
@@ -183,7 +183,7 @@ function getMBTilesZoomLevelFromTiles(source, zoomType) {
 function getMBTilesFormatFromTiles(source) {
   const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
 
-  if (data !== undefined && data.tile_data !== null) {
+  if (data && data.tile_data !== null) {
     return detectFormatAndHeaders(data.tile_data).format;
   }
 }
@@ -237,7 +237,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
   const extraInfoType = isCreated ? "created" : "hash";
 
   tileBounds.forEach((tileBound, idx) => {
-    if (idx > 0) {
+    if (idx) {
       query += " UNION ALL ";
     }
 
@@ -696,7 +696,7 @@ export async function downloadMBTilesTile(
         storeTransparent
       );
     } catch (error) {
-      if (error.statusCode !== undefined) {
+      if (error.statusCode) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
           error.statusCode === StatusCodes.NOT_FOUND

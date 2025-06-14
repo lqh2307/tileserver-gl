@@ -807,7 +807,7 @@ export const serve_geojson = {
                   /* Get GeoJSON path */
                   const geojsonInfo = {};
 
-                  if (item.cache !== undefined) {
+                  if (item.cache) {
                     geojsonInfo.path = `${process.env.DATA_DIR}/caches/geojsons/${item.geojson}/${item.geojson}.geojson`;
 
                     const cacheSource = seed.geojsons?.[item.geojson];
@@ -839,10 +839,7 @@ export const serve_geojson = {
 
                     geojsonsInfo[layer] = geojsonInfo;
                   } catch (error) {
-                    if (
-                      item.cache !== undefined &&
-                      error.message === "JSON does not exist"
-                    ) {
+                    if (item.cache && error.message === "JSON does not exist") {
                       geojsonInfo.geometryTypes = ["polygon", "line", "circle"];
 
                       geojsonsInfo[layer] = geojsonInfo;

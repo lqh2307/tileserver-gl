@@ -37,7 +37,7 @@ export async function downloadGeoJSONFile(url, filePath, maxTry, timeout) {
       // Store data to file
       await cacheGeoJSONFile(filePath, response.data);
     } catch (error) {
-      if (error.statusCode !== undefined) {
+      if (error.statusCode) {
         printLog(
           "error",
           `Failed to download GeoJSON file "${filePath}" - From "${url}": ${error}`

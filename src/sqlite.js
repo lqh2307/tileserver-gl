@@ -37,7 +37,7 @@ export async function openSQLiteWithTimeout(filePath, isCreate, timeout) {
       if (error.code === "SQLITE_BUSY") {
         await delay(25);
       } else {
-        if (source !== undefined) {
+        if (source) {
           source.close();
         }
 

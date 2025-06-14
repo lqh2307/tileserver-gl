@@ -273,10 +273,7 @@ function getRenderedTileHandler() {
         .send("Rendered tile format is not support");
     }
 
-    if (
-      req.query.tileSize !== undefined &&
-      !["256", "512"].includes(req.query.tileSize)
-    ) {
+    if (req.query.tileSize && !["256", "512"].includes(req.query.tileSize)) {
       return res
         .status(StatusCodes.BAD_REQUEST)
         .send("Tile size is not support");
@@ -342,7 +339,7 @@ function getRenderedHandler() {
     const id = req.params.id;
     const queryStrings = [];
 
-    if (req.query.tileSize !== undefined) {
+    if (req.query.tileSize) {
       if (!["256", "512"].includes(req.query.tileSize)) {
         return res
           .status(StatusCodes.BAD_REQUEST)
@@ -352,7 +349,7 @@ function getRenderedHandler() {
       }
     }
 
-    if (req.query.tileScale !== undefined) {
+    if (req.query.tileScale) {
       queryStrings.push(`tileScale=${req.query.tileScale}`);
     }
 
@@ -442,7 +439,7 @@ function getRenderedsListHandler() {
       Object.keys(config.styles).map((id) => {
         const item = config.styles[id].tileJSON;
 
-        if (item !== undefined) {
+        if (item) {
           result.push({
             id: id,
             name: item.name,
@@ -913,7 +910,7 @@ export const serve_style = {
 
           /* Serve style */
           try {
-            if (item.cache !== undefined) {
+            if (item.cache) {
               styleInfo.path = `${process.env.DATA_DIR}/caches/styles/${item.style}/style.json`;
 
               const cacheSource = seed.styles?.[item.style];
@@ -945,10 +942,7 @@ export const serve_style = {
               /* Mark to serve rendered */
               isCanServeRendered = true;
             } catch (error) {
-              if (
-                item.cache !== undefined &&
-                error.message === "JSON does not exist"
-              ) {
+              if (item.cache && error.message === "JSON does not exist") {
                 styleInfo.name =
                   seed.styles[item.style].metadata.name || "Unknown";
                 styleInfo.zoom = seed.styles[item.style].metadata.zoom || 0;
