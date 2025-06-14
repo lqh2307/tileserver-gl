@@ -17,6 +17,7 @@ function getFontHandler() {
     const ids = req.params.id;
 
     try {
+      /* Get and cache Fonts */
       let data = await getAndCacheDataFonts(
         ids,
         req.url.slice(req.url.lastIndexOf("/") + 1)

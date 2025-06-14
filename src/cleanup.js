@@ -591,7 +591,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
   try {
     let needRemove = false;
 
-    if (cleanUpTimestamp !== undefined) {
+    if (cleanUpTimestamp) {
       try {
         const created = await getGeoJSONCreated(filePath);
 
@@ -669,7 +669,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
     try {
       let needRemove = false;
 
-      if (cleanUpTimestamp !== undefined) {
+      if (cleanUpTimestamp) {
         try {
           const created = await getSpriteCreated(filePath);
 
@@ -760,7 +760,7 @@ async function cleanUpFont(id, cleanUpBefore) {
     try {
       let needRemove = false;
 
-      if (cleanUpTimestamp !== undefined) {
+      if (cleanUpTimestamp) {
         try {
           const created = await getFontCreated(filePath);
 
@@ -846,7 +846,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
   try {
     let needRemove = false;
 
-    if (cleanUpTimestamp !== undefined) {
+    if (cleanUpTimestamp) {
       try {
         const created = await getStyleCreated(filePath);
 

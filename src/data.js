@@ -292,6 +292,10 @@ export async function getAndCacheDataSprite(id, fileName) {
   const item = config.sprites[id];
 
   try {
+    if (!item) {
+      throw new Error("Sprite does not exist");
+    }
+
     return await getSprite(item.path, fileName);
   } catch (error) {
     try {

@@ -698,8 +698,8 @@ export const serve_style = {
        *       - in: query
        *         name: tileScale
        *         schema:
-       *           type: integer
-       *           example: 2
+       *           type: number
+       *           example: 1
        *         required: false
        *         description: Tile scale
        *     responses:
@@ -813,8 +813,8 @@ export const serve_style = {
        *       - in: query
        *         name: tileScale
        *         schema:
-       *           type: integer
-       *           example: 2
+       *           type: number
+       *           example: 1
        *         required: false
        *         description: Tile scale
        *     responses:

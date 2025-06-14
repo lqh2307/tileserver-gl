@@ -1,6 +1,9 @@
 {
   "type": "object",
   "properties": {
+    "base64": {
+      "type": "boolean"
+    },
     "format": {
       "type": "string",
       "enum": [
@@ -44,19 +47,9 @@
       "type": "integer",
       "minimum": 1
     },
-    "storeTransparent": {
-      "type": "boolean"
-    },
-    "tileSize": {
-      "type": "integer",
-      "enum": [
-        256,
-        512
-      ]
-    },
     "tileScale": {
-      "type": "integer",
-      "minimum": 1
+      "type": "number",
+      "minimum": 0
     },
     "frame": {
       "type": "object",

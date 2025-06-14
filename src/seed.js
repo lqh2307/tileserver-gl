@@ -893,7 +893,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
           throw error;
         }
       }
-    } else if (refreshTimestamp !== undefined) {
+    } else if (refreshTimestamp) {
       try {
         const created = await getGeoJSONCreated(filePath);
 
@@ -974,7 +974,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
     try {
       let needDownload = false;
 
-      if (refreshTimestamp !== undefined) {
+      if (refreshTimestamp) {
         try {
           const created = await getSpriteCreated(filePath);
 
@@ -1080,7 +1080,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
     try {
       let needDownload = false;
 
-      if (refreshTimestamp !== undefined) {
+      if (refreshTimestamp) {
         try {
           const created = await getFontCreated(filePath);
 
@@ -1219,7 +1219,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
           throw error;
         }
       }
-    } else if (refreshTimestamp !== undefined) {
+    } else if (refreshTimestamp) {
       try {
         const created = await getStyleCreated(filePath);
 
@@ -1237,7 +1237,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
       needDownload = true;
     }
 
-    if (refreshTimestamp !== undefined) {
+    if (refreshTimestamp) {
       try {
         const created = await getStyleCreated(filePath);
 

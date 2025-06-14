@@ -28,11 +28,6 @@ function getSpriteHandler() {
           .send("Sprite format is not support");
       }
 
-      /* Check sprite is used? */
-      if (!config.sprites[id]) {
-        return res.status(StatusCodes.NOT_FOUND).send("Sprite does not exist");
-      }
-
       /* Get and cache Sprite */
       const sprite = await getAndCacheDataSprite(
         id,
