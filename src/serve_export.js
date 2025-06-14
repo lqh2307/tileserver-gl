@@ -115,8 +115,8 @@ function exportDataHandler() {
       }
 
       if (req.query.cancel === "true") {
-        /* Check export is not running? (export is not running) */
-        if (item.export) {
+        /* Check export is not running? */
+        if (!item.export) {
           printLog(
             "warn",
             "No export is currently running. Skipping cancel export..."
@@ -126,13 +126,13 @@ function exportDataHandler() {
         } else {
           printLog("info", "Canceling export...");
 
-          item.export = true;
+          item.export = false;
 
           return res.status(StatusCodes.OK).send("OK");
         }
       } else {
-        /* Check export is running? (export === false is not running) */
-        if (item.export === false) {
+        /* Check export is running? */
+        if (item.export) {
           printLog("warn", "A export is already running. Skipping export...");
 
           return res.status(StatusCodes.CONFLICT).send("OK");
@@ -144,7 +144,7 @@ function exportDataHandler() {
             throw new SyntaxError(error);
           }
 
-          item.export = false;
+          item.export = true;
 
           const refreshBefore =
             req.body.refreshBefore?.time ||
@@ -167,7 +167,7 @@ function exportDataHandler() {
                   printLog("error", `Failed to export data "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.export = true;
+                  item.export = false;
                 });
 
               break;
@@ -187,7 +187,7 @@ function exportDataHandler() {
                   printLog("error", `Failed to export data "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.export = true;
+                  item.export = false;
                 });
 
               break;
@@ -207,7 +207,7 @@ function exportDataHandler() {
                   printLog("error", `Failed to export data "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.export = true;
+                  item.export = false;
                 });
 
               break;
@@ -252,8 +252,8 @@ function renderStyleHandler() {
       }
 
       if (req.query.cancel === "true") {
-        /* Check export is not running? (export is not running) */
-        if (item.export) {
+        /* Check export is not running? */
+        if (!item.export) {
           printLog(
             "warn",
             "No render is currently running. Skipping cancel render..."
@@ -263,13 +263,13 @@ function renderStyleHandler() {
         } else {
           printLog("info", "Canceling render...");
 
-          item.export = true;
+          item.export = false;
 
           return res.status(StatusCodes.OK).send("OK");
         }
       } else {
-        /* Check export is running? (export === false is not running) */
-        if (item.export === false) {
+        /* Check export is running? */
+        if (item.export) {
           printLog("warn", "A render is already running. Skipping render...");
 
           return res.status(StatusCodes.CONFLICT).send("OK");
@@ -281,7 +281,7 @@ function renderStyleHandler() {
             throw new SyntaxError(error);
           }
 
-          item.export = false;
+          item.export = true;
 
           const refreshBefore =
             req.body.refreshBefore?.time ||
@@ -307,7 +307,7 @@ function renderStyleHandler() {
                   printLog("error", `Failed to render style "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.export = true;
+                  item.export = false;
                 });
 
               break;
@@ -330,7 +330,7 @@ function renderStyleHandler() {
                   printLog("error", `Failed to render style "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.export = true;
+                  item.export = false;
                 });
 
               break;
@@ -353,7 +353,7 @@ function renderStyleHandler() {
                   printLog("error", `Failed to render style "${id}": ${error}`);
                 })
                 .finally(() => {
-                  item.export = true;
+                  item.export = false;
                 });
 
               break;
