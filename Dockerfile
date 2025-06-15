@@ -58,7 +58,7 @@ ADD . .
 
 RUN \
   npm install --omit=dev; \
-  rm -rf package-lock.json;
+  rm -rf node_modules/.package-lock.json package-lock.json;
 
 
 FROM ${TARGET_IMAGE} AS final
