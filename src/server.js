@@ -14,9 +14,11 @@ import { Worker } from "node:worker_threads";
 import { serve_font } from "./serve_font.js";
 import { serve_data } from "./serve_data.js";
 import { serve_task } from "./serve_task.js";
+import { setupWSServer } from "./ws.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import express from "express";
+import http from "http";
 import cors from "cors";
 
 let currentTaskWorker;
@@ -110,7 +112,7 @@ async function loadData() {
 export async function startServer() {
   try {
     /* Start HTTP server */
-    printLog("info", "Starting HTTP server...");
+    printLog("info", "Starting HTTP/WS server...");
 
     const app = express()
       .disable("x-powered-by")
@@ -120,16 +122,15 @@ export async function startServer() {
       .use(loggerMiddleware())
       .use(express.static("public/resources"));
 
-    /* Register common handlers */
-    serve_common.init(app);
-    serve_swagger.init(app);
-    serve_prometheus.init(app);
+    const server = http.createServer(app);
 
-    app
+    setupWSServer(server);
+
+    server
       .listen(Number(process.env.LISTEN_PORT), () => {
         printLog(
           "info",
-          `HTTP server is listening on port "${process.env.LISTEN_PORT}"...`
+          `HTTP/WS server is listening on port "${process.env.LISTEN_PORT}"...`
         );
       })
       .on("error", (error) => {
@@ -139,7 +140,10 @@ export async function startServer() {
     /* Load datas */
     await loadData();
 
-    /* Register service handlers */
+    /* Register handlers */
+    serve_common.init(app);
+    serve_swagger.init(app);
+    serve_prometheus.init(app);
     serve_summary.init(app);
     serve_export.init(app);
     serve_data.init(app);
