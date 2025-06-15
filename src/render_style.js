@@ -49,7 +49,6 @@ import {
   createFolders,
   calculateMD5,
   createBase64,
-  mergeImages,
   unzipAsync,
   runCommand,
   delay,
@@ -585,8 +584,7 @@ export async function renderStyleJSONToImage(
 
   const id = v4();
   const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${format}s/${id}`;
-  const outputDirPath = `${dirPath}/output`;
-  const mergedDirPath = `${dirPath}/merged`;
+  // const outputDirPath = `${dirPath}/output`;
   const mbtilesDirPath = `${dirPath}/mbtiles`;
   const baselayerDirPath = `${dirPath}/baselayer`;
 
@@ -651,12 +649,7 @@ export async function renderStyleJSONToImage(
     );
 
     /* Create tmp folders */
-    await createFolders([
-      outputDirPath,
-      mergedDirPath,
-      mbtilesDirPath,
-      baselayerDirPath,
-    ]);
+    await createFolders([mbtilesDirPath, baselayerDirPath]);
 
     const targetOverlays = [];
 
@@ -847,13 +840,14 @@ export async function renderStyleJSONToImage(
     }
 
     const baselayerFilePath = `${baselayerDirPath}/${id}.${format}`;
-    const imageFilePath = `${outputDirPath}/${id}.${format}`;
 
     /* Create image */
-    const command = `gdal_translate -if MBTiles -of ${driver} -r lanczos -a_srs EPSG:4326 -a_ullr ${
-      realBBox[0]
-    } ${realBBox[3]} ${realBBox[2]} ${
-      realBBox[1]
+    const command = `gdal_translate -if MBTiles -of ${driver}${
+      format === "png" ? " -co ZLEVEL=9" : ""
+    } -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${
+      bbox[2]
+    } ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${
+      bbox[1]
     } ${mbtilesFilePath} ${baselayerFilePath}`;
 
     printLog("info", `Creating ${id} baselayer with gdal command: ${command}`);
@@ -862,62 +856,16 @@ export async function renderStyleJSONToImage(
 
     printLog("info", `Gdal command output: ${commandOutput}`);
 
-    if (targetOverlays.length) {
-      /* Merge overlays to image */
-      const mergedFilePath = `${mergedDirPath}/${id}.${format}`;
-
-      printLog("info", "Merging overlays to image...");
-
-      await mergeImages(
-        {
-          content: baselayerFilePath,
-          bbox: bbox,
-        },
-        targetOverlays,
-        {
-          filePath: mergedFilePath,
-          format: format,
-        }
-      );
-
-      /* Add SRID */
-      const command = `gdal_translate -if ${driver} -of ${driver}${
-        format === "png" ? " -co ZLEVEL=9" : ""
-      } -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${
-        bbox[1]
-      } ${mergedFilePath} ${imageFilePath}`;
-
-      printLog("info", `Adding SRID for image with gdal command: ${command}`);
-
-      const commandOutput = await runCommand(command);
-
-      printLog("info", `Gdal command output: ${commandOutput}`);
-    } else {
-      /* Crop image */
-      const command = `gdal_translate -if ${driver} -of ${driver}${
-        format === "png" ? " -co ZLEVEL=9" : ""
-      } -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${
-        bbox[2]
-      } ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${
-        bbox[1]
-      } ${baselayerFilePath} ${imageFilePath}`;
-
-      printLog("info", `Creating image with gdal command: ${command}`);
-
-      const commandOutput = await runCommand(command);
-
-      printLog("info", `Gdal command output: ${commandOutput}`);
-    }
-
     /* Add frame */
     printLog("info", "Adding frame to image...");
 
     const image = await addFrameToImage(
       {
-        filePath: imageFilePath,
+        filePath: baselayerFilePath,
         bbox: bbox,
         format: format,
       },
+      targetOverlays,
       frame,
       grid,
       {
@@ -965,10 +913,10 @@ export async function renderStyleJSONToImage(
     }
 
     /* Remove tmp */
-    // await rm(dirPath, {
-    //   recursive: true,
-    //   force: true,
-    // });
+    await rm(dirPath, {
+      recursive: true,
+      force: true,
+    });
   }
 }
 

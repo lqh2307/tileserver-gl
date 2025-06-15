@@ -299,8 +299,8 @@ export function lonLat4326ToXY3857(lon, lat) {
   }
 
   return [
-    ((lon * Math.PI) / 180) * 6378137.0,
-    Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) * 6378137.0,
+    lon * (Math.PI / 180) * 6378137.0,
+    Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360))) * 6378137.0,
   ];
 }
 
@@ -399,7 +399,7 @@ export async function calculateResolution(input, unit) {
 export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz", tileSize = 256) {
   const size = tileSize * (1 << z);
   const bc = size / 360;
-  const cc = size / (2 * Math.PI);
+  const cc = size / 2 / Math.PI;
   const zc = size / 2;
   const maxTileIndex = (1 << z) - 1;
 
@@ -421,8 +421,8 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz", tileSize = 256) {
   let y = Math.floor(
     (scheme === "tms"
       ? size -
-        (zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)))
-      : zc - cc * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) /
+        (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360))))
+      : zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
       tileSize
   );
 
@@ -463,7 +463,7 @@ export function getLonLatFromXYZ(
 ) {
   const size = tileSize * (1 << z);
   const bc = size / 360;
-  const cc = size / (2 * Math.PI);
+  const cc = size / 2 / Math.PI;
   const zc = size / 2;
 
   let px = x * tileSize;
@@ -500,8 +500,10 @@ export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
     height: height,
   });
 
+  const res = xRes <= yRes ? xRes : yRes;
+
   let maxZoom = Math.round(
-    Math.log2((2 * Math.PI * 6378137.0) / tileSize / Math.min(xRes, yRes))
+    Math.log2((2 * Math.PI * 6378137.0) / tileSize / res)
   );
   if (maxZoom > 25) {
     maxZoom = 25;
@@ -854,10 +856,10 @@ export function getBBoxFromPoint(points) {
  * @returns {[number, number, number, number]} Intersect bounding box in the format [minLon, minLat, maxLon, maxLat]
  */
 export function getIntersectBBox(bbox1, bbox2) {
-  const minLon = Math.max(bbox1[0], bbox2[0]);
-  const minLat = Math.max(bbox1[1], bbox2[1]);
-  const maxLon = Math.min(bbox1[2], bbox2[2]);
-  const maxLat = Math.min(bbox1[3], bbox2[3]);
+  const minLon = bbox1[0] >= bbox2[0] ? bbox1[0] : bbox2[0];
+  const minLat = bbox1[1] >= bbox2[1] ? bbox1[1] : bbox2[1];
+  const maxLon = bbox1[2] <= bbox2[2] ? bbox1[2] : bbox2[2];
+  const maxLat = bbox1[3] <= bbox2[3] ? bbox1[3] : bbox2[3];
 
   if (minLon >= maxLon || minLat >= maxLat) {
     return;
@@ -1478,7 +1480,7 @@ export function formatDegree(deg, isLat, format) {
 /**
  * Convert SVG to Image
  * @param {string|Buffer} svg File path or buffer of SVG
- * @param {{ format: string, filePath: string, width: number, height: number, base64: boolean }} output Output object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean }} output Output object
  * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function convertSVGToImage(svg, output) {
@@ -1597,165 +1599,92 @@ export function createSVG(svg, isBuffer) {
 }
 
 /**
- * Merge images
- * @param {{ content: string|Buffer, bbox: [number, number, number, number] }} baselayer Baselayer object
- * @param {{ content: string|Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean }} output Output object
- * @returns {Promise<sharp.OutputInfo|Buffer|string>}
- */
-export async function mergeImages(baselayer, overlays, output) {
-  const image = sharp(baselayer.content, {
-    limitInputPixels: false,
-  });
-  const { width, height } = await image.metadata();
-  const [baseImageMinX, baseImageMinY] = lonLat4326ToXY3857(
-    baselayer.bbox[0],
-    baselayer.bbox[1]
-  );
-  const [baseImageMaxX, baseImageMaxY] = lonLat4326ToXY3857(
-    baselayer.bbox[2],
-    baselayer.bbox[3]
-  );
-
-  const baseImageWidthResolution = width / (baseImageMaxX - baseImageMinX);
-  const baseImageHeightResolution = height / (baseImageMaxY - baseImageMinY);
-
-  // Process overlays
-  image.composite(
-    await Promise.all(
-      overlays.map(async (overlay) => {
-        const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(
-          overlay.bbox[0],
-          overlay.bbox[1]
-        );
-        const [overlayMaxX, overlayMaxY] = lonLat4326ToXY3857(
-          overlay.bbox[2],
-          overlay.bbox[3]
-        );
-
-        const input = sharp(overlay.content, {
-          limitInputPixels: false,
-        }).resize(
-          Math.ceil((overlayMaxX - overlayMinX) * baseImageWidthResolution),
-          Math.ceil((overlayMaxY - overlayMinY) * baseImageHeightResolution)
-        );
-
-        switch (overlay.format) {
-          case "gif": {
-            input.gif({});
-
-            break;
-          }
-
-          case "png": {
-            input.png({
-              compressionLevel: 9,
-            });
-
-            break;
-          }
-
-          case "jpg":
-          case "jpeg": {
-            input.jpeg({
-              quality: 100,
-            });
-
-            break;
-          }
-
-          case "webp": {
-            input.webp({
-              quality: 100,
-            });
-
-            break;
-          }
-        }
-
-        return {
-          limitInputPixels: false,
-          input: await input.toBuffer(),
-          left: Math.floor(
-            (overlayMinX - baseImageMinX) * baseImageWidthResolution
-          ),
-          top: Math.floor(
-            (baseImageMaxY - overlayMaxY) * baseImageHeightResolution
-          ),
-        };
-      })
-    )
-  );
-
-  // Resize image
-  if (output.width > 0 || output.height > 0) {
-    image.resize(output.width, output.height);
-  }
-
-  // Create format
-  switch (output.format) {
-    case "gif": {
-      image.gif({});
-
-      break;
-    }
-
-    case "png": {
-      image.png({
-        compressionLevel: 9,
-      });
-
-      break;
-    }
-
-    case "jpg":
-    case "jpeg": {
-      image.jpeg({
-        quality: 100,
-      });
-
-      break;
-    }
-
-    case "webp": {
-      image.webp({
-        quality: 100,
-      });
-
-      break;
-    }
-  }
-
-  // Write to output
-  if (output.filePath) {
-    await mkdir(path.dirname(output.filePath), {
-      recursive: true,
-    });
-
-    return await image.toFile(output.filePath);
-  } else if (output.base64) {
-    return createBase64(await image.toBuffer(), output.format);
-  } else {
-    return await image.toBuffer();
-  }
-}
-
-/**
  * Add frame to image
  * @param {{ filePath: string|Buffer, bbox: [number, number, number, number] }} input Input object
- * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
+ * @param {{ content: string|Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
  * @param {object} frame Frame options object
  * @param {object} grid Grid options object
- * @param {{ format: string, filePath: string, base64: boolean }} output Output object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number base64: boolean }} output Output object
  * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
-export async function addFrameToImage(input, frame, grid, output) {
+export async function addFrameToImage(input, overlays, frame, grid, output) {
   const image = sharp(input.filePath, {
     limitInputPixels: false,
   });
 
   const bbox = input.bbox;
   const { width, height } = await image.metadata();
+
+  // Add overlays
+  if (overlays?.length) {
+    const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
+    const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
+
+    const xRes = width / (maxX - minX);
+    const yRes = height / (maxY - minY);
+
+    image.composite(
+      await Promise.all(
+        overlays.map(async (overlay) => {
+          const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(
+            overlay.bbox[0],
+            overlay.bbox[1]
+          );
+          const [overlayMaxX, overlayMaxY] = lonLat4326ToXY3857(
+            overlay.bbox[2],
+            overlay.bbox[3]
+          );
+
+          const input = sharp(overlay.content, {
+            limitInputPixels: false,
+          }).resize(
+            Math.round((overlayMaxX - overlayMinX) * xRes),
+            Math.round((overlayMaxY - overlayMinY) * yRes)
+          );
+
+          switch (overlay.format) {
+            case "gif": {
+              input.gif({});
+
+              break;
+            }
+
+            case "png": {
+              input.png({
+                compressionLevel: 9,
+              });
+
+              break;
+            }
+
+            case "jpg":
+            case "jpeg": {
+              input.jpeg({
+                quality: 100,
+              });
+
+              break;
+            }
+
+            case "webp": {
+              input.webp({
+                quality: 100,
+              });
+
+              break;
+            }
+          }
+
+          return {
+            limitInputPixels: false,
+            input: await input.toBuffer(),
+            left: Math.floor((overlayMinX - minX) * xRes),
+            top: Math.floor((maxY - overlayMaxY) * yRes),
+          };
+        })
+      )
+    );
+  }
 
   const svg = {
     content: "",
@@ -1767,7 +1696,7 @@ export async function addFrameToImage(input, frame, grid, output) {
   const degPerPixelX = (bbox[2] - bbox[0]) / width;
   const degPerPixelY = (bbox[3] - bbox[1]) / height;
 
-  // Process image
+  // Process frame
   if (frame) {
     let {
       frameMargin,
@@ -1838,7 +1767,7 @@ export async function addFrameToImage(input, frame, grid, output) {
     }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`;
 
     // X-axis major ticks & labels
-    let xTickMajorStart = Math.round(bbox[0] / majorTickStep) * majorTickStep;
+    let xTickMajorStart = Math.floor(bbox[0] / majorTickStep) * majorTickStep;
     if (xTickMajorStart < bbox[2]) {
       xTickMajorStart += majorTickStep;
     }
@@ -1889,7 +1818,7 @@ export async function addFrameToImage(input, frame, grid, output) {
     }
 
     // X-axis minor ticks & labels
-    let xTickMinorStart = Math.round(bbox[0] / minorTickStep) * minorTickStep;
+    let xTickMinorStart = Math.floor(bbox[0] / minorTickStep) * minorTickStep;
     if (xTickMinorStart < bbox[2]) {
       xTickMinorStart += minorTickStep;
     }
@@ -1940,7 +1869,7 @@ export async function addFrameToImage(input, frame, grid, output) {
     }
 
     // Y-axis major ticks & labels
-    let yTickMajorStart = Math.round(bbox[1] / majorTickStep) * majorTickStep;
+    let yTickMajorStart = Math.floor(bbox[1] / majorTickStep) * majorTickStep;
     if (yTickMajorStart < bbox[3]) {
       yTickMajorStart += majorTickStep;
     }
@@ -1991,7 +1920,7 @@ export async function addFrameToImage(input, frame, grid, output) {
     }
 
     // Y-axis minor ticks & labels
-    let yTickMinorStart = Math.round(bbox[1] / minorTickStep) * minorTickStep;
+    let yTickMinorStart = Math.floor(bbox[1] / minorTickStep) * minorTickStep;
     if (yTickMinorStart < bbox[3]) {
       yTickMinorStart += minorTickStep;
     }
@@ -2051,6 +1980,7 @@ export async function addFrameToImage(input, frame, grid, output) {
     });
   }
 
+  // Process grid
   if (grid) {
     let {
       majorGridStyle = "longDashed",
@@ -2069,7 +1999,7 @@ export async function addFrameToImage(input, frame, grid, output) {
 
     // X-axis major grids
     if (majorGridWidth > 0) {
-      let xGridMajorStart = Math.round(bbox[0] / majorGridStep) * majorGridStep;
+      let xGridMajorStart = Math.floor(bbox[0] / majorGridStep) * majorGridStep;
       if (xGridMajorStart < bbox[2]) {
         xGridMajorStart += majorGridStep;
       }
@@ -2090,7 +2020,7 @@ export async function addFrameToImage(input, frame, grid, output) {
 
     // X-axis minor grids
     if (minorGridWidth > 0) {
-      let xGridMinorStart = Math.round(bbox[0] / minorGridStep) * minorGridStep;
+      let xGridMinorStart = Math.floor(bbox[0] / minorGridStep) * minorGridStep;
       if (xGridMinorStart < bbox[2]) {
         xGridMinorStart += minorGridStep;
       }
@@ -2111,7 +2041,7 @@ export async function addFrameToImage(input, frame, grid, output) {
 
     // Y-axis major grids
     if (majorGridWidth > 0) {
-      let yGridMajorStart = Math.round(bbox[1] / majorGridStep) * majorGridStep;
+      let yGridMajorStart = Math.floor(bbox[1] / majorGridStep) * majorGridStep;
       if (yGridMajorStart < bbox[3]) {
         yGridMajorStart += majorGridStep;
       }
@@ -2132,7 +2062,7 @@ export async function addFrameToImage(input, frame, grid, output) {
 
     // Y-axis minor grids
     if (minorGridWidth > 0) {
-      let yGridMinorStart = Math.round(bbox[1] / minorGridStep) * minorGridStep;
+      let yGridMinorStart = Math.floor(bbox[1] / minorGridStep) * minorGridStep;
       if (yGridMinorStart < bbox[3]) {
         yGridMinorStart += minorGridStep;
       }
@@ -2152,7 +2082,7 @@ export async function addFrameToImage(input, frame, grid, output) {
     }
   }
 
-  // Composite image
+  // Add frame and grid
   if (svg.content) {
     image.composite([
       {
@@ -2162,6 +2092,11 @@ export async function addFrameToImage(input, frame, grid, output) {
         top: 0,
       },
     ]);
+  }
+
+  // Resize image
+  if (output.width > 0 || output.height > 0) {
+    image.resize(output.width, output.height);
   }
 
   // Create format
@@ -2244,23 +2179,8 @@ export async function splitImage(input, preview, output) {
 
   const extendTop = output.center ? Math.floor((newHeight - height) / 2) : 0;
   const extendLeft = output.center ? Math.floor((newWidth - width) / 2) : 0;
-  const extendBottom = newHeight - height - extendTop;
-  const extendRight = newWidth - width - extendLeft;
-
-  const newImage = await sharp(input.image, {
-    limitInputPixels: false,
-  })
-    .extend({
-      top: extendTop,
-      left: extendLeft,
-      bottom: extendBottom,
-      right: extendRight,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .png({
-      compressionLevel: 9,
-    })
-    .toBuffer();
+  const extendBottom = Math.ceil(newHeight - height - extendTop);
+  const extendRight = Math.ceil(newWidth - width - extendLeft);
 
   if (preview) {
     let {
@@ -2300,16 +2220,24 @@ export async function splitImage(input, preview, output) {
     }
 
     // Create image
-    const image = sharp(newImage, {
+    const image = sharp(input.image, {
       limitInputPixels: false,
-    }).composite([
-      {
-        limitInputPixels: false,
-        input: createSVG(svg, true),
-        left: 0,
-        top: 0,
-      },
-    ]);
+    })
+      .extend({
+        top: extendTop,
+        left: extendLeft,
+        bottom: extendBottom,
+        right: extendRight,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .composite([
+        {
+          limitInputPixels: false,
+          input: createSVG(svg, true),
+          left: 0,
+          top: 0,
+        },
+      ]);
 
     // Resize image
     if (preview.width > 0 || preview.height > 0) {
@@ -2372,9 +2300,16 @@ export async function splitImage(input, preview, output) {
 
     for (let y = 0; y < heightPageNum; y++) {
       for (let x = 0; x < widthPageNum; x++) {
-        const image = await sharp(newImage, {
+        const image = await sharp(input.image, {
           limitInputPixels: false,
         })
+          .extend({
+            top: extendTop,
+            left: extendLeft,
+            bottom: extendBottom,
+            right: extendRight,
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+          })
           .extract({
             left: x * stepWidthPX,
             top: y * stepHeightPX,
