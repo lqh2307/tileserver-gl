@@ -2396,7 +2396,7 @@ export async function isFullTransparentPNGImage(buffer) {
 }
 
 /**
- * Process image data
+ * Process image raw data
  * @param {Buffer} data Image data buffer
  * @param {number} originWidth Image origin width size
  * @param {number} originHeight Image origin height size
@@ -2405,7 +2405,7 @@ export async function isFullTransparentPNGImage(buffer) {
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
  * @returns {Promise<Buffer>}
  */
-export async function processImageData(
+export async function processImageRawData(
   data,
   originWidth,
   originHeight,
@@ -2423,10 +2423,7 @@ export async function processImageData(
     },
   });
 
-  if (
-    (targetWidth > 0 && targetWidth !== originWidth) ||
-    (targetHeight > 0 && targetHeight !== originHeight)
-  ) {
+  if (targetWidth > 0 || targetHeight > 0) {
     image.resize({
       width: targetWidth,
       height: targetHeight,

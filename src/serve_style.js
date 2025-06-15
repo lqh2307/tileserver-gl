@@ -308,7 +308,8 @@ function getRenderedTileHandler() {
         z,
         x,
         y,
-        req.params.format
+        req.params.format,
+        false
       );
 
       res.header(

@@ -38,7 +38,7 @@ function renderStyleJSONHandler() {
 
       /* Render style */
       const result = await renderStyleJSONToImage(
-        req.body.styleJSON,
+        req.body.styleID || req.body.styleJSON,
         bbox,
         req.body.zoom,
         format,
