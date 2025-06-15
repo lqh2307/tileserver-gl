@@ -1,7 +1,7 @@
 "use strict";
 
 import { printLog } from "./logger.js";
-import WebSocket from "ws";
+import WebSocket, { WebSocketServer } from "ws";
 import { v4 } from "uuid";
 
 let wss;
@@ -12,8 +12,8 @@ let wss;
  * @returns {void}
  */
 export function setupWSServer(server) {
-  const wss = new WebSocket.WebSocketServer({
-    server: server,
+  const wss = new WebSocketServer({
+    server,
   });
 
   wss.on("connection", (ws) => {
