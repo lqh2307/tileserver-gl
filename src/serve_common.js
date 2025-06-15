@@ -51,7 +51,7 @@ function serveFrontPageHandler() {
               name: name,
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
-              cache: style.storeCache,
+              cache: style.storeCache === true,
               cancel_render:
                 process.env.ENABLE_EXPORT === "true" && style.export,
             };
@@ -61,7 +61,7 @@ function serveFrontPageHandler() {
             styles[id] = {
               name: name,
               viewer_hash: `#${zoom}/${center[1]}/${center[0]}`,
-              cache: style.storeCache,
+              cache: style.storeCache === true,
             };
           }
         }),
@@ -74,7 +74,7 @@ function serveFrontPageHandler() {
             geojsons[`${id}/${layer}`] = {
               group: id,
               layer: layer,
-              cache: geojson.storeCache,
+              cache: geojson.storeCache === true,
             };
           });
         }),
@@ -95,7 +95,7 @@ function serveFrontPageHandler() {
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`,
               source_type: data.sourceType,
-              cache: data.storeCache,
+              cache: data.storeCache === true,
               cancel_export: data.export,
             };
           } else {
@@ -104,7 +104,7 @@ function serveFrontPageHandler() {
               format: format,
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               source_type: data.sourceType,
-              cache: data.storeCache,
+              cache: data.storeCache === true,
               cancel_export: data.export,
             };
           }
