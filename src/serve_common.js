@@ -51,7 +51,7 @@ function serveFrontPageHandler() {
               name: name,
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
-              cache: style.storeCache === true,
+              cache: style.storeCache,
               cancel_render:
                 process.env.ENABLE_EXPORT === "true" && style.export,
             };
@@ -61,7 +61,7 @@ function serveFrontPageHandler() {
             styles[id] = {
               name: name,
               viewer_hash: `#${zoom}/${center[1]}/${center[0]}`,
-              cache: style.storeCache === true,
+              cache: style.storeCache,
             };
           }
         }),
@@ -74,7 +74,7 @@ function serveFrontPageHandler() {
             geojsons[`${id}/${layer}`] = {
               group: id,
               layer: layer,
-              cache: geojson.storeCache === true,
+              cache: geojson.storeCache,
             };
           });
         }),
@@ -95,7 +95,7 @@ function serveFrontPageHandler() {
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`,
               source_type: data.sourceType,
-              cache: data.storeCache === true,
+              cache: data.storeCache,
               cancel_export: data.export,
             };
           } else {
@@ -104,16 +104,24 @@ function serveFrontPageHandler() {
               format: format,
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               source_type: data.sourceType,
-              cache: data.storeCache === true,
+              cache: data.storeCache,
               cancel_export: data.export,
             };
           }
         }),
         ...Object.keys(config.sprites).map(async (id) => {
-          sprites[id] = true;
+          const sprite = config.sprites[id];
+
+          sprites[id] = {
+            cache: sprite.storeCache,
+          };
         }),
         ...Object.keys(config.fonts).map(async (id) => {
-          fonts[id] = true;
+          const font = config.fonts[id];
+
+          fonts[id] = {
+            cache: font.storeCache,
+          };
         }),
       ]);
 

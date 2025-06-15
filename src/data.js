@@ -245,32 +245,29 @@ export async function getAndCacheDataStyleJSON(id) {
  * @returns {Promise<object>}
  */
 export async function getAndCacheDataGeoJSON(id, layer) {
-  const geoJSONLayer = config.geojsons[id][layer];
+  const item = config.geojsons[id][layer];
 
   try {
-    return await getGeoJSON(geoJSONLayer.path);
+    return await getGeoJSON(item.path);
   } catch (error) {
-    if (geoJSONLayer.sourceURL && error.message === "JSON does not exist") {
+    if (item.sourceURL && error.message === "JSON does not exist") {
       printLog(
         "info",
-        `Forwarding GeoJSON "${id}" - To "${geoJSONLayer.sourceURL}"...`
+        `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`
       );
 
       const geoJSON = await getDataFileFromURL(
-        geoJSONLayer.sourceURL,
+        item.sourceURL,
         30000 // 30 secs
       );
 
-      if (geoJSONLayer.storeCache) {
-        printLog(
-          "info",
-          `Caching GeoJSON "${id}" - File "${geoJSONLayer.path}"...`
-        );
+      if (item.storeCache) {
+        printLog("info", `Caching GeoJSON "${id}" - File "${item.path}"...`);
 
-        cacheGeoJSONFile(geoJSONLayer.path, geoJSON).catch((error) =>
+        cacheGeoJSONFile(item.path, geoJSON).catch((error) =>
           printLog(
             "error",
-            `Failed to cache GeoJSON "${id}" - File "${geoJSONLayer.path}": ${error}`
+            `Failed to cache GeoJSON "${id}" - File "${item.path}": ${error}`
           )
         );
       }

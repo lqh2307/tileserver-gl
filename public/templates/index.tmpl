@@ -444,7 +444,7 @@
                 <div class="details">
                   <h3 class="name">{{name}}</h3>
                   <p>identifier: {{@key}}</p>
-                  <p>cache: {{cache}}</p>
+                  <p>cache: {{#if cache}}true{{else}}false{{/if}}</p>
                   <p class="services">
                     services: <a href="${baseURL}/styles/{{@key}}/style.json">StyleJSON</a>
                     {{#if thumbnail}}
@@ -481,7 +481,7 @@
                   <p>identifier: {{layer}}</p>
                   <p>group: {{group}}</p>
                   <p>layer: {{layer}}</p>
-                  <p>cache: {{cache}}</p>
+                  <p>cache: {{#if cache}}true{{else}}false{{/if}}</p>
                   <p class="services">
                     services: <a href="${baseURL}/geojsons/{{group}}/{{layer}}.geojson">GeoJSON</a>
                     | <a href="${baseURL}/geojsons/{{group}}/{{layer}}.json">INFO</a>
@@ -524,7 +524,7 @@
                   <h3 class="name">{{name}}</h3>
                   <p>identifier: {{@key}}</p>
                   <p>type: {{#if thumbnail}}raster{{else}}vector{{/if}} | ext: {{source_type}}</p>
-                  <p>cache: {{cache}}</p>
+                  <p>cache: {{#if cache}}true{{else}}false{{/if}}</p>
                   <p class="services">
                     services: <a href="${baseURL}/datas/{{@key}}.json">TileJSON</a>
                       | <a href="#" onclick="toggleURL('xyz_data_{{@key}}', event)">XYZ</a>
@@ -556,6 +556,7 @@
                 <div class="details">
                   <h3 class="name">{{@key}}</h3>
                   <p>identifier: {{@key}}</p>
+                  <p>cache: {{#if cache}}true{{else}}false{{/if}}</p>
                   <p class="services">
                     services: <a href="#" onclick="toggleURL('font_{{@key}}', event)">URL</a>
                     <input id="font_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/fonts/{{@key}}/{range}.pbf" onclick="copyToClipboard(this)" />
@@ -574,6 +575,7 @@
                 <div class="details">
                   <h3 class="name">{{@key}}</h3>
                   <p>identifier: {{@key}}</p>
+                  <p>cache: {{#if cache}}true{{else}}false{{/if}}</p>
                   <p class="services">
                     services: <a href="${baseURL}/sprites/{{@key}}/sprite.json">JSON</a>
                     | <a href="${baseURL}/sprites/{{@key}}/sprite.png">PNG</a>
