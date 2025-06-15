@@ -4,7 +4,10 @@
   "version": "0.0.28",
   "license": "MIT",
   "author": "Huy Le <lqh23072000@gmail.com>",
-  "keywords": ["tile-server"],
+  "keywords": [
+    "tile-server",
+    "tileserver"
+  ],
   "repository": {
     "url": "https://github.com/lqh2307/tileserver-gl.git",
     "type": "git"
