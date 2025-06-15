@@ -208,6 +208,15 @@ async function seedMBTilesTiles(
           false
         );
       } catch (error) {
+        if (error.statusCode >= 500) {
+          printLog(
+            "error",
+            `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed mbtiles "${id}"...`
+          );
+
+          return;
+        }
+
         printLog(
           "error",
           `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
@@ -446,6 +455,15 @@ async function seedPostgreSQLTiles(
           false
         );
       } catch (error) {
+        if (error.statusCode >= 500) {
+          printLog(
+            "error",
+            `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed postgresql "${id}"...`
+          );
+
+          return;
+        }
+
         printLog(
           "error",
           `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
@@ -689,6 +707,15 @@ async function seedXYZTiles(
           false
         );
       } catch (error) {
+        if (error.statusCode >= 500) {
+          printLog(
+            "error",
+            `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed xyz "${id}"...`
+          );
+
+          return;
+        }
+
         printLog(
           "error",
           `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`

@@ -29,8 +29,8 @@ export function setupWSServer(server) {
       .on("close", () => {
         printLog("info", `WS client closed: ${clientID}`);
       })
-      .on("error", (err) => {
-        printLog("error", `WS client error ${clientID}: ${err.message}`);
+      .on("error", (error) => {
+        printLog("error", `WS client error ${clientID}: ${error}`);
       });
   });
 }
