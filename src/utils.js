@@ -397,7 +397,7 @@ export async function calculateResolution(input, unit) {
  * @param {256|512} tileSize Tile size
  * @returns {[number, number, number]} Tile indices [x, y, z]
  */
-export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz", tileSize = 256) {
+export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   const size = tileSize * (1 << z);
   const bc = size / 360;
   const cc = size / 2 / Math.PI;
@@ -454,14 +454,7 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme = "xyz", tileSize = 256) {
  * @param {256|512} tileSize Tile size
  * @returns {[number, number]} [longitude, latitude] in EPSG:4326
  */
-export function getLonLatFromXYZ(
-  x,
-  y,
-  z,
-  position = "topLeft",
-  scheme = "xyz",
-  tileSize = 256
-) {
+export function getLonLatFromXYZ(x, y, z, position, scheme, tileSize = 256) {
   const size = tileSize * (1 << z);
   const bc = size / 360;
   const cc = size / 2 / Math.PI;
@@ -524,6 +517,34 @@ export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
   return {
     minZoom,
     maxZoom,
+  };
+}
+
+/**
+ * Get pyramid tile ranges
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @param {number} deltaZ Delta zoom
+ * @returns {{ x: [number, number], y: [number, number] }}
+ */
+export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
+  const factor = 1 << deltaZ;
+
+  let minY = y * factor;
+  let maxY = (y + 1) * factor - 1;
+
+  if (scheme === "tms") {
+    const maxTileIndex = (1 << (z + deltaZ)) - 1;
+
+    minY = maxTileIndex - maxY;
+    maxY = maxTileIndex - minY;
+  }
+
+  return {
+    x: [x * factor, (x + 1) * factor - 1],
+    y: [minY, maxY],
   };
 }
 
@@ -753,7 +774,7 @@ export function getBBoxFromTiles(
   xMax,
   yMax,
   z,
-  scheme = "xyz",
+  scheme,
   tileSize = 256
 ) {
   const [lonMin, latMax] = getLonLatFromXYZ(
