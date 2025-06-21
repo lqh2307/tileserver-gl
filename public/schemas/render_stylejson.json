@@ -1,18 +1,34 @@
 {
   "type": "object",
   "properties": {
+    "ws": {
+      "type": "object",
+      "properties": {
+        "clientID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interval": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["clientID", "requestID", "interval", "event"]
+    },
     "base64": {
       "type": "boolean"
     },
     "format": {
       "type": "string",
-      "enum": [
-        "gif",
-        "png",
-        "jpg",
-        "jpeg",
-        "webp"
-      ]
+      "enum": ["gif", "png", "jpg", "jpeg", "webp"]
     },
     "zoom": {
       "type": "number",
@@ -51,12 +67,20 @@
       "type": "number",
       "minimum": 0
     },
+    "tileSize": {
+      "type": "integer",
+      "enum": [256, 512]
+    },
+    "scheme": {
+      "type": "string",
+      "enum": ["tms", "xyz"]
+    },
     "frame": {
       "type": "object",
       "properties": {
         "frameMargin": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "frameInnerColor": {
           "type": "string",
@@ -64,17 +88,11 @@
         },
         "frameInnerWidth": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "frameInnerStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "frameOuterColor": {
           "type": "string",
@@ -82,61 +100,51 @@
         },
         "frameOuterWidth": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "frameOuterStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "frameSpace": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "tickLabelFormat": {
           "type": "string",
-          "enum": [
-            "D",
-            "DMS",
-            "DMSD"
-          ]
+          "enum": ["D", "DMS", "DMSD"]
         },
         "majorTickStep": {
           "type": "number",
-          "minLength": 0
+          "minimum": 0
         },
         "minorTickStep": {
           "type": "number",
-          "minLength": 0
+          "minimum": 0
         },
         "majorTickWidth": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "minorTickWidth": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "majorTickSize": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "minorTickSize": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "majorTickLabelSize": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "minorTickLabelSize": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "majorTickColor": {
           "type": "string",
@@ -187,21 +195,15 @@
       "properties": {
         "majorGridStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "majorGridWidth": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "majorGridStep": {
           "type": "number",
-          "minLength": 0
+          "minimum": 0
         },
         "majorGridColor": {
           "type": "string",
@@ -209,21 +211,15 @@
         },
         "minorGridStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "minorGridWidth": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "minorGridStep": {
           "type": "number",
-          "minLength": 0
+          "minimum": 0
         },
         "minorGridColor": {
           "type": "string",
@@ -250,13 +246,7 @@
           },
           "format": {
             "type": "string",
-            "enum": [
-              "gif",
-              "png",
-              "jpg",
-              "jpeg",
-              "webp"
-            ]
+            "enum": ["gif", "png", "jpg", "jpeg", "webp"]
           }
         }
       }
@@ -279,32 +269,16 @@
   },
   "anyOf": [
     {
-      "required": [
-        "zoom",
-        "bbox",
-        "styleJSON"
-      ]
+      "required": ["zoom", "bbox", "styleJSON"]
     },
     {
-      "required": [
-        "zoom",
-        "extent",
-        "styleJSON"
-      ]
+      "required": ["zoom", "extent", "styleJSON"]
     },
     {
-      "required": [
-        "zoom",
-        "bbox",
-        "styleID"
-      ]
+      "required": ["zoom", "bbox", "styleID"]
     },
     {
-      "required": [
-        "zoom",
-        "extent",
-        "styleID"
-      ]
+      "required": ["zoom", "extent", "styleID"]
     }
   ]
 }

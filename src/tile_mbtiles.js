@@ -50,7 +50,7 @@ async function getMBTilesLayersFromTiles(source) {
   while (true) {
     const rows = sql.all([batchSize, offset]);
 
-    if (rows.length === 0) {
+    if (!rows.length) {
       break;
     }
 
@@ -284,7 +284,7 @@ export async function calculateMBTilesTileExtraInfo(source) {
   while (true) {
     const rows = sql.all();
 
-    if (rows.length === 0) {
+    if (!rows.length) {
       break;
     }
 

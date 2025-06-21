@@ -284,7 +284,7 @@ export async function calculatXYZTileExtraInfo(sourcePath, source, format) {
   while (true) {
     const rows = sql.all();
 
-    if (rows.length === 0) {
+    if (!rows.length) {
       break;
     }
 

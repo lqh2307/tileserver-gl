@@ -28,6 +28,7 @@ import {
 } from "./tile_mbtiles.js";
 import {
   getTileBoundsFromCoverages,
+  handleTilesConcurrency,
   createFileWithLock,
   removeEmptyFolders,
   processCoverages,
@@ -106,7 +107,7 @@ async function updateSeedFile(seed, timeout) {
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -132,18 +133,15 @@ async function seedMBTilesTiles(
   try {
     /* Calculate summary */
     const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
 
     let log = `Seeding ${total} tiles of mbtiles "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tMax try: ${maxTry}`;
-    log += `\n\tTimeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -245,21 +243,18 @@ async function seedMBTilesTiles(
     }
 
     /* Update MBTiles metadata */
-    printLog("info", "Updating metadata...");
+    printLog("info", "Updating MBTiles metadata...");
 
     await updateMBTilesMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
 
     /* Download tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function seedMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -306,33 +301,7 @@ async function seedMBTilesTiles(
 
     printLog("info", "Downloading datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          seedMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(concurrency, seedMBTilesTileData, tileBounds);
 
     printLog(
       "info",
@@ -357,7 +326,7 @@ async function seedMBTilesTiles(
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -383,18 +352,15 @@ async function seedPostgreSQLTiles(
   try {
     /* Calculate summary */
     const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
 
     let log = `Seeding ${total} tiles of postgresql "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tMax try: ${maxTry}`;
-    log += `\n\tTimeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -492,21 +458,18 @@ async function seedPostgreSQLTiles(
     }
 
     /* Update PostgreSQL metadata */
-    printLog("info", "Updating metadata...");
+    printLog("info", "Updating PostgreSQL metadata...");
 
     await updatePostgreSQLMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
 
     /* Download tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function seedPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -553,33 +516,11 @@ async function seedPostgreSQLTiles(
 
     printLog("info", "Downloading datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          seedPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(
+      concurrency,
+      seedPostgreSQLTileData,
+      tileBounds
+    );
 
     printLog(
       "info",
@@ -604,7 +545,7 @@ async function seedPostgreSQLTiles(
  * @param {string} url Tile URL
  * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -630,18 +571,15 @@ async function seedXYZTiles(
   try {
     /* Calculate summary */
     const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
 
     let log = `Seeding ${total} tiles of xyz "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tMax try: ${maxTry}`;
-    log += `\n\tTimeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -744,21 +682,18 @@ async function seedXYZTiles(
     }
 
     /* Update XYZ metadata */
-    printLog("info", "Updating metadata...");
+    printLog("info", "Updating XYZ metadata...");
 
     await updateXYZMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
 
     /* Download tile files */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function seedXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -807,33 +742,7 @@ async function seedXYZTiles(
 
     printLog("info", "Downloading datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          seedXYZTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(concurrency, seedXYZTileData, tileBounds);
 
     /* Remove parent folders if empty */
     await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
@@ -867,8 +776,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
   let log = `Seeding geojson "${id}" with:`;
-  log += `\n\tMax try: ${maxTry}`;
-  log += `\n\tTimeout: ${timeout}`;
+  log += `\n\tMax try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
@@ -974,8 +882,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
   let log = `Seeding sprite "${id}" with:`;
-  log += `\n\tMax try: ${maxTry}`;
-  log += `\n\tTimeout: ${timeout}`;
+  log += `\n\tMax try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
@@ -1058,7 +965,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
  * Seed font
  * @param {string} id Cache font ID
  * @param {string} url Font URL
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
@@ -1071,8 +978,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   let log = `Seeding ${total} fonts of font "${id}" with:`;
   log += `\n\tConcurrency: ${concurrency}`;
-  log += `\n\tMax try: ${maxTry}`;
-  log += `\n\tTimeout: ${timeout}`;
+  log += `\n\tMax try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
@@ -1193,8 +1099,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
   const startTime = Date.now();
 
   let log = `Seeding style "${id}" with:`;
-  log += `\n\tMax try: ${maxTry}`;
-  log += `\n\tTimeout: ${timeout}`;
+  log += `\n\tMax try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {

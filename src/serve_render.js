@@ -1,14 +1,17 @@
 "use strict";
 
-import { renderStyleJSONToImage, renderSVGToImage } from "./render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import os from "os";
 import {
+  renderStyleJSONToImage,
+  renderImageToPDF,
+  renderSVGToImage,
+} from "./render_style.js";
+import {
   detectContentTypeFromFormat,
   getJSONSchema,
   validateJSON,
-  splitImage,
   gzipAsync,
 } from "./utils.js";
 
@@ -45,9 +48,12 @@ function renderStyleJSONHandler() {
         req.body.maxRendererPoolSize,
         req.body.concurrency || os.cpus().length,
         req.body.tileScale || 1,
+        req.body.tileSize || 512,
+        req.body.scheme || "xyz",
         req.body.frame,
         req.body.grid,
         req.body.base64,
+        req.body.ws,
         req.body.overlays
       );
 
@@ -144,14 +150,8 @@ function renderPDFHandler() {
         throw new SyntaxError(error);
       }
 
-      const result = await splitImage(
-        {
-          image: Buffer.from(
-            req.body.input.image.slice(req.body.input.image.indexOf(",") + 1),
-            "base64"
-          ),
-          resolution: req.body.input.resolution,
-        },
+      const result = await renderImageToPDF(
+        req.body.input,
         req.body.preview,
         req.body.output
       );

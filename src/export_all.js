@@ -27,7 +27,7 @@ import {
  * Export all
  * @param {string} dirPath Exported dir path
  * @param {object} options Export options object
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string} parentServerHost Parent server host
  * @param {boolean} exportData Is export data?

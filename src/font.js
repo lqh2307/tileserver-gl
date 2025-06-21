@@ -123,7 +123,7 @@ export async function getFontCreated(filePath) {
 export async function validateFont(pbfDirPath) {
   const pbfFileNames = await findFiles(pbfDirPath, /^\d{1,5}-\d{1,5}\.pbf$/);
 
-  if (pbfFileNames.length === 0) {
+  if (!pbfFileNames.length) {
     throw new Error("Missing some PBF files");
   }
 }

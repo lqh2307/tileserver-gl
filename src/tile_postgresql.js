@@ -44,7 +44,7 @@ async function getPostgreSQLLayersFromTiles(source) {
       [batchSize, offset]
     );
 
-    if (data.rows.length === 0) {
+    if (!data.rows.length) {
       break;
     }
 
@@ -270,7 +270,7 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
       `
     );
 
-    if (data.rows.length === 0) {
+    if (!data.rows.length) {
       break;
     }
 
@@ -414,7 +414,7 @@ export async function getPostgreSQLTile(source, z, x, y) {
     [z, x, y]
   );
 
-  if (data.rows.length === 0) {
+  if (!data.rows.length) {
     throw new Error("Tile does not exist");
   }
 

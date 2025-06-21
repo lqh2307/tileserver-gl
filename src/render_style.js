@@ -4,6 +4,7 @@ import { getPMTilesTile } from "./tile_pmtiles.js";
 import { getRenderedStyleJSON } from "./style.js";
 import mlgl from "@maplibre/maplibre-gl-native";
 import { createPool } from "generic-pool";
+import { emitWSMessage } from "./ws.js";
 import { printLog } from "./logger.js";
 import { rm } from "node:fs/promises";
 import { config } from "./config.js";
@@ -35,22 +36,25 @@ import {
 import {
   createCoveragesFromBBoxAndZooms,
   getTileBoundsFromCoverages,
+  processImageStaticRawData,
+  processImageTileRawData,
   detectFormatAndHeaders,
   createFallbackTileData,
+  handleTilesConcurrency,
   calculateResolution,
-  processImageRawData,
-  createTileMetadata,
   removeEmptyFolders,
+  createFileWithLock,
   convertSVGToImage,
+  mergeTilesToImage,
   getLonLatFromXYZ,
   addFrameToImage,
   getDataFromURL,
   calculateSizes,
-  createFolders,
   calculateMD5,
   createBase64,
   unzipAsync,
   runCommand,
+  splitImage,
   delay,
 } from "./utils.js";
 import {
@@ -402,7 +406,7 @@ export async function renderImageTileData(
   usePool
 ) {
   const isNeedHack = z === 0 && tileSize === 256;
-  const hackTileSize = isNeedHack ? 512 : 256;
+  const hackTileSize = isNeedHack ? tileSize * 2 : tileSize;
 
   const renderer = usePool
     ? await styleJSONOrPool.acquire()
@@ -435,11 +439,9 @@ export async function renderImageTileData(
     ? Math.floor(originTileSize / 2)
     : undefined;
 
-  return await processImageRawData(
+  return await processImageTileRawData(
     data,
     originTileSize,
-    originTileSize,
-    targetTileSize,
     targetTileSize,
     format
   );
@@ -452,14 +454,16 @@ export async function renderImageTileData(
  * @param {number} z Zoom level
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @returns {Promise<Buffer>}
+ * @param {string} filePath File path
+ * @returns {Promise<Buffer|>}
  */
 export async function renderImageStaticData(
   styleJSON,
   tileScale,
   z,
   bbox,
-  format
+  format,
+  filePath
 ) {
   const sizes = calculateSizes(z, bbox, 512);
 
@@ -487,13 +491,14 @@ export async function renderImageStaticData(
     );
   });
 
-  return await processImageRawData(
+  return await processImageStaticRawData(
     data,
     sizes.width,
     sizes.height,
     undefined,
     undefined,
-    format
+    format,
+    filePath
   );
 }
 
@@ -504,11 +509,14 @@ export async function renderImageStaticData(
  * @param {number} zoom Zoom level
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
  * @param {number} maxRendererPoolSize Max renderer pool size
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {number} tileScale Tile scale
+ * @param {256|512} tileSize Tile size
+ * @param {"tms"|"xyz"} scheme Tile scheme
  * @param {object} frame Add frame options?
  * @param {object} grid Add grid options?
  * @param {boolean} base64 Is base64?
+ * @param {{ clientID: string, requestID: string, interval: number, event: string }} ws WS object
  * @param {{name: string, content: string, bbox: [number, number, number, number]}[]} overlays Overlays
  * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
  */
@@ -520,20 +528,19 @@ export async function renderStyleJSONToImage(
   maxRendererPoolSize,
   concurrency,
   tileScale,
+  tileSize,
+  scheme,
   frame,
   grid,
   base64,
+  ws,
   overlays
 ) {
-  const startTime = Date.now();
-
-  let source;
   let styleJSONOrPool;
 
   const id = v4();
   const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${format}s/${id}`;
-  const mbtilesDirPath = `${dirPath}/mbtiles`;
-  const baselayerDirPath = `${dirPath}/baselayer`;
+  const xyzDirPath = `${dirPath}/xyz/${id}`;
 
   const driver = format.toUpperCase();
 
@@ -549,54 +556,26 @@ export async function renderStyleJSONToImage(
     );
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
-      "xyz"
+      "xyz",
+      tileSize
     );
 
     let log = `Rendering ${total} tiles of style JSON to ${driver} with:`;
     log += `\n\tTemporary dir path: ${dirPath}`;
-    log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
-    log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tZoom: ${zoom}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
+    log += `\n\tZoom: ${zoom} - Target zoom: ${targetZoom}`;
     log += `\n\tFormat: ${format}`;
-    log += `\n\tTile scale: ${tileScale}`;
+    log += `\n\tTile scale: ${tileScale} - Target tile scale: ${targetScale}`;
+    log += `\n\tTile size: ${tileSize}`;
+    log += `\n\tScheme: ${scheme}`;
     log += `\n\tFrame: ${JSON.stringify(frame ? frame : {})}`;
     log += `\n\tGrid: ${JSON.stringify(grid ? grid : {})}`;
     log += `\n\tIs base64: ${base64}`;
+    log += `\n\tWS: ${JSON.stringify(ws ? ws : {})}`;
     log += `\n\tOverlays: ${overlays ? true : false}`;
-    log += `\n\tTarget zoom: ${targetZoom}`;
-    log += `\n\tTarget scale: ${targetScale}`;
     log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
 
     printLog("info", log);
-
-    const mbtilesFilePath = `${mbtilesDirPath}/${id}.mbtiles`;
-
-    /* Open MBTiles SQLite database */
-    printLog("info", "Creating MBTiles...");
-
-    source = await openMBTilesDB(
-      mbtilesFilePath,
-      true,
-      30000 // 30 secs
-    );
-
-    /* Update metadata */
-    printLog("info", "Updating metadata...");
-
-    await updateMBTilesMetadata(
-      source,
-      createTileMetadata({
-        name: id,
-        format: format,
-        bounds: realBBox,
-        minzoom: targetZoom,
-        maxzoom: targetZoom,
-      }),
-      30000 // 30 secs
-    );
-
-    /* Create tmp folders */
-    await createFolders([mbtilesDirPath, baselayerDirPath]);
 
     const targetOverlays = [];
 
@@ -673,13 +652,6 @@ export async function renderStyleJSONToImage(
       }
     }
 
-    /* Render tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     /* Create renderer pool */
     styleJSONOrPool =
       maxRendererPoolSize > 0
@@ -695,7 +667,7 @@ export async function renderStyleJSONToImage(
           )
         : styleJSON;
 
-    async function renderMBTilesTileData(z, x, y, tasks) {
+    async function renderTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
       const completeTasks = tasks.completeTasks;
@@ -710,7 +682,7 @@ export async function renderStyleJSONToImage(
         const data = await renderImageTileData(
           styleJSONOrPool,
           targetScale,
-          256,
+          tileSize,
           z,
           x,
           y,
@@ -719,7 +691,11 @@ export async function renderStyleJSONToImage(
         );
 
         // Store data
-        await cacheMBtilesTileData(source, z, x, y, data, true);
+        await createFileWithLock(
+          `${xyzDirPath}/${z}/${x}/${y}.${format}`,
+          data,
+          30000 // 30 secs
+        );
       } catch (error) {
         printLog(
           "error",
@@ -728,59 +704,86 @@ export async function renderStyleJSONToImage(
       }
     }
 
-    printLog("info", "Rendering tiles to MBTiles...");
+    let previosProgress = 0;
+    const callback = ws
+      ? {
+          interval: ws.interval,
+          callbackFunc: (tasks) => {
+            try {
+              const progress = Math.round((tasks.completeTasks / total) * 80);
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
+              if (progress > previosProgress) {
+                emitWSMessage(
+                  ws.event,
+                  JSON.stringify({
+                    requestID: ws.requestID,
+                    data: {
+                      progress: progress,
+                    },
+                  }),
+                  [ws.clientID]
+                );
 
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
+                previosProgress = progress;
+              }
+            } catch (error) {
+              printLog(
+                "info",
+                `Failed to send WS message to client id ${ws.clientID}: ${error}`
+              );
+            }
+          },
         }
-      }
-    }
+      : undefined;
 
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    printLog("info", "Rendering tiles to XYZ...");
 
-    const baselayerFilePath = `${baselayerDirPath}/${id}.${format}`;
+    await handleTilesConcurrency(
+      concurrency,
+      renderTileData,
+      tileBounds,
+      callback
+    );
 
     /* Create image */
-    const command = `gdal_translate -if MBTiles -of ${driver}${
-      format === "png" ? " -co ZLEVEL=9" : ""
-    } -r lanczos -projwin_srs EPSG:4326 -projwin ${bbox[0]} ${bbox[3]} ${
-      bbox[2]
-    } ${bbox[1]} -a_srs EPSG:4326 -a_ullr ${bbox[0]} ${bbox[3]} ${bbox[2]} ${
-      bbox[1]
-    } ${mbtilesFilePath} ${baselayerFilePath}`;
+    printLog("info", "Merge tiles to image...");
 
-    printLog("info", `Creating ${id} baselayer with gdal command: ${command}`);
+    const mergedImage = await mergeTilesToImage(
+      {
+        dirPath: xyzDirPath,
+        format: format,
+        tileSize: tileSize,
+        scheme: scheme,
+        bbox: realBBox,
+        z: targetZoom,
+        xMin: tileBounds[0].x[0],
+        xMax: tileBounds[0].x[1],
+        yMin: tileBounds[0].y[0],
+        yMax: tileBounds[0].y[1],
+      },
+      {
+        bbox: bbox,
+        format: format,
+      }
+    );
 
-    const commandOutput = await runCommand(command);
-
-    printLog("info", `Gdal command output: ${commandOutput}`);
+    emitWSMessage(
+      ws.event,
+      JSON.stringify({
+        requestID: ws.requestID,
+        data: {
+          progress: 90,
+        },
+      }),
+      [ws.clientID]
+    );
 
     /* Add frame */
     printLog("info", "Adding frame to image...");
 
     const image = await addFrameToImage(
       {
-        filePath: baselayerFilePath,
+        filePath: mergedImage,
         bbox: bbox,
         format: format,
       },
@@ -792,6 +795,7 @@ export async function renderStyleJSONToImage(
       }
     );
 
+    /* Calculate resolution */
     const resolution = await calculateResolution(
       {
         filePath: image,
@@ -800,35 +804,28 @@ export async function renderStyleJSONToImage(
       "mm"
     );
 
-    printLog(
-      "info",
-      `Completed render ${total} tiles of style JSON to ${driver} after ${
-        (Date.now() - startTime) / 1000
-      }s!`
+    emitWSMessage(
+      ws.event,
+      JSON.stringify({
+        requestID: ws.requestID,
+        data: {
+          progress: 100,
+        },
+      }),
+      [ws.clientID]
     );
 
+    /* Response */
     return {
       image: base64 ? createBase64(image, format) : image,
       resolution: resolution,
     };
   } catch (error) {
-    printLog(
-      "error",
-      `Failed to render style JSON to ${driver} after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`
-    );
-
     throw error;
   } finally {
     /* Destroy renderer pool */
     if (maxRendererPoolSize > 0 && styleJSONOrPool) {
       styleJSONOrPool.drain().then(() => styleJSONOrPool.clear());
-    }
-
-    // Close MBTiles SQLite database
-    if (source) {
-      closeMBTilesDB(source);
     }
 
     /* Remove tmp */
@@ -843,7 +840,7 @@ export async function renderStyleJSONToImage(
  * Render SVG to Image
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
  * @param {{name: string, content: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif"}[]} overlays SVG overlays
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {boolean} base64 Is base64?
  * @returns {Promise<{name: string, content: string}[]>}
  */
@@ -927,9 +924,49 @@ export async function renderSVGToImage(format, overlays, concurrency, base64) {
  * @param {object} input Input object
  * @param {object} preview Preview object
  * @param {object} output Output object
- * @returns {Promise<Buffer>}
+ * @returns {Promise<Buffer|string>}
  */
-export async function renderImageToPDF(input, preview, output) {}
+export async function renderImageToPDF(input, preview, output) {
+  if (input.ws) {
+    emitWSMessage(
+      input.ws.event,
+      JSON.stringify({
+        requestID: input.ws.requestID,
+        data: {
+          progress: 50,
+        },
+      }),
+      [input.ws.clientID]
+    );
+  }
+
+  const image = await splitImage(
+    {
+      image: Buffer.from(
+        input.image.slice(input.image.indexOf(",") + 1),
+        "base64"
+      ),
+      resolution: input.resolution,
+    },
+    preview,
+    output
+  );
+
+  if (input.ws) {
+    emitWSMessage(
+      input.ws.event,
+      JSON.stringify({
+        requestID: input.ws.requestID,
+        data: {
+          progress: 100,
+        },
+      }),
+      [input.ws.clientID]
+    );
+  }
+
+  return image;
+}
 
 /**
  * Render MBTiles tiles
@@ -937,7 +974,7 @@ export async function renderImageToPDF(input, preview, output) {}
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {number} maxRendererPoolSize Max renderer pool size
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
  * @param {number} tileScale Tile scale
@@ -969,7 +1006,7 @@ export async function renderMBTilesTiles(
       metadata.minzoom,
       metadata.maxzoom
     );
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
@@ -977,8 +1014,7 @@ export async function renderMBTilesTiles(
     let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:`;
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
-    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tTile size: ${tileSize}`;
@@ -1034,21 +1070,17 @@ export async function renderMBTilesTiles(
       }
     }
 
-    /* Update metadata */
-    printLog("info", "Updating metadata...");
+    /* Update MBTiles metadata */
+    printLog("info", "Updating MBTiles metadata...");
 
     await updateMBTilesMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
-
-    /* Render tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
 
     /* Create renderer pool */
     const item = config.styles[id];
@@ -1134,37 +1166,13 @@ export async function renderMBTilesTiles(
 
     printLog("info", "Rendering tiles to MBTiles...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(
+      concurrency,
+      renderMBTilesTileData,
+      tileBounds,
+      undefined,
+      item
+    );
 
     /* Create overviews */
     if (createOverview) {
@@ -1214,7 +1222,7 @@ export async function renderMBTilesTiles(
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {number} maxRendererPoolSize Max renderer pool size
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
  * @param {number} tileScale Tile scale
@@ -1247,7 +1255,7 @@ export async function renderXYZTiles(
       metadata.minzoom,
       metadata.maxzoom
     );
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
@@ -1256,8 +1264,7 @@ export async function renderXYZTiles(
     log += `\n\tSource path: ${sourcePath}`;
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
-    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tTile size: ${tileSize}`;
@@ -1313,21 +1320,17 @@ export async function renderXYZTiles(
       }
     }
 
-    /* Update metadata */
-    printLog("info", "Updating metadata...");
+    /* Update XYZ metadata */
+    printLog("info", "Updating XYZ metadata...");
 
     await updateXYZMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
-
-    /* Render tile files */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
 
     /* Create renderer pool */
     const item = config.styles[id];
@@ -1431,37 +1434,13 @@ export async function renderXYZTiles(
 
     printLog("info", "Rendering tiles to XYZ...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderXYZTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(
+      concurrency,
+      renderXYZTileData,
+      tileBounds,
+      undefined,
+      item
+    );
 
     /* Remove parent folders if empty */
     await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp)$/);
@@ -1503,7 +1482,7 @@ export async function renderXYZTiles(
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {number} maxRendererPoolSize Max renderer pool size
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {boolean} createOverview Is create overview?
  * @param {number} tileScale Tile scale
@@ -1535,7 +1514,7 @@ export async function renderPostgreSQLTiles(
       metadata.minzoom,
       metadata.maxzoom
     );
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
@@ -1543,8 +1522,7 @@ export async function renderPostgreSQLTiles(
     let log = `Rendering ${total} tiles of style "${id}" to postgresql with:`;
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
-    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
     log += `\n\tTile scale: ${tileScale}`;
     log += `\n\tTile size: ${tileSize}`;
@@ -1596,21 +1574,17 @@ export async function renderPostgreSQLTiles(
       }
     }
 
-    /* Update metadata */
-    printLog("info", "Updating metadata...");
+    /* Update PostgreSQL metadata */
+    printLog("info", "Updating PostgreSQL metadata...");
 
     await updatePostgreSQLMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
-
-    /* Render tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
 
     /* Create renderer pool */
     const item = config.styles[id];
@@ -1710,37 +1684,13 @@ export async function renderPostgreSQLTiles(
 
     printLog("info", "Rendering tiles to PostgreSQL...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(
+      concurrency,
+      renderPostgreSQLTileData,
+      tileBounds,
+      undefined,
+      item
+    );
 
     /* Create overviews */
     if (createOverview) {

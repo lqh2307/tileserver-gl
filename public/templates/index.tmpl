@@ -594,7 +594,7 @@
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
                 <h3 class="name">Cancel sync</h3>
-                <p>description: Cancel clean up/seed tasks</p>
+                <p>description: Cancel cleanup/seed tasks</p>
               </div>
               <div class="viewers">
                 <a class="btn" href="#" onclick="handleAction(event, 'cancel')">Cancel sync</a>
@@ -604,7 +604,7 @@
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
                 <h3 class="name">Sync all</h3>
-                <p>description: Start clean up/seed tasks</p>
+                <p>description: Start cleanup/seed tasks</p>
               </div>
               <div class="viewers">
                 <a class="btn" href="#" onclick="handleAction(event, 'all')">Sync all</a>
@@ -614,7 +614,7 @@
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
                 <h3 class="name">Clean styles</h3>
-                <p>description: Start clean up styles</p>
+                <p>description: Start cleanup styles</p>
               </div>
               <div class="viewers">
                 <a class="btn" href="#" onclick="handleAction(event, 'cleanUpStyles')">Clean styles</a>
@@ -624,7 +624,7 @@
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
                 <h3 class="name">Clean geojsons</h3>
-                <p>description: Start clean up geojsons</p>
+                <p>description: Start cleanup geojsons</p>
               </div>
               <div class="viewers">
                 <a class="btn" href="#" onclick="handleAction(event, 'cleanUpGeoJSONs')">Clean geojsons</a>
@@ -634,7 +634,7 @@
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
                 <h3 class="name">Clean datas</h3>
-                <p>description: Start clean up datas</p>
+                <p>description: Start cleanup datas</p>
               </div>
               <div class="viewers">
                 <a class="btn" href="#" onclick="handleAction(event, 'cleanUpDatas')">Clean datas</a>
@@ -644,7 +644,7 @@
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
                 <h3 class="name">Clean sprites</h3>
-                <p>description: Start clean up sprites</p>
+                <p>description: Start cleanup sprites</p>
               </div>
               <div class="viewers">
                 <a class="btn" href="#" onclick="handleAction(event, 'cleanUpSprites')">Clean sprites</a>
@@ -654,7 +654,7 @@
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
                 <h3 class="name">Clean fonts</h3>
-                <p>description: Start clean up fonts</p>
+                <p>description: Start cleanup fonts</p>
               </div>
               <div class="viewers">
                 <a class="btn" href="#" onclick="handleAction(event, 'cleanUpFonts')">Clean fonts</a>
@@ -758,7 +758,7 @@
             <div class="item">
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
-                <h3 class="name">View clean up JSON</h3>
+                <h3 class="name">View cleanup JSON</h3>
                 <p>description: View cleanup.json content</p>
               </div>
               <div class="viewers">
@@ -788,7 +788,7 @@
             <div class="item">
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
-                <h3 class="name">Update clean up JSON</h3>
+                <h3 class="name">Update cleanup JSON</h3>
                 <p>description: Update cleanup.json content</p>
               </div>
               <div class="viewers">
@@ -818,7 +818,7 @@
             <div class="item">
               <img src="${emptyImageURL}" alt="Empty image" />
               <div class="details">
-                <h3 class="name">Delete clean up JSON</h3>
+                <h3 class="name">Delete cleanup JSON</h3>
                 <p>description: Delete cleanup.json content</p>
               </div>
               <div class="viewers">
@@ -859,72 +859,72 @@
         })
           .then((response) => {
             if (response.status === 200) {
-              alert("Starting clean up/seed tasks...");
+              alert("Starting cleanup/seed tasks...");
             } else {
-              alert(`Failed to start clean up/seed tasks: Status code: ${response.status} - ${response.statusText}`);
+              alert(`Failed to start cleanup/seed tasks: Status code: ${response.status} - ${response.statusText}`);
             }
           })
-          .catch((error) => alert(`Failed to start clean up/seed tasks: ${error.message}`));
+          .catch((error) => alert(`Failed to start cleanup/seed tasks: ${error.message}`));
       } else if (action === "cleanUpStyles") {
         fetch(`${baseURL}/tasks/start?cleanUpStyles=true&restart=true`, {
           method: "GET",
         })
           .then((response) => {
             if (response.status === 200) {
-              alert("Starting start clean up styles...");
+              alert("Starting start cleanup styles...");
             } else {
-              alert(`Failed to start clean up styles: Status code: ${response.status} - ${response.statusText}`);
+              alert(`Failed to start cleanup styles: Status code: ${response.status} - ${response.statusText}`);
             }
           })
-          .catch((error) => alert(`Failed to clean up styles: ${error.message}`));
+          .catch((error) => alert(`Failed to cleanup styles: ${error.message}`));
       } else if (action === "cleanUpGeoJSONs") {
         fetch(`${baseURL}/tasks/start?cleanUpGeoJSONs=true&restart=true`, {
           method: "GET",
         })
           .then((response) => {
             if (response.status === 200) {
-              alert("Starting start clean up geojsons...");
+              alert("Starting start cleanup geojsons...");
             } else {
-              alert(`Failed to start clean up geojsons: Status code: ${response.status} - ${response.statusText}`);
+              alert(`Failed to start cleanup geojsons: Status code: ${response.status} - ${response.statusText}`);
             }
           })
-          .catch((error) => alert(`Failed to clean up geojsons: ${error.message}`));
+          .catch((error) => alert(`Failed to cleanup geojsons: ${error.message}`));
       } else if (action === "cleanUpDatas") {
         fetch(`${baseURL}/tasks/start?cleanUpDatas=true&restart=true`, {
           method: "GET",
         })
           .then((response) => {
             if (response.status === 200) {
-              alert("Starting clean up datas...");
+              alert("Starting cleanup datas...");
             } else {
-              alert(`Failed to start clean up datas: Status code: ${response.status} - ${response.statusText}`);
+              alert(`Failed to start cleanup datas: Status code: ${response.status} - ${response.statusText}`);
             }
           })
-          .catch((error) => alert(`Failed to start clean up datas: ${error.message}`));
+          .catch((error) => alert(`Failed to start cleanup datas: ${error.message}`));
       } else if (action === "cleanUpSprites") {
         fetch(`${baseURL}/tasks/start?cleanUpSprites=true&restart=true`, {
           method: "GET",
         })
           .then((response) => {
             if (response.status === 200) {
-              alert("Starting clean up sprites...");
+              alert("Starting cleanup sprites...");
             } else {
-              alert(`Failed to start clean up sprites: Status code: ${response.status} - ${response.statusText}`);
+              alert(`Failed to start cleanup sprites: Status code: ${response.status} - ${response.statusText}`);
             }
           })
-          .catch((error) => alert(`Failed to start clean up sprites: ${error.message}`));
+          .catch((error) => alert(`Failed to start cleanup sprites: ${error.message}`));
       } else if (action === "cleanUpFonts") {
         fetch(`${baseURL}/tasks/start?cleanUpFonts=true&restart=true`, {
           method: "GET",
         })
           .then((response) => {
             if (response.status === 200) {
-              alert("Starting clean up fonts...");
+              alert("Starting cleanup fonts...");
             } else {
-              alert(`Failed to start clean up fonts: Status code: ${response.status} - ${response.statusText}`);
+              alert(`Failed to start cleanup fonts: Status code: ${response.status} - ${response.statusText}`);
             }
           })
-          .catch((error) => alert(`Failed to start clean up fonts: ${error.message}`));
+          .catch((error) => alert(`Failed to start cleanup fonts: ${error.message}`));
       } else if (action === "seedStyles") {
         fetch(`${baseURL}/tasks/start?seedStyles=true&restart=true`, {
           method: "GET",
@@ -991,12 +991,12 @@
         })
           .then((response) => {
             if (response.status === 200) {
-              alert("Canceling clean up/seed tasks...");
+              alert("Canceling cleanup/seed tasks...");
             } else {
-              alert(`Failed to cancel clean up/seed tasks: Status code: ${response.status} - ${response.statusText}`);
+              alert(`Failed to cancel cleanup/seed tasks: Status code: ${response.status} - ${response.statusText}`);
             }
           })
-          .catch((error) => alert(`Failed to cancel clean up/seed tasks: ${error.message}`));
+          .catch((error) => alert(`Failed to cancel cleanup/seed tasks: ${error.message}`));
       }
     }
 
@@ -1094,15 +1094,15 @@
           })
             .then((response) => {
               if (response.status === 200) {
-                alert("Updating clean up...");
+                alert("Updating cleanup...");
 
                 closeDialog("updateCleanUpDialog");
               } else {
-                alert(`Failed to update clean up: Status code: ${response.status} - ${response.statusText}`);
+                alert(`Failed to update cleanup: Status code: ${response.status} - ${response.statusText}`);
               }
             })
             .catch((error) => {
-              alert(`Failed to update clean up: ${error.message}`);
+              alert(`Failed to update cleanup: ${error.message}`);
             });
         };
       } else if (action === "showDeleteConfig") {
@@ -1172,15 +1172,15 @@
           })
             .then((response) => {
               if (response.status === 200) {
-                alert("Deleting clean up...");
+                alert("Deleting cleanup...");
 
                 closeDialog("deleteCleanUpDialog");
               } else {
-                alert(`Failed to delete clean up: Status code: ${response.status} - ${response.statusText}`);
+                alert(`Failed to delete cleanup: Status code: ${response.status} - ${response.statusText}`);
               }
             })
             .catch((error) => {
-              alert(`Failed to delete clean up: ${error.message}`);
+              alert(`Failed to delete cleanup: ${error.message}`);
             });
         };
       }

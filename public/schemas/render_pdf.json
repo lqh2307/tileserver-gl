@@ -4,6 +4,28 @@
     "input": {
       "type": "object",
       "properties": {
+        "ws": {
+          "type": "object",
+          "properties": {
+            "clientID": {
+              "type": "string",
+              "minLength": 1
+            },
+            "requestID": {
+              "type": "string",
+              "minLength": 1
+            },
+            "interval": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "event": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["clientID", "requestID", "interval", "event"]
+        },
         "resolution": {
           "type": "array",
           "items": {
@@ -14,22 +36,14 @@
           "maxItems": 2
         }
       },
-      "required": [
-        "resolution"
-      ]
+      "required": ["resolution"]
     },
     "preview": {
       "type": "object",
       "properties": {
         "format": {
           "type": "string",
-          "enum": [
-            "gif",
-            "png",
-            "jpg",
-            "jpeg",
-            "webp"
-          ]
+          "enum": ["gif", "png", "jpg", "jpeg", "webp"]
         },
         "width": {
           "type": "integer",
@@ -45,17 +59,11 @@
         },
         "lineWidth": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "lineStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "pageColor": {
           "type": "string",
@@ -63,7 +71,7 @@
         },
         "pageSize": {
           "type": "integer",
-          "minLength": 0
+          "minimum": 0
         },
         "pageFont": {
           "type": "string",
@@ -74,7 +82,20 @@
     "output": {
       "type": "object",
       "properties": {
-        "center": {
+        "alignContent": {
+          "type": "object",
+          "properties": {
+            "horizontal": {
+              "type": "string",
+              "enum": ["head", "middle", "tail"]
+            },
+            "vertical": {
+              "type": "string",
+              "enum": ["head", "middle", "tail"]
+            }
+          }
+        },
+        "compression": {
           "type": "boolean"
         },
         "base64": {
@@ -82,10 +103,7 @@
         },
         "orientation": {
           "type": "string",
-          "enum": [
-            "portrait",
-            "landscape"
-          ]
+          "enum": ["portrait", "landscape"]
         },
         "paperSize": {
           "type": "array",
@@ -97,13 +115,8 @@
           "maxItems": 2
         }
       },
-      "required": [
-        "paperSize"
-      ]
+      "required": ["paperSize"]
     }
   },
-  "required": [
-    "input",
-    "output"
-  ]
+  "required": ["input", "output"]
 }

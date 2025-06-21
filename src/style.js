@@ -161,7 +161,7 @@ export async function validateStyle(styleJSON) {
       }
 
       if (source.urls !== undefined) {
-        if (source.urls.length === 0) {
+        if (!source.urls.length) {
           throw new Error(`Source "${id}" is invalid data urls`);
         }
 
@@ -183,7 +183,7 @@ export async function validateStyle(styleJSON) {
       }
 
       if (source.tiles !== undefined) {
-        if (source.tiles.length === 0) {
+        if (!source.tiles.length) {
           throw new Error(`Source "${id}" is invalid tile urls`);
         }
 
@@ -278,7 +278,7 @@ export async function getRenderedStyleJSON(filePath) {
             }
           });
 
-          if (otherUrls.length === 0) {
+          if (!otherUrls.length) {
             delete source.urls;
           } else {
             source.urls = otherUrls;

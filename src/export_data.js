@@ -2,7 +2,6 @@
 
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
-import { Mutex } from "async-mutex";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   updatePostgreSQLMetadata,
@@ -24,9 +23,9 @@ import {
 } from "./tile_mbtiles.js";
 import {
   getTileBoundsFromCoverages,
+  handleTilesConcurrency,
   removeEmptyFolders,
   processCoverages,
-  delay,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -42,7 +41,7 @@ import {
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
@@ -63,7 +62,7 @@ export async function exportMBTilesTiles(
   try {
     /* Calculate summary */
     const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
@@ -72,8 +71,7 @@ export async function exportMBTilesTiles(
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -153,22 +151,19 @@ export async function exportMBTilesTiles(
       }
     }
 
-    /* Update metadata */
-    printLog("info", "Updating metadata...");
+    /* Update MBTiles metadata */
+    printLog("info", "Updating MBTiles metadata...");
 
     await updateMBTilesMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
 
     /* Export tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function exportMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -211,37 +206,7 @@ export async function exportMBTilesTiles(
 
     printLog("info", "Exporting datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          exportMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(concurrency, exportMBTilesTileData, tileBounds, undefined, item);
 
     printLog(
       "info",
@@ -271,7 +236,7 @@ export async function exportMBTilesTiles(
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
@@ -293,7 +258,7 @@ export async function exportXYZTiles(
   try {
     /* Calculate summary */
     const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
@@ -303,8 +268,7 @@ export async function exportXYZTiles(
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -384,22 +348,19 @@ export async function exportXYZTiles(
       }
     }
 
-    /* Update metadata */
-    printLog("info", "Updating metadata...");
+    /* Update XYZ metadata */
+    printLog("info", "Updating XYZ metadata...");
 
     await updateXYZMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
 
     /* Export tile files */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function exportXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -444,37 +405,7 @@ export async function exportXYZTiles(
 
     printLog("info", "Exporting datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          exportXYZTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(concurrency, exportXYZTileData, tileBounds, undefined, item);
 
     /* Remove parent folders if empty */
     await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp)$/);
@@ -506,7 +437,7 @@ export async function exportXYZTiles(
  * @param {string} filePath Exported file path
  * @param {object} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency to download
+ * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
@@ -527,7 +458,7 @@ export async function exportPostgreSQLTiles(
   try {
     /* Calculate summary */
     const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
+    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
       targetCoverages,
       "xyz"
     );
@@ -536,8 +467,7 @@ export async function exportPostgreSQLTiles(
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -613,22 +543,19 @@ export async function exportPostgreSQLTiles(
       }
     }
 
-    /* Update metadata */
-    printLog("info", "Updating metadata...");
+    /* Update PostgreSQL metadata */
+    printLog("info", "Updating PostgreSQL metadata...");
 
     await updatePostgreSQLMetadata(
       source,
-      metadata,
+      {
+        ...metadata,
+        bbox: realBBox,
+      },
       30000 // 30 secs
     );
 
     /* Export tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function exportPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -671,37 +598,7 @@ export async function exportPostgreSQLTiles(
 
     printLog("info", "Exporting datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item.export) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          exportPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(concurrency, exportPostgreSQLTileData, tileBounds, undefined, item);
 
     printLog(
       "info",

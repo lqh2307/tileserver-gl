@@ -137,7 +137,7 @@
           currentMarker = new maplibregl.Marker({
             draggable: true
           })
-            .setLngLat([event.lngLat.lng, event.lngLat.lat])
+            .setLngLat(event.lngLat)
             .addTo(map);
 
           alert(`Position: [${event.lngLat.lng}, ${event.lngLat.lat}]`);
@@ -306,7 +306,7 @@
           currentMarker = new maplibregl.Marker({
             draggable: true
           })
-            .setLngLat([event.lngLat.lng, event.lngLat.lat])
+            .setLngLat(event.lngLat)
             .addTo(map);
 
           alert(`Position: [${event.lngLat.lng}, ${event.lngLat.lat}]`);

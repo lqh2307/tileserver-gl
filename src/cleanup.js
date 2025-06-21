@@ -7,7 +7,6 @@ import { getFontCreated, removeFontFile } from "./font.js";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { printLog } from "./logger.js";
-import { Mutex } from "async-mutex";
 import {
   getXYZTileExtraInfoFromCoverages,
   removeXYZTile,
@@ -24,12 +23,12 @@ import {
 } from "./tile_mbtiles.js";
 import {
   getTileBoundsFromCoverages,
+  handleTilesConcurrency,
   createFileWithLock,
   removeEmptyFolders,
   processCoverages,
   getJSONSchema,
   validateJSON,
-  delay,
 } from "./utils.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -78,7 +77,7 @@ async function readCleanUpFile(isParse) {
 
 /**
  * Update cleanup.json file content with lock
- * @param {object} cleanUp Clean up object
+ * @param {object} cleanUp Cleanup object
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
@@ -91,8 +90,8 @@ async function updateCleanUpFile(cleanUp, timeout) {
 }
 
 /**
- * Clean up MBTiles tiles
- * @param {string} id Clean up MBTiles ID
+ * Cleanup MBTiles tiles
+ * @param {string} id Cleanup MBTiles ID
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
@@ -111,14 +110,13 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     );
 
     let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-      log += `\n\tClean up before: ${cleanUpBefore}`;
+      log += `\n\tCleanup before: ${cleanUpBefore}`;
     } else if (typeof cleanUpBefore === "number") {
       const now = new Date();
 
@@ -161,12 +159,6 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     }
 
     /* Remove tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function cleanUpMBTilesTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -192,47 +184,21 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
       } catch (error) {
         printLog(
           "error",
-          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
 
     printLog("info", "Removing datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= 256) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          cleanUpMBTilesTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(256, cleanUpMBTilesTileData, tileBounds);
 
     /* Compact MBTiles (Block DB) */
     // compactMBTiles(source);
 
     printLog(
       "info",
-      `Completed clean up ${total} tiles of mbtiles "${id}" after ${
+      `Completed cleanup ${total} tiles of mbtiles "${id}" after ${
         (Date.now() - startTime) / 1000
       }s!`
     );
@@ -247,8 +213,8 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 }
 
 /**
- * Clean up PostgreSQL tiles
- * @param {string} id Clean up PostgreSQL ID
+ * Cleanup PostgreSQL tiles
+ * @param {string} id Cleanup PostgreSQL ID
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
@@ -267,14 +233,13 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     );
 
     let log = `Cleaning up ${total} tiles of postgresql "${id}" with:`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-      log += `\n\tClean up before: ${cleanUpBefore}`;
+      log += `\n\tCleanup before: ${cleanUpBefore}`;
     } else if (typeof cleanUpBefore === "number") {
       const now = new Date();
 
@@ -313,12 +278,6 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     }
 
     /* Remove tiles */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -344,44 +303,18 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
       } catch (error) {
         printLog(
           "error",
-          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
 
     printLog("info", "Removing datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= 256) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          cleanUpPostgreSQLTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(256, cleanUpPostgreSQLTileData, tileBounds);
 
     printLog(
       "info",
-      `Completed clean up ${total} tiles of postgresql "${id}" after ${
+      `Completed cleanup ${total} tiles of postgresql "${id}" after ${
         (Date.now() - startTime) / 1000
       }s!`
     );
@@ -396,8 +329,8 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 }
 
 /**
- * Clean up XYZ tiles
- * @param {string} id Clean up XYZ ID
+ * Cleanup XYZ tiles
+ * @param {string} id Cleanup XYZ ID
  * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
@@ -417,14 +350,13 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     );
 
     let log = `Cleaning up ${total} tiles of xyz "${id}" with:`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
       cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-      log += `\n\tClean up before: ${cleanUpBefore}`;
+      log += `\n\tCleanup before: ${cleanUpBefore}`;
     } else if (typeof cleanUpBefore === "number") {
       const now = new Date();
 
@@ -468,12 +400,6 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     }
 
     /* Remove tile files */
-    const tasks = {
-      mutex: new Mutex(),
-      activeTasks: 0,
-      completeTasks: 0,
-    };
-
     async function cleanUpXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -501,40 +427,14 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
       } catch (error) {
         printLog(
           "error",
-          `Failed to clean up data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
       }
     }
 
     printLog("info", "Removing datas...");
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= 256) {
-            await delay(25);
-          }
-
-          await tasks.mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          cleanUpXYZTileData(z, xCount, yCount, tasks).finally(() =>
-            tasks.mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
-      }
-    }
-
-    /* Wait all tasks done */
-    while (tasks.activeTasks > 0) {
-      await delay(25);
-    }
+    await handleTilesConcurrency(256, cleanUpXYZTileData, tileBounds);
 
     /* Compact XYZ (Block DB) */
     // compactXYZ(source);
@@ -544,7 +444,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
     printLog(
       "info",
-      `Completed clean up ${total} tiles of xyz "${id}" after ${
+      `Completed cleanup ${total} tiles of xyz "${id}" after ${
         (Date.now() - startTime) / 1000
       }s!`
     );
@@ -559,8 +459,8 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 }
 
 /**
- * Clean up geojson
- * @param {string} id Clean up geojson ID
+ * Cleanup geojson
+ * @param {string} id Cleanup geojson ID
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
@@ -573,7 +473,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
   if (typeof cleanUpBefore === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
+    log += `\n\tCleanup before: ${cleanUpBefore}`;
   } else if (typeof cleanUpBefore === "number") {
     const now = new Date();
 
@@ -620,7 +520,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
       );
     }
   } catch (error) {
-    printLog("error", `Failed to clean up geojson "${id}": ${error}`);
+    printLog("error", `Failed to cleanup geojson "${id}": ${error}`);
   }
 
   /* Remove parent folders if empty */
@@ -628,15 +528,15 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed clean up geojson "${id}" after ${
+    `Completed cleanup geojson "${id}" after ${
       (Date.now() - startTime) / 1000
     }s!`
   );
 }
 
 /**
- * Clean up sprite
- * @param {string} id Clean up sprite ID
+ * Cleanup sprite
+ * @param {string} id Cleanup sprite ID
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
@@ -649,7 +549,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
   if (typeof cleanUpBefore === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
+    log += `\n\tCleanup before: ${cleanUpBefore}`;
   } else if (typeof cleanUpBefore === "number") {
     const now = new Date();
 
@@ -698,7 +598,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
     } catch (error) {
       printLog(
         "error",
-        `Failed to clean up sprite "${id}" - File "${fileName}": ${error}`
+        `Failed to cleanup sprite "${id}" - File "${fileName}": ${error}`
       );
     }
   }
@@ -716,15 +616,15 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed clean up sprite "${id}" after ${
+    `Completed cleanup sprite "${id}" after ${
       (Date.now() - startTime) / 1000
     }s!`
   );
 }
 
 /**
- * Clean up font
- * @param {string} id Clean up font ID
+ * Cleanup font
+ * @param {string} id Cleanup font ID
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
@@ -739,7 +639,7 @@ async function cleanUpFont(id, cleanUpBefore) {
   if (typeof cleanUpBefore === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
+    log += `\n\tCleanup before: ${cleanUpBefore}`;
   } else if (typeof cleanUpBefore === "number") {
     const now = new Date();
 
@@ -789,7 +689,7 @@ async function cleanUpFont(id, cleanUpBefore) {
     } catch (error) {
       printLog(
         "error",
-        `Failed to clean up font "${id}" -  Range "${range}": ${error}`
+        `Failed to cleanup font "${id}" -  Range "${range}": ${error}`
       );
     }
   }
@@ -807,15 +707,15 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed clean up ${total} fonts of font "${id}" after ${
+    `Completed cleanup ${total} fonts of font "${id}" after ${
       (Date.now() - startTime) / 1000
     }s!`
   );
 }
 
 /**
- * Clean up style
- * @param {string} id Clean up style ID
+ * Cleanup style
+ * @param {string} id Cleanup style ID
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
@@ -828,7 +728,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
   if (typeof cleanUpBefore === "string") {
     cleanUpTimestamp = new Date(cleanUpBefore).getTime();
 
-    log += `\n\tClean up before: ${cleanUpBefore}`;
+    log += `\n\tCleanup before: ${cleanUpBefore}`;
   } else if (typeof cleanUpBefore === "number") {
     const now = new Date();
 
@@ -875,7 +775,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
       );
     }
   } catch (error) {
-    printLog("error", `Failed to clean up style "${id}": ${error}`);
+    printLog("error", `Failed to cleanup style "${id}": ${error}`);
   }
 
   /* Remove parent folders if empty */
@@ -883,9 +783,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed clean up style "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`
+    `Completed cleanup style "${id}" after ${(Date.now() - startTime) / 1000}s!`
   );
 }
 

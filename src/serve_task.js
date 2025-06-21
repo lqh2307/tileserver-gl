@@ -89,31 +89,31 @@ export const serve_task = {
      *         schema:
      *           type: boolean
      *         required: false
-     *         description: Run clean up sprites
+     *         description: Run cleanup sprites
      *       - in: query
      *         name: cleanUpFonts
      *         schema:
      *           type: boolean
      *         required: false
-     *         description: Run clean up fonts
+     *         description: Run cleanup fonts
      *       - in: query
      *         name: cleanUpStyles
      *         schema:
      *           type: boolean
      *         required: false
-     *         description: Run clean up styles
+     *         description: Run cleanup styles
      *       - in: query
      *         name: cleanUpGeoJSONs
      *         schema:
      *           type: boolean
      *         required: false
-     *         description: Run clean up geojsons
+     *         description: Run cleanup geojsons
      *       - in: query
      *         name: cleanUpDatas
      *         schema:
      *           type: boolean
      *         required: false
-     *         description: Run clean up datas
+     *         description: Run cleanup datas
      *       - in: query
      *         name: seedSprites
      *         schema:

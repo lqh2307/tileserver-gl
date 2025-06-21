@@ -132,13 +132,13 @@ async function startClusterServer() {
     if (config.options?.taskSchedule !== undefined) {
       printLog(
         "info",
-        `Schedule run seed and clean up tasks at: "${config.options.taskSchedule}"`
+        `Schedule run seed and cleanup tasks at: "${config.options.taskSchedule}"`
       );
 
       cron.schedule(config.options.taskSchedule, () => {
         printLog(
           "info",
-          "Seed and clean up tasks triggered by schedule. Starting task..."
+          "Seed and cleanup tasks triggered by schedule. Starting task..."
         );
 
         startTaskInWorker({
@@ -156,6 +156,9 @@ async function startClusterServer() {
         });
       });
     }
+
+    /* Start server */
+    startServer();
 
     /* Fork servers */
     printLog("info", "Creating workers...");
@@ -214,18 +217,10 @@ async function startClusterServer() {
 
             break;
           }
-
-          default: {
-            printLog(
-              "warn",
-              `Received unknown message "${message.action}" from worker with PID = ${worker.process.pid}. Skipping...`
-            );
-
-            break;
-          }
         }
       });
   } else {
+    /* Start server */
     startServer();
   }
 }

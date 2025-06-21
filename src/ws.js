@@ -1,10 +1,12 @@
 "use strict";
 
+import { createAdapter } from "@socket.io/cluster-adapter";
+import { setupWorker } from "@socket.io/sticky";
 import { printLog } from "./logger.js";
-import WebSocket, { WebSocketServer } from "ws";
-import { v4 } from "uuid";
+import { Server } from "socket.io";
+import cluster from "cluster";
 
-let wss;
+let socketServer;
 
 /**
  * Setup WS server
@@ -12,46 +14,65 @@ let wss;
  * @returns {void}
  */
 export function setupWSServer(server) {
-  const wss = new WebSocketServer({
-    server,
-  });
+  if (!cluster.isPrimary) {
+    socketServer = new Server(server);
 
-  wss.on("connection", (ws) => {
-    const clientID = v4();
+    socketServer.adapter(createAdapter());
 
-    printLog("info", `WS client connected: ${clientID}`);
+    setupWorker(socketServer);
 
-    ws.send(clientID);
+    socketServer.on("connection", (socket) => {
+      printLog("info", `WS client connected: ${socket.id}`);
 
-    ws.on("message", (msg) => {
-      printLog("info", `WS client message ${clientID}: ${msg}`);
-    })
-      .on("close", () => {
-        printLog("info", `WS client closed: ${clientID}`);
-      })
-      .on("error", (error) => {
-        printLog("error", `WS client error ${clientID}: ${error}`);
-      });
-  });
+      socket
+        .on("disconnect", () => {
+          printLog("info", `WS client ${socket.id} closed`);
+        })
+        .on("error", (error) => {
+          printLog("error", `WS client ${socket.id} error: ${error}`);
+        });
+    });
+  }
 }
 
+// /**
+//  * Setup WS server
+//  * @param {object} server Server
+//  * @returns {void}
+//  */
+// export function setupWSServer(server) {
+//   socketServer = new Server(server);
+
+//   socketServer.on("connection", (socket) => {
+//     printLog("info", `WS client connected: ${socket.id}`);
+
+//     socket.emit("connected", socket.id);
+
+//     socket
+//       .on("disconnect", () => {
+//         printLog("info", `WS client ${socket.id} closed`);
+//       })
+//       .on("error", (error) => {
+//         printLog("error", `WS client ${socket.id} error: ${error}`);
+//       });
+//   });
+// }
+
 /**
- * Send message
+ * Emit WS message
+ * @param {string} event Event
  * @param {string} message Message
  * @param {string[]} ids ID list
  * @returns {void}
  */
-export function broadcast(message, ids) {
-  if (!wss) {
+export function emitWSMessage(event = "message", message, ids) {
+  if (!socketServer) {
     return;
   }
 
-  wss.clients.forEach((client) => {
-    if (
-      client.readyState === WebSocket.OPEN &&
-      (!ids || ids.includes(client.id))
-    ) {
-      client.send(message);
-    }
-  });
+  if (ids) {
+    ids.forEach((id) => socketServer.to(id).emit(event, message));
+  } else {
+    socketServer.emit(event, message);
+  }
 }

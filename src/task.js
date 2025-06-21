@@ -24,13 +24,13 @@ import {
 import os from "os";
 
 /**
- * Run clean up and seed tasks
+ * Run cleanup and seed tasks
  * @param {{ cleanUpSprites: boolean, cleanUpFonts: boolean, cleanUpStyles: boolean, cleanUpGeoJSONs: boolean, cleanUpDatas: boolean, seedSprites: boolean, seedFonts: boolean, seedStyles: boolean, seedGeoJSONs: boolean, seedDatas: boolean }} opts Options
  * @returns {Promise<void>}
  */
 export async function runTasks(opts) {
   try {
-    printLog("info", "Starting seed and clean up tasks...");
+    printLog("info", "Starting seed and cleanup tasks...");
 
     if (
       opts.cleanUpSprites ||
@@ -44,7 +44,7 @@ export async function runTasks(opts) {
       opts.seedGeoJSONs ||
       opts.seedDatas
     ) {
-      /* Clean up sprites */
+      /* Cleanup sprites */
       if (opts.cleanUpSprites) {
         try {
           if (!cleanUp.sprites) {
@@ -52,7 +52,7 @@ export async function runTasks(opts) {
           } else {
             const ids = Object.keys(cleanUp.sprites);
 
-            printLog("info", `Starting clean up ${ids.length} sprites...`);
+            printLog("info", `Starting cleanup ${ids.length} sprites...`);
 
             const startTime = Date.now();
 
@@ -60,7 +60,7 @@ export async function runTasks(opts) {
               const item = cleanUp.sprites[id];
 
               if (item.skip) {
-                printLog("info", `Skipping clean up sprite "${id}"...`);
+                printLog("info", `Skipping cleanup sprite "${id}"...`);
 
                 continue;
               }
@@ -73,24 +73,24 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to clean up sprite "${id}": ${error}. Skipping...`
+                  `Failed to cleanup sprite "${id}": ${error}. Skipping...`
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed clean up ${ids.length} sprites after: ${
+              `Completed cleanup ${ids.length} sprites after: ${
                 (Date.now() - startTime) / 1000
               }s!`
             );
           }
         } catch (error) {
-          printLog("error", `Failed to clean up sprites: ${error}. Exited!`);
+          printLog("error", `Failed to cleanup sprites: ${error}. Exited!`);
         }
       }
 
-      /* Clean up fonts */
+      /* Cleanup fonts */
       if (opts.cleanUpFonts) {
         try {
           if (!cleanUp.fonts) {
@@ -98,7 +98,7 @@ export async function runTasks(opts) {
           } else {
             const ids = Object.keys(cleanUp.fonts);
 
-            printLog("info", `Starting clean up ${ids.length} fonts...`);
+            printLog("info", `Starting cleanup ${ids.length} fonts...`);
 
             const startTime = Date.now();
 
@@ -106,7 +106,7 @@ export async function runTasks(opts) {
               const item = cleanUp.fonts[id];
 
               if (item.skip) {
-                printLog("info", `Skipping clean up font "${id}"...`);
+                printLog("info", `Skipping cleanup font "${id}"...`);
 
                 continue;
               }
@@ -119,24 +119,24 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to clean up font "${id}": ${error}. Skipping...`
+                  `Failed to cleanup font "${id}": ${error}. Skipping...`
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed clean up ${ids.length} fonts after: ${
+              `Completed cleanup ${ids.length} fonts after: ${
                 (Date.now() - startTime) / 1000
               }s!`
             );
           }
         } catch (error) {
-          printLog("error", `Failed to clean up fonts: ${error}. Exited!`);
+          printLog("error", `Failed to cleanup fonts: ${error}. Exited!`);
         }
       }
 
-      /* Clean up styles */
+      /* Cleanup styles */
       if (opts.cleanUpStyles) {
         try {
           if (!cleanUp.styles) {
@@ -144,7 +144,7 @@ export async function runTasks(opts) {
           } else {
             const ids = Object.keys(cleanUp.styles);
 
-            printLog("info", `Starting clean up ${ids.length} styles...`);
+            printLog("info", `Starting cleanup ${ids.length} styles...`);
 
             const startTime = Date.now();
 
@@ -152,7 +152,7 @@ export async function runTasks(opts) {
               const item = cleanUp.styles[id];
 
               if (item.skip) {
-                printLog("info", `Skipping clean up style "${id}"...`);
+                printLog("info", `Skipping cleanup style "${id}"...`);
 
                 continue;
               }
@@ -165,24 +165,24 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to clean up style "${id}": ${error}. Skipping...`
+                  `Failed to cleanup style "${id}": ${error}. Skipping...`
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed clean up ${ids.length} styles after: ${
+              `Completed cleanup ${ids.length} styles after: ${
                 (Date.now() - startTime) / 1000
               }s!`
             );
           }
         } catch (error) {
-          printLog("error", `Failed to clean up styles: ${error}. Exited!`);
+          printLog("error", `Failed to cleanup styles: ${error}. Exited!`);
         }
       }
 
-      /* Clean up geojsons */
+      /* Cleanup geojsons */
       if (opts.cleanUpGeoJSONs) {
         try {
           if (!cleanUp.geojsons) {
@@ -190,7 +190,7 @@ export async function runTasks(opts) {
           } else {
             const ids = Object.keys(cleanUp.geojsons);
 
-            printLog("info", `Starting clean up ${ids.length} geojsons...`);
+            printLog("info", `Starting cleanup ${ids.length} geojsons...`);
 
             const startTime = Date.now();
 
@@ -198,7 +198,7 @@ export async function runTasks(opts) {
               const item = cleanUp.geojsons[id];
 
               if (item.skip) {
-                printLog("info", `Skipping clean up geojson "${id}"...`);
+                printLog("info", `Skipping cleanup geojson "${id}"...`);
 
                 continue;
               }
@@ -211,24 +211,24 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to clean up geojson "${id}": ${error}. Skipping...`
+                  `Failed to cleanup geojson "${id}": ${error}. Skipping...`
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed clean up ${ids.length} geojsons after: ${
+              `Completed cleanup ${ids.length} geojsons after: ${
                 (Date.now() - startTime) / 1000
               }s!`
             );
           }
         } catch (error) {
-          printLog("error", `Failed to clean up geojsons: ${error}. Exited!`);
+          printLog("error", `Failed to cleanup geojsons: ${error}. Exited!`);
         }
       }
 
-      /* Clean up datas */
+      /* Cleanup datas */
       if (opts.cleanUpDatas) {
         try {
           if (!cleanUp.datas) {
@@ -236,7 +236,7 @@ export async function runTasks(opts) {
           } else {
             const ids = Object.keys(cleanUp.datas);
 
-            printLog("info", `Starting clean up ${ids.length} datas...`);
+            printLog("info", `Starting cleanup ${ids.length} datas...`);
 
             const startTime = Date.now();
 
@@ -245,7 +245,7 @@ export async function runTasks(opts) {
               const cleanUpDataItem = cleanUp.datas[id];
 
               if (cleanUpDataItem.skip) {
-                printLog("info", `Skipping clean up data "${id}"...`);
+                printLog("info", `Skipping cleanup data "${id}"...`);
 
                 continue;
               }
@@ -289,20 +289,20 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to clean up data "${id}": ${error}. Skipping...`
+                  `Failed to cleanup data "${id}": ${error}. Skipping...`
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed clean up ${ids.length} datas after: ${
+              `Completed cleanup ${ids.length} datas after: ${
                 (Date.now() - startTime) / 1000
               }s!`
             );
           }
         } catch (error) {
-          printLog("error", `Failed to clean up datas: ${error}. Exited!`);
+          printLog("error", `Failed to cleanup datas: ${error}. Exited!`);
         }
       }
 
@@ -616,6 +616,6 @@ export async function runTasks(opts) {
   } catch (error) {
     printLog("error", `Failed to run tasks: ${error}`);
   } finally {
-    printLog("info", "Completed seed and clean up tasks!");
+    printLog("info", "Completed seed and cleanup tasks!");
   }
 }

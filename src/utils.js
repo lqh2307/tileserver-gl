@@ -5,6 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { spawn } from "child_process";
 import handlebars from "handlebars";
+import { Mutex } from "async-mutex";
 import archiver from "archiver";
 import https from "node:https";
 import { jsPDF } from "jspdf";
@@ -1709,7 +1710,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
       frameOuterWidth = 6,
       frameOuterStyle = "solid",
 
-      frameSpace = 120,
+      frameSpace = 60,
 
       tickLabelFormat = "DMSD",
 
@@ -1740,8 +1741,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
       xTickMajorLabelRotation = 0,
       xTickMinorLabelRotation = 0,
 
-      yTickMajorLabelRotation = 0,
-      yTickMinorLabelRotation = 0,
+      yTickMajorLabelRotation = 90,
+      yTickMinorLabelRotation = 90,
     } = frame;
 
     if (frameMargin === undefined) {
@@ -1767,6 +1768,31 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`;
 
     // X-axis major ticks & labels
+    let topMajorTextAnchor = "middle";
+    let topMajorDominantBaseline = "auto";
+    let bottomMajorTextAnchor = "middle";
+    let bottomMajorDominantBaseline = "hanging";
+
+    switch (xTickMajorLabelRotation) {
+      case 90: {
+        topMajorTextAnchor = "end";
+        topMajorDominantBaseline = "middle";
+        bottomMajorTextAnchor = "start";
+        bottomMajorDominantBaseline = "middle";
+
+        break;
+      }
+
+      case -90: {
+        topMajorTextAnchor = "start";
+        topMajorDominantBaseline = "middle";
+        bottomMajorTextAnchor = "end";
+        bottomMajorDominantBaseline = "middle";
+
+        break;
+      }
+    }
+
     let xTickMajorStart = Math.floor(bbox[0] / majorTickStep) * majorTickStep;
     if (xTickMajorStart < bbox[2]) {
       xTickMajorStart += majorTickStep;
@@ -1802,14 +1828,14 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         // Top label
         svg.content += `<text x="${totalMargin + x}" y="${
           totalMargin - majorTickSize - xTickLabelOffset
-        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMajorLabelRotation},${
+        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${topMajorTextAnchor}" dominant-baseline="${topMajorDominantBaseline}" transform="rotate(${xTickMajorLabelRotation},${
           totalMargin + x
         },${totalMargin - majorTickSize - xTickLabelOffset})">${label}</text>`;
 
         // Bottom label
         svg.content += `<text x="${totalMargin + x}" y="${
           totalMargin + height + majorTickSize + xTickLabelOffset
-        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMajorLabelRotation},${
+        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${bottomMajorTextAnchor}" dominant-baseline="${bottomMajorDominantBaseline}" transform="rotate(${xTickMajorLabelRotation},${
           totalMargin + x
         },${
           totalMargin + height + majorTickSize + xTickLabelOffset
@@ -1818,6 +1844,31 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     }
 
     // X-axis minor ticks & labels
+    let topMinorTextAnchor = "middle";
+    let topMinorDominantBaseline = "auto";
+    let bottomMinorTextAnchor = "middle";
+    let bottomMinorDominantBaseline = "hanging";
+
+    switch (xTickMajorLabelRotation) {
+      case 90: {
+        topMinorTextAnchor = "end";
+        topMinorDominantBaseline = "middle";
+        bottomMinorTextAnchor = "start";
+        bottomMinorDominantBaseline = "middle";
+
+        break;
+      }
+
+      case -90: {
+        topMinorTextAnchor = "start";
+        topMinorDominantBaseline = "middle";
+        bottomMinorTextAnchor = "end";
+        bottomMinorDominantBaseline = "middle";
+
+        break;
+      }
+    }
+
     let xTickMinorStart = Math.floor(bbox[0] / minorTickStep) * minorTickStep;
     if (xTickMinorStart < bbox[2]) {
       xTickMinorStart += minorTickStep;
@@ -1853,14 +1904,14 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         // Top label
         svg.content += `<text x="${totalMargin + x}" y="${
           totalMargin - minorTickSize - xTickLabelOffset
-        }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" transform="rotate(${xTickMinorLabelRotation},${
+        }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${topMinorTextAnchor}" dominant-baseline="${topMinorDominantBaseline}" transform="rotate(${xTickMinorLabelRotation},${
           totalMargin + x
         },${totalMargin - minorTickSize - xTickLabelOffset})">${label}</text>`;
 
         // Bottom label
         svg.content += `<text x="${totalMargin + x}" y="${
           totalMargin + height + minorTickSize + xTickLabelOffset
-        }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="middle" dominant-baseline="text-before-edge" transform="rotate(${xTickMinorLabelRotation},${
+        }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${bottomMinorTextAnchor}" dominant-baseline="${bottomMinorDominantBaseline}" transform="rotate(${xTickMinorLabelRotation},${
           totalMargin + x
         },${
           totalMargin + height + minorTickSize + xTickLabelOffset
@@ -1869,6 +1920,31 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     }
 
     // Y-axis major ticks & labels
+    let leftMajorTextAnchor = "end";
+    let leftMajorDominantBaseline = "middle";
+    let rightMajorTextAnchor = "start";
+    let rightMajorDominantBaseline = "middle";
+
+    switch (yTickMajorLabelRotation) {
+      case 90: {
+        leftMajorTextAnchor = "middle";
+        leftMajorDominantBaseline = "hanging";
+        rightMajorTextAnchor = "middle";
+        rightMajorDominantBaseline = "auto";
+
+        break;
+      }
+
+      case -90: {
+        leftMajorTextAnchor = "middle";
+        leftMajorDominantBaseline = "auto";
+        rightMajorTextAnchor = "middle";
+        rightMajorDominantBaseline = "hanging";
+
+        break;
+      }
+    }
+
     let yTickMajorStart = Math.floor(bbox[1] / majorTickStep) * majorTickStep;
     if (yTickMajorStart < bbox[3]) {
       yTickMajorStart += majorTickStep;
@@ -1904,7 +1980,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         // Left label
         svg.content += `<text x="${totalMargin - majorTickSize - yTickLabelOffset}" y="${
           totalMargin + y
-        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
+        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${leftMajorTextAnchor}" dominant-baseline="${leftMajorDominantBaseline}" transform="rotate(${yTickMajorLabelRotation},${
           totalMargin - majorTickSize - yTickLabelOffset
         },${totalMargin + y})">${label}</text>`;
 
@@ -1913,13 +1989,38 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           totalMargin + width + majorTickSize + yTickLabelOffset
         }" y="${
           totalMargin + y
-        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMajorLabelRotation},${
+        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${rightMajorTextAnchor}" dominant-baseline="${rightMajorDominantBaseline}" transform="rotate(${yTickMajorLabelRotation},${
           totalMargin + width + majorTickSize + yTickLabelOffset
         },${totalMargin + y})">${label}</text>`;
       }
     }
 
     // Y-axis minor ticks & labels
+    let leftMinorTextAnchor = "end";
+    let leftMinorDominantBaseline = "middle";
+    let rightMinorTextAnchor = "start";
+    let rightMinorDominantBaseline = "middle";
+
+    switch (yTickMinorLabelRotation) {
+      case 90: {
+        leftMinorTextAnchor = "middle";
+        leftMinorDominantBaseline = "hanging";
+        rightMinorTextAnchor = "middle";
+        rightMinorDominantBaseline = "auto";
+
+        break;
+      }
+
+      case -90: {
+        leftMinorTextAnchor = "middle";
+        leftMinorDominantBaseline = "auto";
+        rightMinorTextAnchor = "middle";
+        rightMinorDominantBaseline = "hanging";
+
+        break;
+      }
+    }
+
     let yTickMinorStart = Math.floor(bbox[1] / minorTickStep) * minorTickStep;
     if (yTickMinorStart < bbox[3]) {
       yTickMinorStart += minorTickStep;
@@ -1955,7 +2056,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         // Left label
         svg.content += `<text x="${totalMargin - minorTickSize - yTickLabelOffset}" y="${
           totalMargin + y
-        }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="end" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
+        }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${leftMinorTextAnchor}" dominant-baseline="${leftMinorDominantBaseline}" transform="rotate(${yTickMinorLabelRotation},${
           totalMargin - minorTickSize - yTickLabelOffset
         },${totalMargin + y})">${label}</text>`;
 
@@ -1964,7 +2065,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           totalMargin + width + minorTickSize + yTickLabelOffset
         }" y="${
           totalMargin + y
-        }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="start" dominant-baseline="middle" transform="rotate(${yTickMinorLabelRotation},${
+        }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${rightMinorTextAnchor}" dominant-baseline="${rightMinorDominantBaseline}" transform="rotate(${yTickMinorLabelRotation},${
           totalMargin + width + minorTickSize + yTickLabelOffset
         },${totalMargin + y})">${label}</text>`;
       }
@@ -2148,10 +2249,132 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 }
 
 /**
+ * Merge tiles to image
+ * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", scheme: "xyz" | "tms", tileSize: number, bbox: [number, number, number, number] }} input Input object
+ * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number base64: boolean }} output Output object
+ * @returns {Promise<sharp.OutputInfo|Buffer|string>}
+ */
+export async function mergeTilesToImage(input, output) {
+  // Detect tile size
+  const { width, height } = await sharp(`${input.dirPath}/${input.z}/${input.xMin}/${input.yMin}.${input.format}`, {
+    limitInputPixels: false,
+  }).metadata();
+
+  // Calculate target width, height
+  const targetWidth = (input.xMax - input.xMin + 1) * width;
+  const targetHeight = (input.yMax - input.yMin + 1) * height;
+
+  // Process composites
+  const composites = [];
+
+  for (let x = input.xMin; x <= input.xMax; x++) {
+    for (let y = input.yMin; y <= input.yMax; y++) {
+      composites.push({
+        input: `${input.dirPath}/${input.z}/${x}/${y}.${input.format}`,
+        top: (y - input.yMin) * height,
+        left: (x - input.xMin) * width,
+      });
+    }
+  }
+
+  // Composite image
+  const compositeImage = await sharp({
+    limitInputPixels: false,
+    create: {
+      width: targetWidth,
+      height: targetHeight,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  }).composite(composites).png().toBuffer();
+
+  // Create image
+  const image = sharp(compositeImage, {
+    limitInputPixels: false,
+  });
+
+  // Extract image
+  if (output.bbox) {
+    const originBBox = input.bbox ? input.bbox : getBBoxFromTiles(
+      input.xMin,
+      input.yMin,
+      input.xMax,
+      input.yMax,
+      input.z,
+      input.scheme,
+      input.tileSize
+    );
+
+    const xRes = targetWidth / (originBBox[2] - originBBox[0]);
+    const yRes = targetHeight / (originBBox[3] - originBBox[1]);
+
+    image.
+      extract({
+        left: Math.floor((output.bbox[0] - originBBox[0]) * xRes),
+        top: Math.floor((originBBox[3] - output.bbox[3]) * yRes),
+        width: Math.round((output.bbox[2] - output.bbox[0]) * xRes),
+        height: Math.round((output.bbox[3] - output.bbox[1]) * yRes),
+      });
+  }
+
+  // Resize image
+  if (output.width > 0 || output.height > 0) {
+    image.resize(output.width, output.height);
+  }
+
+  // Create format
+  switch (output.format) {
+    case "gif": {
+      image.gif({});
+
+      break;
+    }
+
+    case "png": {
+      image.png({
+        compressionLevel: 9,
+      });
+
+      break;
+    }
+
+    case "jpg":
+    case "jpeg": {
+      image.jpeg({
+        quality: 100,
+      });
+
+      break;
+    }
+
+    case "webp": {
+      image.webp({
+        quality: 100,
+      });
+
+      break;
+    }
+  }
+
+  // Write to output
+  if (output.filePath) {
+    await mkdir(path.dirname(output.filePath), {
+      recursive: true,
+    });
+
+    return await image.toFile(output.filePath);
+  } else if (output.base64) {
+    return createBase64(await image.toBuffer(), output.format);
+  } else {
+    return await image.toBuffer();
+  }
+}
+
+/**
  * Split image to PDF
  * @param {{ image: string|Buffer, res: [number, number] }} input Input object
  * @param {object} preview Preview options object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, center: boolean }} output Output object
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, alignContent: { horizontal: "head"|"middle"|"tail", vertical: "head"|"middle"|"tail" }, compression: boolean }} output Output object
  * @returns {Promise<jsPDF|sharp.OutputInfo|Buffer|string>}
  */
 export async function splitImage(input, preview, output) {
@@ -2177,10 +2400,66 @@ export async function splitImage(input, preview, output) {
   const newHeight = heightPageNum * stepHeightPX;
   const newWidth = widthPageNum * stepWidthPX;
 
-  const extendTop = output.center ? Math.floor((newHeight - height) / 2) : 0;
-  const extendLeft = output.center ? Math.floor((newWidth - width) / 2) : 0;
+  let extendTop = 0;
+  let extendLeft = 0;
+
+  if (output.alignContent) {
+    switch (output.alignContent.horizontal) {
+      case "head": {
+        extendTop = 0;
+
+        break;
+      }
+
+      case "middle": {
+        extendTop = Math.floor((newHeight - height) / 2);
+
+        break;
+      }
+
+      case "tail": {
+        extendTop = Math.floor(newHeight - height);
+
+        break;
+      }
+    }
+
+    switch (output.alignContent.vertical) {
+      case "head": {
+        extendLeft = 0;
+
+        break;
+      }
+
+      case "middle": {
+        extendLeft = Math.floor((newWidth - width) / 2);
+
+        break;
+      }
+
+      case "tail": {
+        extendLeft = Math.floor(newWidth - width);
+
+        break;
+      }
+    }
+  }
+
   const extendBottom = Math.ceil(newHeight - height - extendTop);
   const extendRight = Math.ceil(newWidth - width - extendLeft);
+
+  // Extend image
+  const extendImage = await sharp(input.image, {
+    limitInputPixels: false,
+  })
+    .extend({
+      top: extendTop,
+      left: extendLeft,
+      bottom: extendBottom,
+      right: extendRight,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    }).png()
+    .toBuffer();
 
   if (preview) {
     let {
@@ -2220,16 +2499,9 @@ export async function splitImage(input, preview, output) {
     }
 
     // Create image
-    const image = sharp(input.image, {
+    const image = sharp(extendImage, {
       limitInputPixels: false,
     })
-      .extend({
-        top: extendTop,
-        left: extendLeft,
-        bottom: extendBottom,
-        right: extendRight,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
       .composite([
         {
           limitInputPixels: false,
@@ -2295,20 +2567,13 @@ export async function splitImage(input, preview, output) {
       orientation: output.orientation,
       unit: "mm",
       format: output.paperSize,
-      compress: true,
+      compress: output.compression,
     });
 
     for (let y = 0; y < heightPageNum; y++) {
-      for (let x = 0; x < widthPageNum; x++) {
-        const image = await sharp(input.image, {
-          limitInputPixels: false,
-        })
-          .extend({
-            top: extendTop,
-            left: extendLeft,
-            bottom: extendBottom,
-            right: extendRight,
-            background: { r: 0, g: 0, b: 0, alpha: 0 },
+      for (let x = 0; x < widthPageNum; x++) {     
+        const image = await sharp(extendImage, {
+            limitInputPixels: false,
           })
           .extract({
             left: x * stepWidthPX,
@@ -2322,7 +2587,17 @@ export async function splitImage(input, preview, output) {
           .toBuffer();
 
         if (x > 0 || y > 0) {
-          doc.addPage(output.paperSize, output.orientation);
+          doc.addPage();
+        }
+
+        let pageWidth = stepWidthPX * input.resolution[0];
+        if (pageWidth > paperWidth) {
+          pageWidth = paperWidth;
+        }
+
+        let pageHeight = stepHeightPX * input.resolution[1];
+        if (pageHeight > paperHeight) {
+          pageHeight = paperHeight;
         }
 
         doc.addImage(
@@ -2330,8 +2605,8 @@ export async function splitImage(input, preview, output) {
           "png",
           0,
           0,
-          stepWidthPX * input.resolution[0],
-          stepHeightPX * input.resolution[1]
+          pageWidth,
+          pageHeight
         );
       }
     }
@@ -2396,22 +2671,101 @@ export async function isFullTransparentPNGImage(buffer) {
 }
 
 /**
- * Process image raw data
+ * Process image tile raw data
+ * @param {Buffer} data Image data buffer
+ * @param {number} originSize Image origin size
+ * @param {number} targetSize Image origin size
+ * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
+ * @param {string} filePath File path
+ * @returns {Promise<sharp.OutputInfo|Buffer>}
+ */
+export async function processImageTileRawData(
+  data,
+  originSize,
+  targetSize,
+  format,
+  filePath
+) {
+  const image = sharp(data, {
+    limitInputPixels: false,
+    raw: {
+      premultiplied: true,
+      width: originSize,
+      height: originSize,
+      channels: 4,
+    },
+  });
+
+  if (targetSize > 0) {
+    image.resize({
+      width: targetSize,
+      height: targetSize,
+    });
+  }
+
+  switch (format) {
+    case "gif": {
+      image.gif({});
+
+      break;
+    }
+
+    case "png": {
+      image.png({
+        compressionLevel: 9,
+      });
+
+      break;
+    }
+
+    case "jpg":
+    case "jpeg": {
+      image.jpeg({
+        quality: 100,
+      });
+
+      break;
+    }
+
+    case "webp": {
+      image.webp({
+        quality: 100,
+      });
+
+      break;
+    }
+  }
+
+  if (filePath) {
+    await mkdir(path.dirname(filePath), {
+      recursive: true,
+    });
+
+    return await image.toFile(filePath);
+  } else {
+    return await image.toBuffer();
+  }
+}
+
+/**
+ * Process image static raw data
  * @param {Buffer} data Image data buffer
  * @param {number} originWidth Image origin width size
  * @param {number} originHeight Image origin height size
  * @param {number} targetWidth Image origin width size
  * @param {number} targetHeight Image origin height size
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
- * @returns {Promise<Buffer>}
+ * @param {string} filePath File path
+ * @returns {Promise<sharp.OutputInfo|Buffer>}
  */
-export async function processImageRawData(
+export async function processImageStaticRawData(
   data,
   originWidth,
   originHeight,
   targetWidth,
   targetHeight,
-  format
+  format,
+  filePath
 ) {
   const image = sharp(data, {
     limitInputPixels: false,
@@ -2463,7 +2817,15 @@ export async function processImageRawData(
     }
   }
 
-  return await image.toBuffer();
+  if (filePath) {
+    await mkdir(path.dirname(filePath), {
+      recursive: true,
+    });
+
+    return await image.toFile(filePath);
+  } else {
+    return await image.toBuffer();
+  }
 }
 
 /**
@@ -2817,4 +3179,82 @@ export function createBase64(buffer, format) {
   return `data:${detectContentTypeFromFormat(format)};base64,${buffer.toString(
     "base64"
   )}`;
+}
+
+/**
+ * Handle tiles concurrency
+ * @param {number} concurrency Concurrency
+ * @param {(z: number, x: number, y: number, tasks: { activeTasks: number, completeTasks: number }) => void} renderFunc Render function
+ * @param {object} tileBounds Tile bounds
+ * @param {{ interval: number, callbackFunc: (tasks: { activeTasks: number, completeTasks: number }) => void }} callback Callback
+ * @param {{ export: boolean }} item Item object
+ * @returns {Promise<{void}>} Response
+ */
+export async function handleTilesConcurrency(
+  concurrency,
+  renderFunc,
+  tileBounds,
+  callback,
+  item
+) {
+  let intervalID;
+
+  try {
+    const mutex = new Mutex();
+
+    const tasks = {
+      activeTasks: 0,
+      completeTasks: 0,
+    };
+
+    const { interval, callbackFunc } = callback || {};
+
+    /* Call callback */
+    if (interval > 0 && callbackFunc) {
+      intervalID = setInterval(() => callbackFunc(tasks), interval);
+    }
+
+    for (const { z, x, y } of tileBounds) {
+      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+          if (item && !item.export) {
+            return;
+          }
+
+          /* Wait slot for a task */
+          while (tasks.activeTasks >= concurrency) {
+            await delay(25);
+          }
+
+          await mutex.runExclusive(() => {
+            tasks.activeTasks++;
+            tasks.completeTasks++;
+          });
+
+          /* Run a task */
+          renderFunc(z, xCount, yCount, tasks).finally(() =>
+            mutex.runExclusive(() => {
+              tasks.activeTasks--;
+            })
+          );
+        }
+      }
+    }
+
+    /* Wait all tasks done */
+    while (tasks.activeTasks > 0) {
+      await delay(25);
+    }
+
+    /* Last call callback */
+    if (interval > 0 && callbackFunc) {
+      callbackFunc(tasks);
+    }
+  } catch (error) {
+    throw error;
+  } finally {
+    if (intervalID) {
+      clearInterval(intervalID);
+    }
+  }
 }
