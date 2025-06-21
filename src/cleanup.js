@@ -26,7 +26,6 @@ import {
   handleTilesConcurrency,
   createFileWithLock,
   removeEmptyFolders,
-  processCoverages,
   getJSONSchema,
   validateJSON,
 } from "./utils.js";
@@ -103,14 +102,10 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
-      "xyz"
-    );
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
     let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -145,7 +140,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {
@@ -226,14 +221,10 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
-      "xyz"
-    );
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
     let log = `Cleaning up ${total} tiles of postgresql "${id}" with:`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -264,7 +255,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
         tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {
@@ -343,14 +334,10 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
-    const { total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
-      "xyz"
-    );
+    const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
     let log = `Cleaning up ${total} tiles of xyz "${id}" with:`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -386,7 +373,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {

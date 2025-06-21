@@ -21,9 +21,9 @@ import {
 } from "./tile_mbtiles.js";
 import {
   detectContentTypeFromFormat,
+  getTileBoundsFromCoverages,
   createTileMetadata,
   calculateMD5OfFile,
-  processCoverages,
   compileTemplate,
   getRequestHost,
   getJSONSchema,
@@ -357,14 +357,14 @@ function getDataTileExtraInfoHandler() {
       }
 
       let extraInfo;
-      const targetCoverages = processCoverages(req.body, item.tileJSON.bounds);
 
       switch (item.sourceType) {
         case "mbtiles": {
           extraInfo = getMBTilesTileExtraInfoFromCoverages(
             item.source,
-            targetCoverages,
-            req.query.type === "created"
+            req.body,
+            req.query.type === "created",
+            item.tileJSON.bounds
           );
 
           break;
@@ -381,8 +381,9 @@ function getDataTileExtraInfoHandler() {
         case "xyz": {
           extraInfo = getXYZTileExtraInfoFromCoverages(
             item.md5Source,
-            targetCoverages,
-            req.query.type === "created"
+            req.body,
+            req.query.type === "created",
+            item.tileJSON.bounds
           );
 
           break;
@@ -391,8 +392,9 @@ function getDataTileExtraInfoHandler() {
         case "pg": {
           extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
             item.source,
-            targetCoverages,
-            req.query.type === "created"
+            req.body,
+            req.query.type === "created",
+            item.tileJSON.bounds
           );
 
           break;
@@ -991,10 +993,10 @@ export const serve_data = {
                 /* Get MBTiles metadata */
                 dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
-                  cacheCoverages: processCoverages(
+                  cacheCoverages: getTileBoundsFromCoverages(
                     cacheSource.coverages,
                     cacheSource.metadata.bounds
-                  ),
+                  ).targetCoverages,
                 });
               } else {
                 /* Get MBTiles path */
@@ -1068,10 +1070,10 @@ export const serve_data = {
                 /* Get XYZ metadata */
                 dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
-                  cacheCoverages: processCoverages(
+                  cacheCoverages: getTileBoundsFromCoverages(
                     cacheSource.coverages,
                     cacheSource.metadata.bounds
-                  ),
+                  ).targetCoverages,
                 });
               } else {
                 /* Get XYZ path */
@@ -1119,10 +1121,10 @@ export const serve_data = {
                 /* Get PostgreSQL metadata */
                 dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
-                  cacheCoverages: processCoverages(
+                  cacheCoverages: getTileBoundsFromCoverages(
                     cacheSource.coverages,
                     cacheSource.metadata.bounds
-                  ),
+                  ).targetCoverages,
                 });
               } else {
                 /* Get XYZ path */

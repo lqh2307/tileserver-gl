@@ -605,26 +605,55 @@ export function getGridsFromCoverage(coverage, lonStep = 1, latStep = 1) {
 
 /**
  * Get tile bounds and total count for specific coverages
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
+ * @param {{ zoom: number, bbox: [number, number, number, number], circle: { radius: number, center: [number, number] }}[]} coverages Specific coverages
  * @param {"xyz"|"tms"} scheme Tile scheme
  * @param {256|512} tileSize Tile size
- * @returns {{ realBBox: [number, number, number, number], total: number, tileBounds: { z: number, x: [number, number], y: [number, number] }[] }}
+ * @param {[number, number, number, number]} limitedBBox Limited bounding box
+ * @returns {{ targetCoverages: { zoom: number, bbox: [number, number, number, number] }}[], realBBox: [number, number, number, number], total: number, tileBounds: { realBBox: [number, number, number, number], total: number, z: number, x: [number, number], y: [number, number] }[] }}
  */
-export function getTileBoundsFromCoverages(coverages, scheme, tileSize = 256) {
+export function getTileBoundsFromCoverages(
+  coverages,
+  scheme,
+  tileSize,
+  limitedBBox
+) {
   let totalTile = 0;
   let realBBox;
+  const targetCoverages = {};
 
   const tileBounds = coverages.map((coverage, idx) => {
+    const bbox = coverage.circle
+      ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
+      : deepClone(coverage.bbox);
+
+    if (limitedBBox) {
+      if (bbox[0] < limitedBBox[0]) {
+        bbox[0] = limitedBBox[0];
+      }
+
+      if (bbox[1] < limitedBBox[1]) {
+        bbox[1] = limitedBBox[1];
+      }
+
+      if (bbox[2] > limitedBBox[2]) {
+        bbox[2] = limitedBBox[2];
+      }
+
+      if (bbox[3] > limitedBBox[3]) {
+        bbox[3] = limitedBBox[3];
+      }
+    }
+
     let [xMin, yMin] = getXYZFromLonLatZ(
-      coverage.bbox[0],
-      coverage.bbox[3],
+      bbox[0],
+      bbox[3],
       coverage.zoom,
       scheme,
       tileSize
     );
     let [xMax, yMax] = getXYZFromLonLatZ(
-      coverage.bbox[2],
-      coverage.bbox[1],
+      bbox[2],
+      bbox[1],
       coverage.zoom,
       scheme,
       tileSize
@@ -661,20 +690,26 @@ export function getTileBoundsFromCoverages(coverages, scheme, tileSize = 256) {
       }
     }
 
-    const tileBound = {
+    const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
+
+    totalTile += _total;
+
+    targetCoverages.push({
+      zoom: coverage.zoom,
+      bbox: bbox,
+    });
+
+    return {
       realBBox: _bbox,
-      total: (xMax - xMin + 1) * (yMax - yMin + 1),
+      total: _total,
       z: coverage.zoom,
       x: [xMin, xMax],
       y: [yMin, yMax],
     };
-
-    totalTile += tileBound.total;
-
-    return tileBound;
   });
 
   return {
+    targetCoverages: targetCoverages,
     realBBox: realBBox,
     total: totalTile,
     tileBounds: tileBounds,
@@ -682,48 +717,11 @@ export function getTileBoundsFromCoverages(coverages, scheme, tileSize = 256) {
 }
 
 /**
- * Get minzoom, maxzoom, bbox for specific coverages
- * @param {{ zoom: number, bbox: [number, number, number, number]}[], circle: { radius: number, center: [number, number] }} coverages Specific coverages
- * @param {[number, number, number, number]} limitedBBox Limited bounding box
- * @returns {{ zoom: number, bbox: [number, number, number, number] }}
- */
-export function processCoverages(coverages, limitedBBox) {
-  return coverages.map((coverage) => {
-    const bbox = coverage.circle
-      ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
-      : deepClone(coverage.bbox);
-
-    if (limitedBBox) {
-      if (bbox[0] < limitedBBox[0]) {
-        bbox[0] = limitedBBox[0];
-      }
-
-      if (bbox[1] < limitedBBox[1]) {
-        bbox[1] = limitedBBox[1];
-      }
-
-      if (bbox[2] > limitedBBox[2]) {
-        bbox[2] = limitedBBox[2];
-      }
-
-      if (bbox[3] > limitedBBox[3]) {
-        bbox[3] = limitedBBox[3];
-      }
-    }
-
-    return {
-      zoom: coverage.zoom,
-      bbox: bbox,
-    };
-  });
-}
-
-/**
  * Create coverages from bbox and zooms
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} minZoom Minzoom
  * @param {number} maxZoom Minzoom
- * @returns {{ minZoom: number, maxZoom: number, bbox: [number, number, number, number] }}
+ * @returns {{ zoom: number, bbox: [number, number, number, number] }[]}
  */
 export function createCoveragesFromBBoxAndZooms(bbox, minZoom, maxZoom) {
   const coverages = [];
@@ -2256,9 +2254,12 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
  */
 export async function mergeTilesToImage(input, output) {
   // Detect tile size
-  const { width, height } = await sharp(`${input.dirPath}/${input.z}/${input.xMin}/${input.yMin}.${input.format}`, {
-    limitInputPixels: false,
-  }).metadata();
+  const { width, height } = await sharp(
+    `${input.dirPath}/${input.z}/${input.xMin}/${input.yMin}.${input.format}`,
+    {
+      limitInputPixels: false,
+    }
+  ).metadata();
 
   // Calculate target width, height
   const targetWidth = (input.xMax - input.xMin + 1) * width;
@@ -2286,7 +2287,10 @@ export async function mergeTilesToImage(input, output) {
       channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
-  }).composite(composites).png().toBuffer();
+  })
+    .composite(composites)
+    .png()
+    .toBuffer();
 
   // Create image
   const image = sharp(compositeImage, {
@@ -2295,26 +2299,27 @@ export async function mergeTilesToImage(input, output) {
 
   // Extract image
   if (output.bbox) {
-    const originBBox = input.bbox ? input.bbox : getBBoxFromTiles(
-      input.xMin,
-      input.yMin,
-      input.xMax,
-      input.yMax,
-      input.z,
-      input.scheme,
-      input.tileSize
-    );
+    const originBBox = input.bbox
+      ? input.bbox
+      : getBBoxFromTiles(
+          input.xMin,
+          input.yMin,
+          input.xMax,
+          input.yMax,
+          input.z,
+          input.scheme,
+          input.tileSize
+        );
 
     const xRes = targetWidth / (originBBox[2] - originBBox[0]);
     const yRes = targetHeight / (originBBox[3] - originBBox[1]);
 
-    image.
-      extract({
-        left: Math.floor((output.bbox[0] - originBBox[0]) * xRes),
-        top: Math.floor((originBBox[3] - output.bbox[3]) * yRes),
-        width: Math.round((output.bbox[2] - output.bbox[0]) * xRes),
-        height: Math.round((output.bbox[3] - output.bbox[1]) * yRes),
-      });
+    image.extract({
+      left: Math.floor((output.bbox[0] - originBBox[0]) * xRes),
+      top: Math.floor((originBBox[3] - output.bbox[3]) * yRes),
+      width: Math.round((output.bbox[2] - output.bbox[0]) * xRes),
+      height: Math.round((output.bbox[3] - output.bbox[1]) * yRes),
+    });
   }
 
   // Resize image
@@ -2458,7 +2463,8 @@ export async function splitImage(input, preview, output) {
       bottom: extendBottom,
       right: extendRight,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
-    }).png()
+    })
+    .png()
     .toBuffer();
 
   if (preview) {
@@ -2501,15 +2507,14 @@ export async function splitImage(input, preview, output) {
     // Create image
     const image = sharp(extendImage, {
       limitInputPixels: false,
-    })
-      .composite([
-        {
-          limitInputPixels: false,
-          input: createSVG(svg, true),
-          left: 0,
-          top: 0,
-        },
-      ]);
+    }).composite([
+      {
+        limitInputPixels: false,
+        input: createSVG(svg, true),
+        left: 0,
+        top: 0,
+      },
+    ]);
 
     // Resize image
     if (preview.width > 0 || preview.height > 0) {
@@ -2571,10 +2576,10 @@ export async function splitImage(input, preview, output) {
     });
 
     for (let y = 0; y < heightPageNum; y++) {
-      for (let x = 0; x < widthPageNum; x++) {     
+      for (let x = 0; x < widthPageNum; x++) {
         const image = await sharp(extendImage, {
-            limitInputPixels: false,
-          })
+          limitInputPixels: false,
+        })
           .extract({
             left: x * stepWidthPX,
             top: y * stepHeightPX,
@@ -2600,14 +2605,7 @@ export async function splitImage(input, preview, output) {
           pageHeight = paperHeight;
         }
 
-        doc.addImage(
-          image,
-          "png",
-          0,
-          0,
-          pageWidth,
-          pageHeight
-        );
+        doc.addImage(image, "png", 0, 0, pageWidth, pageHeight);
       }
     }
 

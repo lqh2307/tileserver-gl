@@ -31,7 +31,6 @@ import {
   handleTilesConcurrency,
   createFileWithLock,
   removeEmptyFolders,
-  processCoverages,
   getDataFromURL,
   getJSONSchema,
   postDataToURL,
@@ -132,16 +131,15 @@ async function seedMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
     let log = `Seeding ${total} tiles of mbtiles "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -190,7 +188,7 @@ async function seedMBTilesTiles(
         const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
-          targetCoverages,
+          coverages,
           "arraybuffer"
         );
 
@@ -202,7 +200,7 @@ async function seedMBTilesTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           false
         );
       } catch (error) {
@@ -229,7 +227,7 @@ async function seedMBTilesTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {
@@ -351,16 +349,15 @@ async function seedPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
     let log = `Seeding ${total} tiles of postgresql "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -405,7 +402,7 @@ async function seedPostgreSQLTiles(
         const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
-          targetCoverages,
+          coverages,
           "arraybuffer"
         );
 
@@ -417,7 +414,7 @@ async function seedPostgreSQLTiles(
 
         tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           false
         );
       } catch (error) {
@@ -444,7 +441,7 @@ async function seedPostgreSQLTiles(
 
         tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {
@@ -570,16 +567,15 @@ async function seedXYZTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
     let log = `Seeding ${total} tiles of xyz "${id}" with:`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -629,7 +625,7 @@ async function seedXYZTiles(
         const res = await postDataToURL(
           hashURL,
           300000, // 5 mins
-          targetCoverages,
+          coverages,
           "arraybuffer"
         );
 
@@ -641,7 +637,7 @@ async function seedXYZTiles(
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           false
         );
       } catch (error) {
@@ -668,7 +664,7 @@ async function seedXYZTiles(
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {

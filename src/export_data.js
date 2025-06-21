@@ -25,7 +25,6 @@ import {
   getTileBoundsFromCoverages,
   handleTilesConcurrency,
   removeEmptyFolders,
-  processCoverages,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -61,9 +60,8 @@ export async function exportMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
@@ -71,7 +69,7 @@ export async function exportMBTilesTiles(
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -114,13 +112,13 @@ export async function exportMBTilesTiles(
 
         targetTileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           item.source,
-          targetCoverages,
+          coverages,
           false
         );
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           false
         );
       } catch (error) {
@@ -138,7 +136,7 @@ export async function exportMBTilesTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {
@@ -206,7 +204,13 @@ export async function exportMBTilesTiles(
 
     printLog("info", "Exporting datas...");
 
-    await handleTilesConcurrency(concurrency, exportMBTilesTileData, tileBounds, undefined, item);
+    await handleTilesConcurrency(
+      concurrency,
+      exportMBTilesTileData,
+      tileBounds,
+      undefined,
+      item
+    );
 
     printLog(
       "info",
@@ -257,9 +261,8 @@ export async function exportXYZTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
@@ -268,7 +271,7 @@ export async function exportXYZTiles(
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -311,13 +314,13 @@ export async function exportXYZTiles(
 
         targetTileExtraInfo = getXYZTileExtraInfoFromCoverages(
           item.md5Source,
-          targetCoverages,
+          coverages,
           false
         );
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           false
         );
       } catch (error) {
@@ -335,7 +338,7 @@ export async function exportXYZTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {
@@ -405,7 +408,13 @@ export async function exportXYZTiles(
 
     printLog("info", "Exporting datas...");
 
-    await handleTilesConcurrency(concurrency, exportXYZTileData, tileBounds, undefined, item);
+    await handleTilesConcurrency(
+      concurrency,
+      exportXYZTileData,
+      tileBounds,
+      undefined,
+      item
+    );
 
     /* Remove parent folders if empty */
     await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp)$/);
@@ -457,9 +466,8 @@ export async function exportPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = processCoverages(coverages);
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
@@ -467,7 +475,7 @@ export async function exportPostgreSQLTiles(
     log += `\n\tFile path: ${filePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -506,13 +514,13 @@ export async function exportPostgreSQLTiles(
 
         targetTileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
           item.source,
-          targetCoverages,
+          coverages,
           false
         );
 
         tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           false
         );
       } catch (error) {
@@ -530,7 +538,7 @@ export async function exportPostgreSQLTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           true
         );
       } catch (error) {
@@ -598,7 +606,13 @@ export async function exportPostgreSQLTiles(
 
     printLog("info", "Exporting datas...");
 
-    await handleTilesConcurrency(concurrency, exportPostgreSQLTileData, tileBounds, undefined, item);
+    await handleTilesConcurrency(
+      concurrency,
+      exportPostgreSQLTileData,
+      tileBounds,
+      undefined,
+      item
+    );
 
     printLog(
       "info",

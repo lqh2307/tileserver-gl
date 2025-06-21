@@ -549,13 +549,13 @@ export async function renderStyleJSONToImage(
     const targetScale = tileScale * Math.pow(2, zoom - targetZoom);
 
     /* Calculate summary */
-    const targetCoverages = createCoveragesFromBBoxAndZooms(
+    const coverages = createCoveragesFromBBoxAndZooms(
       bbox,
       targetZoom,
       targetZoom
     );
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz",
       tileSize
     );
@@ -565,15 +565,14 @@ export async function renderStyleJSONToImage(
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tZoom: ${zoom} - Target zoom: ${targetZoom}`;
     log += `\n\tFormat: ${format}`;
-    log += `\n\tTile scale: ${tileScale} - Target tile scale: ${targetScale}`;
-    log += `\n\tTile size: ${tileSize}`;
+    log += `\n\tTile scale: ${tileScale} - Target tile scale: ${targetScale} - Tile size: ${tileSize}`;
     log += `\n\tScheme: ${scheme}`;
     log += `\n\tFrame: ${JSON.stringify(frame ? frame : {})}`;
     log += `\n\tGrid: ${JSON.stringify(grid ? grid : {})}`;
     log += `\n\tIs base64: ${base64}`;
     log += `\n\tWS: ${JSON.stringify(ws ? ws : {})}`;
     log += `\n\tOverlays: ${overlays ? true : false}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     printLog("info", log);
 
@@ -1001,13 +1000,13 @@ export async function renderMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = createCoveragesFromBBoxAndZooms(
+    const coverages = createCoveragesFromBBoxAndZooms(
       metadata.bounds,
       metadata.minzoom,
       metadata.maxzoom
     );
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
@@ -1016,9 +1015,8 @@ export async function renderMBTilesTiles(
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
-    log += `\n\tTile scale: ${tileScale}`;
-    log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tTile scale: ${tileScale} - Tile size: ${tileSize}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -1057,7 +1055,7 @@ export async function renderMBTilesTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           refreshTimestamp === true
         );
       } catch (error) {
@@ -1250,13 +1248,13 @@ export async function renderXYZTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = createCoveragesFromBBoxAndZooms(
+    const coverages = createCoveragesFromBBoxAndZooms(
       metadata.bounds,
       metadata.minzoom,
       metadata.maxzoom
     );
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
@@ -1266,9 +1264,8 @@ export async function renderXYZTiles(
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
-    log += `\n\tTile scale: ${tileScale}`;
-    log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tTile scale: ${tileScale} - Tile size: ${tileSize}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -1307,7 +1304,7 @@ export async function renderXYZTiles(
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           refreshTimestamp === true
         );
       } catch (error) {
@@ -1509,13 +1506,13 @@ export async function renderPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const targetCoverages = createCoveragesFromBBoxAndZooms(
+    const coverages = createCoveragesFromBBoxAndZooms(
       metadata.bounds,
       metadata.minzoom,
       metadata.maxzoom
     );
     const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      targetCoverages,
+      coverages,
       "xyz"
     );
 
@@ -1524,9 +1521,8 @@ export async function renderPostgreSQLTiles(
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
-    log += `\n\tTile scale: ${tileScale}`;
-    log += `\n\tTile size: ${tileSize}`;
-    log += `\n\tTarget coverages: ${JSON.stringify(targetCoverages)}`;
+    log += `\n\tTile scale: ${tileScale} - Tile size: ${tileSize}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -1561,7 +1557,7 @@ export async function renderPostgreSQLTiles(
 
         tileExtraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          targetCoverages,
+          coverages,
           refreshTimestamp === true
         );
       } catch (error) {
