@@ -761,6 +761,7 @@ export async function renderStyleJSONToImage(
       {
         bbox: bbox,
         format: format,
+        grayscale: grayscale,
       }
     );
 
@@ -791,7 +792,6 @@ export async function renderStyleJSONToImage(
       grid,
       {
         format: format,
-        grayscale: grayscale,
       }
     );
 

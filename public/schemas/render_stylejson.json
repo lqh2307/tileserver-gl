@@ -179,6 +179,9 @@
         "yTickLabelOffset": {
           "type": "integer"
         },
+        "xTickEnd": {
+          "type": "boolean"
+        },
         "xTickMajorLabelRotation": {
           "type": "number"
         },
@@ -187,6 +190,9 @@
         },
         "yTickMajorLabelRotation": {
           "type": "number"
+        },
+        "yTickEnd": {
+          "type": "boolean"
         },
         "yTickMinorLabelRotation": {
           "type": "number"

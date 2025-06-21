@@ -1500,7 +1500,7 @@ export function formatDegree(deg, isLat, format) {
 /**
  * Convert image
  * @param {string|Buffer} filePath File path or buffer
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean }} output Output object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function convertImage(filePath, output) {
@@ -1698,7 +1698,7 @@ export function createSVG(svg, isBuffer) {
  * @param {{ content: string|Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
  * @param {object} frame Frame options object
  * @param {object} grid Grid options object
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean }} output Output object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function addFrameToImage(input, overlays, frame, grid, output) {
@@ -1812,6 +1812,9 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
       yTickMajorLabelRotation = 90,
       yTickMinorLabelRotation = 90,
+
+      xTickEnd,
+      yTickEnd,
     } = frame;
 
     if (frameMargin === undefined) {
@@ -1902,6 +1905,94 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         }
       }
 
+      // Top start tick end
+      const xStart = (bbox[0] - bbox[0]) / degPerPixelX;
+
+      svg.content += `<line x1="${xStart}" y1="${totalMargin}" x2="${xStart}" y2="${
+        totalMargin - majorTickSize
+      }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+
+      // Bottom start tick end
+      svg.content += `<line x1="${xStart}" y1="${
+        totalMargin + height
+      }" x2="${xStart}" y2="${
+        totalMargin + height + majorTickSize
+      }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+
+      if (majorTickLabelSize > 0) {
+        const label = formatDegree(
+          bbox[0] + xStart * degPerPixelX,
+          false,
+          tickLabelFormat
+        );
+
+        // Top start label end
+        svg.content += `<text x="${xStart}" y="${
+          totalMargin - majorTickSize - xTickLabelOffset
+        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
+          xMajor.topTextAnchor
+        }" dominant-baseline="${
+          xMajor.topDominantBaseline
+        }" transform="rotate(${xTickMajorLabelRotation},${xStart},${
+          totalMargin - majorTickSize - xTickLabelOffset
+        })">${label}</text>`;
+
+        // Bottom start label end
+        svg.content += `<text x="${xStart}" y="${
+          totalMargin + height + majorTickSize + xTickLabelOffset
+        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
+          xMajor.bottomTextAnchor
+        }" dominant-baseline="${
+          xMajor.bottomDominantBaseline
+        }" transform="rotate(${xTickMajorLabelRotation},${xStart},${
+          totalMargin + height + majorTickSize + xTickLabelOffset
+        })">${label}</text>`;
+      }
+
+      const xEnd = (bbox[2] - bbox[0]) / degPerPixelX;
+
+      // Top end tick end
+      svg.content += `<line x1="${xEnd}" y1="${totalMargin}" x2="${xEnd}" y2="${
+        totalMargin - majorTickSize
+      }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+
+      // Bottom end tick end
+      svg.content += `<line x1="${xEnd}" y1="${
+        totalMargin + height
+      }" x2="${xEnd}" y2="${
+        totalMargin + height + majorTickSize
+      }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+
+      if (majorTickLabelSize > 0) {
+        const label = formatDegree(
+          bbox[0] + xEnd * degPerPixelX,
+          false,
+          tickLabelFormat
+        );
+
+        // Top end label end
+        svg.content += `<text x="${xEnd}" y="${
+          totalMargin - majorTickSize - xTickLabelOffset
+        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
+          xMajor.topTextAnchor
+        }" dominant-baseline="${
+          xMajor.topDominantBaseline
+        }" transform="rotate(${xTickMajorLabelRotation},${xEnd},${
+          totalMargin - majorTickSize - xTickLabelOffset
+        })">${label}</text>`;
+
+        // Bottom end label end
+        svg.content += `<text x="${xEnd}" y="${
+          totalMargin + height + majorTickSize + xTickLabelOffset
+        }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
+          xMajor.bottomTextAnchor
+        }" dominant-baseline="${
+          xMajor.bottomDominantBaseline
+        }" transform="rotate(${xTickMajorLabelRotation},${xEnd},${
+          totalMargin + height + majorTickSize + xTickLabelOffset
+        })">${label}</text>`;
+      }
+
       // Y-axis major ticks & labels
       const yMajor = getSVGTextAlign(yTickMajorLabelRotation, true);
 
@@ -1967,6 +2058,90 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           },${totalMargin + y})">${label}</text>`;
         }
       }
+
+      const yStart = (bbox[3] - bbox[3]) / degPerPixelY;
+
+      // Left start tick end
+      svg.content += `<line x1="${totalMargin}" y1="${yStart}" x2="${
+        totalMargin - majorTickSize
+      }" y2="${yStart}" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+
+      // Right start tick end
+      svg.content += `<line x1="${totalMargin + width}" y1="${yStart}" x2="${
+        totalMargin + width + majorTickSize
+      }" y2="${yStart}" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+
+      if (majorTickLabelSize > 0) {
+        const label = formatDegree(
+          bbox[3] - yStart * degPerPixelY,
+          true,
+          tickLabelFormat
+        );
+
+        // Left start label end
+        svg.content += `<text x="${
+          totalMargin - majorTickSize - yTickLabelOffset
+        }" y="${yStart}" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
+          yMajor.leftTextAnchor
+        }" dominant-baseline="${
+          yMajor.leftDominantBaseline
+        }" transform="rotate(${yTickMajorLabelRotation},${
+          totalMargin - majorTickSize - yTickLabelOffset
+        },${yStart})">${label}</text>`;
+
+        // Right start label end
+        svg.content += `<text x="${
+          totalMargin + width + majorTickSize + yTickLabelOffset
+        }" y="${yStart}" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
+          yMajor.rightTextAnchor
+        }" dominant-baseline="${
+          yMajor.rightDominantBaseline
+        }" transform="rotate(${yTickMajorLabelRotation},${
+          totalMargin + width + majorTickSize + yTickLabelOffset
+        },${yStart})">${label}</text>`;
+      }
+
+      const yEnd = (bbox[3] - bbox[1]) / degPerPixelY;
+
+      // Left end tick end
+      svg.content += `<line x1="${totalMargin}" y1="${yEnd}" x2="${
+        totalMargin - majorTickSize
+      }" y2="${yEnd}" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+
+      // Right end tick end
+      svg.content += `<line x1="${totalMargin + width}" y1="${yEnd}" x2="${
+        totalMargin + width + majorTickSize
+      }" y2="${yEnd}" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+
+      if (majorTickLabelSize > 0) {
+        const label = formatDegree(
+          bbox[3] - yEnd * degPerPixelY,
+          true,
+          tickLabelFormat
+        );
+
+        // Left end label end
+        svg.content += `<text x="${
+          totalMargin - majorTickSize - yTickLabelOffset
+        }" y="${yEnd}" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
+          yMajor.leftTextAnchor
+        }" dominant-baseline="${
+          yMajor.leftDominantBaseline
+        }" transform="rotate(${yTickMajorLabelRotation},${
+          totalMargin - majorTickSize - yTickLabelOffset
+        },${yEnd})">${label}</text>`;
+
+        // Right end label end
+        svg.content += `<text x="${
+          totalMargin + width + majorTickSize + yTickLabelOffset
+        }" y="${yEnd}" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
+          yMajor.rightTextAnchor
+        }" dominant-baseline="${
+          yMajor.rightDominantBaseline
+        }" transform="rotate(${yTickMajorLabelRotation},${
+          totalMargin + width + majorTickSize + yTickLabelOffset
+        },${yEnd})">${label}</text>`;
+      }
     }
 
     if (minorTickWidth > 0) {
@@ -1983,7 +2158,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         lon += minorTickStep
       ) {
         if (xTickMajorLons.includes(lon)) {
-          return;
+          continue;
         }
 
         const x = (lon - bbox[0]) / degPerPixelX;
@@ -2046,7 +2221,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         lat += minorTickStep
       ) {
         if (yTickMajorLats.includes(lat)) {
-          return;
+          continue;
         }
 
         const y = (bbox[3] - lat) / degPerPixelY;
@@ -2194,7 +2369,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         lon += minorGridStep
       ) {
         if (xGridMajorLons.includes(lon)) {
-          return;
+          continue;
         }
 
         const x = (lon - bbox[0]) / degPerPixelX;
@@ -2217,7 +2392,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         lat += minorGridStep
       ) {
         if (yGridMajorLats.includes(lat)) {
-          return;
+          continue;
         }
 
         const y = (bbox[3] - lat) / degPerPixelY;
@@ -2258,7 +2433,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 /**
  * Merge tiles to image
  * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", scheme: "xyz" | "tms", tileSize: number, bbox: [number, number, number, number] }} input Input object
- * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean }} output Output object
+ * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function mergeTilesToImage(input, output) {
@@ -2326,8 +2501,8 @@ export async function mergeTilesToImage(input, output) {
     image.extract({
       left: Math.floor((output.bbox[0] - originBBox[0]) * xRes),
       top: Math.floor((originBBox[3] - output.bbox[3]) * yRes),
-      width: Math.round((output.bbox[2] - output.bbox[0]) * xRes),
-      height: Math.round((output.bbox[3] - output.bbox[1]) * yRes),
+      width: Math.ceil((output.bbox[2] - output.bbox[0]) * xRes),
+      height: Math.ceil((output.bbox[3] - output.bbox[1]) * yRes),
     });
   }
 
@@ -2339,7 +2514,7 @@ export async function mergeTilesToImage(input, output) {
  * Split image to PDF
  * @param {{ image: string|Buffer, res: [number, number] }} input Input object
  * @param {object} preview Preview options object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, alignContent: { horizontal: "head"|"middle"|"tail", vertical: "head"|"middle"|"tail" }, compression: boolean }} output Output object
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, alignContent: { horizontal: "head"|"middle"|"tail", vertical: "head"|"middle"|"tail" }, compression: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<jsPDF|sharp.OutputInfo|Buffer|string>}
  */
 export async function splitImage(input, preview, output) {
@@ -2783,11 +2958,9 @@ export async function createFileWithLock(filePath, data, timeout) {
 
       await lockFileHandle.close();
 
-      await rm(lockFilePath, {
+      return await rm(lockFilePath, {
         force: true,
       });
-
-      return;
     } catch (error) {
       if (error.code === "ENOENT") {
         await mkdir(path.dirname(filePath), {
@@ -2836,11 +3009,9 @@ export async function removeFileWithLock(filePath, timeout) {
 
       await lockFileHandle.close();
 
-      await rm(lockFilePath, {
+      return await rm(lockFilePath, {
         force: true,
       });
-
-      return;
     } catch (error) {
       if (error.code === "ENOENT") {
         return;
