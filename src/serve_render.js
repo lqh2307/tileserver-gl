@@ -53,6 +53,7 @@ function renderStyleJSONHandler() {
         req.body.frame,
         req.body.grid,
         req.body.base64,
+        req.body.grayscale,
         req.body.ws,
         req.body.overlays
       );

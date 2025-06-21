@@ -1028,11 +1028,12 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 ```json
 {
   "format": "png",
-  "zoom": 10,
+  "zoom": 9,
   "bbox": [102, 8, 110, 24],
   "maxRendererPoolSize": 50,
   "concurrency": 50,
   "tileScale": 1,
+  "tileSize": 512,
   "frame": {},
   "grid": {},
   "styleJSON": {

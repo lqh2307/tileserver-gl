@@ -101,6 +101,9 @@
         "base64": {
           "type": "boolean"
         },
+        "grayscale": {
+          "type": "boolean"
+        },
         "orientation": {
           "type": "string",
           "enum": ["portrait", "landscape"]

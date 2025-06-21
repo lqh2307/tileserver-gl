@@ -43,13 +43,12 @@ import {
   handleTilesConcurrency,
   calculateResolution,
   removeEmptyFolders,
-  createFileWithLock,
-  convertSVGToImage,
   mergeTilesToImage,
   getLonLatFromXYZ,
   addFrameToImage,
   getDataFromURL,
   calculateSizes,
+  convertImage,
   calculateMD5,
   createBase64,
   unzipAsync,
@@ -393,6 +392,7 @@ function createRenderer(mode, scale, styleJSON) {
  * @param {number} y Y tile index
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Tile format
  * @param {boolean} usePool Use pool?
+ * @param {string} filePath File path
  * @returns {Promise<Buffer>}
  */
 export async function renderImageTileData(
@@ -403,7 +403,8 @@ export async function renderImageTileData(
   x,
   y,
   format,
-  usePool
+  usePool,
+  filePath
 ) {
   const isNeedHack = z === 0 && tileSize === 256;
   const hackTileSize = isNeedHack ? tileSize * 2 : tileSize;
@@ -443,7 +444,8 @@ export async function renderImageTileData(
     data,
     originTileSize,
     targetTileSize,
-    format
+    format,
+    filePath
   );
 }
 
@@ -516,6 +518,7 @@ export async function renderImageStaticData(
  * @param {object} frame Add frame options?
  * @param {object} grid Add grid options?
  * @param {boolean} base64 Is base64?
+ * @param {boolean} grayscale Is grayscale?
  * @param {{ clientID: string, requestID: string, interval: number, event: string }} ws WS object
  * @param {{name: string, content: string, bbox: [number, number, number, number]}[]} overlays Overlays
  * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
@@ -533,6 +536,7 @@ export async function renderStyleJSONToImage(
   frame,
   grid,
   base64,
+  grayscale,
   ws,
   overlays
 ) {
@@ -570,6 +574,7 @@ export async function renderStyleJSONToImage(
     log += `\n\tFrame: ${JSON.stringify(frame ? frame : {})}`;
     log += `\n\tGrid: ${JSON.stringify(grid ? grid : {})}`;
     log += `\n\tIs base64: ${base64}`;
+    log += `\n\tIs grayscale: ${grayscale}`;
     log += `\n\tWS: ${JSON.stringify(ws ? ws : {})}`;
     log += `\n\tOverlays: ${overlays ? true : false}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -677,8 +682,7 @@ export async function renderStyleJSONToImage(
       );
 
       try {
-        // Rendered data
-        const data = await renderImageTileData(
+        await renderImageTileData(
           styleJSONOrPool,
           targetScale,
           tileSize,
@@ -686,14 +690,8 @@ export async function renderStyleJSONToImage(
           x,
           y,
           format,
-          maxRendererPoolSize > 0
-        );
-
-        // Store data
-        await createFileWithLock(
-          `${xyzDirPath}/${z}/${x}/${y}.${format}`,
-          data,
-          30000 // 30 secs
+          maxRendererPoolSize > 0,
+          `${xyzDirPath}/${z}/${x}/${y}.${format}`
         );
       } catch (error) {
         printLog(
@@ -766,16 +764,18 @@ export async function renderStyleJSONToImage(
       }
     );
 
-    emitWSMessage(
-      ws.event,
-      JSON.stringify({
-        requestID: ws.requestID,
-        data: {
-          progress: 90,
-        },
-      }),
-      [ws.clientID]
-    );
+    if (ws) {
+      emitWSMessage(
+        ws.event,
+        JSON.stringify({
+          requestID: ws.requestID,
+          data: {
+            progress: 90,
+          },
+        }),
+        [ws.clientID]
+      );
+    }
 
     /* Add frame */
     printLog("info", "Adding frame to image...");
@@ -791,6 +791,7 @@ export async function renderStyleJSONToImage(
       grid,
       {
         format: format,
+        grayscale: grayscale,
       }
     );
 
@@ -803,16 +804,18 @@ export async function renderStyleJSONToImage(
       "mm"
     );
 
-    emitWSMessage(
-      ws.event,
-      JSON.stringify({
-        requestID: ws.requestID,
-        data: {
-          progress: 100,
-        },
-      }),
-      [ws.clientID]
-    );
+    if (ws) {
+      emitWSMessage(
+        ws.event,
+        JSON.stringify({
+          requestID: ws.requestID,
+          data: {
+            progress: 100,
+          },
+        }),
+        [ws.clientID]
+      );
+    }
 
     /* Response */
     return {
@@ -872,7 +875,7 @@ export async function renderSVGToImage(format, overlays, concurrency, base64) {
       // Rendered data
       targetOverlays[idx] = {
         name: overlays[idx].name,
-        content: await convertSVGToImage(Buffer.from(overlays[idx].content), {
+        content: await convertImage(Buffer.from(overlays[idx].content), {
           format: overlays[idx].format || format,
           width: overlays[idx].width,
           height: overlays[idx].height,
