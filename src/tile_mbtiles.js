@@ -14,6 +14,8 @@ import {
   getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
+  handleTilesConcurrency,
+  getPyramidTileRanges,
   getBBoxFromTiles,
   getDataFromURL,
   calculateMD5,
@@ -772,4 +774,67 @@ export async function getMBTilesSize(filePath) {
   const stats = await stat(filePath);
 
   return stats.size;
+}
+
+/**
+ * Add MBTiles overviews
+ * @param {Database} source SQLite database instance
+ * @param {number} deltaZ Delta z
+ * @returns {Promise<void>}
+ */
+export async function addMBTilesOverviews(source, deltaZ) {
+  const batchSize = 256;
+
+  const metadata = await getMBTilesMetadata(source);
+
+  for (let _deltaZ = 1; _deltaZ <= deltaZ; deltaZ++) {
+    const targetZ = metadata.maxzoom - _deltaZ;
+    const { tileBounds } = getTileBoundsFromCoverages([{bbox: metadata.bbox, zoom: targetZ}], "tms", 256);
+
+    async function createTileData(z, x, y) {
+      const tileRange = getPyramidTileRanges(z, x, y, "tms", _deltaZ);
+
+      for (let x = tileRange.x[0]; x <= tileRange.x[1]; x++) {
+        for (let y = tileRange.y[0]; y <= tileRange.y[1]; y++) {
+          let data = source
+            .prepare(
+              `
+              SELECT
+                tile_data
+              FROM
+                tiles
+              WHERE
+                zoom_level = ? AND tile_column = ? AND tile_row = ?;
+              `
+            )
+            .get([z, x, y]);
+
+          if (data === undefined || data.tile_data === null) {
+            continue;
+          }
+
+          await runSQLWithTimeout(
+              source,
+              `
+              INSERT INTO
+                tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
+              VALUES
+                (?, ?, ?, ?, ?, ?)
+              ON CONFLICT
+                (zoom_level, tile_column, tile_row)
+              DO UPDATE
+                SET
+                  tile_data = excluded.tile_data,
+                  hash = excluded.hash,
+                  created = excluded.created;
+              `,
+              [z, x, y, data.tile_data, calculateMD5(data.tile_data), Date.now()],
+              60000
+            );
+        }
+      }
+    }
+
+    await handleTilesConcurrency(batchSize, createTileData, tileBounds);
+  }
 }

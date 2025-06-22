@@ -532,20 +532,22 @@ export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
 export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
   const factor = 1 << deltaZ;
 
-  let minY = y * factor;
-  let maxY = (y + 1) * factor - 1;
+  const minY = y * factor;
+  const maxY = (y + 1) * factor - 1;
 
   if (scheme === "tms") {
     const maxTileIndex = (1 << (z + deltaZ)) - 1;
 
-    minY = maxTileIndex - maxY;
-    maxY = maxTileIndex - minY;
+    return {
+      x: [x * factor, (x + 1) * factor - 1],
+      y: [maxTileIndex - maxY, maxTileIndex - minY],
+    };
+  } else {
+    return {
+      x: [x * factor, (x + 1) * factor - 1],
+      y: [minY, maxY],
+    };
   }
-
-  return {
-    x: [x * factor, (x + 1) * factor - 1],
-    y: [minY, maxY],
-  };
 }
 
 /**

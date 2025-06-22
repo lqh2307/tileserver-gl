@@ -725,6 +725,8 @@ export async function renderStyleJSONToImage(
           "error",
           `Failed to render style JSON - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
+
+        throw error;
       }
     }
 
