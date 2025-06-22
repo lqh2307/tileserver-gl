@@ -2486,7 +2486,6 @@ export async function mergeTilesToImage(input, output) {
         input: `${input.dirPath}/${input.z}/${x}/${y}.${input.format}`,
         top: (y - input.yMin) * height,
         left: (x - input.xMin) * width,
-        ti
       });
     }
   }
