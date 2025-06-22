@@ -8,7 +8,6 @@ import { emitWSMessage } from "./ws.js";
 import { printLog } from "./logger.js";
 import { rm } from "node:fs/promises";
 import { config } from "./config.js";
-import { Mutex } from "async-mutex";
 import { v4 } from "uuid";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -44,6 +43,7 @@ import {
   calculateResolution,
   removeEmptyFolders,
   mergeTilesToImage,
+  handleConcurrency,
   getLonLatFromXYZ,
   addFrameToImage,
   getDataFromURL,
@@ -54,7 +54,6 @@ import {
   unzipAsync,
   runCommand,
   splitImage,
-  delay,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -671,6 +670,28 @@ export async function renderStyleJSONToImage(
           )
         : styleJSON;
 
+    /* Socket */
+    const callbackAtTaskNum = Math.round(0.1 * total);
+    function socketCallback(progress) {
+      try {
+        emitWSMessage(
+          ws.event,
+          JSON.stringify({
+            requestID: ws.requestID,
+            data: {
+              progress: progress,
+            },
+          }),
+          [ws.clientID]
+        );
+      } catch (error) {
+        printLog(
+          "info",
+          `Failed to send WS message to client id ${ws.clientID}: ${error}`
+        );
+      }
+    }
+
     async function renderTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
@@ -693,6 +714,12 @@ export async function renderStyleJSONToImage(
           maxRendererPoolSize > 0,
           `${xyzDirPath}/${z}/${x}/${y}.${format}`
         );
+
+        if (ws && completeTasks % callbackAtTaskNum === 0) {
+          const progress = Math.round((completeTasks / total) * 80);
+
+          socketCallback(progress);
+        }
       } catch (error) {
         printLog(
           "error",
@@ -701,46 +728,9 @@ export async function renderStyleJSONToImage(
       }
     }
 
-    let previosProgress = 0;
-    const callback = ws
-      ? {
-          interval: ws.interval,
-          callbackFunc: (tasks) => {
-            try {
-              const progress = Math.round((tasks.completeTasks / total) * 80);
-
-              if (progress > previosProgress) {
-                emitWSMessage(
-                  ws.event,
-                  JSON.stringify({
-                    requestID: ws.requestID,
-                    data: {
-                      progress: progress,
-                    },
-                  }),
-                  [ws.clientID]
-                );
-
-                previosProgress = progress;
-              }
-            } catch (error) {
-              printLog(
-                "info",
-                `Failed to send WS message to client id ${ws.clientID}: ${error}`
-              );
-            }
-          },
-        }
-      : undefined;
-
     printLog("info", "Rendering tiles to XYZ...");
 
-    await handleTilesConcurrency(
-      concurrency,
-      renderTileData,
-      tileBounds,
-      callback
-    );
+    await handleTilesConcurrency(concurrency, renderTileData, tileBounds);
 
     /* Create image */
     printLog("info", "Merge tiles to image...");
@@ -766,16 +756,7 @@ export async function renderStyleJSONToImage(
     );
 
     if (ws) {
-      emitWSMessage(
-        ws.event,
-        JSON.stringify({
-          requestID: ws.requestID,
-          data: {
-            progress: 90,
-          },
-        }),
-        [ws.clientID]
-      );
+      socketCallback(90);
     }
 
     /* Add frame */
@@ -805,16 +786,7 @@ export async function renderStyleJSONToImage(
     );
 
     if (ws) {
-      emitWSMessage(
-        ws.event,
-        JSON.stringify({
-          requestID: ws.requestID,
-          data: {
-            progress: 100,
-          },
-        }),
-        [ws.clientID]
-      );
+      socketCallback(100);
     }
 
     /* Response */
@@ -841,82 +813,41 @@ export async function renderStyleJSONToImage(
 /**
  * Render SVG to Image
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @param {{name: string, content: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif"}[]} overlays SVG overlays
+ * @param {{ content: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays SVG overlays
  * @param {number} concurrency Concurrency
  * @param {boolean} base64 Is base64?
- * @returns {Promise<{name: string, content: string}[]>}
+ * @returns {Promise<string[]>}
  */
 export async function renderSVGToImage(format, overlays, concurrency, base64) {
   const total = overlays.length;
   const targetOverlays = Array(total);
-  const driver = format.toUpperCase();
 
-  let log = `Rendering ${total} SVGs to ${driver}s with:`;
-  log += `\n\tConcurrency: ${concurrency}`;
-
-  printLog("info", log);
-
-  /* Render SVGs */
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
-
-  async function renderSVGToImageData(idx, tasks) {
+  async function renderSVGToImageData(idx, overlays, tasks) {
     const completeTasks = tasks.completeTasks;
 
-    printLog(
-      "info",
-      `Rendering SVG - Name "${overlays[idx].name}" - ${completeTasks}/${total}...`
-    );
+    printLog("info", `Rendering SVG - ${completeTasks}/${total}...`);
 
     try {
-      // Rendered data
-      targetOverlays[idx] = {
-        name: overlays[idx].name,
-        content: await convertImage(Buffer.from(overlays[idx].content), {
+      targetOverlays[idx] = await convertImage(
+        Buffer.from(overlays[idx].content),
+        {
           format: overlays[idx].format || format,
           width: overlays[idx].width,
           height: overlays[idx].height,
           base64: base64,
-        }),
-      };
+        }
+      );
     } catch (error) {
       printLog(
         "error",
-        `Failed to render SVG - Name "${overlays[idx].name}" - ${completeTasks}/${total}: ${error}`
+        `Failed to render SVG - ${completeTasks}/${total}: ${error}`
       );
 
       throw error;
     }
   }
 
-  printLog("info", `Rendering SVGs to ${driver}s...`);
-
-  for (let idx = 0; idx < total; idx++) {
-    /* Wait slot for a task */
-    while (tasks.activeTasks >= concurrency) {
-      await delay(25);
-    }
-
-    await tasks.mutex.runExclusive(() => {
-      tasks.activeTasks++;
-      tasks.completeTasks++;
-    });
-
-    /* Run a task */
-    renderSVGToImageData(idx, tasks).finally(() =>
-      tasks.mutex.runExclusive(() => {
-        tasks.activeTasks--;
-      })
-    );
-  }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(25);
-  }
+  await handleConcurrency(concurrency, renderSVGToImageData, overlays);
 
   return targetOverlays;
 }
@@ -1171,7 +1102,6 @@ export async function renderMBTilesTiles(
       concurrency,
       renderMBTilesTileData,
       tileBounds,
-      undefined,
       item
     );
 
@@ -1438,7 +1368,6 @@ export async function renderXYZTiles(
       concurrency,
       renderXYZTileData,
       tileBounds,
-      undefined,
       item
     );
 
@@ -1687,7 +1616,6 @@ export async function renderPostgreSQLTiles(
       concurrency,
       renderPostgreSQLTileData,
       tileBounds,
-      undefined,
       item
     );
 

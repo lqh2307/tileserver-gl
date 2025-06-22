@@ -6,7 +6,6 @@ import { downloadFontFile, getFontCreated } from "./font.js";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { printLog } from "./logger.js";
-import { Mutex } from "async-mutex";
 import {
   downloadGeoJSONFile,
   getGeoJSONCreated,
@@ -31,13 +30,13 @@ import {
   handleTilesConcurrency,
   createFileWithLock,
   removeEmptyFolders,
+  handleConcurrency,
   getDataFromURL,
   getJSONSchema,
   postDataToURL,
   validateJSON,
   calculateMD5,
   unzipAsync,
-  delay,
 } from "./utils.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -994,15 +993,8 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
   /* Download font files */
   const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
 
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-    completeTasks: 0,
-  };
-
-  async function seedFontData(start, end, tasks) {
-    const range = `${start}-${end}`;
-    const fileName = `${range}.pbf`;
+  async function seedFontData(idx, ranges, tasks) {
+    const fileName = `${ranges[idx]}.pbf`;
     const filePath = `${sourcePath}/${fileName}`;
     const completeTasks = tasks.completeTasks;
 
@@ -1028,7 +1020,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
       }
 
       if (needDownload) {
-        const targetURL = url.replace("{range}.pbf", `${range}.pbf`);
+        const targetURL = url.replace("{range}.pbf", `${ranges[idx]}.pbf`);
 
         printLog(
           "info",
@@ -1047,29 +1039,11 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
 
   printLog("info", "Downloading fonts...");
 
-  for (let i = 0; i < 256; i++) {
-    /* Wait slot for a task */
-    while (tasks.activeTasks >= concurrency) {
-      await delay(25);
-    }
-
-    await tasks.mutex.runExclusive(() => {
-      tasks.activeTasks++;
-      tasks.completeTasks++;
-    });
-
-    /* Run a task */
-    seedFontData(i * 256, i * 256 + 255, tasks).finally(() =>
-      tasks.mutex.runExclusive(() => {
-        tasks.activeTasks--;
-      })
-    );
-  }
-
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(25);
-  }
+  await handleConcurrency(
+    concurrency,
+    seedFontData,
+    Array.from({ length: 256 }, (_, idx) => `${idx * 256}-${idx * 256 + 255}`)
+  );
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.pbf$/);

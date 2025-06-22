@@ -3166,7 +3166,6 @@ export function createBase64(buffer, format) {
  * @param {number} concurrency Concurrency
  * @param {(z: number, x: number, y: number, tasks: { activeTasks: number, completeTasks: number }) => void} renderFunc Render function
  * @param {object} tileBounds Tile bounds
- * @param {{ interval: number, callbackFunc: (tasks: { activeTasks: number, completeTasks: number }) => void }} callback Callback
  * @param {{ export: boolean }} item Item object
  * @returns {Promise<{void}>} Response
  */
@@ -3174,8 +3173,63 @@ export async function handleTilesConcurrency(
   concurrency,
   renderFunc,
   tileBounds,
-  callback,
   item
+) {
+  const mutex = new Mutex();
+
+  const tasks = {
+    activeTasks: 0,
+    completeTasks: 0,
+  };
+
+  for (const { z, x, y } of tileBounds) {
+    for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+      for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+        if (item && !item.export) {
+          return;
+        }
+
+        /* Wait slot for a task */
+        while (tasks.activeTasks >= concurrency) {
+          await delay(25);
+        }
+
+        /* Acquire mutex */
+        await mutex.runExclusive(() => {
+          tasks.activeTasks++;
+          tasks.completeTasks++;
+        });
+
+        /* Run a task */
+        renderFunc(z, xCount, yCount, tasks).finally(() =>
+          /* Release mutex */
+          mutex.runExclusive(() => {
+            tasks.activeTasks--;
+          })
+        );
+      }
+    }
+  }
+
+  /* Wait all tasks done */
+  while (tasks.activeTasks > 0) {
+    await delay(25);
+  }
+}
+
+/**
+ * Handle concurrency
+ * @param {number} concurrency Concurrency
+ * @param {(idx: number, value: any[], tasks: { activeTasks: number, completeTasks: number }) => void} handleFunc Handle function
+ * @param {any[]} values Values
+ * @param {{ interval: number, callbackFunc: (tasks: { activeTasks: number, completeTasks: number }) => void }} callback Callback
+ * @returns {Promise<{void}>} Response
+ */
+export async function handleConcurrency(
+  concurrency,
+  handleFunc,
+  values,
+  callback
 ) {
   let intervalID;
 
@@ -3194,31 +3248,25 @@ export async function handleTilesConcurrency(
       intervalID = setInterval(() => callbackFunc(tasks), interval);
     }
 
-    for (const { z, x, y } of tileBounds) {
-      for (let xCount = x[0]; xCount <= x[1]; xCount++) {
-        for (let yCount = y[0]; yCount <= y[1]; yCount++) {
-          if (item && !item.export) {
-            return;
-          }
-
-          /* Wait slot for a task */
-          while (tasks.activeTasks >= concurrency) {
-            await delay(25);
-          }
-
-          await mutex.runExclusive(() => {
-            tasks.activeTasks++;
-            tasks.completeTasks++;
-          });
-
-          /* Run a task */
-          renderFunc(z, xCount, yCount, tasks).finally(() =>
-            mutex.runExclusive(() => {
-              tasks.activeTasks--;
-            })
-          );
-        }
+    for (let idx = 0; idx < values.length; idx++) {
+      /* Wait slot for a task */
+      while (tasks.activeTasks >= concurrency) {
+        await delay(25);
       }
+
+      /* Acquire mutex */
+      await mutex.runExclusive(() => {
+        tasks.activeTasks++;
+        tasks.completeTasks++;
+      });
+
+      /* Run a task */
+      handleFunc(idx, values, tasks).finally(() =>
+        /* Release mutex */
+        mutex.runExclusive(() => {
+          tasks.activeTasks--;
+        })
+      );
     }
 
     /* Wait all tasks done */

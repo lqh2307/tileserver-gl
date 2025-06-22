@@ -12,16 +12,12 @@
           "type": "string",
           "minLength": 1
         },
-        "interval": {
-          "type": "integer",
-          "minimum": 1
-        },
         "event": {
           "type": "string",
           "minLength": 1
         }
       },
-      "required": ["clientID", "requestID", "interval", "event"]
+      "required": ["clientID", "requestID", "event"]
     },
     "base64": {
       "type": "boolean"

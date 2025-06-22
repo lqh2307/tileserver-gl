@@ -208,7 +208,6 @@ export async function exportMBTilesTiles(
       concurrency,
       exportMBTilesTileData,
       tileBounds,
-      undefined,
       item
     );
 
@@ -412,7 +411,6 @@ export async function exportXYZTiles(
       concurrency,
       exportXYZTileData,
       tileBounds,
-      undefined,
       item
     );
 
@@ -610,7 +608,6 @@ export async function exportPostgreSQLTiles(
       concurrency,
       exportPostgreSQLTileData,
       tileBounds,
-      undefined,
       item
     );
 

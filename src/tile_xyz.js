@@ -4,7 +4,6 @@ import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
-import { Mutex } from "async-mutex";
 import {
   openSQLiteWithTimeout,
   execSQLWithTimeout,
@@ -17,11 +16,11 @@ import {
   detectFormatAndHeaders,
   removeFileWithLock,
   createFileWithLock,
+  handleConcurrency,
   getBBoxFromTiles,
   getDataFromURL,
   calculateMD5,
   findFiles,
-  delay,
   retry,
 } from "./utils.js";
 
@@ -38,42 +37,14 @@ async function getXYZLayersFromTiles(sourcePath) {
     await readFile("public/protos/vector_tile.proto")
   );
 
-  const tasks = {
-    mutex: new Mutex(),
-    activeTasks: 0,
-  };
-
-  for (const pbfFilePath of pbfFilePaths) {
-    /* Wait slot for a task */
-    while (tasks.activeTasks >= 256) {
-      await delay(25);
-    }
-
-    await tasks.mutex.runExclusive(() => {
-      tasks.activeTasks++;
-    });
-
-    /* Run a task */
-    (async () => {
-      try {
-        vectorTileProto.tile
-          .decode(await readFile(pbfFilePath))
-          .layers.map((layer) => layer.name)
-          .forEach((layer) => layerNames.add(layer));
-      } catch (error) {
-        throw error;
-      } finally {
-        await tasks.mutex.runExclusive(() => {
-          tasks.activeTasks--;
-        });
-      }
-    })();
+  async function getLayer(idx, pbfFilePaths) {
+    vectorTileProto.tile
+      .decode(await readFile(pbfFilePaths[idx]))
+      .layers.map((layer) => layer.name)
+      .forEach((layer) => layerNames.add(layer));
   }
 
-  /* Wait all tasks done */
-  while (tasks.activeTasks > 0) {
-    await delay(25);
-  }
+  await handleConcurrency(256, getLayer, pbfFilePaths);
 
   return Array.from(layerNames);
 }
