@@ -4,6 +4,7 @@ import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
+import sharp from "sharp";
 import {
   openSQLiteWithTimeout,
   execSQLWithTimeout,
@@ -777,64 +778,93 @@ export async function getMBTilesSize(filePath) {
 }
 
 /**
- * Add MBTiles overviews
+ * Add MBTiles overviews (downsample to lower zoom levels)
  * @param {Database} source SQLite database instance
- * @param {number} deltaZ Delta z
- * @returns {Promise<void>}
+ * @param {number} deltaZ Number of zoom levels to generate overviews
+ * @param {number} concurrency Concurrency to generate overviews
  */
-export async function addMBTilesOverviews(source, deltaZ) {
-  const batchSize = 256;
-
+export async function addMBTilesOverviews(source, deltaZ, concurrency) {
   const metadata = await getMBTilesMetadata(source);
+  const tileSize = 256;
 
-  for (let _deltaZ = 1; _deltaZ <= deltaZ; deltaZ++) {
+  for (let _deltaZ = 1; _deltaZ <= deltaZ; _deltaZ++) {
     const targetZ = metadata.maxzoom - _deltaZ;
-    const { tileBounds } = getTileBoundsFromCoverages([{bbox: metadata.bbox, zoom: targetZ}], "tms", 256);
+
+    const { tileBounds } = getTileBoundsFromCoverages(
+      [{ bbox: metadata.bbox, zoom: targetZ }],
+      "tms",
+      tileSize
+    );
 
     async function createTileData(z, x, y) {
-      const tileRange = getPyramidTileRanges(z, x, y, "tms", _deltaZ);
+      const range = getPyramidTileRanges(z, x, y, "tms", _deltaZ);
+      const factor = 1 << _deltaZ;
 
-      for (let x = tileRange.x[0]; x <= tileRange.x[1]; x++) {
-        for (let y = tileRange.y[0]; y <= tileRange.y[1]; y++) {
-          let data = source
+      const canvas = sharp({
+        create: {
+          width: tileSize * factor,
+          height: tileSize * factor,
+          channels: 4,
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        }
+      });
+
+      const composites = [];
+
+      for (let dx = range.x[0]; dx <= range.x[1]; dx++) {
+        for (let dy = range.y[0]; dy <= range.y[1]; dy++) {
+          const row = source
             .prepare(
               `
-              SELECT
-                tile_data
-              FROM
-                tiles
-              WHERE
-                zoom_level = ? AND tile_column = ? AND tile_row = ?;
+                SELECT tile_data FROM tiles
+                WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;
               `
             )
-            .get([z, x, y]);
+            .get([z + _deltaZ, dx, dy]);
 
-          if (data === undefined || data.tile_data === null) {
-            continue;
+          if (!row?.tile_data) continue;
+
+          try {
+            const buf = await sharp(row.tile_data).ensureAlpha().resize({
+              width: tileSize,
+              height: tileSize
+            }).toBuffer();
+
+            const offsetX = (dx - range.x[0]) * tileSize;
+            const offsetY = (dy - range.y[0]) * tileSize;
+
+            composites.push({
+              input: buf,
+              top: offsetY,
+              left: offsetX
+            });
+          } catch (err) {
+            console.warn(`Failed to process tile z${z + _deltaZ}/${dx}/${dy}: ${err}`);
           }
-
-          await runSQLWithTimeout(
-              source,
-              `
-              INSERT INTO
-                tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-              VALUES
-                (?, ?, ?, ?, ?, ?)
-              ON CONFLICT
-                (zoom_level, tile_column, tile_row)
-              DO UPDATE
-                SET
-                  tile_data = excluded.tile_data,
-                  hash = excluded.hash,
-                  created = excluded.created;
-              `,
-              [z, x, y, data.tile_data, calculateMD5(data.tile_data), Date.now()],
-              60000
-            );
         }
       }
+
+      if (composites.length === 0) return;
+
+      const overviewTile = await canvas
+        .composite(composites)
+        .resize(tileSize, tileSize)
+        .png({ compressionLevel: 9 })
+        .toBuffer();
+
+      await runSQLWithTimeout(
+        source,
+        `
+          INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT (zoom_level, tile_column, tile_row)
+          DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;
+        `,
+        [z, x, y, overviewTile, calculateMD5(overviewTile), Date.now()],
+        30000
+      );
     }
 
-    await handleTilesConcurrency(batchSize, createTileData, tileBounds);
+    await handleTilesConcurrency(concurrency, createTileData, tileBounds);
   }
 }
