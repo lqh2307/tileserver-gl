@@ -10,8 +10,8 @@ import { stat } from "fs/promises";
 import { seed } from "./seed.js";
 import path from "path";
 import {
+  compileHandleBarsTemplate,
   calculateMD5OfFile,
-  compileTemplate,
   getRequestHost,
   isExistFile,
   gzipAsync,
@@ -32,7 +32,7 @@ function serveGeoJSONGroupHandler() {
           .send("GeoJSON group does not exist");
       }
 
-      const compiled = await compileTemplate("geojson_data", {
+      const compiled = await compileHandleBarsTemplate("geojson_data", {
         group: id,
         base_url: getRequestHost(req),
       });
@@ -71,7 +71,7 @@ function serveGeoJSONHandler() {
           .send("GeoJSON layer does not exist");
       }
 
-      const compiled = await compileTemplate("geojson_data", {
+      const compiled = await compileHandleBarsTemplate("geojson_data", {
         group: id,
         layer: req.params.layer,
         base_url: getRequestHost(req),

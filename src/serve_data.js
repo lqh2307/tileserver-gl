@@ -22,9 +22,9 @@ import {
 import {
   detectContentTypeFromFormat,
   getTileBoundsFromCoverages,
+  compileHandleBarsTemplate,
   createTileMetadata,
   calculateMD5OfFile,
-  compileTemplate,
   getRequestHost,
   getJSONSchema,
   validateJSON,
@@ -64,7 +64,7 @@ function serveDataHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      const compiled = await compileTemplate(
+      const compiled = await compileHandleBarsTemplate(
         item.tileJSON.format === "pbf" ? "vector_data" : "raster_data",
         {
           id: id,

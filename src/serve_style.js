@@ -9,9 +9,9 @@ import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
   detectContentTypeFromFormat,
+  compileHandleBarsTemplate,
   createTileMetadata,
   calculateMD5OfFile,
-  compileTemplate,
   getRequestHost,
   isLocalURL,
   gzipAsync,
@@ -32,7 +32,7 @@ function serveStyleHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
       }
 
-      const compiled = await compileTemplate("viewer", {
+      const compiled = await compileHandleBarsTemplate("viewer", {
         id: id,
         name: item.name,
         base_url: getRequestHost(req),
@@ -64,7 +64,7 @@ function serveWMTSHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("WMTS does not exist");
       }
 
-      const compiled = await compileTemplate("wmts", {
+      const compiled = await compileHandleBarsTemplate("wmts", {
         id: id,
         name: item.name,
         base_url: getRequestHost(req),

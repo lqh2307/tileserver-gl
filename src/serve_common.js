@@ -6,8 +6,8 @@ import { readSeedFile, updateSeedFile } from "./seed.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import {
+  compileHandleBarsTemplate,
   getXYZFromLonLatZ,
-  compileTemplate,
   getRequestHost,
   getJSONSchema,
   validateJSON,
@@ -125,7 +125,7 @@ function serveFrontPageHandler() {
         }),
       ]);
 
-      const compiled = await compileTemplate("index", {
+      const compiled = await compileHandleBarsTemplate("index", {
         styles: styles,
         geojsons: geojsons,
         geojson_groups: geojsonGroups,
