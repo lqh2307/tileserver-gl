@@ -189,7 +189,11 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     printLog("info", "Removing datas...");
 
-    await handleTilesConcurrency(concurrency, cleanUpMBTilesTileData, tileBounds);
+    await handleTilesConcurrency(
+      concurrency,
+      cleanUpMBTilesTileData,
+      tileBounds
+    );
 
     /* Compact MBTiles (Block DB) */
     // compactMBTiles(source);
@@ -307,7 +311,11 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
     printLog("info", "Removing datas...");
 
-    await handleTilesConcurrency(concurrency, cleanUpPostgreSQLTileData, tileBounds);
+    await handleTilesConcurrency(
+      concurrency,
+      cleanUpPostgreSQLTileData,
+      tileBounds
+    );
 
     printLog(
       "info",

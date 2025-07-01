@@ -788,19 +788,21 @@ export async function getMBTilesSize(filePath) {
  * @param {256|512} tileSize Tile size
  * @returns {Promise<void>}
  */
-export async function addMBTilesOverviews(source, deltaZ, concurrency, tileSize) {
+export async function addMBTilesOverviews(
+  source,
+  deltaZ,
+  concurrency,
+  tileSize
+) {
   const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
 
   if (!data?.tile_data) {
     return;
   }
 
-  const { width, height } = await sharp(
-    data.tile_data,
-    {
-      limitInputPixels: false,
-    }
-  ).metadata();
+  const { width, height } = await sharp(data.tile_data, {
+    limitInputPixels: false,
+  }).metadata();
 
   const metadata = await getMBTilesMetadata(source);
 
@@ -820,17 +822,17 @@ export async function addMBTilesOverviews(source, deltaZ, concurrency, tileSize)
           width: width * factor,
           height: height * factor,
           channels: 4,
-          background: { r: 0, g: 0, b: 0, alpha: 0 }
-        }
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        },
       });
 
       const composites = [];
 
       for (let dx = range.x[0]; dx <= range.x[1]; dx++) {
         for (let dy = range.y[0]; dy <= range.y[1]; dy++) {
-          const data = source.
-            prepare(
-            `
+          const data = source
+            .prepare(
+              `
             SELECT
               tile_data
             FROM
@@ -843,27 +845,28 @@ export async function addMBTilesOverviews(source, deltaZ, concurrency, tileSize)
 
           if (!data?.tile_data) {
             continue;
-          };
+          }
 
           composites.push({
             input: await sharp(data.tile_data).toBuffer(),
             top: (dy - range.y[0]) * width,
-            left: (dx - range.x[0]) * height
+            left: (dx - range.x[0]) * height,
           });
         }
       }
 
       if (!composites.length) {
         return;
-      };
+      }
 
-      const image = await createImageOutput(await compositeImage
-        .composite(composites)
-        .toBuffer(), {
+      const image = await createImageOutput(
+        await compositeImage.composite(composites).toBuffer(),
+        {
           format: metadata.format,
           width: width,
           height: height,
-        });
+        }
+      );
 
       await runSQLWithTimeout(
         source,
