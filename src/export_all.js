@@ -46,8 +46,13 @@ export async function exportAll(
   const startTime = Date.now();
 
   try {
+    const concurrency = 256;
+    const timeout = 300000;
+    const maxTry = 5;
+
     let log = `Exporting all with:`;
     log += `\n\tDirectory path: ${dirPath}`;
+    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
     log += `\n\tOptions: ${JSON.stringify(options)}`;
 
     printLog("info", log);
@@ -135,8 +140,8 @@ export async function exportAll(
           refreshBefore: {
             md5: true,
           },
-          timeout: 300000,
-          maxTry: 5,
+          timeout: timeout,
+          maxTry: maxTry,
           skip: false,
         };
 
@@ -178,9 +183,9 @@ export async function exportAll(
               refreshBefore: {
                 md5: true,
               },
-              timeout: 300000,
-              concurrency: 256,
-              maxTry: 5,
+              timeout: timeout,
+              concurrency: concurrency,
+              maxTry: maxTry,
               skip: false,
             };
 
@@ -224,8 +229,8 @@ export async function exportAll(
             refreshBefore: {
               md5: true,
             },
-            timeout: 300000,
-            maxTry: 5,
+            timeout: timeout,
+            maxTry: maxTry,
             skip: false,
           };
 
@@ -276,8 +281,8 @@ export async function exportAll(
                 refreshBefore: {
                   md5: true,
                 },
-                timeout: 300000,
-                maxTry: 5,
+                timeout: timeout,
+                maxTry: maxTry,
                 skip: false,
               };
 
@@ -329,9 +334,9 @@ export async function exportAll(
                         md5: true,
                       },
                       coverages: coverages,
-                      timeout: 300000,
-                      concurrency: 256,
-                      maxTry: 5,
+                      timeout: timeout,
+                      concurrency: concurrency,
+                      maxTry: maxTry,
                       storeType: "xyz",
                       storeTransparent: true,
                       skip: false,
@@ -370,9 +375,9 @@ export async function exportAll(
                         md5: true,
                       },
                       coverages: coverages,
-                      timeout: 300000,
-                      concurrency: 256,
-                      maxTry: 5,
+                      timeout: timeout,
+                      concurrency: concurrency,
+                      maxTry: maxTry,
                       storeType: "mbtiles",
                       storeTransparent: true,
                       skip: false,
@@ -410,9 +415,9 @@ export async function exportAll(
                         md5: true,
                       },
                       coverages: coverages,
-                      timeout: 300000,
-                      concurrency: 256,
-                      maxTry: 5,
+                      timeout: timeout,
+                      concurrency: concurrency,
+                      maxTry: maxTry,
                       storeType: "pg",
                       storeTransparent: true,
                       skip: false,
@@ -474,9 +479,9 @@ export async function exportAll(
                 md5: true,
               },
               coverages: coverages,
-              timeout: 300000,
-              concurrency: 256,
-              maxTry: 5,
+              timeout: timeout,
+              concurrency: concurrency,
+              maxTry: maxTry,
               storeType: "xyz",
               storeTransparent: true,
               skip: false,
@@ -515,9 +520,9 @@ export async function exportAll(
                 md5: true,
               },
               coverages: coverages,
-              timeout: 300000,
-              concurrency: 256,
-              maxTry: 5,
+              timeout: timeout,
+              concurrency: concurrency,
+              maxTry: maxTry,
               storeType: "mbtiles",
               storeTransparent: true,
               skip: false,
@@ -555,9 +560,9 @@ export async function exportAll(
                 md5: true,
               },
               coverages: coverages,
-              timeout: 300000,
-              concurrency: 256,
-              maxTry: 5,
+              timeout: timeout,
+              concurrency: concurrency,
+              maxTry: maxTry,
               storeType: "pg",
               storeTransparent: true,
               skip: false,
@@ -605,8 +610,8 @@ export async function exportAll(
             refreshBefore: {
               md5: true,
             },
-            timeout: 300000,
-            maxTry: 5,
+            timeout: timeout,
+            maxTry: maxTry,
             skip: false,
           };
 
@@ -643,8 +648,8 @@ export async function exportAll(
           refreshBefore: {
             md5: true,
           },
-          timeout: 300000,
-          maxTry: 5,
+          timeout: timeout,
+          maxTry: maxTry,
           skip: false,
         };
 
@@ -689,9 +694,9 @@ export async function exportAll(
           refreshBefore: {
             md5: true,
           },
-          timeout: 300000,
-          concurrency: 256,
-          maxTry: 5,
+          timeout: timeout,
+          concurrency: concurrency,
+          maxTry: maxTry,
           skip: false,
         };
 

@@ -632,7 +632,7 @@ export function getGridsFromCoverage(coverage, lonStep = 1, latStep = 1) {
  * @param {"xyz"|"tms"} scheme Tile scheme
  * @param {256|512} tileSize Tile size
  * @param {[number, number, number, number]} limitedBBox Limited bounding box
- * @returns {{ targetCoverages: { zoom: number, bbox: [number, number, number, number] }}[], realBBox: [number, number, number, number], total: number, tileBounds: { realBBox: [number, number, number, number], total: number, z: number, x: [number, number], y: [number, number] }[] }}
+ * @returns {{ targetCoverages: { zoom: number, bbox: [number, number, number, number] }}[], realBBox: [number, number, number, number], bbox: [number, number, number, number], total: number, tileBounds: { realBBox: [number, number, number, number], total: number, z: number, x: [number, number], y: [number, number] }[] }}
  */
 export function getTileBoundsFromCoverages(
   coverages,
@@ -724,6 +724,7 @@ export function getTileBoundsFromCoverages(
 
     return {
       realBBox: _bbox,
+      bbox: bbox,
       total: _total,
       z: coverage.zoom,
       x: [xMin, xMax],
@@ -1631,7 +1632,7 @@ function getSVGTextAlign(rotation, y) {
  * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} options Options
  * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
-async function createImageOutput(image, options) {
+export async function createImageOutput(image, options) {
   const format = options.format || "png";
 
   // Resize image

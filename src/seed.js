@@ -972,8 +972,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
   const total = 256;
 
   let log = `Seeding ${total} fonts of font "${id}" with:`;
-  log += `\n\tConcurrency: ${concurrency}`;
-  log += `\n\tMax try: ${maxTry} - Timeout: ${timeout}`;
+  log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {

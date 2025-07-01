@@ -256,6 +256,8 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
  * @returns {Promise<void>}
  */
 export async function calculatePostgreSQLTileExtraInfo(source) {
+  const batchSize = 256;
+
   while (true) {
     const data = await source.query(
       `
@@ -266,7 +268,7 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
       WHERE
         hash IS NULL
       LIMIT
-        256;
+        ${batchSize};
       `
     );
 

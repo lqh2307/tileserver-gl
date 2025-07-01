@@ -17,6 +17,7 @@ import {
   detectFormatAndHeaders,
   handleTilesConcurrency,
   getPyramidTileRanges,
+  createImageOutput,
   getBBoxFromTiles,
   getDataFromURL,
   calculateMD5,
@@ -186,7 +187,7 @@ function getMBTilesZoomLevelFromTiles(source, zoomType) {
 function getMBTilesFormatFromTiles(source) {
   const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
 
-  if (data && data.tile_data !== null) {
+  if (data?.tile_data) {
     return detectFormatAndHeaders(data.tile_data).format;
   }
 }
@@ -271,6 +272,8 @@ export function getMBTilesTileExtraInfoFromCoverages(
  * @returns {Promise<void>}
  */
 export async function calculateMBTilesTileExtraInfo(source) {
+  const batchSize = 256;
+
   const sql = source.prepare(
     `
     SELECT
@@ -280,7 +283,7 @@ export async function calculateMBTilesTileExtraInfo(source) {
     WHERE
       hash IS NULL
     LIMIT
-      256;
+      ${batchSize};
     `
   );
 
@@ -448,7 +451,7 @@ export function getMBTilesTile(source, z, x, y) {
     )
     .get([z, x, (1 << z) - 1 - y]);
 
-  if (data === undefined || data.tile_data === null) {
+  if (!data?.tile_data) {
     throw new Error("Tile does not exist");
   }
 
@@ -782,16 +785,28 @@ export async function getMBTilesSize(filePath) {
  * @param {Database} source SQLite database instance
  * @param {number} deltaZ Number of zoom levels to generate overviews
  * @param {number} concurrency Concurrency to generate overviews
+ * @param {256|512} tileSize Tile size
+ * @returns {Promise<void>}
  */
-export async function addMBTilesOverviews(source, deltaZ, concurrency) {
+export async function addMBTilesOverviews(source, deltaZ, concurrency, tileSize) {
+  const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
+
+  if (!data?.tile_data) {
+    return;
+  }
+
+  const { width, height } = await sharp(
+    data.tile_data,
+    {
+      limitInputPixels: false,
+    }
+  ).metadata();
+
   const metadata = await getMBTilesMetadata(source);
-  const tileSize = 256;
 
   for (let _deltaZ = 1; _deltaZ <= deltaZ; _deltaZ++) {
-    const targetZ = metadata.maxzoom - _deltaZ;
-
     const { tileBounds } = getTileBoundsFromCoverages(
-      [{ bbox: metadata.bbox, zoom: targetZ }],
+      [{ bbox: metadata.bbox, zoom: metadata.maxzoom - _deltaZ }],
       "tms",
       tileSize
     );
@@ -800,10 +815,10 @@ export async function addMBTilesOverviews(source, deltaZ, concurrency) {
       const range = getPyramidTileRanges(z, x, y, "tms", _deltaZ);
       const factor = 1 << _deltaZ;
 
-      const canvas = sharp({
+      const compositeImage = sharp({
         create: {
-          width: tileSize * factor,
-          height: tileSize * factor,
+          width: width * factor,
+          height: height * factor,
           channels: 4,
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         }
@@ -813,54 +828,59 @@ export async function addMBTilesOverviews(source, deltaZ, concurrency) {
 
       for (let dx = range.x[0]; dx <= range.x[1]; dx++) {
         for (let dy = range.y[0]; dy <= range.y[1]; dy++) {
-          const row = source
-            .prepare(
-              `
-                SELECT tile_data FROM tiles
-                WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;
-              `
+          const data = source.
+            prepare(
+            `
+            SELECT
+              tile_data
+            FROM
+              tiles
+            WHERE
+              zoom_level = ? AND tile_column = ? AND tile_row = ?;
+            `
             )
             .get([z + _deltaZ, dx, dy]);
 
-          if (!row?.tile_data) continue;
+          if (!data?.tile_data) {
+            continue;
+          };
 
-          try {
-            const buf = await sharp(row.tile_data).ensureAlpha().resize({
-              width: tileSize,
-              height: tileSize
-            }).toBuffer();
-
-            const offsetX = (dx - range.x[0]) * tileSize;
-            const offsetY = (dy - range.y[0]) * tileSize;
-
-            composites.push({
-              input: buf,
-              top: offsetY,
-              left: offsetX
-            });
-          } catch (err) {
-            console.warn(`Failed to process tile z${z + _deltaZ}/${dx}/${dy}: ${err}`);
-          }
+          composites.push({
+            input: await sharp(data.tile_data).toBuffer(),
+            top: (dy - range.y[0]) * width,
+            left: (dx - range.x[0]) * height
+          });
         }
       }
 
-      if (composites.length === 0) return;
+      if (!composites.length) {
+        return;
+      };
 
-      const overviewTile = await canvas
+      const image = await createImageOutput(await compositeImage
         .composite(composites)
-        .resize(tileSize, tileSize)
-        .png({ compressionLevel: 9 })
-        .toBuffer();
+        .toBuffer(), {
+          format: metadata.format,
+          width: width,
+          height: height,
+        });
 
       await runSQLWithTimeout(
         source,
         `
-          INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT (zoom_level, tile_column, tile_row)
-          DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;
+        INSERT INTO
+          tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
+        VALUES
+          (?, ?, ?, ?, ?, ?)
+        ON CONFLICT
+          (zoom_level, tile_column, tile_row)
+        DO UPDATE
+          SET
+            tile_data = excluded.tile_data,
+            hash = excluded.hash,
+            created = excluded.created;
         `,
-        [z, x, y, overviewTile, calculateMD5(overviewTile), Date.now()],
+        [z, x, y, image, calculateMD5(image), Date.now()],
         30000
       );
     }

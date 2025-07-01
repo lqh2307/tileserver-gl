@@ -821,32 +821,18 @@ export async function renderStyleJSONToImage(
  * @returns {Promise<string[]>}
  */
 export async function renderSVGToImage(format, overlays, concurrency, base64) {
-  const total = overlays.length;
-  const targetOverlays = Array(total);
+  const targetOverlays = Array(overlays.length);
 
-  async function renderSVGToImageData(idx, overlays, tasks) {
-    const completeTasks = tasks.completeTasks;
-
-    printLog("info", `Rendering SVG - ${completeTasks}/${total}...`);
-
-    try {
-      targetOverlays[idx] = await convertImage(
-        Buffer.from(overlays[idx].content),
-        {
-          format: overlays[idx].format || format,
-          width: overlays[idx].width,
-          height: overlays[idx].height,
-          base64: base64,
-        }
-      );
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to render SVG - ${completeTasks}/${total}: ${error}`
-      );
-
-      throw error;
-    }
+  async function renderSVGToImageData(idx, overlays) {
+    targetOverlays[idx] = await convertImage(
+      Buffer.from(overlays[idx].content),
+      {
+        format: overlays[idx].format || format,
+        width: overlays[idx].width,
+        height: overlays[idx].height,
+        base64: base64,
+      }
+    );
   }
 
   await handleConcurrency(concurrency, renderSVGToImageData, overlays);

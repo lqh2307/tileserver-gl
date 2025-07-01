@@ -30,6 +30,7 @@ import {
  * @returns {Promise<[string, string, string, string]>}
  */
 async function getXYZLayersFromTiles(sourcePath) {
+  const batchSize = 256;
   const pbfFilePaths = await findFiles(sourcePath, /^\d+\.pbf$/, true, true);
   const layerNames = new Set();
 
@@ -44,7 +45,7 @@ async function getXYZLayersFromTiles(sourcePath) {
       .forEach((layer) => layerNames.add(layer));
   }
 
-  await handleConcurrency(256, getLayer, pbfFilePaths);
+  await handleConcurrency(batchSize, getLayer, pbfFilePaths);
 
   return Array.from(layerNames);
 }
@@ -239,6 +240,8 @@ export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
  * @returns {Promise<void>}
  */
 export async function calculatXYZTileExtraInfo(sourcePath, source, format) {
+  const batchSize = 256;
+
   const sql = source.prepare(
     `
     SELECT
@@ -248,7 +251,7 @@ export async function calculatXYZTileExtraInfo(sourcePath, source, format) {
     WHERE
       hash IS NULL
     LIMIT
-      256;
+      ${batchSize};
     `
   );
 

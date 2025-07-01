@@ -102,9 +102,12 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
+    const concurrency = 256;
+
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
     let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:`;
+    log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
@@ -186,7 +189,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     printLog("info", "Removing datas...");
 
-    await handleTilesConcurrency(256, cleanUpMBTilesTileData, tileBounds);
+    await handleTilesConcurrency(concurrency, cleanUpMBTilesTileData, tileBounds);
 
     /* Compact MBTiles (Block DB) */
     // compactMBTiles(source);
@@ -221,9 +224,12 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
+    const concurrency = 256;
+
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
     let log = `Cleaning up ${total} tiles of postgresql "${id}" with:`;
+    log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
@@ -301,7 +307,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
     printLog("info", "Removing datas...");
 
-    await handleTilesConcurrency(256, cleanUpPostgreSQLTileData, tileBounds);
+    await handleTilesConcurrency(concurrency, cleanUpPostgreSQLTileData, tileBounds);
 
     printLog(
       "info",
@@ -334,9 +340,12 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
+    const concurrency = 256;
+
     const { total, tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
 
     let log = `Cleaning up ${total} tiles of xyz "${id}" with:`;
+    log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
@@ -421,7 +430,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
     printLog("info", "Removing datas...");
 
-    await handleTilesConcurrency(256, cleanUpXYZTileData, tileBounds);
+    await handleTilesConcurrency(concurrency, cleanUpXYZTileData, tileBounds);
 
     /* Compact XYZ (Block DB) */
     // compactXYZ(source);
