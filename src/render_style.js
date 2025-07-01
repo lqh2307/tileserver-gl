@@ -29,6 +29,7 @@ import {
   calculateMBTilesTileExtraInfo,
   updateMBTilesMetadata,
   cacheMBtilesTileData,
+  addMBTilesOverviews,
   closeMBTilesDB,
   openMBTilesDB,
 } from "./tile_mbtiles.js";
@@ -570,11 +571,11 @@ export async function renderStyleJSONToImage(
     log += `\n\tFormat: ${format}`;
     log += `\n\tTile scale: ${tileScale} - Target tile scale: ${targetScale} - Tile size: ${tileSize}`;
     log += `\n\tScheme: ${scheme}`;
-    log += `\n\tFrame: ${JSON.stringify(frame ? frame : {})}`;
-    log += `\n\tGrid: ${JSON.stringify(grid ? grid : {})}`;
+    log += `\n\tFrame: ${JSON.stringify(frame)}`;
+    log += `\n\tGrid: ${JSON.stringify(grid)}`;
     log += `\n\tIs base64: ${base64}`;
     log += `\n\tIs grayscale: ${grayscale}`;
-    log += `\n\tWS: ${JSON.stringify(ws ? ws : {})}`;
+    log += `\n\tWS: ${JSON.stringify(ws)}`;
     log += `\n\tOverlays: ${overlays ? true : false}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
@@ -1102,6 +1103,10 @@ export async function renderMBTilesTiles(
       const commandOutput = await runCommand(command);
 
       printLog("info", `Gdal command output: ${commandOutput}`);
+
+      // printLog("info", `Creating overviews...`);
+
+      // await addMBTilesOverviews(source, 5, concurrency, tileSize);
 
       printLog("info", "Calculating tile extra info...");
 

@@ -816,7 +816,7 @@ export async function addMBTilesOverviews(
 
   for (let _deltaZ = 1; _deltaZ <= deltaZ; _deltaZ++) {
     const { tileBounds } = getTileBoundsFromCoverages(
-      [{ bbox: metadata.bbox, zoom: metadata.maxzoom - _deltaZ }],
+      [{ bbox: metadata.bounds, zoom: metadata.maxzoom - _deltaZ }],
       "tms",
       tileSize
     );
@@ -841,13 +841,13 @@ export async function addMBTilesOverviews(
           const data = source
             .prepare(
               `
-            SELECT
-              tile_data
-            FROM
-              tiles
-            WHERE
-              zoom_level = ? AND tile_column = ? AND tile_row = ?;
-            `
+              SELECT
+                tile_data
+              FROM
+                tiles
+              WHERE
+                zoom_level = ? AND tile_column = ? AND tile_row = ?;
+              `
             )
             .get([z + _deltaZ, dx, dy]);
 
@@ -868,7 +868,9 @@ export async function addMBTilesOverviews(
       }
 
       const image = await createImageOutput(
-        await compositeImage.composite(composites).toBuffer(),
+        sharp(await compositeImage.composite(composites).toFormat(metadata.format).toBuffer(), {
+          limitInputPixels: false,
+        }),
         {
           format: metadata.format,
           width: width,

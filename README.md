@@ -1033,7 +1033,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
   "maxRendererPoolSize": 50,
   "concurrency": 50,
   "tileScale": 1,
-  "tileSize": 512,
+  "tileSize": 256,
   "frame": {},
   "grid": {},
   "styleJSON": {
