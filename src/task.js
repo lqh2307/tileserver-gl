@@ -336,7 +336,7 @@ export async function runTasks(opts) {
                   item.refreshBefore?.time ||
                     item.refreshBefore?.day ||
                     item.refreshBefore?.md5,
-                  item.headers || {}
+                  item.headers
                 );
               } catch (error) {
                 printLog(
@@ -389,7 +389,7 @@ export async function runTasks(opts) {
                   item.refreshBefore?.time ||
                     item.refreshBefore?.day ||
                     item.refreshBefore?.md5,
-                  item.headers || {}
+                  item.headers
                 );
               } catch (error) {
                 printLog(
@@ -441,7 +441,7 @@ export async function runTasks(opts) {
                   item.refreshBefore?.time ||
                     item.refreshBefore?.day ||
                     item.refreshBefore?.md5,
-                  item.headers || {}
+                  item.headers
                 );
               } catch (error) {
                 printLog(
@@ -493,7 +493,7 @@ export async function runTasks(opts) {
                   item.refreshBefore?.time ||
                     item.refreshBefore?.day ||
                     item.refreshBefore?.md5,
-                  item.headers || {}
+                  item.headers
                 );
               } catch (error) {
                 printLog(
@@ -552,7 +552,7 @@ export async function runTasks(opts) {
                       item.refreshBefore?.time ||
                         item.refreshBefore?.day ||
                         item.refreshBefore?.md5,
-                      item.headers || {}
+                      item.headers
                     );
 
                     break;
@@ -572,7 +572,7 @@ export async function runTasks(opts) {
                       item.refreshBefore?.time ||
                         item.refreshBefore?.day ||
                         item.refreshBefore?.md5,
-                      item.headers || {}
+                      item.headers
                     );
 
                     break;
@@ -592,7 +592,7 @@ export async function runTasks(opts) {
                       item.refreshBefore?.time ||
                         item.refreshBefore?.day ||
                         item.refreshBefore?.md5,
-                      item.headers || {}
+                      item.headers
                     );
 
                     break;
