@@ -51,13 +51,15 @@ export async function compileHandleBarsTemplate(template, data) {
  * @param {number} timeout Timeout in milliseconds
  * @param {"arraybuffer"|"json"|"text"|"stream"|"blob"|"document"|"formdata"} responseType Response type
  * @param {boolean} keepAlive Whether to keep the connection alive
+ * @param {object} headers Headers
  * @returns {Promise<axios.AxiosResponse>}
  */
 export async function getDataFromURL(
   url,
   timeout,
   responseType,
-  keepAlive = false
+  keepAlive = false,
+  headers = {}
 ) {
   try {
     return await axios({
@@ -67,7 +69,57 @@ export async function getDataFromURL(
       responseType: responseType,
       headers: {
         "User-Agent": "Tile Server",
+        ...headers,
       },
+      validateStatus: (status) => {
+        return status === StatusCodes.OK;
+      },
+      httpAgent: new http.Agent({
+        keepAlive: keepAlive,
+      }),
+      httpsAgent: new https.Agent({
+        keepAlive: keepAlive,
+      }),
+    });
+  } catch (error) {
+    if (error.response) {
+      error.message = `Status code: ${error.response.status} - ${error.response.statusText}`;
+      error.statusCode = error.response.status;
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Post data to URL
+ * @param {string} url URL to post data
+ * @param {number} timeout Timeout in milliseconds
+ * @param {object} body Body
+ * @param {"arraybuffer"|"json"|"text"|"stream"|"blob"|"document"|"formdata"} responseType Response type
+ * @param {boolean} keepAlive Whether to keep the connection alive
+ * @param {object} headers Headers
+ * @returns {Promise<axios.AxiosResponse>}
+ */
+export async function postDataToURL(
+  url,
+  timeout,
+  body,
+  responseType,
+  keepAlive = false,
+  headers = {}
+) {
+  try {
+    return await axios({
+      method: "POST",
+      url: url,
+      timeout: timeout,
+      responseType: responseType,
+      headers: {
+        "User-Agent": "Tile Server",
+        ...headers,
+      },
+      data: body,
       validateStatus: (status) => {
         return status === StatusCodes.OK;
       },
@@ -142,53 +194,6 @@ export async function getDataFileFromURL(url, timeout) {
     } else {
       throw new Error(`Failed to get file from "${url}": ${error}`);
     }
-  }
-}
-
-/**
- * Post data to URL
- * @param {string} url URL to post data
- * @param {number} timeout Timeout in milliseconds
- * @param {object} body Body
- * @param {"arraybuffer"|"json"|"text"|"stream"|"blob"|"document"|"formdata"} responseType Response type
- * @param {boolean} keepAlive Whether to keep the connection alive
- * @returns {Promise<axios.AxiosResponse>}
- */
-export async function postDataToURL(
-  url,
-  timeout,
-  body,
-  responseType,
-  keepAlive = false
-) {
-  try {
-    return await axios({
-      method: "POST",
-      url: url,
-      timeout: timeout,
-      responseType: responseType,
-      headers: {
-        "User-Agent": "Tile Server",
-        "Content-Type": "application/json",
-      },
-      data: body,
-      validateStatus: (status) => {
-        return status === StatusCodes.OK;
-      },
-      httpAgent: new http.Agent({
-        keepAlive: keepAlive,
-      }),
-      httpsAgent: new https.Agent({
-        keepAlive: keepAlive,
-      }),
-    });
-  } catch (error) {
-    if (error.response) {
-      error.message = `Status code: ${error.response.status} - ${error.response.statusText}`;
-      error.statusCode = error.response.status;
-    }
-
-    throw error;
   }
 }
 

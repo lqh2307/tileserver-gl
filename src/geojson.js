@@ -26,13 +26,14 @@ export async function removeGeoJSONFile(filePath, timeout) {
  * @param {string} filePath File path
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-export async function downloadGeoJSONFile(url, filePath, maxTry, timeout) {
+export async function downloadGeoJSONFile(url, filePath, maxTry, timeout, headers) {
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(url, timeout, "arraybuffer");
+      const response = await getDataFromURL(url, timeout, "arraybuffer", false, headers);
 
       // Store data to file
       await cacheGeoJSONFile(filePath, response.data);

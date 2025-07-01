@@ -620,6 +620,7 @@ export function closeXYZMD5DB(source) {
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
 export async function downloadXYZTile(
@@ -632,12 +633,13 @@ export async function downloadXYZTile(
   format,
   maxTry,
   timeout,
-  storeTransparent
+  storeTransparent,
+  headers,
 ) {
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(url, timeout, "arraybuffer");
+      const response = await getDataFromURL(url, timeout, "arraybuffer", false, headers);
 
       // Store data to file
       await cacheXYZTileFile(

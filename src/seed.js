@@ -110,6 +110,7 @@ async function updateSeedFile(seed, timeout) {
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
 async function seedMBTilesTiles(
@@ -122,7 +123,8 @@ async function seedMBTilesTiles(
   maxTry,
   timeout,
   storeTransparent,
-  refreshBefore
+  refreshBefore,
+  headers
 ) {
   const startTime = Date.now();
 
@@ -136,6 +138,7 @@ async function seedMBTilesTiles(
     );
 
     let log = `Seeding ${total} tiles of mbtiles "${id}" with:`;
+    log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -186,9 +189,13 @@ async function seedMBTilesTiles(
 
         const res = await postDataToURL(
           hashURL,
-          300000, // 5 mins
+          3600000, // 1 hours
           coverages,
-          "arraybuffer"
+          "arraybuffer",
+          false,
+          {
+            "Content-Type": "application/json",
+          },
         );
 
         if (res.headers["content-encoding"] === "gzip") {
@@ -286,7 +293,8 @@ async function seedMBTilesTiles(
           tmpY,
           maxTry,
           timeout,
-          storeTransparent
+          storeTransparent,
+          headers
         );
       } catch (error) {
         printLog(
@@ -328,6 +336,7 @@ async function seedMBTilesTiles(
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
 async function seedPostgreSQLTiles(
@@ -340,7 +349,8 @@ async function seedPostgreSQLTiles(
   maxTry,
   timeout,
   storeTransparent,
-  refreshBefore
+  refreshBefore,
+  headers
 ) {
   const startTime = Date.now();
 
@@ -354,6 +364,7 @@ async function seedPostgreSQLTiles(
     );
 
     let log = `Seeding ${total} tiles of postgresql "${id}" with:`;
+    log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -400,9 +411,13 @@ async function seedPostgreSQLTiles(
 
         const res = await postDataToURL(
           hashURL,
-          300000, // 5 mins
+          3600000, // 1 hours
           coverages,
-          "arraybuffer"
+          "arraybuffer",
+          false,
+          {
+            "Content-Type": "application/json",
+          },
         );
 
         if (res.headers["content-encoding"] === "gzip") {
@@ -500,7 +515,8 @@ async function seedPostgreSQLTiles(
           tmpY,
           maxTry,
           timeout,
-          storeTransparent
+          storeTransparent,
+          headers
         );
       } catch (error) {
         printLog(
@@ -546,6 +562,7 @@ async function seedPostgreSQLTiles(
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
 async function seedXYZTiles(
@@ -558,7 +575,8 @@ async function seedXYZTiles(
   maxTry,
   timeout,
   storeTransparent,
-  refreshBefore
+  refreshBefore,
+  headers
 ) {
   const startTime = Date.now();
 
@@ -572,6 +590,7 @@ async function seedXYZTiles(
     );
 
     let log = `Seeding ${total} tiles of xyz "${id}" with:`;
+    log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -623,9 +642,13 @@ async function seedXYZTiles(
 
         const res = await postDataToURL(
           hashURL,
-          300000, // 5 mins
+          3600000, // 1 hours
           coverages,
-          "arraybuffer"
+          "arraybuffer",
+          false,
+          {
+            "Content-Type": "application/json",
+          },
         );
 
         if (res.headers["content-encoding"] === "gzip") {
@@ -725,7 +748,8 @@ async function seedXYZTiles(
           metadata.format,
           maxTry,
           timeout,
-          storeTransparent
+          storeTransparent,
+          headers
         );
       } catch (error) {
         printLog(
@@ -765,12 +789,14 @@ async function seedXYZTiles(
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
+async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
   const startTime = Date.now();
 
   let log = `Seeding geojson "${id}" with:`;
+  log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)}`;
   log += `\n\tMax try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
@@ -849,7 +875,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
         `Downloading geojson "${id}" - File "${filePath}" - From "${url}"...`
       );
 
-      await downloadGeoJSONFile(url, filePath, maxTry, timeout);
+      await downloadGeoJSONFile(url, filePath, maxTry, timeout, headers);
     }
   } catch (error) {
     printLog("error", `Failed to seed geojson "${id}": ${error}`);
@@ -871,12 +897,14 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore) {
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
+async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
   const startTime = Date.now();
 
   let log = `Seeding sprite "${id}" with:`;
+  log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)}`;
   log += `\n\tMax try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
@@ -929,7 +957,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
           `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`
         );
 
-        await downloadSpriteFile(targetURL, id, fileName, maxTry, timeout);
+        await downloadSpriteFile(targetURL, id, fileName, maxTry, timeout, headers);
       }
     } catch (error) {
       printLog(
@@ -964,14 +992,16 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore) {
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
+async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore, headers) {
   const startTime = Date.now();
 
   const total = 256;
 
   let log = `Seeding ${total} fonts of font "${id}" with:`;
+  log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)}`;
   log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
@@ -1026,7 +1056,7 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
           `Downloading font "${id}" - Filename "${fileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
         );
 
-        await downloadFontFile(targetURL, id, fileName, maxTry, timeout);
+        await downloadFontFile(targetURL, id, fileName, maxTry, timeout, headers);
       }
     } catch (error) {
       printLog(
@@ -1062,12 +1092,14 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore) {
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
+ * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
+async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
   const startTime = Date.now();
 
   let log = `Seeding style "${id}" with:`;
+  log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)}`;
   log += `\n\tMax try: ${maxTry} - Timeout: ${timeout}`;
 
   let refreshTimestamp;
@@ -1164,7 +1196,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore) {
         `Downloading style "${id}" - File "${filePath}" - From "${url}"...`
       );
 
-      await downloadStyleFile(url, filePath, maxTry, timeout);
+      await downloadStyleFile(url, filePath, maxTry, timeout, headers);
     }
   } catch (error) {
     printLog("error", `Failed to seed style "${id}": ${error}`);

@@ -46,7 +46,7 @@ export async function exportAll(
   const startTime = Date.now();
 
   try {
-    const concurrency = 256;
+    concurrency = concurrency || 256;
     const timeout = 300000;
     const maxTry = 5;
 
@@ -723,17 +723,17 @@ export async function exportAll(
       createFileWithLock(
         `${dirPath}/config.json`,
         JSON.stringify(configObj, null, 2),
-        30000
+        timeout
       ),
       createFileWithLock(
         `${dirPath}/seed.json`,
         JSON.stringify(seedObj, null, 2),
-        30000
+        timeout
       ),
       createFileWithLock(
         `${dirPath}/cleanup.json`,
         JSON.stringify(cleanUpObj, null, 2),
-        30000
+        timeout
       ),
     ]);
 

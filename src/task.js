@@ -335,7 +335,8 @@ export async function runTasks(opts) {
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
                     item.refreshBefore?.day ||
-                    item.refreshBefore?.md5
+                    item.refreshBefore?.md5,
+                  item.headers || {}
                 );
               } catch (error) {
                 printLog(
@@ -387,7 +388,8 @@ export async function runTasks(opts) {
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
                     item.refreshBefore?.day ||
-                    item.refreshBefore?.md5
+                    item.refreshBefore?.md5,
+                  item.headers || {}
                 );
               } catch (error) {
                 printLog(
@@ -438,7 +440,8 @@ export async function runTasks(opts) {
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
                     item.refreshBefore?.day ||
-                    item.refreshBefore?.md5
+                    item.refreshBefore?.md5,
+                  item.headers || {}
                 );
               } catch (error) {
                 printLog(
@@ -489,7 +492,8 @@ export async function runTasks(opts) {
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
                     item.refreshBefore?.day ||
-                    item.refreshBefore?.md5
+                    item.refreshBefore?.md5,
+                  item.headers || {}
                 );
               } catch (error) {
                 printLog(
@@ -547,7 +551,8 @@ export async function runTasks(opts) {
                       item.storeTransparent ?? true,
                       item.refreshBefore?.time ||
                         item.refreshBefore?.day ||
-                        item.refreshBefore?.md5
+                        item.refreshBefore?.md5,
+                      item.headers || {}
                     );
 
                     break;
@@ -566,7 +571,8 @@ export async function runTasks(opts) {
                       item.storeTransparent ?? true,
                       item.refreshBefore?.time ||
                         item.refreshBefore?.day ||
-                        item.refreshBefore?.md5
+                        item.refreshBefore?.md5,
+                      item.headers || {}
                     );
 
                     break;
@@ -585,7 +591,8 @@ export async function runTasks(opts) {
                       item.storeTransparent ?? true,
                       item.refreshBefore?.time ||
                         item.refreshBefore?.day ||
-                        item.refreshBefore?.md5
+                        item.refreshBefore?.md5,
+                      item.headers || {}
                     );
 
                     break;
