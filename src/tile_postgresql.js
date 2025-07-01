@@ -656,7 +656,13 @@ export async function downloadPostgreSQLTile(
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(url, timeout, "arraybuffer", false, headers);
+      const response = await getDataFromURL(
+        url,
+        timeout,
+        "arraybuffer",
+        false,
+        headers
+      );
 
       // Store data
       await cachePostgreSQLTileData(

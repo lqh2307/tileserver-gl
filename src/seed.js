@@ -138,7 +138,9 @@ async function seedMBTilesTiles(
     );
 
     let log = `Seeding ${total} tiles of mbtiles "${id}" with:`;
-    log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)} - Scheme: ${scheme}`;
+    log += `\n\tURL: ${url} - Header: ${JSON.stringify(
+      headers
+    )} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -195,7 +197,7 @@ async function seedMBTilesTiles(
           false,
           {
             "Content-Type": "application/json",
-          },
+          }
         );
 
         if (res.headers["content-encoding"] === "gzip") {
@@ -364,7 +366,9 @@ async function seedPostgreSQLTiles(
     );
 
     let log = `Seeding ${total} tiles of postgresql "${id}" with:`;
-    log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)} - Scheme: ${scheme}`;
+    log += `\n\tURL: ${url} - Header: ${JSON.stringify(
+      headers
+    )} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -417,7 +421,7 @@ async function seedPostgreSQLTiles(
           false,
           {
             "Content-Type": "application/json",
-          },
+          }
         );
 
         if (res.headers["content-encoding"] === "gzip") {
@@ -590,7 +594,9 @@ async function seedXYZTiles(
     );
 
     let log = `Seeding ${total} tiles of xyz "${id}" with:`;
-    log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)} - Scheme: ${scheme}`;
+    log += `\n\tURL: ${url} - Header: ${JSON.stringify(
+      headers
+    )} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
@@ -648,7 +654,7 @@ async function seedXYZTiles(
           false,
           {
             "Content-Type": "application/json",
-          },
+          }
         );
 
         if (res.headers["content-encoding"] === "gzip") {
@@ -957,7 +963,14 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
           `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`
         );
 
-        await downloadSpriteFile(targetURL, id, fileName, maxTry, timeout, headers);
+        await downloadSpriteFile(
+          targetURL,
+          id,
+          fileName,
+          maxTry,
+          timeout,
+          headers
+        );
       }
     } catch (error) {
       printLog(
@@ -995,7 +1008,15 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
  * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore, headers) {
+async function seedFont(
+  id,
+  url,
+  concurrency,
+  maxTry,
+  timeout,
+  refreshBefore,
+  headers
+) {
   const startTime = Date.now();
 
   const total = 256;
@@ -1056,7 +1077,14 @@ async function seedFont(id, url, concurrency, maxTry, timeout, refreshBefore, he
           `Downloading font "${id}" - Filename "${fileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
         );
 
-        await downloadFontFile(targetURL, id, fileName, maxTry, timeout, headers);
+        await downloadFontFile(
+          targetURL,
+          id,
+          fileName,
+          maxTry,
+          timeout,
+          headers
+        );
       }
     } catch (error) {
       printLog(

@@ -63,11 +63,24 @@ export async function cacheFontFile(sourcePath, fileName, data) {
  * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-export async function downloadFontFile(url, id, fileName, maxTry, timeout, headers) {
+export async function downloadFontFile(
+  url,
+  id,
+  fileName,
+  maxTry,
+  timeout,
+  headers
+) {
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(url, timeout, "arraybuffer", false, headers);
+      const response = await getDataFromURL(
+        url,
+        timeout,
+        "arraybuffer",
+        false,
+        headers
+      );
 
       // Store data to file
       await cacheFontFile(

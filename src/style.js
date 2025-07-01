@@ -32,11 +32,23 @@ export async function removeStyleFile(filePath, timeout) {
  * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-export async function downloadStyleFile(url, filePath, maxTry, timeout, headers) {
+export async function downloadStyleFile(
+  url,
+  filePath,
+  maxTry,
+  timeout,
+  headers
+) {
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(url, timeout, "arraybuffer", false, headers);
+      const response = await getDataFromURL(
+        url,
+        timeout,
+        "arraybuffer",
+        false,
+        headers
+      );
 
       // Store data to file
       await cacheStyleFile(filePath, response.data);
