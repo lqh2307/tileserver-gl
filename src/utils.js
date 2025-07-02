@@ -58,8 +58,8 @@ export async function getDataFromURL(
   url,
   timeout,
   responseType,
-  keepAlive = false,
-  headers = {}
+  keepAlive,
+  headers
 ) {
   try {
     return await axios({
@@ -67,10 +67,7 @@ export async function getDataFromURL(
       url: url,
       timeout: timeout,
       responseType: responseType,
-      headers: {
-        "User-Agent": "Tile Server",
-        ...headers,
-      },
+      headers: headers,
       validateStatus: (status) => {
         return status === StatusCodes.OK;
       },
@@ -106,8 +103,8 @@ export async function postDataToURL(
   timeout,
   body,
   responseType,
-  keepAlive = false,
-  headers = {}
+  keepAlive,
+  headers
 ) {
   try {
     return await axios({
@@ -115,10 +112,7 @@ export async function postDataToURL(
       url: url,
       timeout: timeout,
       responseType: responseType,
-      headers: {
-        "User-Agent": "Tile Server",
-        ...headers,
-      },
+      headers: headers,
       data: body,
       validateStatus: (status) => {
         return status === StatusCodes.OK;
