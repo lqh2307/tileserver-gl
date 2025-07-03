@@ -64,7 +64,10 @@ function getFontStaticHandler() {
 
       return res.status(StatusCodes.OK).send(data);
     } catch (error) {
-      printLog("error", `Failed to get font ${req.params.format} "${id}": ${error}`);
+      printLog(
+        "error",
+        `Failed to get font ${req.params.format} "${id}": ${error}`
+      );
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
