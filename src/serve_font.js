@@ -1,9 +1,9 @@
 "use strict";
 
 import { detectFormatAndHeaders, getRequestHost, gzipAsync } from "./utils.js";
+import { getFont, validateFont } from "./font.js";
 import { getAndCacheDataFonts } from "./data.js";
 import { StatusCodes } from "http-status-codes";
-import { validateFont } from "./font.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
@@ -36,6 +36,35 @@ function getFontHandler() {
       return res.status(StatusCodes.OK).send(data);
     } catch (error) {
       printLog("error", `Failed to get font "${ids}": ${error}`);
+
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get font ttf/otf/woff/woff2 handler
+ * @returns {(req: any, res: any, next: any) => Promise<any>}
+ */
+function getFontStaticHandler() {
+  return async (req, res, next) => {
+    const id = req.params.id;
+
+    try {
+      /* Get static Font */
+      let data = await getFont(
+        `${process.env.DATA_DIR}/${req.params.format}fonts/${id}`,
+        `${req.params.name}.${req.params.format}`
+      );
+
+      /* Add header */
+      res.set(detectFormatAndHeaders(data).headers);
+
+      return res.status(StatusCodes.OK).send(data);
+    } catch (error) {
+      printLog("error", `Failed to get font ${req.params.format} "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -187,6 +216,61 @@ export const serve_font = {
      *         description: Internal server error
      */
     app.get("/fonts/:id/:range.pbf", getFontHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Font
+     *     description: Font related endpoints
+     * /fonts/{id}/{name}.{format}:
+     *   get:
+     *     tags:
+     *       - Font
+     *     summary: Get static font
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: id
+     *         description: Font ID
+     *       - in: path
+     *         name: name
+     *         required: true
+     *         schema:
+     *           type: string
+     *           example: name
+     *         description: Font name
+     *       - in: path
+     *         name: format
+     *         required: true
+     *         schema:
+     *           type: string
+     *           enum: [ttf, otf, woff, woff2]
+     *           example: ttf
+     *         description: Font format
+     *     responses:
+     *       200:
+     *         description: Font static data
+     *         content:
+     *           application/octet-stream:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/fonts/:id/:name.:format", getFontStaticHandler());
   },
 
   /**

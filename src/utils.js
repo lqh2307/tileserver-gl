@@ -1164,8 +1164,8 @@ export function getRequestHost(req) {
 }
 
 /**
- * Return either a format as an extension: png, pbf, jpg, webp, gif and
- * headers - Content-Type and Content-Encoding - for a response containing this kind of image
+ * Return either a format as an extension: png, pbf, jpg, webp, gif, ttf, otf, woff, woff2 and
+ * headers - Content-Type and Content-Encoding - for a response containing this kind of binary data
  * @param {Buffer} buffer Input data
  * @returns {object}
  */
@@ -1191,8 +1191,8 @@ export function detectFormatAndHeaders(buffer) {
     buffer[buffer.length - 2] === 0xff &&
     buffer[buffer.length - 1] === 0xd9
   ) {
-    format = "jpeg"; // equivalent jpg
-    headers["content-type"] = "image/jpeg"; // equivalent image/jpg
+    format = "jpeg";
+    headers["content-type"] = "image/jpeg";
   } else if (
     buffer[0] === 0x47 &&
     buffer[1] === 0x49 &&
@@ -1215,6 +1215,38 @@ export function detectFormatAndHeaders(buffer) {
   ) {
     format = "webp";
     headers["content-type"] = "image/webp";
+  } else if (
+    buffer[0] === 0x77 &&
+    buffer[1] === 0x4f &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46
+  ) {
+    format = "woff";
+    headers["content-type"] = "font/woff";
+  } else if (
+    buffer[0] === 0x77 &&
+    buffer[1] === 0x4f &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x32
+  ) {
+    format = "woff2";
+    headers["content-type"] = "font/woff2";
+  } else if (
+    buffer[0] === 0x4f &&
+    buffer[1] === 0x54 &&
+    buffer[2] === 0x54 &&
+    buffer[3] === 0x4f
+  ) {
+    format = "otf";
+    headers["content-type"] = "font/otf";
+  } else if (
+    buffer[0] === 0x00 &&
+    buffer[1] === 0x01 &&
+    buffer[2] === 0x00 &&
+    buffer[3] === 0x00
+  ) {
+    format = "ttf";
+    headers["content-type"] = "font/ttf";
   } else {
     format = "pbf";
     headers["content-type"] = "application/x-protobuf";
