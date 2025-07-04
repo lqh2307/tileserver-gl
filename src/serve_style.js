@@ -15,6 +15,7 @@ import {
   getRequestHost,
   isLocalURL,
   gzipAsync,
+  deepClone,
 } from "./utils.js";
 
 /**
@@ -375,8 +376,7 @@ function getRenderedHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${requestHost}/styles/${id}/{z}/{x}/{y}.png${
-            queryStrings.length ? `?${queryStrings.join("&")}` : ""
+          `${requestHost}/styles/${id}/{z}/{x}/{y}.png${queryStrings.length ? `?${queryStrings.join("&")}` : ""
           }`,
         ],
       });
@@ -922,6 +922,7 @@ export const serve_style = {
 
               if (item.cache.forward) {
                 styleInfo.sourceURL = cacheSource.url;
+                styleInfo.headers = deepClone(cacheSource.headers);
                 styleInfo.storeCache = item.cache.store;
               }
             } else {

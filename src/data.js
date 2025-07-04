@@ -50,6 +50,7 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
       /* Get data */
       const dataTile = await getDataTileFromURL(
         targetURL,
+        item.headers,
         30000 // 30 secs
       );
 
@@ -110,6 +111,7 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
       /* Get data */
       const dataTile = await getDataTileFromURL(
         targetURL,
+        item.headers,
         30000 // 30 secs
       );
 
@@ -172,6 +174,7 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
       /* Get data */
       const dataTile = await getDataTileFromURL(
         targetURL,
+        item.headers,
         30000 // 30 secs
       );
 
@@ -217,6 +220,7 @@ export async function getAndCacheDataStyleJSON(id) {
 
       const styleJSON = await getDataFileFromURL(
         item.sourceURL,
+        item.headers,
         30000 // 30 secs
       );
 
@@ -258,6 +262,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
 
       const geoJSON = await getDataFileFromURL(
         item.sourceURL,
+        item.headers,
         30000 // 30 secs
       );
 
@@ -307,6 +312,7 @@ export async function getAndCacheDataSprite(id, fileName) {
         /* Get sprite */
         const sprite = await getDataFileFromURL(
           targetURL,
+          item.headers,
           30000 // 30 secs
         );
 
@@ -375,6 +381,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
             /* Get font */
             const font = await getDataFileFromURL(
               targetURL,
+              item.headers,
               30000 // 30 secs
             );
 

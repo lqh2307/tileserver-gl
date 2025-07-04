@@ -9,6 +9,7 @@ import { seed } from "./seed.js";
 import {
   detectContentTypeFromFormat,
   getRequestHost,
+  deepClone,
   gzipAsync,
 } from "./utils.js";
 
@@ -243,6 +244,7 @@ export const serve_sprite = {
 
               if (item.cache.forward) {
                 spriteInfo.sourceURL = cacheSource.url;
+                spriteInfo.headers = deepClone(cacheSource.headers);
                 spriteInfo.storeCache = item.cache.store;
               }
             } else {

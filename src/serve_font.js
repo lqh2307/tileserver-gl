@@ -1,6 +1,6 @@
 "use strict";
 
-import { detectFormatAndHeaders, getRequestHost, gzipAsync } from "./utils.js";
+import { deepClone, detectFormatAndHeaders, getRequestHost, gzipAsync } from "./utils.js";
 import { getFont, validateFont } from "./font.js";
 import { getAndCacheDataFonts } from "./data.js";
 import { StatusCodes } from "http-status-codes";
@@ -307,6 +307,7 @@ export const serve_font = {
 
               if (item.cache.forward) {
                 fontInfo.sourceURL = cacheSource.url;
+                fontInfo.headers = deepClone(cacheSource.headers);
                 fontInfo.storeCache = item.cache.store;
               }
             } else {

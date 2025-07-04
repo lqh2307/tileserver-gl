@@ -30,6 +30,7 @@ import {
   validateJSON,
   isExistFile,
   gzipAsync,
+  deepClone,
 } from "./utils.js";
 import {
   getPMTilesMetadata,
@@ -975,6 +976,7 @@ export const serve_data = {
 
                 if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
+                  dataInfo.headers = deepClone(cacheSource.headers);
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
@@ -1051,6 +1053,7 @@ export const serve_data = {
 
                 if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
+                  dataInfo.headers = deepClone(cacheSource.headers);
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
@@ -1107,6 +1110,7 @@ export const serve_data = {
 
                 if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
+                  dataInfo.headers = deepClone(cacheSource.headers);
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
