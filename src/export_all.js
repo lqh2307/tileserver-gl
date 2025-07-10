@@ -7,9 +7,9 @@ import { cacheFontFile } from "./font.js";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import {
-  createCoveragesFromBBoxAndZooms,
   createFileWithLock,
   createFolders,
+  getTileBounds,
   isLocalURL,
 } from "./utils.js";
 import {
@@ -310,11 +310,11 @@ export async function exportAll(
 
                 const data = config.datas[dataID];
 
-                const coverages = createCoveragesFromBBoxAndZooms(
-                  data.tileJSON.bounds,
-                  data.tileJSON.minzoom,
-                  data.tileJSON.maxzoom
-                );
+                const coverages = getTileBounds({
+                  zoom: data.tileJSON.bounds,
+                  minZoom: data.tileJSON.minzoom,
+                  maxZoom: data.tileJSON.maxzoom
+                });
 
                 switch (data.sourceType) {
                   case "xyz": {
@@ -455,11 +455,11 @@ export async function exportAll(
 
         const data = config.datas[dataID];
 
-        const coverages = createCoveragesFromBBoxAndZooms(
-          data.tileJSON.bounds,
-          data.tileJSON.minzoom,
-          data.tileJSON.maxzoom
-        );
+        const coverages = getTileBounds({
+          zoom: data.tileJSON.bounds,
+          minZoom: data.tileJSON.minzoom,
+          maxZoom: data.tileJSON.maxzoom
+        });
 
         switch (data.sourceType) {
           case "xyz": {

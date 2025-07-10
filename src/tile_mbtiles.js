@@ -12,7 +12,6 @@ import {
   closeSQLite,
 } from "./sqlite.js";
 import {
-  getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
   handleTilesConcurrency,
@@ -20,6 +19,7 @@ import {
   createImageOutput,
   getBBoxFromTiles,
   getDataFromURL,
+  getTileBounds,
   calculateMD5,
   retry,
 } from "./utils.js";
@@ -235,7 +235,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
   coverages,
   isCreated
 ) {
-  const { tileBounds } = getTileBoundsFromCoverages(coverages, "tms");
+  const { tileBounds } = getTileBounds({coverages: coverages, scheme: "tms"});
 
   let query = "";
   const extraInfoType = isCreated ? "created" : "hash";
@@ -815,11 +815,7 @@ export async function addMBTilesOverviews(
   const metadata = await getMBTilesMetadata(source);
 
   for (let _deltaZ = 1; _deltaZ <= deltaZ; _deltaZ++) {
-    const { tileBounds } = getTileBoundsFromCoverages(
-      [{ bbox: metadata.bounds, zoom: metadata.maxzoom - _deltaZ }],
-      "tms",
-      tileSize
-    );
+    const { tileBounds } = getTileBounds({bbox: metadata.bounds, minZoom: metadata.maxzoom - _deltaZ, maxZoom: metadata.maxzoom - _deltaZ, scheme: "tms"});
 
     async function createTileData(z, x, y) {
       const range = getPyramidTileRanges(z, x, y, "tms", _deltaZ);

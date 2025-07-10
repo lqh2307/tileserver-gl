@@ -11,7 +11,6 @@ import {
   closeSQLite,
 } from "./sqlite.js";
 import {
-  getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
   removeFileWithLock,
@@ -19,6 +18,7 @@ import {
   handleConcurrency,
   getBBoxFromTiles,
   getDataFromURL,
+  getTileBounds,
   calculateMD5,
   findFiles,
   retry,
@@ -204,7 +204,7 @@ async function createXYZTile(
  * @returns {Object<string, string>} Extra info object
  */
 export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
-  const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+  const { tileBounds } = getTileBounds({coverages: coverages});
 
   let query = "";
   const extraInfoType = isCreated ? "created" : "hash";

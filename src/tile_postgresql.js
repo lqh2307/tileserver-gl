@@ -6,11 +6,11 @@ import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import { printLog } from "./logger.js";
 import {
-  getTileBoundsFromCoverages,
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
   getBBoxFromTiles,
   getDataFromURL,
+  getTileBounds,
   calculateMD5,
   retry,
 } from "./utils.js";
@@ -222,7 +222,7 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
   coverages,
   isCreated
 ) {
-  const { tileBounds } = getTileBoundsFromCoverages(coverages, "xyz");
+  const { tileBounds } = getTileBounds({coverages: coverages});
 
   let query = "";
   const extraInfoType = isCreated ? "created" : "hash";

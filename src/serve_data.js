@@ -21,11 +21,11 @@ import {
 } from "./tile_mbtiles.js";
 import {
   detectContentTypeFromFormat,
-  getTileBoundsFromCoverages,
   compileHandleBarsTemplate,
   createTileMetadata,
   calculateMD5OfFile,
   getRequestHost,
+  getTileBounds,
   getJSONSchema,
   validateJSON,
   isExistFile,
@@ -190,19 +190,19 @@ function getDataHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      const requestHost = getRequestHost(req);
-
-      res.header("content-type", "application/json");
-
-      return res.status(StatusCodes.OK).send({
+      const data = {
         ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
         id: id,
         tiles: [
-          `${requestHost}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format}`,
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format}`,
         ],
-      });
+      };
+
+      res.header("content-type", "application/json");
+
+      return res.status(StatusCodes.OK).send(data);
     } catch (error) {
       printLog("error", `Failed to get data "${id}": ${error}`);
 
@@ -358,13 +358,14 @@ function getDataTileExtraInfoHandler() {
       }
 
       let extraInfo;
+      const isCreated = req.query.type === "created";
 
       switch (item.sourceType) {
         case "mbtiles": {
           extraInfo = getMBTilesTileExtraInfoFromCoverages(
             item.source,
             req.body,
-            req.query.type === "created",
+            isCreated,
             item.tileJSON.bounds
           );
 
@@ -383,7 +384,7 @@ function getDataTileExtraInfoHandler() {
           extraInfo = getXYZTileExtraInfoFromCoverages(
             item.md5Source,
             req.body,
-            req.query.type === "created",
+            isCreated,
             item.tileJSON.bounds
           );
 
@@ -394,7 +395,7 @@ function getDataTileExtraInfoHandler() {
           extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
             item.source,
             req.body,
-            req.query.type === "created",
+            isCreated,
             item.tileJSON.bounds
           );
 
@@ -995,10 +996,10 @@ export const serve_data = {
                 /* Get MBTiles metadata */
                 dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
-                  cacheCoverages: getTileBoundsFromCoverages(
-                    cacheSource.coverages,
-                    cacheSource.metadata.bounds
-                  ).targetCoverages,
+                  cacheCoverages: getTileBounds({
+                    coverages: cacheSource.coverages,
+                    limitedBBox: cacheSource.metadata.bounds
+                  }).targetCoverages,
                 });
               } else {
                 /* Get MBTiles path */
@@ -1073,10 +1074,10 @@ export const serve_data = {
                 /* Get XYZ metadata */
                 dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
-                  cacheCoverages: getTileBoundsFromCoverages(
-                    cacheSource.coverages,
-                    cacheSource.metadata.bounds
-                  ).targetCoverages,
+                  cacheCoverages: getTileBounds({
+                    coverages: cacheSource.coverages,
+                    limitedBBox: cacheSource.metadata.bounds
+                  }).targetCoverages,
                 });
               } else {
                 /* Get XYZ path */
@@ -1125,10 +1126,10 @@ export const serve_data = {
                 /* Get PostgreSQL metadata */
                 dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
-                  cacheCoverages: getTileBoundsFromCoverages(
-                    cacheSource.coverages,
-                    cacheSource.metadata.bounds
-                  ).targetCoverages,
+                  cacheCoverages: getTileBounds({
+                    coverages: cacheSource.coverages,
+                    limitedBBox: cacheSource.metadata.bounds
+                  }).targetCoverages,
                 });
               } else {
                 /* Get XYZ path */

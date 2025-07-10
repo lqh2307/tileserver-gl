@@ -628,110 +628,191 @@ export function getGridsFromCoverage(coverage, lonStep = 1, latStep = 1) {
 }
 
 /**
- * Get tile bounds and total count for specific coverages
- * @param {{ zoom: number, bbox: [number, number, number, number], circle: { radius: number, center: [number, number] }}[]} coverages Specific coverages
- * @param {"xyz"|"tms"} scheme Tile scheme
- * @param {256|512} tileSize Tile size
- * @param {[number, number, number, number]} limitedBBox Limited bounding box
- * @returns {{ targetCoverages: { zoom: number, bbox: [number, number, number, number] }}[], realBBox: [number, number, number, number], bbox: [number, number, number, number], total: number, tileBounds: { realBBox: [number, number, number, number], total: number, z: number, x: [number, number], y: [number, number] }[] }}
+ * Get tile bounds
+ * @param {{ coverages: { zoom: number, bbox: [number, number, number, number], circle: { radius: number, center: [number, number] }}[], scheme: "xyz"|"tms", tileSize: 256|512, limitedBBox: [number, number, number, number], minZoom: number, maxZoom: number, bbox: [number, number, number, number] }} options Option object
+ * @returns {{ targetCoverages: { zoom: number, bbox: [number, number, number, number] }[], realBBox: [number, number, number, number], bbox: [number, number, number, number], total: number, tileBounds: { realBBox: [number, number, number, number], total: number, z: number, x: [number, number], y: [number, number] }[] }}
  */
-export function getTileBoundsFromCoverages(
-  coverages,
-  scheme,
-  tileSize,
-  limitedBBox
-) {
+export function getTileBounds(options) {
   let totalTile = 0;
   let realBBox;
   const targetCoverages = [];
+  let tileBounds = [];
 
-  const tileBounds = coverages.map((coverage, idx) => {
-    const bbox = coverage.circle
-      ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
-      : deepClone(coverage.bbox);
-
-    if (limitedBBox) {
-      if (bbox[0] < limitedBBox[0]) {
-        bbox[0] = limitedBBox[0];
+  if (options.coverages) {
+    tileBounds = options.coverages.map((coverage, idx) => {
+      const bbox = coverage.circle
+        ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
+        : deepClone(coverage.bbox);
+  
+      if (options.limitedBBox) {
+        if (bbox[0] < options.limitedBBox[0]) {
+          bbox[0] = options.limitedBBox[0];
+        }
+  
+        if (bbox[1] < options.limitedBBox[1]) {
+          bbox[1] = options.limitedBBox[1];
+        }
+  
+        if (bbox[2] > options.limitedBBox[2]) {
+          bbox[2] = options.limitedBBox[2];
+        }
+  
+        if (bbox[3] > options.limitedBBox[3]) {
+          bbox[3] = options.limitedBBox[3];
+        }
       }
-
-      if (bbox[1] < limitedBBox[1]) {
-        bbox[1] = limitedBBox[1];
+  
+      let [xMin, yMin] = getXYZFromLonLatZ(
+        bbox[0],
+        bbox[3],
+        coverage.zoom,
+        options.scheme,
+        options.tileSize
+      );
+      let [xMax, yMax] = getXYZFromLonLatZ(
+        bbox[2],
+        bbox[1],
+        coverage.zoom,
+        options.scheme,
+        options.tileSize
+      );
+  
+      if (yMin > yMax) {
+        [yMin, yMax] = [yMax, yMin];
       }
-
-      if (bbox[2] > limitedBBox[2]) {
-        bbox[2] = limitedBBox[2];
+  
+      const _bbox = getBBoxFromTiles(
+        xMin,
+        yMin,
+        xMax,
+        yMax,
+        coverage.zoom,
+        options.scheme,
+        options.tileSize
+      );
+  
+      if (idx === 0) {
+        realBBox = _bbox;
+      } else {
+        if (realBBox[0] < _bbox[0]) {
+          realBBox[0] = _bbox[0];
+        }
+        if (realBBox[1] < _bbox[1]) {
+          realBBox[1] = _bbox[1];
+        }
+        if (realBBox[2] > _bbox[2]) {
+          realBBox[2] = _bbox[2];
+        }
+        if (realBBox[3] > _bbox[3]) {
+          realBBox[3] = _bbox[3];
+        }
       }
-
-      if (bbox[3] > limitedBBox[3]) {
-        bbox[3] = limitedBBox[3];
-      }
-    }
-
-    let [xMin, yMin] = getXYZFromLonLatZ(
-      bbox[0],
-      bbox[3],
-      coverage.zoom,
-      scheme,
-      tileSize
-    );
-    let [xMax, yMax] = getXYZFromLonLatZ(
-      bbox[2],
-      bbox[1],
-      coverage.zoom,
-      scheme,
-      tileSize
-    );
-
-    if (yMin > yMax) {
-      [yMin, yMax] = [yMax, yMin];
-    }
-
-    const _bbox = getBBoxFromTiles(
-      xMin,
-      yMin,
-      xMax,
-      yMax,
-      coverage.zoom,
-      scheme,
-      tileSize
-    );
-
-    if (idx === 0) {
-      realBBox = _bbox;
-    } else {
-      if (realBBox[0] < _bbox[0]) {
-        realBBox[0] = _bbox[0];
-      }
-      if (realBBox[1] < _bbox[1]) {
-        realBBox[1] = _bbox[1];
-      }
-      if (realBBox[2] > _bbox[2]) {
-        realBBox[2] = _bbox[2];
-      }
-      if (realBBox[3] > _bbox[3]) {
-        realBBox[3] = _bbox[3];
-      }
-    }
-
-    const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
-
-    totalTile += _total;
-
-    targetCoverages.push({
-      zoom: coverage.zoom,
-      bbox: bbox,
+  
+      const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
+  
+      totalTile += _total;
+  
+      targetCoverages.push({
+        zoom: coverage.zoom,
+        bbox: bbox,
+      });
+  
+      return {
+        realBBox: _bbox,
+        bbox: bbox,
+        total: _total,
+        z: coverage.zoom,
+        x: [xMin, xMax],
+        y: [yMin, yMax],
+      };
     });
+  } else {
+    for (let zoom = options.minZoom; zoom <= options.maxZoom; zoom++) {
+      const bbox = deepClone(options.bbox);
 
-    return {
-      realBBox: _bbox,
-      bbox: bbox,
-      total: _total,
-      z: coverage.zoom,
-      x: [xMin, xMax],
-      y: [yMin, yMax],
-    };
-  });
+      if (options.limitedBBox) {
+        if (bbox[0] < options.limitedBBox[0]) {
+          bbox[0] = options.limitedBBox[0];
+        }
+  
+        if (bbox[1] < options.limitedBBox[1]) {
+          bbox[1] = options.limitedBBox[1];
+        }
+  
+        if (bbox[2] > options.limitedBBox[2]) {
+          bbox[2] = options.limitedBBox[2];
+        }
+  
+        if (bbox[3] > options.limitedBBox[3]) {
+          bbox[3] = options.limitedBBox[3];
+        }
+      }
+
+      let [xMin, yMin] = getXYZFromLonLatZ(
+        bbox[0],
+        bbox[3],
+        zoom,
+        options.scheme,
+        options.tileSize
+      );
+      let [xMax, yMax] = getXYZFromLonLatZ(
+        bbox[2],
+        bbox[1],
+        zoom,
+        options.scheme,
+        options.tileSize
+      );
+  
+      if (yMin > yMax) {
+        [yMin, yMax] = [yMax, yMin];
+      }
+  
+      const _bbox = getBBoxFromTiles(
+        xMin,
+        yMin,
+        xMax,
+        yMax,
+        zoom,
+        options.scheme,
+        options.tileSize
+      );
+  
+      if (zoom === options.minZoom) {
+        realBBox = _bbox;
+      } else {
+        if (realBBox[0] < _bbox[0]) {
+          realBBox[0] = _bbox[0];
+        }
+        if (realBBox[1] < _bbox[1]) {
+          realBBox[1] = _bbox[1];
+        }
+        if (realBBox[2] > _bbox[2]) {
+          realBBox[2] = _bbox[2];
+        }
+        if (realBBox[3] > _bbox[3]) {
+          realBBox[3] = _bbox[3];
+        }
+      }
+
+      const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
+
+      totalTile += _total;
+
+      targetCoverages.push({
+        zoom: zoom,
+        bbox: bbox,
+      });
+
+      tileBounds.push({
+        realBBox: _bbox,
+        bbox: bbox,
+        total: _total,
+        z: zoom,
+        x: [xMin, xMax],
+        y: [yMin, yMax],
+      });
+    }
+  }
 
   return {
     targetCoverages: targetCoverages,
@@ -739,26 +820,6 @@ export function getTileBoundsFromCoverages(
     total: totalTile,
     tileBounds: tileBounds,
   };
-}
-
-/**
- * Create coverages from bbox and zooms
- * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
- * @param {number} minZoom Minzoom
- * @param {number} maxZoom Minzoom
- * @returns {{ zoom: number, bbox: [number, number, number, number] }[]}
- */
-export function createCoveragesFromBBoxAndZooms(bbox, minZoom, maxZoom) {
-  const coverages = [];
-
-  for (let zoom = minZoom; zoom <= maxZoom; zoom++) {
-    coverages.push({
-      zoom: zoom,
-      bbox: bbox,
-    });
-  }
-
-  return coverages;
 }
 
 /**

@@ -365,21 +365,21 @@ function getRenderedHandler() {
           .send("Rendered does not exist");
       }
 
-      const requestHost = getRequestHost(req);
-
-      res.header("content-type", "application/json");
-
-      /* Get render info */
-      return res.status(StatusCodes.OK).send({
+      const data = {
         ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
         id: id,
         tiles: [
-          `${requestHost}/styles/${id}/{z}/{x}/{y}.png${queryStrings.length ? `?${queryStrings.join("&")}` : ""
+          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${queryStrings.length ? `?${queryStrings.join("&")}` : ""
           }`,
         ],
-      });
+      };
+
+      res.header("content-type", "application/json");
+
+      /* Get render info */
+      return res.status(StatusCodes.OK).send(data);
     } catch (error) {
       printLog("error", `Failed to get rendered "${id}": ${error}`);
 

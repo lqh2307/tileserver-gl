@@ -34,8 +34,6 @@ import {
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
-  createCoveragesFromBBoxAndZooms,
-  getTileBoundsFromCoverages,
   processImageStaticRawData,
   processImageTileRawData,
   detectFormatAndHeaders,
@@ -49,6 +47,7 @@ import {
   addFrameToImage,
   getDataFromURL,
   calculateSizes,
+  getTileBounds,
   convertImage,
   calculateMD5,
   createBase64,
@@ -553,16 +552,7 @@ export async function renderStyleJSONToImage(
     const targetScale = tileScale * Math.pow(2, zoom - targetZoom);
 
     /* Calculate summary */
-    const coverages = createCoveragesFromBBoxAndZooms(
-      bbox,
-      targetZoom,
-      targetZoom
-    );
-    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      coverages,
-      "xyz",
-      tileSize
-    );
+    const { realBBox, total, tileBounds } = getTileBounds({bbox: bbox, minZoom: targetZoom, maxZoom: targetZoom, tileSize: tileSize});
 
     let log = `Rendering ${total} tiles of style JSON to ${driver} with:`;
     log += `\n\tTemporary dir path: ${dirPath}`;
@@ -577,7 +567,7 @@ export async function renderStyleJSONToImage(
     log += `\n\tIs grayscale: ${grayscale}`;
     log += `\n\tWS: ${JSON.stringify(ws)}`;
     log += `\n\tOverlays: ${overlays ? true : false}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tBBox: ${JSON.stringify(bbox)}`;
 
     printLog("info", log);
 
@@ -923,15 +913,7 @@ export async function renderMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const coverages = createCoveragesFromBBoxAndZooms(
-      metadata.bounds,
-      metadata.minzoom,
-      metadata.maxzoom
-    );
-    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      coverages,
-      "xyz"
-    );
+    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({bbox: metadata.bounds, minZoom: metadata.minzoom, maxZoom: metadata.maxzoom});
 
     let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:`;
     log += `\n\tFile path: ${filePath}`;
@@ -939,7 +921,8 @@ export async function renderMBTilesTiles(
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
     log += `\n\tTile scale: ${tileScale} - Tile size: ${tileSize}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tBBox: ${JSON.stringify(metadata.bounds)}`;
+    log += `\n\tMinzoom: ${metadata.minzoom} - Maxzoom: ${metadata.maxzoom}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -978,7 +961,7 @@ export async function renderMBTilesTiles(
 
         tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           refreshTimestamp === true
         );
       } catch (error) {
@@ -1174,15 +1157,7 @@ export async function renderXYZTiles(
 
   try {
     /* Calculate summary */
-    const coverages = createCoveragesFromBBoxAndZooms(
-      metadata.bounds,
-      metadata.minzoom,
-      metadata.maxzoom
-    );
-    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      coverages,
-      "xyz"
-    );
+    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({bbox: metadata.bounds, minZoom: metadata.minzoom, maxZoom: metadata.maxzoom});
 
     let log = `Rendering ${total} tiles of style "${id}" to xyz with:`;
     log += `\n\tSource path: ${sourcePath}`;
@@ -1191,7 +1166,8 @@ export async function renderXYZTiles(
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
     log += `\n\tTile scale: ${tileScale} - Tile size: ${tileSize}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tBBox: ${JSON.stringify(metadata.bounds)}`;
+    log += `\n\tMinzoom: ${metadata.minzoom} - Maxzoom: ${metadata.maxzoom}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -1230,7 +1206,7 @@ export async function renderXYZTiles(
 
         tileExtraInfo = getXYZTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           refreshTimestamp === true
         );
       } catch (error) {
@@ -1431,15 +1407,7 @@ export async function renderPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const coverages = createCoveragesFromBBoxAndZooms(
-      metadata.bounds,
-      metadata.minzoom,
-      metadata.maxzoom
-    );
-    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      coverages,
-      "xyz"
-    );
+    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({bbox: metadata.bounds, minZoom: metadata.minzoom, maxZoom: metadata.maxzoom});
 
     let log = `Rendering ${total} tiles of style "${id}" to postgresql with:`;
     log += `\n\tFile path: ${filePath}`;
@@ -1447,7 +1415,8 @@ export async function renderPostgreSQLTiles(
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tCreate overview: ${createOverview}`;
     log += `\n\tTile scale: ${tileScale} - Tile size: ${tileSize}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tBBox: ${JSON.stringify(metadata.bounds)}`;
+    log += `\n\tMinzoom: ${metadata.minzoom} - Maxzoom: ${metadata.maxzoom}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -1482,7 +1451,7 @@ export async function renderPostgreSQLTiles(
 
         tileExtraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
           source,
-          coverages,
+          targetCoverages,
           refreshTimestamp === true
         );
       } catch (error) {

@@ -22,9 +22,9 @@ import {
   openMBTilesDB,
 } from "./tile_mbtiles.js";
 import {
-  getTileBoundsFromCoverages,
   handleTilesConcurrency,
   removeEmptyFolders,
+  getTileBounds,
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
@@ -60,10 +60,7 @@ export async function exportMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      coverages,
-      "xyz"
-    );
+    const { realBBox, total, tileBounds } = getTileBounds({coverages: coverages});
 
     let log = `Exporting ${total} tiles of data "${id}" to mbtiles with:`;
     log += `\n\tFile path: ${filePath}`;
@@ -260,10 +257,7 @@ export async function exportXYZTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      coverages,
-      "xyz"
-    );
+    const { realBBox, total, tileBounds } = getTileBounds({coverages: coverages});
 
     let log = `Exporting ${total} tiles of data "${id}" to xyz with:`;
     log += `\n\tSource path: ${sourcePath}`;
@@ -464,10 +458,7 @@ export async function exportPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBoundsFromCoverages(
-      coverages,
-      "xyz"
-    );
+    const { realBBox, total, tileBounds } = getTileBounds({coverages: coverages});
 
     let log = `Exporting ${total} tiles of data "${id}" to postgresql with:`;
     log += `\n\tFile path: ${filePath}`;

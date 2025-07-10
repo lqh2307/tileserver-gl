@@ -121,13 +121,15 @@ function getGeoJSONGroupInfoHandler() {
         };
       }
 
-      res.header("content-type", "application/json");
-
-      return res.status(StatusCodes.OK).send({
+      const data = {
         id: id,
         name: id,
         geojsons: geojsons,
-      });
+      };
+
+      res.header("content-type", "application/json");
+
+      return res.status(StatusCodes.OK).send(data);
     } catch (error) {
       printLog("error", `Failed to get GeoJSON group info "${id}": ${error}`);
 
@@ -156,15 +158,17 @@ function getGeoJSONInfoHandler() {
           .send("GeoJSON group does not exist");
       }
 
-      res.header("content-type", "application/json");
-
-      return res.status(StatusCodes.OK).send({
+      const data = {
         group: id,
         layer: req.params.layer,
         url: `${getRequestHost(req)}/geojsons/${id}/${req.params.layer
           }.geojson`,
         geometryTypes: item[req.params.layer].geometryTypes,
-      });
+      };
+
+      res.header("content-type", "application/json");
+
+      return res.status(StatusCodes.OK).send(data);
     } catch (error) {
       printLog(
         "error",
