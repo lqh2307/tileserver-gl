@@ -589,7 +589,7 @@ export function calculateSizes(z, bbox, tileSize = 256) {
  * @param {number} latStep Step for latitude
  * @returns {{ zoom: number, bbox: [number, number, number, number] }[]}
  */
-export function getGridsFromCoverage(coverage, lonStep = 1, latStep = 1) {
+export function getGridsFromCoverage(coverage, lonStep, latStep) {
   const grids = [];
 
   function splitStep(start, end, step) {
@@ -618,14 +618,12 @@ export function getGridsFromCoverage(coverage, lonStep = 1, latStep = 1) {
     return ranges;
   }
 
-  const lonRanges =
-    typeof lonStep === "number"
-      ? splitStep(coverage.bbox[0], coverage.bbox[2], lonStep)
-      : [[coverage.bbox[0], coverage.bbox[2]]];
-  const latRanges =
-    typeof latStep === "number"
-      ? splitStep(coverage.bbox[1], coverage.bbox[3], latStep)
-      : [[coverage.bbox[1], coverage.bbox[3]]];
+  const lonRanges = lonStep
+    ? splitStep(coverage.bbox[0], coverage.bbox[2], lonStep)
+    : [[coverage.bbox[0], coverage.bbox[2]]];
+  const latRanges = latStep
+    ? splitStep(coverage.bbox[1], coverage.bbox[3], latStep)
+    : [[coverage.bbox[1], coverage.bbox[3]]];
 
   for (const [lonStart, lonEnd] of lonRanges) {
     for (const [latStart, latEnd] of latRanges) {
@@ -3274,7 +3272,7 @@ export function createBase64(buffer, format) {
  * Handle tiles concurrency
  * @param {number} concurrency Concurrency
  * @param {(z: number, x: number, y: number, tasks: { activeTasks: number, completeTasks: number }) => void} renderFunc Render function
- * @param {object} tileBounds Tile bounds
+ * @param {{ realBBox: [number, number, number, number], total: number, z: number, x: [number, number], y: [number, number] }[]} tileBounds Tile bounds
  * @param {{ export: boolean }} item Item object
  * @returns {Promise<{void}>} Response
  */
