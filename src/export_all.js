@@ -313,7 +313,7 @@ export async function exportAll(
                 const coverages = getTileBounds({
                   zoom: data.tileJSON.bounds,
                   minZoom: data.tileJSON.minzoom,
-                  maxZoom: data.tileJSON.maxzoom
+                  maxZoom: data.tileJSON.maxzoom,
                 });
 
                 switch (data.sourceType) {
@@ -458,7 +458,7 @@ export async function exportAll(
         const coverages = getTileBounds({
           zoom: data.tileJSON.bounds,
           minZoom: data.tileJSON.minzoom,
-          maxZoom: data.tileJSON.maxzoom
+          maxZoom: data.tileJSON.maxzoom,
         });
 
         switch (data.sourceType) {

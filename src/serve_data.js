@@ -196,7 +196,9 @@ function getDataHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format}`,
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
+            item.tileJSON.format
+          }`,
         ],
       };
 
@@ -998,7 +1000,7 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds
+                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                 });
               } else {
@@ -1076,7 +1078,7 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds
+                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                 });
               } else {
@@ -1128,7 +1130,7 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds
+                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                 });
               } else {

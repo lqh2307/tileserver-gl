@@ -1,12 +1,17 @@
 "use strict";
 
-import { deepClone, detectFormatAndHeaders, getRequestHost, gzipAsync } from "./utils.js";
 import { getFont, validateFont } from "./font.js";
 import { getAndCacheDataFonts } from "./data.js";
 import { StatusCodes } from "http-status-codes";
 import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
+import {
+  detectFormatAndHeaders,
+  getRequestHost,
+  deepClone,
+  gzipAsync,
+} from "./utils.js";
 
 /**
  * Get font handler

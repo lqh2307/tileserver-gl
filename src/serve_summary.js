@@ -74,7 +74,10 @@ function serveSummaryHandler() {
 
             switch (item.storeType) {
               case "mbtiles": {
-                const expect = getTileBounds({coverages: item.coverages, scheme: "tms"}).total;
+                const expect = getTileBounds({
+                  coverages: item.coverages,
+                  scheme: "tms",
+                }).total;
 
                 try {
                   result.datas[id] = {
@@ -98,8 +101,10 @@ function serveSummaryHandler() {
               }
 
               case "xyz": {
-                const expect = getTileBounds({coverages: item.coverages}).total;
-                
+                const expect = getTileBounds({
+                  coverages: item.coverages,
+                }).total;
+
                 try {
                   result.datas[id] = {
                     actual: await countXYZTiles(
@@ -122,7 +127,9 @@ function serveSummaryHandler() {
               }
 
               case "pg": {
-                const expect = getTileBounds({coverages: item.coverages}).total;
+                const expect = getTileBounds({
+                  coverages: item.coverages,
+                }).total;
 
                 result.datas[id] = {
                   actual: await countPostgreSQLTiles(

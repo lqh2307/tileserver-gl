@@ -222,7 +222,7 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
   coverages,
   isCreated
 ) {
-  const { tileBounds } = getTileBounds({coverages: coverages});
+  const { tileBounds } = getTileBounds({ coverages: coverages });
 
   let query = "";
   const extraInfoType = isCreated ? "created" : "hash";

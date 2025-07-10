@@ -132,7 +132,9 @@ async function seedMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBounds({coverages: coverages});
+    const { realBBox, total, tileBounds } = getTileBounds({
+      coverages: coverages,
+    });
 
     let log = `Seeding ${total} tiles of mbtiles "${id}" with:`;
     log += `\n\tURL: ${url} - Header: ${JSON.stringify(
@@ -357,7 +359,9 @@ async function seedPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBounds({coverages: coverages});
+    const { realBBox, total, tileBounds } = getTileBounds({
+      coverages: coverages,
+    });
 
     let log = `Seeding ${total} tiles of postgresql "${id}" with:`;
     log += `\n\tURL: ${url} - Header: ${JSON.stringify(
@@ -582,7 +586,9 @@ async function seedXYZTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBounds({coverages: coverages});
+    const { realBBox, total, tileBounds } = getTileBounds({
+      coverages: coverages,
+    });
 
     let log = `Seeding ${total} tiles of xyz "${id}" with:`;
     log += `\n\tURL: ${url} - Header: ${JSON.stringify(

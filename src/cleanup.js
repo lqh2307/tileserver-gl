@@ -104,7 +104,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
     /* Calculate summary */
     const concurrency = 256;
 
-    const { total, tileBounds } = getTileBounds({coverages: coverages});
+    const { total, tileBounds } = getTileBounds({ coverages: coverages });
 
     let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -230,7 +230,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
     /* Calculate summary */
     const concurrency = 256;
 
-    const { total, tileBounds } = getTileBounds({coverages: coverages});
+    const { total, tileBounds } = getTileBounds({ coverages: coverages });
 
     let log = `Cleaning up ${total} tiles of postgresql "${id}" with:`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -350,7 +350,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
     /* Calculate summary */
     const concurrency = 256;
 
-    const { total, tileBounds } = getTileBounds({coverages: coverages});
+    const { total, tileBounds } = getTileBounds({ coverages: coverages });
 
     let log = `Cleaning up ${total} tiles of xyz "${id}" with:`;
     log += `\n\tConcurrency: ${concurrency}`;

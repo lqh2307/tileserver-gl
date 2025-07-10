@@ -204,7 +204,7 @@ async function createXYZTile(
  * @returns {Object<string, string>} Extra info object
  */
 export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
-  const { tileBounds } = getTileBounds({coverages: coverages});
+  const { tileBounds } = getTileBounds({ coverages: coverages });
 
   let query = "";
   const extraInfoType = isCreated ? "created" : "hash";

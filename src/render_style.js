@@ -552,7 +552,12 @@ export async function renderStyleJSONToImage(
     const targetScale = tileScale * Math.pow(2, zoom - targetZoom);
 
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBounds({bbox: bbox, minZoom: targetZoom, maxZoom: targetZoom, tileSize: tileSize});
+    const { realBBox, total, tileBounds } = getTileBounds({
+      bbox: bbox,
+      minZoom: targetZoom,
+      maxZoom: targetZoom,
+      tileSize: tileSize,
+    });
 
     let log = `Rendering ${total} tiles of style JSON to ${driver} with:`;
     log += `\n\tTemporary dir path: ${dirPath}`;
@@ -913,7 +918,11 @@ export async function renderMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({bbox: metadata.bounds, minZoom: metadata.minzoom, maxZoom: metadata.maxzoom});
+    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({
+      bbox: metadata.bounds,
+      minZoom: metadata.minzoom,
+      maxZoom: metadata.maxzoom,
+    });
 
     let log = `Rendering ${total} tiles of style "${id}" to mbtiles with:`;
     log += `\n\tFile path: ${filePath}`;
@@ -1157,7 +1166,11 @@ export async function renderXYZTiles(
 
   try {
     /* Calculate summary */
-    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({bbox: metadata.bounds, minZoom: metadata.minzoom, maxZoom: metadata.maxzoom});
+    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({
+      bbox: metadata.bounds,
+      minZoom: metadata.minzoom,
+      maxZoom: metadata.maxzoom,
+    });
 
     let log = `Rendering ${total} tiles of style "${id}" to xyz with:`;
     log += `\n\tSource path: ${sourcePath}`;
@@ -1407,7 +1420,11 @@ export async function renderPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({bbox: metadata.bounds, minZoom: metadata.minzoom, maxZoom: metadata.maxzoom});
+    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({
+      bbox: metadata.bounds,
+      minZoom: metadata.minzoom,
+      maxZoom: metadata.maxzoom,
+    });
 
     let log = `Rendering ${total} tiles of style "${id}" to postgresql with:`;
     log += `\n\tFile path: ${filePath}`;

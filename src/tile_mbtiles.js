@@ -235,7 +235,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
   coverages,
   isCreated
 ) {
-  const { tileBounds } = getTileBounds({coverages: coverages, scheme: "tms"});
+  const { tileBounds } = getTileBounds({ coverages: coverages, scheme: "tms" });
 
   let query = "";
   const extraInfoType = isCreated ? "created" : "hash";
@@ -815,7 +815,12 @@ export async function addMBTilesOverviews(
   const metadata = await getMBTilesMetadata(source);
 
   for (let _deltaZ = 1; _deltaZ <= deltaZ; _deltaZ++) {
-    const { tileBounds } = getTileBounds({bbox: metadata.bounds, minZoom: metadata.maxzoom - _deltaZ, maxZoom: metadata.maxzoom - _deltaZ, scheme: "tms"});
+    const { tileBounds } = getTileBounds({
+      bbox: metadata.bounds,
+      minZoom: metadata.maxzoom - _deltaZ,
+      maxZoom: metadata.maxzoom - _deltaZ,
+      scheme: "tms",
+    });
 
     async function createTileData(z, x, y) {
       const range = getPyramidTileRanges(z, x, y, "tms", _deltaZ);
@@ -864,9 +869,15 @@ export async function addMBTilesOverviews(
       }
 
       const image = await createImageOutput(
-        sharp(await compositeImage.composite(composites).toFormat(metadata.format).toBuffer(), {
-          limitInputPixels: false,
-        }),
+        sharp(
+          await compositeImage
+            .composite(composites)
+            .toFormat(metadata.format)
+            .toBuffer(),
+          {
+            limitInputPixels: false,
+          }
+        ),
         {
           format: metadata.format,
           width: width,
