@@ -7,48 +7,12 @@ import { config } from "./config.js";
 import { stat } from "fs/promises";
 import { seed } from "./seed.js";
 import path from "path";
-import {
-  getXYZTileExtraInfoFromCoverages,
-  calculatXYZTileExtraInfo,
-  getXYZMetadata,
-  openXYZMD5DB,
-} from "./tile_xyz.js";
-import {
-  getMBTilesTileExtraInfoFromCoverages,
-  calculateMBTilesTileExtraInfo,
-  getMBTilesMetadata,
-  openMBTilesDB,
-} from "./tile_mbtiles.js";
-import {
-  detectContentTypeFromFormat,
-  compileHandleBarsTemplate,
-  createTileMetadata,
-  calculateMD5OfFile,
-  getRequestHost,
-  getTileBounds,
-  getJSONSchema,
-  validateJSON,
-  isExistFile,
-  gzipAsync,
-  deepClone,
-} from "./utils.js";
-import {
-  getPMTilesMetadata,
-  getPMTilesTile,
-  openPMTiles,
-} from "./tile_pmtiles.js";
-import {
-  getPostgreSQLTileExtraInfoFromCoverages,
-  calculatePostgreSQLTileExtraInfo,
-  getPostgreSQLMetadata,
-  openPostgreSQLDB,
-} from "./tile_postgresql.js";
-import {
-  getAndCachePostgreSQLDataTile,
-  getAndCacheMBTilesDataTile,
-  getAndCacheXYZDataTile,
-  validateTileMetadata,
-} from "./data.js";
+import { getXYZTileExtraInfoFromCoverages, calculatXYZTileExtraInfo, getXYZMetadata, openXYZMD5DB } from "./tile_xyz.js";
+import { getMBTilesTileExtraInfoFromCoverages, calculateMBTilesTileExtraInfo, getMBTilesMetadata, openMBTilesDB } from "./tile_mbtiles.js";
+import { detectContentTypeFromFormat, compileHandleBarsTemplate, createTileMetadata, calculateMD5OfFile, getRequestHost, getTileBounds, getJSONSchema, validateJSON, isExistFile, gzipAsync, deepClone } from "./utils.js";
+import { getPMTilesMetadata, getPMTilesTile, openPMTiles } from "./tile_pmtiles.js";
+import { getPostgreSQLTileExtraInfoFromCoverages, calculatePostgreSQLTileExtraInfo, getPostgreSQLMetadata, openPostgreSQLDB } from "./tile_postgresql.js";
+import { getAndCachePostgreSQLDataTile, getAndCacheMBTilesDataTile, getAndCacheXYZDataTile, validateTileMetadata } from "./data.js";
 
 /**
  * Serve data handler
@@ -65,22 +29,17 @@ function serveDataHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      const compiled = await compileHandleBarsTemplate(
-        item.tileJSON.format === "pbf" ? "vector_data" : "raster_data",
-        {
-          id: id,
-          name: item.tileJSON.name,
-          base_url: getRequestHost(req),
-        }
-      );
+      const compiled = await compileHandleBarsTemplate(item.tileJSON.format === "pbf" ? "vector_data" : "raster_data", {
+        id: id,
+        name: item.tileJSON.name,
+        base_url: getRequestHost(req),
+      });
 
       return res.status(StatusCodes.OK).send(compiled);
     } catch (error) {
       printLog("error", `Failed to serve data "${id}": ${error}`);
 
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .send("Internal server error");
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Internal server error");
     }
   };
 }
@@ -100,13 +59,8 @@ function getDataTileHandler() {
     }
 
     /* Check data tile format */
-    if (
-      req.params.format !== item.tileJSON.format ||
-      !["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(req.params.format)
-    ) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .send("Data tile format is not support");
+    if (req.params.format !== item.tileJSON.format || !["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(req.params.format)) {
+      return res.status(StatusCodes.BAD_REQUEST).send("Data tile format is not support");
     }
 
     /* Get tile name */
@@ -146,10 +100,7 @@ function getDataTileHandler() {
       }
 
       /* Gzip pbf data tile */
-      if (
-        dataTile.headers["content-type"] === "application/x-protobuf" &&
-        !dataTile.headers["content-encoding"]
-      ) {
+      if (dataTile.headers["content-type"] === "application/x-protobuf" && !dataTile.headers["content-encoding"]) {
         dataTile.data = await gzipAsync(dataTile.data);
 
         dataTile.headers["content-encoding"] = "gzip";
@@ -159,17 +110,12 @@ function getDataTileHandler() {
 
       return res.status(StatusCodes.OK).send(dataTile.data);
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to get data "${id}" - Tile "${tileName}": ${error}`
-      );
+      printLog("error", `Failed to get data "${id}" - Tile "${tileName}": ${error}`);
 
       if (error.message === "Tile does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
-        return res
-          .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .send("Internal server error");
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Internal server error");
       }
     }
   };
@@ -195,11 +141,7 @@ function getDataHandler() {
         tilejson: "2.2.0",
         scheme: "xyz",
         id: id,
-        tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
-            item.tileJSON.format
-          }`,
-        ],
+        tiles: [`${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format}`],
       };
 
       res.header("content-type", "application/json");
@@ -208,9 +150,7 @@ function getDataHandler() {
     } catch (error) {
       printLog("error", `Failed to get data "${id}": ${error}`);
 
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .send("Internal server error");
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Internal server error");
     }
   };
 }
@@ -277,9 +217,7 @@ function getDataMD5Handler() {
       if (error.message === "File does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
-        return res
-          .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .send("Internal server error");
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Internal server error");
       }
     }
   };
@@ -327,9 +265,7 @@ function downloadDataHandler() {
       if (error.message === "File does not exist") {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
-        return res
-          .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .send("Internal server error");
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Internal server error");
       }
     }
   };
@@ -354,9 +290,7 @@ function getDataTileExtraInfoHandler() {
       try {
         validateJSON(await getJSONSchema("coverages"), req.body);
       } catch (error) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Coverages is invalid: ${error}`);
+        return res.status(StatusCodes.BAD_REQUEST).send(`Coverages is invalid: ${error}`);
       }
 
       let extraInfo;
@@ -364,12 +298,7 @@ function getDataTileExtraInfoHandler() {
 
       switch (item.sourceType) {
         case "mbtiles": {
-          extraInfo = getMBTilesTileExtraInfoFromCoverages(
-            item.source,
-            req.body,
-            isCreated,
-            item.tileJSON.bounds
-          );
+          extraInfo = getMBTilesTileExtraInfoFromCoverages(item.source, req.body, isCreated, item.tileJSON.bounds);
 
           break;
         }
@@ -383,23 +312,13 @@ function getDataTileExtraInfoHandler() {
         }
 
         case "xyz": {
-          extraInfo = getXYZTileExtraInfoFromCoverages(
-            item.md5Source,
-            req.body,
-            isCreated,
-            item.tileJSON.bounds
-          );
+          extraInfo = getXYZTileExtraInfoFromCoverages(item.md5Source, req.body, isCreated, item.tileJSON.bounds);
 
           break;
         }
 
         case "pg": {
-          extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
-            item.source,
-            req.body,
-            isCreated,
-            item.tileJSON.bounds
-          );
+          extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(item.source, req.body, isCreated, item.tileJSON.bounds);
 
           break;
         }
@@ -421,9 +340,7 @@ function getDataTileExtraInfoHandler() {
     } catch (error) {
       printLog("error", `Failed to get tile extra info "${id}": ${error}`);
 
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .send("Internal server error");
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Internal server error");
     }
   };
 }
@@ -453,10 +370,7 @@ function calculateDataExtraInfoHandler() {
               printLog("info", `Done to calculate tile extra info "${id}"!`);
             })
             .catch((error) => {
-              printLog(
-                "error",
-                `Failed to calculate tile extra info "${id}": ${error}`
-              );
+              printLog("error", `Failed to calculate tile extra info "${id}": ${error}`);
             });
 
           break;
@@ -469,19 +383,12 @@ function calculateDataExtraInfoHandler() {
         }
 
         case "xyz": {
-          calculatXYZTileExtraInfo(
-            item.source,
-            item.md5Source,
-            item.tileJSON.format
-          )
+          calculatXYZTileExtraInfo(item.source, item.md5Source, item.tileJSON.format)
             .then(() => {
               printLog("info", `Done to calculate tile extra info "${id}"!`);
             })
             .catch((error) => {
-              printLog(
-                "error",
-                `Failed to calculate tile extra info "${id}": ${error}`
-              );
+              printLog("error", `Failed to calculate tile extra info "${id}": ${error}`);
             });
 
           break;
@@ -493,10 +400,7 @@ function calculateDataExtraInfoHandler() {
               printLog("info", `Done to calculate tile extra info "${id}"!`);
             })
             .catch((error) => {
-              printLog(
-                "error",
-                `Failed to calculate tile extra info "${id}": ${error}`
-              );
+              printLog("error", `Failed to calculate tile extra info "${id}": ${error}`);
             });
 
           break;
@@ -505,14 +409,9 @@ function calculateDataExtraInfoHandler() {
 
       return res.status(StatusCodes.OK).send("OK");
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to calculate tile extra info "${id}": ${error}`
-      );
+      printLog("error", `Failed to calculate tile extra info "${id}": ${error}`);
 
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .send("Internal server error");
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Internal server error");
     }
   };
 }
@@ -552,9 +451,7 @@ function getDatasListHandler() {
     } catch (error) {
       printLog("error", `Failed to get datas": ${error}`);
 
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .send("Internal server error");
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Internal server error");
     }
   };
 }
@@ -972,9 +869,7 @@ export const serve_data = {
                 const cacheSource = seed.datas?.[item.mbtiles];
 
                 if (!cacheSource || cacheSource.storeType !== "mbtiles") {
-                  throw new Error(
-                    `Cache mbtiles data "${item.mbtiles}" is invalid`
-                  );
+                  throw new Error(`Cache mbtiles data "${item.mbtiles}" is invalid`);
                 }
 
                 if (item.cache.forward) {
@@ -1000,7 +895,6 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                 });
               } else {
@@ -1020,11 +914,7 @@ export const serve_data = {
             } else if (item.pmtiles !== undefined) {
               dataInfo.sourceType = "pmtiles";
 
-              if (
-                ["https://", "http://"].some((scheme) =>
-                  item.pmtiles.startsWith(scheme)
-                )
-              ) {
+              if (["https://", "http://"].some((scheme) => item.pmtiles.startsWith(scheme))) {
                 /* Get PMTiles path */
                 dataInfo.path = item.pmtiles;
 
@@ -1068,17 +958,13 @@ export const serve_data = {
                 dataInfo.source = dataInfo.path;
 
                 /* Open XYZ MD5 */
-                dataInfo.md5Source = await openXYZMD5DB(
-                  `${dataInfo.path}/${item.xyz}.sqlite`,
-                  true
-                );
+                dataInfo.md5Source = await openXYZMD5DB(`${dataInfo.path}/${item.xyz}.sqlite`, true);
 
                 /* Get XYZ metadata */
                 dataInfo.tileJSON = createTileMetadata({
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                 });
               } else {
@@ -1095,10 +981,7 @@ export const serve_data = {
                 );
 
                 /* Get XYZ metadata */
-                dataInfo.tileJSON = await getXYZMetadata(
-                  dataInfo.source,
-                  md5Source
-                );
+                dataInfo.tileJSON = await getXYZMetadata(dataInfo.source, md5Source);
               }
             } else if (item.pg !== undefined) {
               dataInfo.sourceType = "pg";
@@ -1130,7 +1013,6 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                 });
               } else {
@@ -1141,9 +1023,7 @@ export const serve_data = {
                 dataInfo.source = await openPostgreSQLDB(dataInfo.path, false);
 
                 /* Get PostgreSQL metadata */
-                dataInfo.tileJSON = await getPostgreSQLMetadata(
-                  dataInfo.source
-                );
+                dataInfo.tileJSON = await getPostgreSQLMetadata(dataInfo.source);
               }
             }
 
@@ -1153,10 +1033,7 @@ export const serve_data = {
             /* Add to repo */
             repos[id] = dataInfo;
           } catch (error) {
-            printLog(
-              "error",
-              `Failed to load data "${id}": ${error}. Skipping...`
-            );
+            printLog("error", `Failed to load data "${id}": ${error}. Skipping...`);
           }
         })
       );
