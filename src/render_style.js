@@ -1098,7 +1098,7 @@ export async function renderMBTilesTiles(
 
       // printLog("info", `Creating overviews...`);
 
-      // await addMBTilesOverviews(source, 5, concurrency, tileSize);
+      // await addMBTilesOverviews(source, 5, concurrency);
 
       printLog("info", "Calculating tile extra info...");
 

@@ -793,14 +793,12 @@ export async function getMBTilesSize(filePath) {
  * @param {Database} source SQLite database instance
  * @param {number} deltaZ Number of zoom levels to generate overviews
  * @param {number} concurrency Concurrency to generate overviews
- * @param {256|512} tileSize Tile size
  * @returns {Promise<void>}
  */
 export async function addMBTilesOverviews(
   source,
   deltaZ,
   concurrency,
-  tileSize
 ) {
   const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
 
@@ -823,13 +821,12 @@ export async function addMBTilesOverviews(
     });
 
     async function createTileData(z, x, y) {
-      const range = getPyramidTileRanges(z, x, y, "tms", _deltaZ);
-      const factor = 1 << _deltaZ;
+      const range = getPyramidTileRanges(z, x, y, "tms", 1);
 
       const compositeImage = sharp({
         create: {
-          width: width * factor,
-          height: height * factor,
+          width: width * 2,
+          height: height * 2,
           channels: 4,
           background: { r: 0, g: 0, b: 0, alpha: 0 },
         },
@@ -850,7 +847,7 @@ export async function addMBTilesOverviews(
                 zoom_level = ? AND tile_column = ? AND tile_row = ?;
               `
             )
-            .get([z + _deltaZ, dx, dy]);
+            .get([z + 1, dx, dy]);
 
           if (!data?.tile_data) {
             continue;
@@ -858,8 +855,8 @@ export async function addMBTilesOverviews(
 
           composites.push({
             input: await sharp(data.tile_data).toBuffer(),
-            top: (dy - range.y[0]) * width,
-            left: (dx - range.x[0]) * height,
+            left: (dx - range.x[0]) * width,
+            top: (dy - range.y[0]) * height,
           });
         }
       }
