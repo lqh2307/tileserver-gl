@@ -512,10 +512,7 @@ export const serve_export = {
     app.get("/exports/data/:id", exportDataHandler());
     app.post("/exports/data/:id", exportDataHandler());
 
-    if (
-      process.env.BACKEND_RENDER === "true" &&
-      process.env.ENABLE_EXPORT !== "false"
-    ) {
+    if (process.env.BACKEND_RENDER === "true") {
       /**
        * @swagger
        * tags:

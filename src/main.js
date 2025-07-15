@@ -1,8 +1,8 @@
 "use strict";
 
-import { removeOldCacheLocks, runCommand } from "./utils.js";
 import { config, validateConfigFile } from "./config.js";
 import { validateCleanUpFile } from "./cleanup.js";
+import { removeOldCacheLocks } from "./utils.js";
 import { validateSeedFile } from "./seed.js";
 import { printLog } from "./logger.js";
 import chokidar from "chokidar";
@@ -68,21 +68,6 @@ async function startClusterServer() {
     process.env.SERVE_SWAGGER = config.options?.serveSwagger || "true"; // Serve swagger
     process.env.LISTEN_PORT =
       process.env.LISTEN_PORT || config.options?.listenPort || 8080; // Server port
-
-    // Check GDAL
-    try {
-      const gdalVersion = await runCommand("gdalinfo --version");
-
-      printLog(
-        "info",
-        `Found gdal version "${gdalVersion.trim()}". Enable export render!`
-      );
-
-      process.env.ENABLE_EXPORT = "true";
-      process.env.GDAL_NUM_THREADS = "ALL_CPUS";
-    } catch (error) {
-      printLog("info", "Not found gdal. Disable export render!");
-    }
 
     // Check MLGL
     try {

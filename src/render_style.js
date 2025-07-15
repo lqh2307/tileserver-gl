@@ -52,7 +52,6 @@ import {
   calculateMD5,
   createBase64,
   unzipAsync,
-  runCommand,
   splitImage,
 } from "./utils.js";
 import {
@@ -1088,17 +1087,9 @@ export async function renderMBTilesTiles(
 
     /* Create overviews */
     if (createOverview) {
-      const command = `gdaladdo -r lanczos -oo ZLEVEL=9 ${filePath} 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304`;
+      printLog("info", `Creating overviews...`);
 
-      printLog("info", `Creating overviews with gdal command: ${command}`);
-
-      const commandOutput = await runCommand(command);
-
-      printLog("info", `Gdal command output: ${commandOutput}`);
-
-      // printLog("info", `Creating overviews...`);
-
-      // await addMBTilesOverviews(source, 5, concurrency);
+      await addMBTilesOverviews(source, concurrency, tileSize);
 
       printLog("info", "Calculating tile extra info...");
 

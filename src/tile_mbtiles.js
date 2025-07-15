@@ -15,7 +15,6 @@ import {
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
   handleTilesConcurrency,
-  getPyramidTileRanges,
   createImageOutput,
   getBBoxFromTiles,
   getDataFromURL,
@@ -791,15 +790,16 @@ export async function getMBTilesSize(filePath) {
 /**
  * Add MBTiles overviews (downsample to lower zoom levels)
  * @param {Database} source SQLite database instance
- * @param {number} deltaZ Number of zoom levels to generate overviews
  * @param {number} concurrency Concurrency to generate overviews
+ * @param {256|512} tileSize Tile size
  * @returns {Promise<void>}
  */
 export async function addMBTilesOverviews(
   source,
-  deltaZ,
   concurrency,
+  tileSize = 256
 ) {
+  /* Get tile width & height */
   const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
 
   if (!data?.tile_data) {
@@ -810,18 +810,51 @@ export async function addMBTilesOverviews(
     limitInputPixels: false,
   }).metadata();
 
+  /* Get source width & height */
   const metadata = await getMBTilesMetadata(source);
 
-  for (let _deltaZ = 1; _deltaZ <= deltaZ; _deltaZ++) {
-    const { tileBounds } = getTileBounds({
-      bbox: metadata.bounds,
-      minZoom: metadata.maxzoom - _deltaZ,
-      maxZoom: metadata.maxzoom - _deltaZ,
-      scheme: "tms",
-    });
+  const { tileBounds } = getTileBounds({
+    bbox: metadata.bounds,
+    minZoom: metadata.maxzoom,
+    maxZoom: metadata.maxzoom,
+    scheme: "tms",
+  });
 
+  let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
+  let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
+
+  /* Get delta z */
+  let deltaZ = 0;
+  const targetTileSize = Math.floor(tileSize * 0.95);
+
+  while (deltaZ < metadata.maxzoom && (sourceWidth > targetTileSize || sourceheight > targetTileSize)) {
+    sourceWidth /= 2;
+    sourceheight /= 2;
+
+    deltaZ++;
+  }
+
+  for (let _deltaZ = 1; _deltaZ <= deltaZ; _deltaZ++) {
     async function createTileData(z, x, y) {
-      const range = getPyramidTileRanges(z, x, y, "tms", 1);
+      const minX = x * 2;
+      const maxX = minX + 1;
+      const minY = y * 2;
+      const maxY = minY + 1;
+
+      const tiles = source
+        .prepare(
+        `
+        SELECT
+          tile_column, tile_row, tile_data
+        FROM
+          tiles
+        WHERE
+          zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
+        `
+        )
+        .all([z + 1, minX, maxX, minY, maxY]);
+
+      const composites = [];
 
       const compositeImage = sharp({
         create: {
@@ -832,33 +865,18 @@ export async function addMBTilesOverviews(
         },
       });
 
-      const composites = [];
-
-      for (let dx = range.x[0]; dx <= range.x[1]; dx++) {
-        for (let dy = range.y[0]; dy <= range.y[1]; dy++) {
-          const data = source
-            .prepare(
-              `
-              SELECT
-                tile_data
-              FROM
-                tiles
-              WHERE
-                zoom_level = ? AND tile_column = ? AND tile_row = ?;
-              `
-            )
-            .get([z + 1, dx, dy]);
-
-          if (!data?.tile_data) {
-            continue;
-          }
-
-          composites.push({
-            input: await sharp(data.tile_data).toBuffer(),
-            left: (dx - range.x[0]) * width,
-            top: (dy - range.y[0]) * height,
-          });
+      for (const tile of tiles) {
+        if (!tile.tile_data) {
+          continue;
         }
+
+        composites.push({
+          input: await sharp(tile.tile_data, {
+            limitInputPixels: false,
+          }).toBuffer(),
+          left: (tile.tile_column - minX) * width,
+          top: (maxY - tile.tile_row) * height,
+        });
       }
 
       if (!composites.length) {
@@ -902,6 +920,28 @@ export async function addMBTilesOverviews(
       );
     }
 
+    const { tileBounds } = getTileBounds({
+      bbox: metadata.bounds,
+      minZoom: metadata.maxzoom - _deltaZ,
+      maxZoom: metadata.maxzoom - _deltaZ,
+      scheme: "tms",
+    });
+
     await handleTilesConcurrency(concurrency, createTileData, tileBounds);
   }
+
+  /* Update minzoom */
+  source.prepare(
+    `
+    INSERT INTO
+      metadata (name, value)
+    VALUES
+      (?, ?)
+    ON CONFLICT
+      (name)
+    DO UPDATE
+      SET
+        value = excluded.value;
+    `)
+    .run(["minzoom", metadata.maxzoom - deltaZ]);
 }

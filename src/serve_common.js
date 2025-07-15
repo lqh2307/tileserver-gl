@@ -52,8 +52,7 @@ function serveFrontPageHandler() {
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
               cache: style.storeCache,
-              cancel_render:
-                process.env.ENABLE_EXPORT === "true" && style.export,
+              cancel_render: style.export,
             };
           } else {
             const { name, zoom, center } = style;

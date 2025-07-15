@@ -406,7 +406,7 @@ export async function calculateResolution(input, unit) {
  * @param {number} lon Longitude in EPSG:4326
  * @param {number} lat Latitude in EPSG:4326
  * @param {number} z Zoom level
- * @param {"xyz"|"tms"} scheme Tile scheme
+ * @param {"xyz"|"tms"} scheme Tile scheme to output (Default: XYZ)
  * @param {256|512} tileSize Tile size
  * @returns {[number, number, number]} Tile indices [x, y, z]
  */
@@ -432,13 +432,11 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   }
 
   let x = Math.floor((zc + lon * bc) / tileSize);
-  let y = Math.floor(
-    (scheme === "tms"
-      ? size -
-        (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360))))
-      : zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
-      tileSize
-  );
+  let y = Math.floor((zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /tileSize);
+
+  if (scheme === "tms") {
+    y = maxTileIndex - y;
+  }
 
   // Limit x
   if (x < 0) {
@@ -458,7 +456,7 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
 }
 
 /**
- * Get longitude, latitude from tile indices x, y, and zoom level
+ * Get longitude, latitude from z/x/y (Default: XYZ)
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {number} z Zoom level
@@ -477,18 +475,20 @@ export function getLonLatFromXYZ(x, y, z, position, scheme, tileSize = 256) {
   let py = y * tileSize;
 
   if (position === "center") {
-    px = (x + 0.5) * tileSize;
-    py = (y + 0.5) * tileSize;
+    px += tileSize / 2;
+    py += tileSize / 2;
   } else if (position === "bottomRight") {
-    px = (x + 1) * tileSize;
-    py = (y + 1) * tileSize;
+    px += tileSize;
+    py += tileSize;
+  }
+
+  if (scheme === "tms") {
+    py = size - py;
   }
 
   return [
     (px - zc) / bc,
-    (360 / Math.PI) *
-      (Math.atan(Math.exp((zc - (scheme === "tms" ? size - py : py)) / cc)) -
-        Math.PI / 4),
+    (180 / Math.PI) * (2 * Math.atan(Math.exp((zc - py) / cc)) - Math.PI / 2),
   ];
 }
 
@@ -545,6 +545,8 @@ export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
 export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
   const factor = 1 << deltaZ;
 
+  const minX = x * factor;
+  const maxX = (x + 1) * factor - 1;
   const minY = y * factor;
   const maxY = (y + 1) * factor - 1;
 
@@ -552,15 +554,15 @@ export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
     const maxTileIndex = (1 << (z + deltaZ)) - 1;
 
     return {
-      x: [x * factor, (x + 1) * factor - 1],
+      x: [minX, maxX],
       y: [maxTileIndex - maxY, maxTileIndex - minY],
     };
-  } else {
-    return {
-      x: [x * factor, (x + 1) * factor - 1],
-      y: [minY, maxY],
-    };
   }
+
+  return {
+    x: [minX, maxX],
+    y: [minY, maxY],
+  };
 }
 
 /**
@@ -672,24 +674,7 @@ export function getTileBounds(options) {
         }
       }
 
-      let [xMin, yMin] = getXYZFromLonLatZ(
-        bbox[0],
-        bbox[3],
-        coverage.zoom,
-        options.scheme,
-        options.tileSize
-      );
-      let [xMax, yMax] = getXYZFromLonLatZ(
-        bbox[2],
-        bbox[1],
-        coverage.zoom,
-        options.scheme,
-        options.tileSize
-      );
-
-      if (yMin > yMax) {
-        [yMin, yMax] = [yMax, yMin];
-      }
+      const [xMin, yMin, xMax, yMax] = getTilesFromBBox(bbox, coverage.zoom, options.scheme, options.tileSize);
 
       const _bbox = getBBoxFromTiles(
         xMin,
@@ -758,24 +743,7 @@ export function getTileBounds(options) {
         }
       }
 
-      let [xMin, yMin] = getXYZFromLonLatZ(
-        bbox[0],
-        bbox[3],
-        zoom,
-        options.scheme,
-        options.tileSize
-      );
-      let [xMax, yMax] = getXYZFromLonLatZ(
-        bbox[2],
-        bbox[1],
-        zoom,
-        options.scheme,
-        options.tileSize
-      );
-
-      if (yMin > yMax) {
-        [yMin, yMax] = [yMax, yMin];
-      }
+      const [xMin, yMin, xMax, yMax] = getTilesFromBBox(bbox, zoom, options.scheme, options.tileSize);
 
       const _bbox = getBBoxFromTiles(
         xMin,
@@ -850,9 +818,9 @@ export function getBBoxFromTiles(
   yMax,
   z,
   scheme,
-  tileSize = 256
+  tileSize
 ) {
-  const [lonMin, latMax] = getLonLatFromXYZ(
+  let [lonMin, latMax] = getLonLatFromXYZ(
     xMin,
     yMin,
     z,
@@ -860,7 +828,7 @@ export function getBBoxFromTiles(
     scheme,
     tileSize
   );
-  const [lonMax, latMin] = getLonLatFromXYZ(
+  let [lonMax, latMin] = getLonLatFromXYZ(
     xMax,
     yMax,
     z,
@@ -869,7 +837,55 @@ export function getBBoxFromTiles(
     tileSize
   );
 
+  if (lonMin > lonMax) {
+    [lonMin, lonMax] = [lonMax, lonMin];
+  }
+
+  if (latMin > latMax) {
+    [latMin, latMax] = [latMax, latMin];
+  }
+
   return [lonMin, latMin, lonMax, latMax];
+}
+
+/**
+ * Convert bbox to tiles
+ * @param {[number, number, number, number]} bbox Bounding box [lonMin, latMin, lonMax, latMax] in EPSG:4326
+ * @param {number} z Zoom level
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @param {256|512} tileSize Tile size
+ * @returns {[number, number, number, number]} Tiles [minX, maxX, minY, maxY]
+ */
+export function getTilesFromBBox(
+  bbox,
+  z,
+  scheme,
+  tileSize
+) {
+  let [xMin, yMin] = getXYZFromLonLatZ(
+    bbox[0],
+    bbox[3],
+    z,
+    scheme,
+    tileSize
+  );
+  let [xMax, yMax] = getXYZFromLonLatZ(
+    bbox[2],
+    bbox[1],
+    z,
+    scheme,
+    tileSize
+  );
+
+  if (xMin > xMax) {
+    [xMin, xMax] = [xMax, xMin];
+  }
+
+  if (yMin > yMax) {
+    [yMin, yMax] = [yMax, yMin];
+  }
+
+  return [xMin, yMin, xMax, yMax];
 }
 
 /**

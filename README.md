@@ -29,13 +29,7 @@ Install dependencies:
 ```bash
 apt-get -y update; \
 apt-get -y install \
-  ca-certificates \
   wget \
-  cmake \
-  build-essential \
-  libproj-dev \
-  libproj22 \
-  libexpat1 \
   xvfb \
   libglfw3 \
   libuv1 \
@@ -46,28 +40,6 @@ apt-get -y install \
   libpng16-16 \
   libwebp7 \
   libcurl4;
-```
-
-If use export (Install gdal):
-
-```bash
-export GDAL_VERSION=3.11.0
-
-wget -q http://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz; \
-tar -xzf ./gdal-${GDAL_VERSION}.tar.gz; \
-cd ./gdal-${GDAL_VERSION}; \
-mkdir -p build; \
-cd build; \
-cmake .. \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib' \
-  -DCMAKE_INSTALL_PREFIX=/usr/local/opt/gdal; \
-cmake --build .; \
-cmake --build . --target install; \
-cd ../..; \
-rm -rf ./gdal-${GDAL_VERSION}*; \
-grep -q '/usr/local/opt/gdal/bin' ~/.bashrc || echo 'export PATH=/usr/local/opt/gdal/bin:${PATH}' >> ~/.bashrc; \
-source ~/.bashrc;
 ```
 
 Install nodejs:
@@ -82,19 +54,6 @@ cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
 rm -rf node-v${NODEJS_VERSION}-linux-x64*; \
 grep -q '/usr/local/opt/nodejs/bin' ~/.bashrc || echo 'export PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc; \
 source ~/.bashrc;
-```
-
-Clean:
-
-```bash
-apt-get -y remove \
-  wget \
-  cmake \
-  build-essential \
-  libproj-dev; \
-apt-get -y --purge autoremove; \
-apt-get clean; \
-rm -rf /var/lib/apt/lists/*;
 ```
 
 Install nodejs packages:
@@ -974,10 +933,10 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "name": "osm_style",
     "description": "osm_style",
     "format": "png",
-    "bounds": [96, 4, 120, 28],
-    "center": [108, 16, 10],
-    "minzoom": 12,
-    "maxzoom": 12
+    "bounds": [105.49716130998576, 20.876622106776722, 106.0674070653468, 21.131314326667038],
+    "center": [108, 5, 10],
+    "minzoom": 14,
+    "maxzoom": 14
   },
   "refreshBefore": {
     "time": "2024-10-10T00:00:00"
