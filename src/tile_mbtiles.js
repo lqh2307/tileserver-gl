@@ -794,11 +794,7 @@ export async function getMBTilesSize(filePath) {
  * @param {256|512} tileSize Tile size
  * @returns {Promise<void>}
  */
-export async function addMBTilesOverviews(
-  source,
-  concurrency,
-  tileSize = 256
-) {
+export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
   /* Get tile width & height */
   const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
 
@@ -827,7 +823,10 @@ export async function addMBTilesOverviews(
   let deltaZ = 0;
   const targetTileSize = Math.floor(tileSize * 0.95);
 
-  while (deltaZ < metadata.maxzoom && (sourceWidth > targetTileSize || sourceheight > targetTileSize)) {
+  while (
+    deltaZ < metadata.maxzoom &&
+    (sourceWidth > targetTileSize || sourceheight > targetTileSize)
+  ) {
     sourceWidth /= 2;
     sourceheight /= 2;
 
@@ -843,14 +842,14 @@ export async function addMBTilesOverviews(
 
       const tiles = source
         .prepare(
-        `
-        SELECT
-          tile_column, tile_row, tile_data
-        FROM
-          tiles
-        WHERE
-          zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
-        `
+          `
+          SELECT
+            tile_column, tile_row, tile_data
+          FROM
+            tiles
+          WHERE
+            zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
+          `
         )
         .all([z + 1, minX, maxX, minY, maxY]);
 
@@ -931,17 +930,19 @@ export async function addMBTilesOverviews(
   }
 
   /* Update minzoom */
-  source.prepare(
-    `
-    INSERT INTO
-      metadata (name, value)
-    VALUES
-      (?, ?)
-    ON CONFLICT
-      (name)
-    DO UPDATE
-      SET
-        value = excluded.value;
-    `)
+  source
+    .prepare(
+      `
+      INSERT INTO
+        metadata (name, value)
+      VALUES
+        (?, ?)
+      ON CONFLICT
+        (name)
+      DO UPDATE
+        SET
+          value = excluded.value;
+      `
+    )
     .run(["minzoom", metadata.maxzoom - deltaZ]);
 }

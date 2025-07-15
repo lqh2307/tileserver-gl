@@ -432,7 +432,10 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   }
 
   let x = Math.floor((zc + lon * bc) / tileSize);
-  let y = Math.floor((zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /tileSize);
+  let y = Math.floor(
+    (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
+      tileSize
+  );
 
   if (scheme === "tms") {
     y = maxTileIndex - y;
@@ -674,7 +677,12 @@ export function getTileBounds(options) {
         }
       }
 
-      const [xMin, yMin, xMax, yMax] = getTilesFromBBox(bbox, coverage.zoom, options.scheme, options.tileSize);
+      const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
+        bbox,
+        coverage.zoom,
+        options.scheme,
+        options.tileSize
+      );
 
       const _bbox = getBBoxFromTiles(
         xMin,
@@ -743,7 +751,12 @@ export function getTileBounds(options) {
         }
       }
 
-      const [xMin, yMin, xMax, yMax] = getTilesFromBBox(bbox, zoom, options.scheme, options.tileSize);
+      const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
+        bbox,
+        zoom,
+        options.scheme,
+        options.tileSize
+      );
 
       const _bbox = getBBoxFromTiles(
         xMin,
@@ -811,15 +824,7 @@ export function getTileBounds(options) {
  * @param {256|512} tileSize Tile size
  * @returns {[number, number, number, number]} Bounding box [lonMin, latMin, lonMax, latMax] in EPSG:4326
  */
-export function getBBoxFromTiles(
-  xMin,
-  yMin,
-  xMax,
-  yMax,
-  z,
-  scheme,
-  tileSize
-) {
+export function getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme, tileSize) {
   let [lonMin, latMax] = getLonLatFromXYZ(
     xMin,
     yMin,
@@ -856,26 +861,9 @@ export function getBBoxFromTiles(
  * @param {256|512} tileSize Tile size
  * @returns {[number, number, number, number]} Tiles [minX, maxX, minY, maxY]
  */
-export function getTilesFromBBox(
-  bbox,
-  z,
-  scheme,
-  tileSize
-) {
-  let [xMin, yMin] = getXYZFromLonLatZ(
-    bbox[0],
-    bbox[3],
-    z,
-    scheme,
-    tileSize
-  );
-  let [xMax, yMax] = getXYZFromLonLatZ(
-    bbox[2],
-    bbox[1],
-    z,
-    scheme,
-    tileSize
-  );
+export function getTilesFromBBox(bbox, z, scheme, tileSize) {
+  let [xMin, yMin] = getXYZFromLonLatZ(bbox[0], bbox[3], z, scheme, tileSize);
+  let [xMax, yMax] = getXYZFromLonLatZ(bbox[2], bbox[1], z, scheme, tileSize);
 
   if (xMin > xMax) {
     [xMin, xMax] = [xMax, xMin];
