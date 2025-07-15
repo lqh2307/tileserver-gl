@@ -819,110 +819,100 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
   let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
   let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
 
+  /* Create tile data handler function */
+  async function createTileData(z, x, y) {
+    const minX = x * 2;
+    const maxX = minX + 1;
+    const minY = y * 2;
+    const maxY = minY + 1;
+
+    const tiles = source
+      .prepare(
+        `
+        SELECT
+          tile_column, tile_row, tile_data
+        FROM
+          tiles
+        WHERE
+          zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
+        `
+      )
+      .all([z + 1, minX, maxX, minY, maxY]);
+
+    const composites = [];
+
+    const compositeImage = sharp({
+      create: {
+        width: width * 2,
+        height: height * 2,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    });
+
+    for (const tile of tiles) {
+      if (!tile.tile_data) {
+        continue;
+      }
+
+      composites.push({
+        input: await sharp(tile.tile_data, {
+          limitInputPixels: false,
+        }).toBuffer(),
+        left: (tile.tile_column - minX) * width,
+        top: (maxY - tile.tile_row) * height,
+      });
+    }
+
+    if (!composites.length) {
+      return;
+    }
+
+    const image = await createImageOutput(
+      sharp(await compositeImage.composite(composites).toFormat(metadata.format).toBuffer(), {
+        limitInputPixels: false,
+      }),
+      {
+        format: metadata.format,
+        width: width,
+        height: height,
+      }
+    );
+
+    await runSQLWithTimeout(
+      source,
+      `
+      INSERT INTO
+        tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
+      VALUES
+        (?, ?, ?, ?, ?, ?)
+      ON CONFLICT
+        (zoom_level, tile_column, tile_row)
+      DO UPDATE
+        SET
+          tile_data = excluded.tile_data,
+          hash = excluded.hash,
+          created = excluded.created;
+      `,
+      [z, x, y, image, calculateMD5(image), Date.now()],
+      30000 // 30 secs
+    );
+  }
+
   /* Get delta z */
   let deltaZ = 0;
   const targetTileSize = Math.floor(tileSize * 0.95);
 
-  while (
-    deltaZ < metadata.maxzoom &&
-    (sourceWidth > targetTileSize || sourceheight > targetTileSize)
-  ) {
+  while (deltaZ < metadata.maxzoom && (sourceWidth > targetTileSize || sourceheight > targetTileSize)) {
     sourceWidth /= 2;
     sourceheight /= 2;
 
     deltaZ++;
-  }
-
-  for (let _deltaZ = 1; _deltaZ <= deltaZ; _deltaZ++) {
-    async function createTileData(z, x, y) {
-      const minX = x * 2;
-      const maxX = minX + 1;
-      const minY = y * 2;
-      const maxY = minY + 1;
-
-      const tiles = source
-        .prepare(
-          `
-          SELECT
-            tile_column, tile_row, tile_data
-          FROM
-            tiles
-          WHERE
-            zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
-          `
-        )
-        .all([z + 1, minX, maxX, minY, maxY]);
-
-      const composites = [];
-
-      const compositeImage = sharp({
-        create: {
-          width: width * 2,
-          height: height * 2,
-          channels: 4,
-          background: { r: 0, g: 0, b: 0, alpha: 0 },
-        },
-      });
-
-      for (const tile of tiles) {
-        if (!tile.tile_data) {
-          continue;
-        }
-
-        composites.push({
-          input: await sharp(tile.tile_data, {
-            limitInputPixels: false,
-          }).toBuffer(),
-          left: (tile.tile_column - minX) * width,
-          top: (maxY - tile.tile_row) * height,
-        });
-      }
-
-      if (!composites.length) {
-        return;
-      }
-
-      const image = await createImageOutput(
-        sharp(
-          await compositeImage
-            .composite(composites)
-            .toFormat(metadata.format)
-            .toBuffer(),
-          {
-            limitInputPixels: false,
-          }
-        ),
-        {
-          format: metadata.format,
-          width: width,
-          height: height,
-        }
-      );
-
-      await runSQLWithTimeout(
-        source,
-        `
-        INSERT INTO
-          tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-        VALUES
-          (?, ?, ?, ?, ?, ?)
-        ON CONFLICT
-          (zoom_level, tile_column, tile_row)
-        DO UPDATE
-          SET
-            tile_data = excluded.tile_data,
-            hash = excluded.hash,
-            created = excluded.created;
-        `,
-        [z, x, y, image, calculateMD5(image), Date.now()],
-        30000
-      );
-    }
 
     const { tileBounds } = getTileBounds({
       bbox: metadata.bounds,
-      minZoom: metadata.maxzoom - _deltaZ,
-      maxZoom: metadata.maxzoom - _deltaZ,
+      minZoom: metadata.maxzoom - deltaZ,
+      maxZoom: metadata.maxzoom - deltaZ,
       scheme: "tms",
     });
 
