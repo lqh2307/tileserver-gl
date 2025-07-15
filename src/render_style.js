@@ -11,8 +11,10 @@ import { config } from "./config.js";
 import { v4 } from "uuid";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
+  calculatePostgreSQLTileExtraInfo,
   updatePostgreSQLMetadata,
   cachePostgreSQLTileData,
+  addPostgreSQLOverviews,
   closePostgreSQLDB,
   openPostgreSQLDB,
 } from "./tile_postgresql.js";
@@ -1591,7 +1593,13 @@ export async function renderPostgreSQLTiles(
 
     /* Create overviews */
     if (createOverview) {
-      // Do nothing
+      printLog("info", `Creating overviews...`);
+
+      await addPostgreSQLOverviews(source, concurrency, tileSize);
+
+      printLog("info", "Calculating tile extra info...");
+
+      await calculatePostgreSQLTileExtraInfo(source);
     }
 
     printLog(
