@@ -800,15 +800,19 @@ export async function getXYZSize(sourcePath) {
  * @param {256|512} tileSize Tile size
  * @returns {Promise<void>}
  */
-export async function addXYZOverviews(source, sourcePath, concurrency, tileSize = 256) {
+export async function addXYZOverviews(
+  source,
+  sourcePath,
+  concurrency,
+  tileSize = 256
+) {
   /* Get tile width & height */
   let data;
   let found = false;
 
   const zFolders = await findFiles(sourcePath, /^\d+$/, false, false, true);
 
-  loop:
-  for (const zFolder of zFolders) {
+  loop: for (const zFolder of zFolders) {
     const xFolders = await findFiles(
       `${sourcePath}/${zFolder}`,
       /^\d+$/,
@@ -824,7 +828,9 @@ export async function addXYZOverviews(source, sourcePath, concurrency, tileSize 
       );
 
       if (yFiles.length) {
-        data = await readFile(`${sourcePath}/${zFolder}/${xFolder}/${yFiles[0]}`);
+        data = await readFile(
+          `${sourcePath}/${zFolder}/${xFolder}/${yFiles[0]}`
+        );
 
         if (!data) {
           return;
@@ -839,7 +845,7 @@ export async function addXYZOverviews(source, sourcePath, concurrency, tileSize 
 
   if (!found) {
     return;
-  };
+  }
 
   const { width, height } = await sharp(data, {
     limitInputPixels: false,
@@ -872,14 +878,16 @@ export async function addXYZOverviews(source, sourcePath, concurrency, tileSize 
         width: width * 2,
         height: height * 2,
         channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
       },
     });
 
     for (let dx = minX; dx <= maxX; dx++) {
       for (let dy = minY; dy <= maxY; dy++) {
         try {
-          const tile = await readFile(`${sourcePath}/${z+1}/${dx}/${dy}.${metadata.format}`);
+          const tile = await readFile(
+            `${sourcePath}/${z + 1}/${dx}/${dy}.${metadata.format}`
+          );
 
           if (!tile) {
             continue;
@@ -900,9 +908,15 @@ export async function addXYZOverviews(source, sourcePath, concurrency, tileSize 
 
     if (composites.length) {
       const image = await createImageOutput(
-        sharp(await compositeImage.composite(composites).toFormat(metadata.format).toBuffer(), {
-          limitInputPixels: false,
-        }),
+        sharp(
+          await compositeImage
+            .composite(composites)
+            .toFormat(metadata.format)
+            .toBuffer(),
+          {
+            limitInputPixels: false,
+          }
+        ),
         {
           format: metadata.format,
           width: width,
@@ -941,7 +955,10 @@ export async function addXYZOverviews(source, sourcePath, concurrency, tileSize 
   let deltaZ = 0;
   const targetTileSize = Math.floor(tileSize * 0.95);
 
-  while (deltaZ < metadata.maxzoom && (sourceWidth > targetTileSize || sourceheight > targetTileSize)) {
+  while (
+    deltaZ < metadata.maxzoom &&
+    (sourceWidth > targetTileSize || sourceheight > targetTileSize)
+  ) {
     sourceWidth /= 2;
     sourceheight /= 2;
 

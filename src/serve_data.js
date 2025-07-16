@@ -1091,7 +1091,7 @@ export const serve_data = {
                 /* Get XYZ metadata */
                 dataInfo.tileJSON = await getXYZMetadata(
                   md5Source,
-                  dataInfo.source,
+                  dataInfo.source
                 );
               }
             } else if (item.pg !== undefined) {

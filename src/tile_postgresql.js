@@ -765,7 +765,11 @@ export async function countPostgreSQLTiles(uri) {
  * @param {256|512} tileSize Tile size
  * @returns {Promise<void>}
  */
-export async function addPostgreSQLOverviews(source, concurrency, tileSize = 256) {
+export async function addPostgreSQLOverviews(
+  source,
+  concurrency,
+  tileSize = 256
+) {
   /* Get tile width & height */
   const data = await source.query("SELECT tile_data FROM tiles LIMIT 1;");
 
@@ -818,7 +822,7 @@ export async function addPostgreSQLOverviews(source, concurrency, tileSize = 256
           width: width * 2,
           height: height * 2,
           channels: 4,
-          background: { r: 0, g: 0, b: 0, alpha: 0 },
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
         },
       });
 
@@ -838,9 +842,15 @@ export async function addPostgreSQLOverviews(source, concurrency, tileSize = 256
 
       if (composites.length) {
         const image = await createImageOutput(
-          sharp(await compositeImage.composite(composites).toFormat(metadata.format).toBuffer(), {
-            limitInputPixels: false,
-          }),
+          sharp(
+            await compositeImage
+              .composite(composites)
+              .toFormat(metadata.format)
+              .toBuffer(),
+            {
+              limitInputPixels: false,
+            }
+          ),
           {
             format: metadata.format,
             width: width,
@@ -873,7 +883,10 @@ export async function addPostgreSQLOverviews(source, concurrency, tileSize = 256
   let deltaZ = 0;
   const targetTileSize = Math.floor(tileSize * 0.95);
 
-  while (deltaZ < metadata.maxzoom && (sourceWidth > targetTileSize || sourceheight > targetTileSize)) {
+  while (
+    deltaZ < metadata.maxzoom &&
+    (sourceWidth > targetTileSize || sourceheight > targetTileSize)
+  ) {
     sourceWidth /= 2;
     sourceheight /= 2;
 
@@ -890,9 +903,8 @@ export async function addPostgreSQLOverviews(source, concurrency, tileSize = 256
   }
 
   /* Update minzoom */
-  await source
-    .query(
-      `
+  await source.query(
+    `
       INSERT INTO
         metadata (name, value)
       VALUES
@@ -903,6 +915,6 @@ export async function addPostgreSQLOverviews(source, concurrency, tileSize = 256
         SET
           value = excluded.value;
       `,
-      ["minzoom", metadata.maxzoom - deltaZ]
-    );
+    ["minzoom", metadata.maxzoom - deltaZ]
+  );
 }
