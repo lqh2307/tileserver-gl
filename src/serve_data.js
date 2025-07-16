@@ -9,7 +9,7 @@ import { seed } from "./seed.js";
 import path from "path";
 import {
   getXYZTileExtraInfoFromCoverages,
-  calculatXYZTileExtraInfo,
+  calculateXYZTileExtraInfo,
   getXYZMetadata,
   openXYZMD5DB,
 } from "./tile_xyz.js";
@@ -469,11 +469,7 @@ function calculateDataExtraInfoHandler() {
         }
 
         case "xyz": {
-          calculatXYZTileExtraInfo(
-            item.source,
-            item.md5Source,
-            item.tileJSON.format
-          )
+          calculateXYZTileExtraInfo(item.source, item.md5Source)
             .then(() => {
               printLog("info", `Done to calculate tile extra info "${id}"!`);
             })
@@ -1094,8 +1090,8 @@ export const serve_data = {
 
                 /* Get XYZ metadata */
                 dataInfo.tileJSON = await getXYZMetadata(
+                  md5Source,
                   dataInfo.source,
-                  md5Source
                 );
               }
             } else if (item.pg !== undefined) {

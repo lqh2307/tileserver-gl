@@ -58,8 +58,10 @@ import {
 } from "./utils.js";
 import {
   getXYZTileExtraInfoFromCoverages,
+  calculateXYZTileExtraInfo,
   updateXYZMetadata,
   cacheXYZTileFile,
+  addXYZOverviews,
   closeXYZMD5DB,
   openXYZMD5DB,
 } from "./tile_xyz.js";
@@ -1351,7 +1353,13 @@ export async function renderXYZTiles(
 
     /* Create overviews */
     if (createOverview) {
-      // Do nothing
+      printLog("info", `Creating overviews...`);
+
+      await addXYZOverviews(source, sourcePath, concurrency, tileSize);
+
+      printLog("info", "Calculating tile extra info...");
+
+      await calculateXYZTileExtraInfo(sourcePath, source);
     }
 
     printLog(

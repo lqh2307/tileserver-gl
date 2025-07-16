@@ -579,11 +579,11 @@ export function calculateSizes(z, bbox, tileSize = 256) {
   const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1], tileSize);
   const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3], tileSize);
 
-  const resolution = (2 * Math.PI * 6378137.0) / tileSize;
+  const resolution = tileSize * Math.round(Math.pow(2, z) / (2 * Math.PI * 6378137.0));
 
   return {
-    width: Math.round((Math.pow(2, z) * (maxX - minX)) / resolution),
-    height: Math.round((Math.pow(2, z) * (maxY - minY)) / resolution),
+    width: resolution * (maxX - minX),
+    height: resolution * (maxY - minY),
   };
 }
 

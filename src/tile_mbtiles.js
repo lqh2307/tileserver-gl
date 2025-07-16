@@ -839,64 +839,64 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
       )
       .all([z + 1, minX, maxX, minY, maxY]);
 
-    const composites = [];
+    if (tiles.length) {
+      const composites = [];
 
-    const compositeImage = sharp({
-      create: {
-        width: width * 2,
-        height: height * 2,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    });
-
-    for (const tile of tiles) {
-      if (!tile.tile_data) {
-        continue;
-      }
-
-      composites.push({
-        input: await sharp(tile.tile_data, {
-          limitInputPixels: false,
-        }).toBuffer(),
-        left: (tile.tile_column - minX) * width,
-        top: (maxY - tile.tile_row) * height,
+      const compositeImage = sharp({
+        create: {
+          width: width * 2,
+          height: height * 2,
+          channels: 4,
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        },
       });
-    }
 
-    if (!composites.length) {
-      return;
-    }
+      for (const tile of tiles) {
+        if (!tile.tile_data) {
+          continue;
+        }
 
-    const image = await createImageOutput(
-      sharp(await compositeImage.composite(composites).toFormat(metadata.format).toBuffer(), {
-        limitInputPixels: false,
-      }),
-      {
-        format: metadata.format,
-        width: width,
-        height: height,
+        composites.push({
+          input: await sharp(tile.tile_data, {
+            limitInputPixels: false,
+          }).toBuffer(),
+          left: (tile.tile_column - minX) * width,
+          top: (maxY - tile.tile_row) * height,
+        });
       }
-    );
 
-    await runSQLWithTimeout(
-      source,
-      `
-      INSERT INTO
-        tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-      VALUES
-        (?, ?, ?, ?, ?, ?)
-      ON CONFLICT
-        (zoom_level, tile_column, tile_row)
-      DO UPDATE
-        SET
-          tile_data = excluded.tile_data,
-          hash = excluded.hash,
-          created = excluded.created;
-      `,
-      [z, x, y, image, calculateMD5(image), Date.now()],
-      30000 // 30 secs
-    );
+      if (composites.length) {
+        const image = await createImageOutput(
+          sharp(await compositeImage.composite(composites).toFormat(metadata.format).toBuffer(), {
+            limitInputPixels: false,
+          }),
+          {
+            format: metadata.format,
+            width: width,
+            height: height,
+          }
+        );
+
+        await runSQLWithTimeout(
+          source,
+          `
+          INSERT INTO
+            tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
+          VALUES
+            (?, ?, ?, ?, ?, ?)
+          ON CONFLICT
+            (zoom_level, tile_column, tile_row)
+          DO UPDATE
+            SET
+              tile_data = excluded.tile_data,
+              hash = excluded.hash,
+              created = excluded.created;
+          `,
+          [z, x, y, image, calculateMD5(image), Date.now()],
+          30000 // 30 secs
+        );
+      }
+    }
   }
 
   /* Get delta z */
