@@ -749,7 +749,10 @@ export async function getPostgreSQLSize(source, dbName) {
 export async function countPostgreSQLTiles(uri) {
   const source = await openPostgreSQL(uri, false);
 
-  const data = await source.query("SELECT COUNT(*) AS count FROM tiles;");
+  const data = await source.query({
+    text: "SELECT COUNT(*) AS count FROM tiles;",
+    statement_timeout: 60000, // 1 mins
+  });
 
   closePostgreSQLDB(source);
 
@@ -817,15 +820,6 @@ export async function addPostgreSQLOverviews(
     if (tiles.rows.length) {
       const composites = [];
 
-      const compositeImage = sharp({
-        create: {
-          width: width * 2,
-          height: height * 2,
-          channels: 4,
-          background: { r: 255, g: 255, b: 255, alpha: 0 },
-        },
-      });
-
       for (const tile of tiles.rows) {
         if (!tile.tile_data) {
           continue;
@@ -841,6 +835,15 @@ export async function addPostgreSQLOverviews(
       }
 
       if (composites.length) {
+        const compositeImage = sharp({
+          create: {
+            width: width * 2,
+            height: height * 2,
+            channels: 4,
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        });
+
         const image = await createImageOutput(
           sharp(
             await compositeImage
@@ -873,7 +876,7 @@ export async function addPostgreSQLOverviews(
               created = excluded.created;
           `,
           values: [z, x, y, image, calculateMD5(image), Date.now()],
-          statement_timeout: 30000, // 30 secs
+          statement_timeout: 60000, // 1 mins
         });
       }
     }

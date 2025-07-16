@@ -313,7 +313,7 @@ export async function calculateMBTilesTileExtraInfo(source) {
             row.tile_column,
             row.tile_row,
           ],
-          30000 // 30 secs
+          60000 // 1 mins
         )
       )
     );
@@ -766,7 +766,7 @@ export async function countMBTilesTiles(filePath) {
   const source = await openSQLiteWithTimeout(
     filePath,
     false,
-    30000 // 30 secs
+    60000 // 1 mins
   );
 
   const data = source.prepare("SELECT COUNT(*) AS count FROM tiles;").get();
@@ -842,15 +842,6 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
     if (tiles.length) {
       const composites = [];
 
-      const compositeImage = sharp({
-        create: {
-          width: width * 2,
-          height: height * 2,
-          channels: 4,
-          background: { r: 255, g: 255, b: 255, alpha: 0 },
-        },
-      });
-
       for (const tile of tiles) {
         if (!tile.tile_data) {
           continue;
@@ -866,6 +857,15 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
       }
 
       if (composites.length) {
+        const compositeImage = sharp({
+          create: {
+            width: width * 2,
+            height: height * 2,
+            channels: 4,
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        });
+
         const image = await createImageOutput(
           sharp(
             await compositeImage
@@ -899,7 +899,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
               created = excluded.created;
           `,
           [z, x, y, image, calculateMD5(image), Date.now()],
-          30000 // 30 secs
+          60000 // 1 mins
         );
       }
     }

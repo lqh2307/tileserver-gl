@@ -873,15 +873,6 @@ export async function addXYZOverviews(
 
     const composites = [];
 
-    const compositeImage = sharp({
-      create: {
-        width: width * 2,
-        height: height * 2,
-        channels: 4,
-        background: { r: 255, g: 255, b: 255, alpha: 0 },
-      },
-    });
-
     for (let dx = minX; dx <= maxX; dx++) {
       for (let dy = minY; dy <= maxY; dy++) {
         try {
@@ -907,6 +898,15 @@ export async function addXYZOverviews(
     }
 
     if (composites.length) {
+      const compositeImage = sharp({
+        create: {
+          width: width * 2,
+          height: height * 2,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        },
+      });
+
       const image = await createImageOutput(
         sharp(
           await compositeImage
@@ -945,7 +945,7 @@ export async function addXYZOverviews(
               created = excluded.created;
           `,
           [z, x, y, calculateMD5(image), Date.now()],
-          30000 // 30 secs
+          60000 // 1 mins
         ),
       ]);
     }
