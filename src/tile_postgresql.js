@@ -190,12 +190,11 @@ async function getPostgreSQLFormatFromTiles(source) {
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @param {Buffer} data Tile data buffer
- * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-async function createPostgreSQLTile(source, z, x, y, data, timeout) {
-  await source.query({
-    text: `
+async function createPostgreSQLTile(source, z, x, y, data) {
+  await source.query(
+    `
     INSERT INTO
       tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
     VALUES
@@ -208,9 +207,8 @@ async function createPostgreSQLTile(source, z, x, y, data, timeout) {
         hash = excluded.hash,
         created = excluded.created;
     `,
-    values: [z, x, y, data, calculateMD5(data), Date.now()],
-    statement_timeout: timeout,
-  });
+    [z, x, y, data, calculateMD5(data), Date.now()]
+  );
 }
 
 /**
@@ -310,20 +308,18 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function removePostgreSQLTile(source, z, x, y, timeout) {
-  await source.query({
-    text: `
+export async function removePostgreSQLTile(source, z, x, y) {
+  await source.query(
+    `
     DELETE FROM
       tiles
     WHERE
       zoom_level = $1 AND tile_column = $2 AND tile_row = $3;
     `,
-    values: [z, x, y],
-    statement_timeout: timeout,
-  });
+    [z, x, y]
+  );
 }
 
 /**
@@ -599,10 +595,9 @@ export async function closePostgreSQLDB(source) {
  * Update PostgreSQL metadata table
  * @param {pg.Client} source PostgreSQL database instance
  * @param {Object<string,string>} metadataAdds Metadata object
- * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function updatePostgreSQLMetadata(source, metadataAdds, timeout) {
+export async function updatePostgreSQLMetadata(source, metadataAdds) {
   await Promise.all(
     Object.entries({
       ...metadataAdds,
@@ -610,8 +605,8 @@ export async function updatePostgreSQLMetadata(source, metadataAdds, timeout) {
       bounds: metadataAdds.bounds.join(","),
       scheme: "xyz",
     }).map(([name, value]) =>
-      source.query({
-        text: `
+      source.query(
+        `
         INSERT INTO
           metadata (name, value)
         VALUES
@@ -622,12 +617,11 @@ export async function updatePostgreSQLMetadata(source, metadataAdds, timeout) {
           SET
             value = excluded.value;
         `,
-        values: [
+        [
           name,
           typeof value === "object" ? JSON.stringify(value) : value,
-        ],
-        statement_timeout: timeout,
-      })
+        ]
+      )
     )
   );
 }
@@ -719,8 +713,7 @@ export async function cachePostgreSQLTileData(
       z,
       x,
       y,
-      data,
-      30000 // 30 secs
+      data
     );
   }
 }
@@ -749,10 +742,7 @@ export async function getPostgreSQLSize(source, dbName) {
 export async function countPostgreSQLTiles(uri) {
   const source = await openPostgreSQL(uri, false);
 
-  const data = await source.query({
-    text: "SELECT COUNT(*) AS count FROM tiles;",
-    statement_timeout: 60000, // 1 mins
-  });
+  const data = await source.query("SELECT COUNT(*) AS count FROM tiles;");
 
   closePostgreSQLDB(source);
 
@@ -861,8 +851,8 @@ export async function addPostgreSQLOverviews(
           }
         );
 
-        await source.query({
-          text: `
+        await source.query(
+          `
           INSERT INTO
             tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
           VALUES
@@ -875,9 +865,7 @@ export async function addPostgreSQLOverviews(
               hash = excluded.hash,
               created = excluded.created;
           `,
-          values: [z, x, y, image, calculateMD5(image), Date.now()],
-          statement_timeout: 60000, // 1 mins
-        });
+          [z, x, y, image, calculateMD5(image), Date.now()]);
       }
     }
   }
@@ -908,16 +896,16 @@ export async function addPostgreSQLOverviews(
   /* Update minzoom */
   await source.query(
     `
-      INSERT INTO
-        metadata (name, value)
-      VALUES
-        ($1, $2)
-      ON CONFLICT
-        (name)
-      DO UPDATE
-        SET
-          value = excluded.value;
-      `,
+    INSERT INTO
+      metadata (name, value)
+    VALUES
+      ($1, $2)
+    ON CONFLICT
+      (name)
+    DO UPDATE
+      SET
+        value = excluded.value;
+    `,
     ["minzoom", metadata.maxzoom - deltaZ]
   );
 }

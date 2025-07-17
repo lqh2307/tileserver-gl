@@ -200,8 +200,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of mbtiles "${id}" after ${
-        (Date.now() - startTime) / 1000
+      `Completed cleanup ${total} tiles of mbtiles "${id}" after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -298,8 +297,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
           source,
           z,
           x,
-          y,
-          30000 // 30 secs
+          y
         );
       } catch (error) {
         printLog(
@@ -319,8 +317,7 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of postgresql "${id}" after ${
-        (Date.now() - startTime) / 1000
+      `Completed cleanup ${total} tiles of postgresql "${id}" after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -448,8 +445,7 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of xyz "${id}" after ${
-        (Date.now() - startTime) / 1000
+      `Completed cleanup ${total} tiles of xyz "${id}" after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -532,8 +528,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup geojson "${id}" after ${
-      (Date.now() - startTime) / 1000
+    `Completed cleanup geojson "${id}" after ${(Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -620,8 +615,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup sprite "${id}" after ${
-      (Date.now() - startTime) / 1000
+    `Completed cleanup sprite "${id}" after ${(Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -711,8 +705,7 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup ${total} fonts of font "${id}" after ${
-      (Date.now() - startTime) / 1000
+    `Completed cleanup ${total} fonts of font "${id}" after ${(Date.now() - startTime) / 1000
     }s!`
   );
 }

@@ -7,7 +7,7 @@
 Clone source:
 
 ```bash
-git clone --single-branch -b 0.0.28 https://github.com/lqh2307/tileserver-gl.git
+git clone --single-branch -b 1.0.0 https://github.com/lqh2307/tileserver-gl.git
 ```
 
 Jump to folder:
@@ -16,10 +16,10 @@ Jump to folder:
 cd tile-server
 ```
 
-Switch to 0.0.28 branch:
+Switch to 1.0.0 branch:
 
 ```bash
-git checkout 0.0.28
+git checkout 1.0.0
 ```
 
 ### Run with nodejs - native (on ubuntu 22.04 x86_64 amd)
@@ -85,13 +85,13 @@ NUM_OF_PROCESS: number of process, will overwrite config.json file (default: 1)
 Build image:
 
 ```bash
-docker build -t tile-server:0.0.28 .
+docker build -t tile-server:1.0.0 .
 ```
 
 Run container:
 
 ```bash
-docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:0.0.28
+docker run --rm -it -p 8080:8080 --name tile-server -v path_to_data_folder:/tile-server/data tile-server:1.0.0
 ```
 
 ### Prepare data
