@@ -27,6 +27,7 @@ git checkout 1.0.0
 Install dependencies:
 
 ```bash
+export DEBIAN_FRONTEND=noninteractive; \
 apt-get -y update; \
 apt-get -y install \
   wget \
