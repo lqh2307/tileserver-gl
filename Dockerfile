@@ -37,6 +37,7 @@ RUN \
   apt-get -y update; \
   apt-get -y install \
     xvfb \
+    fontconfig \
     libglfw3 \
     libuv1 \
     libjpeg-turbo8 \
