@@ -6,6 +6,7 @@ FROM ${BUILDER_IMAGE} AS builder
 ARG NODEJS_VERSION=22.17.0
 
 RUN \
+  export DEBIAN_FRONTEND=noninteractive; \
   apt-get -y update; \
   apt-get -y install \
     wget; \
@@ -34,6 +35,7 @@ RUN \
 FROM ${TARGET_IMAGE} AS final
 
 RUN \
+  export DEBIAN_FRONTEND=noninteractive; \
   apt-get -y update; \
   apt-get -y install \
     xvfb \
