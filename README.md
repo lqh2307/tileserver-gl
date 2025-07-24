@@ -30,6 +30,7 @@ Install dependencies:
 apt-get -y update; \
 apt-get -y install \
   wget \
+  fontconfig \
   xvfb \
   libglfw3 \
   libuv1 \
