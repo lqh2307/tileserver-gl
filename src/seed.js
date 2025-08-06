@@ -252,10 +252,7 @@ async function seedMBTilesTiles(
 
     await updateMBTilesMetadata(
       source,
-      {
-        ...metadata,
-        bbox: realBBox,
-      },
+      metadata,
       30000 // 30 secs
     );
 
@@ -472,13 +469,7 @@ async function seedPostgreSQLTiles(
     /* Update PostgreSQL metadata */
     printLog("info", "Updating PostgreSQL metadata...");
 
-    await updatePostgreSQLMetadata(
-      source,
-      {
-        ...metadata,
-        bbox: realBBox,
-      }
-    );
+    await updatePostgreSQLMetadata(source, metadata);
 
     /* Download tiles */
     async function seedPostgreSQLTileData(z, x, y, tasks) {
@@ -704,10 +695,7 @@ async function seedXYZTiles(
 
     await updateXYZMetadata(
       source,
-      {
-        ...metadata,
-        bbox: realBBox,
-      },
+      metadata,
       30000 // 30 secs
     );
 
