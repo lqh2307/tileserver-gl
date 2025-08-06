@@ -155,7 +155,7 @@ export async function exportMBTilesTiles(
       source,
       {
         ...metadata,
-        bbox: realBBox,
+        bounds: realBBox,
       },
       30000 // 30 secs
     );
@@ -353,7 +353,7 @@ export async function exportXYZTiles(
       source,
       {
         ...metadata,
-        bbox: realBBox,
+        bounds: realBBox,
       },
       30000 // 30 secs
     );
@@ -549,7 +549,7 @@ export async function exportPostgreSQLTiles(
       source,
       {
         ...metadata,
-        bbox: realBBox,
+        bounds: realBBox,
       }
     );
 
