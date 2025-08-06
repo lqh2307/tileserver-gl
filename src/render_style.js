@@ -950,7 +950,7 @@ export async function renderMBTilesTiles(
     } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
-      log += `\n\tRefresh before: check MD5`;
+      log += `\n\tRefresh before: Check MD5`;
     }
 
     printLog("info", log);
@@ -1189,7 +1189,7 @@ export async function renderXYZTiles(
     } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
-      log += `\n\tRefresh before: check MD5`;
+      log += `\n\tRefresh before: Check MD5`;
     }
 
     printLog("info", log);
@@ -1446,7 +1446,7 @@ export async function renderPostgreSQLTiles(
     } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
-      log += `\n\tRefresh before: check MD5`;
+      log += `\n\tRefresh before: Check MD5`;
     }
 
     printLog("info", log);

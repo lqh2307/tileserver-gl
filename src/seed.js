@@ -158,7 +158,7 @@ async function seedMBTilesTiles(
     } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
-      log += `\n\tRefresh before: check MD5`;
+      log += `\n\tRefresh before: Check MD5`;
     }
 
     printLog("info", log);
@@ -381,7 +381,7 @@ async function seedPostgreSQLTiles(
     } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
-      log += `\n\tRefresh before: check MD5`;
+      log += `\n\tRefresh before: Check MD5`;
     }
 
     printLog("info", log);
@@ -600,7 +600,7 @@ async function seedXYZTiles(
     } else if (refreshBefore === true) {
       refreshTimestamp = true;
 
-      log += `\n\tRefresh before: check MD5`;
+      log += `\n\tRefresh before: Check MD5`;
     }
 
     printLog("info", log);
@@ -800,7 +800,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
   } else if (refreshBefore === true) {
     refreshTimestamp = true;
 
-    log += `\n\tRefresh before: check MD5`;
+    log += `\n\tRefresh before: Check MD5`;
   }
 
   printLog("info", log);
@@ -1124,7 +1124,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
   } else if (refreshBefore === true) {
     refreshTimestamp = true;
 
-    log += `\n\tRefresh before: check MD5`;
+    log += `\n\tRefresh before: Check MD5`;
   }
 
   printLog("info", log);
