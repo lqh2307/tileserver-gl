@@ -993,7 +993,7 @@ export async function renderMBTilesTiles(
       source,
       {
         ...metadata,
-        bbox: realBBox,
+        bounds: realBBox,
       },
       30000 // 30 secs
     );
@@ -1232,7 +1232,7 @@ export async function renderXYZTiles(
       source,
       {
         ...metadata,
-        bbox: realBBox,
+        bounds: realBBox,
       },
       30000 // 30 secs
     );
@@ -1485,7 +1485,7 @@ export async function renderPostgreSQLTiles(
       source,
       {
         ...metadata,
-        bbox: realBBox,
+        bounds: realBBox,
       }
     );
 
