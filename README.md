@@ -954,31 +954,149 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 
 ```json
 {
-  "id": "osm_data_export",
+  "id": "satellite",
   "metadata": {
-    "name": "osm_data",
-    "description": "osm_data",
+    "name": "satellite",
+    "description": "satellite",
     "format": "png",
     "bounds": [96, 4, 120, 28],
-    "center": [108, 16, 10],
-    "minzoom": 12,
-    "maxzoom": 12
+    "center": [105.8, 21.0, 10],
+    "minzoom": 0,
+    "maxzoom": 17
   },
   "refreshBefore": {
     "time": "2024-10-10T00:00:00"
   },
-  "concurrency": 50,
+  "concurrency": 100,
   "storeType": "mbtiles",
   "storeTransparent": true,
-  "createOverview": true,
+  "createOverview": false,
   "coverages": [
     {
-      "bbox": [96, 4, 120, 28],
-      "zoom": 11
+      "zoom": 0,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
     },
     {
-      "bbox": [96, 4, 120, 28],
-      "zoom": 12
+      "zoom": 1,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 2,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 3,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 4,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 5,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 6,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 7,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 8,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 9,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 10,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 11,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 12,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 13,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 14,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 15,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 16,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
+    },
+    {
+      "zoom": 17,
+      "circle": {
+        "center": [105.8, 21.0],
+        "radius": 50000
+      }
     }
   ]
 }
