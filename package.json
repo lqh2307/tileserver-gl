@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@maplibre/maplibre-gl-style-spec": "23.3.0",
-    "@maplibre/maplibre-gl-native": "6.1.0",
+    "@maplibre/maplibre-gl-native": "6.2.0",
     "@socket.io/cluster-adapter": "0.2.2",
     "swagger-ui-express": "5.0.1",
     "@socket.io/sticky": "1.0.4",
@@ -47,7 +47,7 @@
     "jspdf": "3.0.1",
     "uuid": "11.1.0",
     "cors": "2.8.5",
-    "pino": "9.8.0",
+    "pino": "9.9.0",
     "ajv": "8.17.1",
     "pg": "8.16.3"
   },

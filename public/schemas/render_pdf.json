@@ -83,11 +83,11 @@
           "properties": {
             "horizontal": {
               "type": "string",
-              "enum": ["head", "middle", "tail"]
+              "enum": ["left", "center", "right"]
             },
             "vertical": {
               "type": "string",
-              "enum": ["head", "middle", "tail"]
+              "enum": ["top", "middle", "bottom"]
             }
           }
         },

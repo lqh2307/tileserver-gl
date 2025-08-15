@@ -352,10 +352,12 @@ export function xy3857ToLonLat4326(x, y) {
  * @returns {Promise<[number, number]>} [X resolution (m/pixel), Y resolution (m/pixel)]
  */
 export async function calculateResolution(input, unit) {
+  // Convert bbox from EPSG:4326 to EPSG:3857
   const [minX, minY] = lonLat4326ToXY3857(input.bbox[0], input.bbox[1]);
   const [maxX, maxY] = lonLat4326ToXY3857(input.bbox[2], input.bbox[3]);
   let resolution;
 
+  // Get image dimensions
   if (input.filePath) {
     const { width, height } = await sharp(input.filePath, {
       limitInputPixels: false,
@@ -366,6 +368,7 @@ export async function calculateResolution(input, unit) {
     resolution = [(maxX - minX) / input.width, (maxY - minY) / input.height];
   }
 
+  // Convert resolution to the specified unit
   switch (unit) {
     default: {
       return resolution;
@@ -1838,6 +1841,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
     const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
 
+    // Pixel/meter resolution
     const xRes = width / (maxX - minX);
     const yRes = height / (maxY - minY);
 
@@ -2656,7 +2660,7 @@ export async function mergeTilesToImage(input, output) {
  * Split image to PDF
  * @param {{ image: string|Buffer, res: [number, number] }} input Input object
  * @param {object} preview Preview options object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, alignContent: { horizontal: "head"|"middle"|"tail", vertical: "head"|"middle"|"tail" }, compression: boolean, grayscale: boolean }} output Output object
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, compression: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<jsPDF|sharp.OutputInfo|Buffer|string>}
  */
 export async function splitImage(input, preview, output) {
@@ -2687,19 +2691,19 @@ export async function splitImage(input, preview, output) {
 
   if (output.alignContent) {
     switch (output.alignContent.horizontal) {
-      case "head": {
+      case "left": {
         extendTop = 0;
 
         break;
       }
 
-      case "middle": {
+      case "center": {
         extendTop = Math.floor((newHeight - height) / 2);
 
         break;
       }
 
-      case "tail": {
+      case "right": {
         extendTop = Math.floor(newHeight - height);
 
         break;
@@ -2707,7 +2711,7 @@ export async function splitImage(input, preview, output) {
     }
 
     switch (output.alignContent.vertical) {
-      case "head": {
+      case "top": {
         extendLeft = 0;
 
         break;
@@ -2719,7 +2723,7 @@ export async function splitImage(input, preview, output) {
         break;
       }
 
-      case "tail": {
+      case "bottom": {
         extendLeft = Math.floor(newWidth - width);
 
         break;
