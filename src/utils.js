@@ -2680,8 +2680,8 @@ export async function splitImage(input, preview, output) {
   const stepHeightPX = Math.round(paperHeight / input.resolution[1]);
   const stepWidthPX = Math.round(paperWidth / input.resolution[0]);
 
-  const heightPageNum = Math.ceil((height * input.resolution[1]) / paperHeight);
-  const widthPageNum = Math.ceil((width * input.resolution[0]) / paperWidth);
+  const heightPageNum = Math.ceil(height / (paperHeight / input.resolution[1]));
+  const widthPageNum = Math.ceil(width / (paperWidth / input.resolution[0]));
 
   const newHeight = heightPageNum * stepHeightPX;
   const newWidth = widthPageNum * stepWidthPX;
@@ -2826,7 +2826,7 @@ export async function splitImage(input, preview, output) {
     for (let y = 0; y < heightPageNum; y++) {
       for (let x = 0; x < widthPageNum; x++) {
         const image = await createImageOutput(
-          await sharp(extendImage, {
+          sharp(extendImage, {
             limitInputPixels: false,
           }).extract({
             left: x * stepWidthPX,
