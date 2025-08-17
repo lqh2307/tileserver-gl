@@ -1201,61 +1201,63 @@ export async function splitImage(input, preview, output) {
   if (input.resolution) {
     const stepHeightPX = Math.round(paperHeight / input.resolution[1]);
     const stepWidthPX = Math.round(paperWidth / input.resolution[0]);
-  
-    const heightPageNum = Math.ceil(height / (paperHeight / input.resolution[1]));
+
+    const heightPageNum = Math.ceil(
+      height / (paperHeight / input.resolution[1])
+    );
     const widthPageNum = Math.ceil(width / (paperWidth / input.resolution[0]));
-  
+
     const newHeight = heightPageNum * stepHeightPX;
     const newWidth = widthPageNum * stepWidthPX;
-  
+
     let extendTop = 0;
     let extendLeft = 0;
-  
+
     if (output.alignContent) {
       switch (output.alignContent.horizontal) {
         case "left": {
           extendTop = 0;
-  
+
           break;
         }
-  
+
         case "center": {
           extendTop = Math.floor((newHeight - height) / 2);
-  
+
           break;
         }
-  
+
         case "right": {
           extendTop = Math.floor(newHeight - height);
-  
+
           break;
         }
       }
-  
+
       switch (output.alignContent.vertical) {
         case "top": {
           extendLeft = 0;
-  
+
           break;
         }
-  
+
         case "middle": {
           extendLeft = Math.floor((newWidth - width) / 2);
-  
+
           break;
         }
-  
+
         case "bottom": {
           extendLeft = Math.floor(newWidth - width);
-  
+
           break;
         }
       }
     }
-  
+
     const extendBottom = Math.ceil(newHeight - height - extendTop);
     const extendRight = Math.ceil(newWidth - width - extendLeft);
-  
+
     // Extend image
     const extendImage = await sharp(input.image, {
       limitInputPixels: false,
@@ -1268,7 +1270,7 @@ export async function splitImage(input, preview, output) {
         background: { r: 255, g: 255, b: 255, alpha: 0 },
       })
       .toBuffer();
-  
+
     // Process preview
     if (preview) {
       let {
@@ -1282,15 +1284,15 @@ export async function splitImage(input, preview, output) {
         width,
         height,
       } = preview;
-  
+
       lineStyle = getSVGStrokeDashArray(lineStyle);
-  
+
       const svg = {
         content: "",
         width: newWidth,
         height: newHeight,
       };
-  
+
       for (let y = 0; y < heightPageNum; y++) {
         for (let x = 0; x < widthPageNum; x++) {
           if (lineWidth > 0) {
@@ -1298,7 +1300,7 @@ export async function splitImage(input, preview, output) {
               y * stepHeightPX
             }" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
           }
-  
+
           if (pageSize > 0) {
             svg.content += `<text x="${x * stepWidthPX + stepWidthPX / 2}" y="${
               y * stepHeightPX + stepHeightPX / 2
@@ -1308,7 +1310,7 @@ export async function splitImage(input, preview, output) {
           }
         }
       }
-  
+
       // Composite image
       const compositeImage = await sharp(extendImage, {
         limitInputPixels: false,
@@ -1322,7 +1324,7 @@ export async function splitImage(input, preview, output) {
           },
         ])
         .toBuffer();
-  
+
       // Return image
       return await createImageOutput(
         sharp(compositeImage, {
@@ -1344,7 +1346,7 @@ export async function splitImage(input, preview, output) {
         format: output.paperSize,
         compress: output.compression,
       });
-  
+
       for (let y = 0; y < heightPageNum; y++) {
         for (let x = 0; x < widthPageNum; x++) {
           const image = await createImageOutput(
@@ -1361,31 +1363,31 @@ export async function splitImage(input, preview, output) {
               grayscale: output.grayscale,
             }
           );
-  
+
           if (x > 0 || y > 0) {
             doc.addPage();
           }
-  
+
           let pageWidth = stepWidthPX * input.resolution[0];
           if (pageWidth > paperWidth) {
             pageWidth = paperWidth;
           }
-  
+
           let pageHeight = stepHeightPX * input.resolution[1];
           if (pageHeight > paperHeight) {
             pageHeight = paperHeight;
           }
-  
+
           doc.addImage(image, "png", 0, 0, pageWidth, pageHeight);
         }
       }
-  
+
       // Write to output
       if (output.filePath) {
         await mkdir(path.dirname(output.filePath), {
           recursive: true,
         });
-  
+
         return doc.save(output.filePath);
       } else if (output.base64) {
         return createBase64(Buffer.from(doc.output("arraybuffer")), "pdf");
@@ -1416,7 +1418,7 @@ export async function splitImage(input, preview, output) {
         width,
         height,
       } = preview;
-  
+
       lineStyle = getSVGStrokeDashArray(lineStyle);
 
       // mm to pixel
@@ -1430,7 +1432,9 @@ export async function splitImage(input, preview, output) {
       };
 
       svg.content += `<rect x="0" y="0" width="${widthPX}" height="${heightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
-      svg.content += `<text x="${widthPX / 2}" y="${heightPX / 2}" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">1</text>`;
+      svg.content += `<text x="${widthPX / 2}" y="${
+        heightPX / 2
+      }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">1</text>`;
 
       console.log(svg);
 
@@ -1469,7 +1473,7 @@ export async function splitImage(input, preview, output) {
         format: [paperWidth, paperHeight],
         compress: output.compression,
       });
-  
+
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const scaleWidth = pageWidth / width;
@@ -1477,58 +1481,58 @@ export async function splitImage(input, preview, output) {
       const scale = scaleWidth < scaleHeight ? scaleWidth : scaleHeight;
       const imgWidth = width * scale;
       const imgHeight = height * scale;
-  
+
       let x = 0;
       let y = 0;
-  
+
       switch (output.alignContent?.horizontal) {
-        case "left": { 
+        case "left": {
           x = 0;
-  
+
           break;
         }
-  
+
         case "right": {
           x = pageWidth - imgWidth;
-  
+
           break;
         }
-  
+
         default: {
           x = (pageWidth - imgWidth) / 2;
-          
+
           break;
         }
       }
-  
+
       switch (output.alignContent?.vertical) {
         case "top": {
           y = 0;
-  
+
           break;
         }
-  
+
         case "bottom": {
           y = pageHeight - imgHeight;
-  
+
           break;
         }
-  
+
         default: {
           y = (pageHeight - imgHeight) / 2;
-          
+
           break;
         }
       }
-  
+
       doc.addImage(image, "PNG", x, y, imgWidth, imgHeight);
-  
+
       // Write to output
       if (output.filePath) {
         await mkdir(path.dirname(output.filePath), {
           recursive: true,
         });
-  
+
         return doc.save(output.filePath);
       } else if (output.base64) {
         return createBase64(Buffer.from(doc.output("arraybuffer")), "pdf");
