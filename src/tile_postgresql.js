@@ -617,10 +617,7 @@ export async function updatePostgreSQLMetadata(source, metadataAdds) {
           SET
             value = excluded.value;
         `,
-        [
-          name,
-          typeof value === "object" ? JSON.stringify(value) : value,
-        ]
+        [name, typeof value === "object" ? JSON.stringify(value) : value]
       )
     )
   );
@@ -708,13 +705,7 @@ export async function cachePostgreSQLTileData(
   if (storeTransparent === false && (await isFullTransparentPNGImage(data))) {
     return;
   } else {
-    await createPostgreSQLTile(
-      source,
-      z,
-      x,
-      y,
-      data
-    );
+    await createPostgreSQLTile(source, z, x, y, data);
   }
 }
 
@@ -865,7 +856,8 @@ export async function addPostgreSQLOverviews(
               hash = excluded.hash,
               created = excluded.created;
           `,
-          [z, x, y, image, calculateMD5(image), Date.now()]);
+          [z, x, y, image, calculateMD5(image), Date.now()]
+        );
       }
     }
   }

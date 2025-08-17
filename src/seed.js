@@ -308,7 +308,8 @@ async function seedMBTilesTiles(
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of mbtiles "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed seed ${total} tiles of mbtiles "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -527,7 +528,8 @@ async function seedPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of postgresql "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed seed ${total} tiles of postgresql "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -756,7 +758,8 @@ async function seedXYZTiles(
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of xyz "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed seed ${total} tiles of xyz "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -1088,7 +1091,8 @@ async function seedFont(
 
   printLog(
     "info",
-    `Completed seed ${total} fonts of font "${id}" after ${(Date.now() - startTime) / 1000
+    `Completed seed ${total} fonts of font "${id}" after ${
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }

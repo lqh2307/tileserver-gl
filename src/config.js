@@ -1,8 +1,13 @@
 "use strict";
 
-import { createFileWithLock, getJSONSchema, validateJSON, printLog } from "./utils/index.js";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
+import {
+  createFileWithLock,
+  getJSONSchema,
+  validateJSON,
+  printLog,
+} from "./utils/index.js";
 
 let config;
 
