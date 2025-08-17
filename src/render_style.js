@@ -5,7 +5,6 @@ import { getRenderedStyleJSON } from "./style.js";
 import mlgl from "@maplibre/maplibre-gl-native";
 import { createPool } from "generic-pool";
 import { emitWSMessage } from "./ws.js";
-import { printLog } from "./logger.js";
 import { rm } from "node:fs/promises";
 import { config } from "./config.js";
 import { v4 } from "uuid";
@@ -55,7 +54,8 @@ import {
   createBase64,
   unzipAsync,
   splitImage,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 import {
   getXYZTileExtraInfoFromCoverages,
   calculateXYZTileExtraInfo,

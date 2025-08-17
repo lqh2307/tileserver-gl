@@ -6,7 +6,6 @@ import { removeStyleFile, getStyleCreated } from "./style.js";
 import { getFontCreated, removeFontFile } from "./font.js";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { printLog } from "./logger.js";
 import {
   getXYZTileExtraInfoFromCoverages,
   removeXYZTile,
@@ -28,7 +27,8 @@ import {
   getJSONSchema,
   getTileBounds,
   validateJSON,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   removePostgreSQLTile,

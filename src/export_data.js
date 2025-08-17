@@ -1,6 +1,5 @@
 "use strict";
 
-import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -25,7 +24,8 @@ import {
   handleTilesConcurrency,
   removeEmptyFolders,
   getTileBounds,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 import {
   getXYZTileExtraInfoFromCoverages,
   updateXYZMetadata,

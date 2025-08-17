@@ -1,7 +1,6 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger.js";
 import os from "os";
 import {
   renderStyleJSONToImage,
@@ -13,7 +12,8 @@ import {
   getJSONSchema,
   validateJSON,
   gzipAsync,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 
 /**
  * Render style JSON handler

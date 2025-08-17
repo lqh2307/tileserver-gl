@@ -3,7 +3,6 @@
 import { getAndCacheDataSprite } from "./data.js";
 import { StatusCodes } from "http-status-codes";
 import { validateSprite } from "./sprite.js";
-import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
@@ -11,7 +10,8 @@ import {
   getRequestHost,
   deepClone,
   gzipAsync,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 
 /**
  * Get sprite handler

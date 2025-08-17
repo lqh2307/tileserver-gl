@@ -1,6 +1,6 @@
 "use strict";
 
-import { deepClone, detectFormatAndHeaders } from "./utils.js";
+import { deepClone, detectFormatAndHeaders } from "./utils/index.js";
 import { PMTiles, FetchSource } from "pmtiles";
 import { openSync, readSync } from "node:fs";
 import { stat } from "node:fs/promises";

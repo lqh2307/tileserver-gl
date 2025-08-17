@@ -1,6 +1,7 @@
 "use strict";
 
-import { printLog } from "./logger.js";
+import { printLog } from "./utils/index.js";
+import os from "os";
 import {
   cleanUpPostgreSQLTiles,
   cleanUpMBTilesTiles,
@@ -21,7 +22,6 @@ import {
   seedFont,
   seed,
 } from "./seed.js";
-import os from "os";
 
 /**
  * Run cleanup and seed tasks

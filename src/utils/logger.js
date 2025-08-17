@@ -1,7 +1,7 @@
 "use strict";
 
-import pino from "pino";
 import pretty from "pino-pretty";
+import pino from "pino";
 
 let logger;
 

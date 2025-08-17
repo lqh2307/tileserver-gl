@@ -2,13 +2,13 @@
 
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger.js";
 import {
   removeFileWithLock,
   createFileWithLock,
   getDataFromURL,
+  printLog,
   retry,
-} from "./utils.js";
+} from "./utils/index.js";
 
 /**
  * Remove GeoJSON data file with lock

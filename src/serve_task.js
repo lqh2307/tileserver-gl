@@ -1,7 +1,7 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger.js";
+import { printLog } from "./utils/index.js";
 
 /**
  * Start task handler

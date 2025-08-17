@@ -1,12 +1,11 @@
 "use strict";
 
+import { getDataTileFromURL, getDataFileFromURL, printLog } from "./utils/index.js";
 import { cacheSpriteFile, getFallbackSprite, getSprite } from "./sprite.js";
 import { cacheMBtilesTileData, getMBTilesTile } from "./tile_mbtiles.js";
-import { getDataTileFromURL, getDataFileFromURL } from "./utils.js";
 import { cacheXYZTileFile, getXYZTile } from "./tile_xyz.js";
 import { cacheGeoJSONFile, getGeoJSON } from "./geojson.js";
 import { cacheStyleFile, getStyle } from "./style.js";
-import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import {
   cachePostgreSQLTileData,

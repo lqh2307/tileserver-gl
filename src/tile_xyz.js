@@ -3,7 +3,6 @@
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import protobuf from "protocol-buffers";
-import { printLog } from "./logger.js";
 import sharp from "sharp";
 import {
   openSQLiteWithTimeout,
@@ -24,8 +23,9 @@ import {
   getTileBounds,
   calculateMD5,
   findFiles,
+  printLog,
   retry,
-} from "./utils.js";
+} from "./utils/index.js";
 
 /**
  * Get XYZ layers from tiles

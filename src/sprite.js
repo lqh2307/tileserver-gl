@@ -2,7 +2,6 @@
 
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger.js";
 import {
   removeFileWithLock,
   createFileWithLock,
@@ -11,8 +10,9 @@ import {
   getJSONSchema,
   validateJSON,
   findFiles,
+  printLog,
   retry,
-} from "./utils.js";
+} from "./utils/index.js";
 
 /**
  * Remove sprite file with lock

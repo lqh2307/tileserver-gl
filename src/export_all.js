@@ -4,14 +4,14 @@ import { cacheStyleFile, getRenderedStyleJSON, getStyle } from "./style.js";
 import { cacheGeoJSONFile } from "./geojson.js";
 import { cacheSpriteFile } from "./sprite.js";
 import { cacheFontFile } from "./font.js";
-import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import {
   createFileWithLock,
   createFolders,
   getTileBounds,
   isLocalURL,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 import {
   getAndCacheDataGeoJSON,
   getAndCacheDataSprite,

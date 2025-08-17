@@ -4,7 +4,6 @@ import { getRenderedStyleJSON, validateStyle, getStyle } from "./style.js";
 import { renderImageTileData } from "./render_style.js";
 import { getAndCacheDataStyleJSON } from "./data.js";
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
@@ -16,7 +15,8 @@ import {
   isLocalURL,
   gzipAsync,
   deepClone,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 
 /**
  * Serve style handler

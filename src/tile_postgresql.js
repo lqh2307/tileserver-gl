@@ -4,7 +4,6 @@ import { closePostgreSQL, openPostgreSQL } from "./postgresql.js";
 import { StatusCodes } from "http-status-codes";
 import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
-import { printLog } from "./logger.js";
 import sharp from "sharp";
 import {
   isFullTransparentPNGImage,
@@ -15,8 +14,9 @@ import {
   getDataFromURL,
   getTileBounds,
   calculateMD5,
+  printLog,
   retry,
-} from "./utils.js";
+} from "./utils/index.js";
 
 /**
  * Get PostgreSQL layers from tiles

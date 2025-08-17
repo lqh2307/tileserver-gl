@@ -5,7 +5,6 @@ import { downloadSpriteFile, getSpriteCreated } from "./sprite.js";
 import { downloadFontFile, getFontCreated } from "./font.js";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { printLog } from "./logger.js";
 import {
   downloadGeoJSONFile,
   getGeoJSONCreated,
@@ -37,7 +36,8 @@ import {
   validateJSON,
   calculateMD5,
   unzipAsync,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   updatePostgreSQLMetadata,

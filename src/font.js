@@ -3,15 +3,15 @@
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import protobuf from "protocol-buffers";
-import { printLog } from "./logger.js";
 import cluster from "cluster";
 import {
   removeFileWithLock,
   createFileWithLock,
   getDataFromURL,
   findFiles,
+  printLog,
   retry,
-} from "./utils.js";
+} from "./utils/index.js";
 
 let glyphsProto;
 

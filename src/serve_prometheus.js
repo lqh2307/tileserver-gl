@@ -2,7 +2,7 @@
 
 import { StatusCodes } from "http-status-codes";
 import { getMetrics } from "./prometheus.js";
-import { printLog } from "./logger.js";
+import { printLog } from "./utils/index.js";
 
 /**
  * Get metrics handler

@@ -3,7 +3,6 @@
 import { getFont, validateFont } from "./font.js";
 import { getAndCacheDataFonts } from "./data.js";
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import { seed } from "./seed.js";
 import {
@@ -11,7 +10,8 @@ import {
   getRequestHost,
   deepClone,
   gzipAsync,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 
 /**
  * Get font handler

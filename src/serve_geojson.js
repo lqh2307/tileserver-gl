@@ -3,7 +3,6 @@
 import { validateAndGetGeometryTypes, getGeoJSON } from "./geojson.js";
 import { getAndCacheDataGeoJSON } from "./data.js";
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger.js";
 import { createReadStream } from "fs";
 import { config } from "./config.js";
 import { stat } from "fs/promises";
@@ -16,7 +15,8 @@ import {
   isExistFile,
   gzipAsync,
   deepClone,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 
 /**
  * Serve GeoJSON group handler

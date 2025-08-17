@@ -4,7 +4,6 @@ import { updateConfigFile, readConfigFile, config } from "./config.js";
 import { updateCleanUpFile, readCleanUpFile } from "./cleanup.js";
 import { readSeedFile, updateSeedFile } from "./seed.js";
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger.js";
 import {
   compileHandleBarsTemplate,
   getXYZFromLonLatZ,
@@ -12,7 +11,8 @@ import {
   getJSONSchema,
   validateJSON,
   getVersion,
-} from "./utils.js";
+  printLog,
+} from "./utils/index.js";
 
 /**
  * Serve front page handler

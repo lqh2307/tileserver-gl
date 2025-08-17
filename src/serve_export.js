@@ -1,9 +1,8 @@
 "use strict";
 
-import { getJSONSchema, validateJSON } from "./utils.js";
+import { getJSONSchema, validateJSON, printLog } from "./utils/index.js";
 import { StatusCodes } from "http-status-codes";
 import { exportAll } from "./export_all.js";
-import { printLog } from "./logger.js";
 import { config } from "./config.js";
 import os from "os";
 import {
