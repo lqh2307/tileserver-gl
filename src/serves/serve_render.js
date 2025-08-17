@@ -17,10 +17,10 @@ import {
 
 /**
  * Render style JSON handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function renderStyleJSONHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       /* Validate options */
       try {
@@ -60,17 +60,19 @@ function renderStyleJSONHandler() {
 
       const headers = {
         "content-type": "application/json",
+        "resolution": JSON.stringify(result.resolution),
+        "access-control-expose-headers": "resolution",
       };
 
       if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result));
+        result = await gzipAsync(JSON.stringify(result.image));
 
         headers["content-encoding"] = "gzip";
       }
 
       res.set(headers);
 
-      return res.status(StatusCodes.CREATED).send(result);
+      return res.status(StatusCodes.CREATED).send(result.image);
     } catch (error) {
       printLog("error", `Failed to render style JSON: ${error}`);
 
@@ -89,10 +91,10 @@ function renderStyleJSONHandler() {
 
 /**
  * Render SVG handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function renderSVGHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       /* Validate options */
       try {
@@ -139,10 +141,10 @@ function renderSVGHandler() {
 
 /**
  * Render PDF handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function renderPDFHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       /* Validate options */
       try {

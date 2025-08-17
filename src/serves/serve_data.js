@@ -52,10 +52,10 @@ import {
 
 /**
  * Serve data handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveDataHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -87,10 +87,10 @@ function serveDataHandler() {
 
 /**
  * Get data tile handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getDataTileHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
     const item = config.datas[id];
 
@@ -177,10 +177,10 @@ function getDataTileHandler() {
 
 /**
  * Get data tileJSON handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getDataHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -217,10 +217,10 @@ function getDataHandler() {
 
 /**
  * Get data MD5 handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getDataMD5Handler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -287,10 +287,10 @@ function getDataMD5Handler() {
 
 /**
  * Download data handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function downloadDataHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -337,10 +337,10 @@ function downloadDataHandler() {
 
 /**
  * Get tile extra info handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getDataTileExtraInfoHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
     const item = config.datas[id];
 
@@ -430,10 +430,10 @@ function getDataTileExtraInfoHandler() {
 
 /**
  * Calculate tile extra info handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function calculateDataExtraInfoHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
     const item = config.datas[id];
 
@@ -515,10 +515,10 @@ function calculateDataExtraInfoHandler() {
 
 /**
  * Get data tile list handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getDatasListHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       const requestHost = getRequestHost(req);
 

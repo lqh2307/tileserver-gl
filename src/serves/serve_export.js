@@ -18,10 +18,10 @@ import {
 
 /**
  * Export all handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function exportAllHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       try {
         validateJSON(await getJSONSchema("export_all"), req.body);
@@ -100,10 +100,10 @@ function exportAllHandler() {
 
 /**
  * Export data handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function exportDataHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -234,10 +234,10 @@ function exportDataHandler() {
 
 /**
  * Render style handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function renderStyleHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {

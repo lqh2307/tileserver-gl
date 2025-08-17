@@ -16,10 +16,10 @@ import {
 
 /**
  * Serve front page handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveFrontPageHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       if (!config.isStarted) {
         return res.status(StatusCodes.SERVICE_UNAVAILABLE).send("Starting...");
@@ -153,10 +153,10 @@ function serveFrontPageHandler() {
 
 /**
  * Get config.json/seed.json/cleanUp.json content handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveConfigHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       let data;
 
@@ -183,10 +183,10 @@ function serveConfigHandler() {
 
 /**
  * Update config.json/seed.json/cleanUp.json content handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveConfigUpdateHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       if (req.query.type === "seed") {
         try {
@@ -435,10 +435,10 @@ function serveConfigUpdateHandler() {
 
 /**
  * Delete config.json/seed.json/cleanUp.json content handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveConfigDeleteHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       try {
         validateJSON(await getJSONSchema("delete"), req.body);
@@ -680,10 +680,10 @@ function serveConfigDeleteHandler() {
 
 /**
  * Get version of server handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveVersionHandler() {
-  return async (req, res, next) => {
+  return async (_, res) => {
     try {
       const version = await getVersion();
 
@@ -700,10 +700,10 @@ function serveVersionHandler() {
 
 /**
  * Get ready of server handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveReadyHandler() {
-  return async (req, res, next) => {
+  return async (_, res) => {
     try {
       return res.status(StatusCodes.OK).send("OK");
     } catch (error) {
@@ -718,10 +718,10 @@ function serveReadyHandler() {
 
 /**
  * Get health of server handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveHealthHandler() {
-  return async (req, res, next) => {
+  return async (_, res) => {
     try {
       if (!config.isStarted) {
         return res.status(StatusCodes.SERVICE_UNAVAILABLE).send("Starting...");
@@ -740,10 +740,10 @@ function serveHealthHandler() {
 
 /**
  * Restart/kill server handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveRestartKillHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       if (req.query.type === "kill") {
         setTimeout(

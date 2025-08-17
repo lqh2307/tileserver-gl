@@ -15,10 +15,10 @@ import { seed } from "../seed.js";
 
 /**
  * Get summary handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveSummaryHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       let result;
 

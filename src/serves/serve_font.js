@@ -15,10 +15,10 @@ import {
 
 /**
  * Get font handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getFontHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const ids = req.params.id;
 
     try {
@@ -51,10 +51,10 @@ function getFontHandler() {
 
 /**
  * Get font ttf/otf/woff/woff2 handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getFontStaticHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -83,10 +83,10 @@ function getFontStaticHandler() {
 
 /**
  * Get font list handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getFontsListHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       const requestHost = getRequestHost(req);
 

@@ -6,7 +6,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 
 /**
  * Serve swagger handler
- * @returns {(req: any, res: any, next: any) => any}
+ * @returns {(req: Request, res: Response, next: NextFunction) => any}
  */
 function serveSwagger() {
   return async (req, res, next) => {

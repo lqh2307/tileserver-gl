@@ -20,10 +20,10 @@ import {
 
 /**
  * Serve GeoJSON group handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveGeoJSONGroupHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -51,10 +51,10 @@ function serveGeoJSONGroupHandler() {
 
 /**
  * Serve GeoJSON handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveGeoJSONHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -94,10 +94,10 @@ function serveGeoJSONHandler() {
 
 /**
  * Get geoJSON group info handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getGeoJSONGroupInfoHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -142,10 +142,10 @@ function getGeoJSONGroupInfoHandler() {
 
 /**
  * Get geoJSON info handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getGeoJSONInfoHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -185,10 +185,10 @@ function getGeoJSONInfoHandler() {
 
 /**
  * Get geoJSON handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getGeoJSONHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -245,10 +245,10 @@ function getGeoJSONHandler() {
 
 /**
  * Get geoJSON MD5 handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getGeoJSONMD5Handler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -295,10 +295,10 @@ function getGeoJSONMD5Handler() {
 
 /**
  * Download geoJSON handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function downloadGeoJSONHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -359,10 +359,10 @@ function downloadGeoJSONHandler() {
 
 /**
  * Get GeoJSON group list handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getGeoJSONGroupsListHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       const requestHost = getRequestHost(req);
 

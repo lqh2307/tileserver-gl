@@ -5,10 +5,10 @@ import { printLog } from "../utils/index.js";
 
 /**
  * Start task handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function startTaskHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       setTimeout(
         () =>
@@ -42,10 +42,10 @@ function startTaskHandler() {
 
 /**
  * Cancel task handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function cancelTaskHandler() {
-  return async (req, res, next) => {
+  return async (_, res) => {
     try {
       setTimeout(
         () =>

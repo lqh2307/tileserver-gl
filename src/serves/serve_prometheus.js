@@ -5,10 +5,10 @@ import { StatusCodes } from "http-status-codes";
 
 /**
  * Get metrics handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveMetricsHandler() {
-  return async (req, res, next) => {
+  return async (_, res) => {
     try {
       const data = await getMetrics();
 

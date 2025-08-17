@@ -15,10 +15,10 @@ import {
 
 /**
  * Get sprite handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getSpriteHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -53,10 +53,10 @@ function getSpriteHandler() {
 
 /**
  * Get sprite list handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getSpritesListHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       const requestHost = getRequestHost(req);
 

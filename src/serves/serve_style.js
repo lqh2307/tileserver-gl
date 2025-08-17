@@ -20,10 +20,10 @@ import {
 
 /**
  * Serve style handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveStyleHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -52,10 +52,10 @@ function serveStyleHandler() {
 
 /**
  * Serve WMTS handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveWMTSHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -86,10 +86,10 @@ function serveWMTSHandler() {
 
 /**
  * Get styleJSON handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getStyleHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -218,10 +218,10 @@ function getStyleHandler() {
 
 /**
  * Get style list handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getStylesListHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       const requestHost = getRequestHost(req);
 
@@ -260,10 +260,10 @@ function getStylesListHandler() {
 
 /**
  * Get rendered tile handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getRenderedTileHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     /* Check data tile format */
     if (
       ["jpeg", "jpg", "png", "webp", "gif"].includes(req.params.format) ===
@@ -334,10 +334,10 @@ function getRenderedTileHandler() {
 
 /**
  * Get rendered tileJSON handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getRenderedHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
     const queryStrings = [];
 
@@ -393,10 +393,10 @@ function getRenderedHandler() {
 
 /**
  * Get Style MD5 handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getStyleMD5Handler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -429,10 +429,10 @@ function getStyleMD5Handler() {
 
 /**
  * Get rendered list handler
- * @returns {(req: any, res: any, next: any) => Promise<any>}
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getRenderedsListHandler() {
-  return async (req, res, next) => {
+  return async (req, res) => {
     try {
       const requestHost = getRequestHost(req);
 
