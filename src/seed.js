@@ -132,7 +132,7 @@ async function seedMBTilesTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBounds({
+    const { total, tileBounds } = getTileBounds({
       coverages: coverages,
     });
 
@@ -356,7 +356,7 @@ async function seedPostgreSQLTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBounds({
+    const { total, tileBounds } = getTileBounds({
       coverages: coverages,
     });
 
@@ -576,7 +576,7 @@ async function seedXYZTiles(
 
   try {
     /* Calculate summary */
-    const { realBBox, total, tileBounds } = getTileBounds({
+    const { total, tileBounds } = getTileBounds({
       coverages: coverages,
     });
 
