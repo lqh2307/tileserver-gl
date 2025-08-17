@@ -521,7 +521,7 @@ export async function renderImageStaticData(
  * @param {object} grid Add grid options?
  * @param {boolean} base64 Is base64?
  * @param {boolean} grayscale Is grayscale?
- * @param {{ clientID: string, requestID: string, interval: number, event: string }} ws WS object
+ * @param {{ clientID: string, requestID: string, event: string }} ws WS object
  * @param {{name: string, content: string, bbox: [number, number, number, number]}[]} overlays Overlays
  * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
  */
