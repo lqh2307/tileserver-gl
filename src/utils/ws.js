@@ -2,7 +2,7 @@
 
 import { createAdapter } from "@socket.io/cluster-adapter";
 import { setupWorker } from "@socket.io/sticky";
-import { printLog } from "./utils/index.js";
+import { printLog } from "./logger.js";
 import { Server } from "socket.io";
 import cluster from "cluster";
 
@@ -34,29 +34,6 @@ export function setupWSServer(server) {
     });
   }
 }
-
-// /**
-//  * Setup WS server
-//  * @param {object} server Server
-//  * @returns {void}
-//  */
-// export function setupWSServer(server) {
-//   socketServer = new Server(server);
-
-//   socketServer.on("connection", (socket) => {
-//     printLog("info", `WS client connected: ${socket.id}`);
-
-//     socket.emit("connected", socket.id);
-
-//     socket
-//       .on("disconnect", () => {
-//         printLog("info", `WS client ${socket.id} closed`);
-//       })
-//       .on("error", (error) => {
-//         printLog("error", `WS client ${socket.id} error: ${error}`);
-//       });
-//   });
-// }
 
 /**
  * Emit WS message

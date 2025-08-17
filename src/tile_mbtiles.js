@@ -5,20 +5,18 @@ import { StatusCodes } from "http-status-codes";
 import protobuf from "protocol-buffers";
 import sharp from "sharp";
 import {
-  openSQLiteWithTimeout,
-  execSQLWithTimeout,
-  runSQLWithTimeout,
-  closeSQLite,
-} from "./sqlite.js";
-import {
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
   handleTilesConcurrency,
+  openSQLiteWithTimeout,
+  execSQLWithTimeout,
   createImageOutput,
+  runSQLWithTimeout,
   getBBoxFromTiles,
   getDataFromURL,
   getTileBounds,
   calculateMD5,
+  closeSQLite,
   printLog,
   retry,
 } from "./utils/index.js";

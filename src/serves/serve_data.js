@@ -2,22 +2,22 @@
 
 import { StatusCodes } from "http-status-codes";
 import { createReadStream } from "fs";
-import { config } from "./config.js";
+import { config } from "../config.js";
 import { stat } from "fs/promises";
-import { seed } from "./seed.js";
+import { seed } from "../seed.js";
 import path from "path";
 import {
   getXYZTileExtraInfoFromCoverages,
   calculateXYZTileExtraInfo,
   getXYZMetadata,
   openXYZMD5DB,
-} from "./tile_xyz.js";
+} from "../tile_xyz.js";
 import {
   getMBTilesTileExtraInfoFromCoverages,
   calculateMBTilesTileExtraInfo,
   getMBTilesMetadata,
   openMBTilesDB,
-} from "./tile_mbtiles.js";
+} from "../tile_mbtiles.js";
 import {
   detectContentTypeFromFormat,
   compileHandleBarsTemplate,
@@ -31,24 +31,24 @@ import {
   gzipAsync,
   deepClone,
   printLog,
-} from "./utils/index.js";
+} from "../utils/index.js";
 import {
   getPMTilesMetadata,
   getPMTilesTile,
   openPMTiles,
-} from "./tile_pmtiles.js";
+} from "../tile_pmtiles.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   calculatePostgreSQLTileExtraInfo,
   getPostgreSQLMetadata,
   openPostgreSQLDB,
-} from "./tile_postgresql.js";
+} from "../tile_postgresql.js";
 import {
   getAndCachePostgreSQLDataTile,
   getAndCacheMBTilesDataTile,
   getAndCacheXYZDataTile,
   validateTileMetadata,
-} from "./data.js";
+} from "../data.js";
 
 /**
  * Serve data handler

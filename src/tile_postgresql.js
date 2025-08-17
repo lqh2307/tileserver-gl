@@ -1,6 +1,5 @@
 "use strict";
 
-import { closePostgreSQL, openPostgreSQL } from "./postgresql.js";
 import { StatusCodes } from "http-status-codes";
 import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
@@ -11,6 +10,8 @@ import {
   detectFormatAndHeaders,
   createImageOutput,
   getBBoxFromTiles,
+  closePostgreSQL,
+  openPostgreSQL,
   getDataFromURL,
   getTileBounds,
   calculateMD5,

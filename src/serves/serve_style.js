@@ -1,11 +1,11 @@
 "use strict";
 
-import { getRenderedStyleJSON, validateStyle, getStyle } from "./style.js";
-import { renderImageTileData } from "./render_style.js";
-import { getAndCacheDataStyleJSON } from "./data.js";
+import { getRenderedStyleJSON, validateStyle, getStyle } from "../style.js";
+import { renderImageTileData } from "../render_style.js";
+import { getAndCacheDataStyleJSON } from "../data.js";
 import { StatusCodes } from "http-status-codes";
-import { config } from "./config.js";
-import { seed } from "./seed.js";
+import { config } from "../config.js";
+import { seed } from "../seed.js";
 import {
   detectContentTypeFromFormat,
   compileHandleBarsTemplate,
@@ -16,7 +16,7 @@ import {
   gzipAsync,
   deepClone,
   printLog,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 /**
  * Serve style handler

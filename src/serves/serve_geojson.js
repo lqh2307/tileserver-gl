@@ -1,12 +1,12 @@
 "use strict";
 
-import { validateAndGetGeometryTypes, getGeoJSON } from "./geojson.js";
-import { getAndCacheDataGeoJSON } from "./data.js";
+import { validateAndGetGeometryTypes, getGeoJSON } from "../geojson.js";
+import { getAndCacheDataGeoJSON } from "../data.js";
 import { StatusCodes } from "http-status-codes";
 import { createReadStream } from "fs";
-import { config } from "./config.js";
+import { config } from "../config.js";
 import { stat } from "fs/promises";
-import { seed } from "./seed.js";
+import { seed } from "../seed.js";
 import path from "path";
 import {
   compileHandleBarsTemplate,
@@ -16,7 +16,7 @@ import {
   gzipAsync,
   deepClone,
   printLog,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 /**
  * Serve GeoJSON group handler

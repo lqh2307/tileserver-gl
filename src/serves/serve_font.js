@@ -1,17 +1,17 @@
 "use strict";
 
-import { getFont, validateFont } from "./font.js";
-import { getAndCacheDataFonts } from "./data.js";
+import { getFont, validateFont } from "../font.js";
+import { getAndCacheDataFonts } from "../data.js";
 import { StatusCodes } from "http-status-codes";
-import { config } from "./config.js";
-import { seed } from "./seed.js";
+import { config } from "../config.js";
+import { seed } from "../seed.js";
 import {
   detectFormatAndHeaders,
   getRequestHost,
   deepClone,
   gzipAsync,
   printLog,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 /**
  * Get font handler

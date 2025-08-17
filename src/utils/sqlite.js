@@ -1,6 +1,6 @@
 "use strict";
 
-import { delay } from "./utils/index.js";
+import { delay } from "./util.js";
 import { mkdir } from "node:fs/promises";
 import Database from "better-sqlite3";
 import path from "node:path";

@@ -1,6 +1,6 @@
 "use strict";
 
-import { getRequestHost, getVersion } from "./utils/index.js";
+import { getRequestHost, getVersion } from "../utils/index.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 

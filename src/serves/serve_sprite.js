@@ -1,17 +1,17 @@
 "use strict";
 
-import { getAndCacheDataSprite } from "./data.js";
+import { getAndCacheDataSprite } from "../data.js";
 import { StatusCodes } from "http-status-codes";
-import { validateSprite } from "./sprite.js";
-import { config } from "./config.js";
-import { seed } from "./seed.js";
+import { validateSprite } from "../sprite.js";
+import { config } from "../config.js";
+import { seed } from "../seed.js";
 import {
   detectContentTypeFromFormat,
   getRequestHost,
   deepClone,
   gzipAsync,
   printLog,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 /**
  * Get sprite handler

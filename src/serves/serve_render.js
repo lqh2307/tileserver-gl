@@ -6,14 +6,14 @@ import {
   renderStyleJSONToImage,
   renderImageToPDF,
   renderSVGToImage,
-} from "./render_style.js";
+} from "../render_style.js";
 import {
   detectContentTypeFromFormat,
   getJSONSchema,
   validateJSON,
   gzipAsync,
   printLog,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 /**
  * Render style JSON handler

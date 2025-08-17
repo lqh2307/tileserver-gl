@@ -1,20 +1,20 @@
 "use strict";
 
-import { getJSONSchema, validateJSON, printLog } from "./utils/index.js";
+import { getJSONSchema, validateJSON, printLog } from "../utils/index.js";
 import { StatusCodes } from "http-status-codes";
-import { exportAll } from "./export_all.js";
-import { config } from "./config.js";
+import { exportAll } from "../export_all.js";
+import { config } from "../config.js";
 import os from "os";
 import {
   exportPostgreSQLTiles,
   exportMBTilesTiles,
   exportXYZTiles,
-} from "./export_data.js";
+} from "../export_data.js";
 import {
   renderPostgreSQLTiles,
   renderMBTilesTiles,
   renderXYZTiles,
-} from "./render_style.js";
+} from "../render_style.js";
 
 /**
  * Export all handler

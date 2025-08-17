@@ -4,7 +4,6 @@ import { getPMTilesTile } from "./tile_pmtiles.js";
 import { getRenderedStyleJSON } from "./style.js";
 import mlgl from "@maplibre/maplibre-gl-native";
 import { createPool } from "generic-pool";
-import { emitWSMessage } from "./ws.js";
 import { rm } from "node:fs/promises";
 import { config } from "./config.js";
 import { v4 } from "uuid";
@@ -49,6 +48,7 @@ import {
   getDataFromURL,
   calculateSizes,
   getTileBounds,
+  emitWSMessage,
   convertImage,
   calculateMD5,
   createBase64,

@@ -1,8 +1,7 @@
 "use strict";
 
+import { printLog, getMetrics } from "../utils/index.js";
 import { StatusCodes } from "http-status-codes";
-import { getMetrics } from "./prometheus.js";
-import { printLog } from "./utils/index.js";
 
 /**
  * Get metrics handler

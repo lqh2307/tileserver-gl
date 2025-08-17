@@ -1,7 +1,6 @@
 "use strict";
 
-import { setMetrics } from "./prometheus.js";
-import { printLog } from "./utils/index.js";
+import { printLog, setMetrics } from "./utils/index.js";
 
 /**
  * Logger middleware
