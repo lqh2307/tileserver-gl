@@ -31,8 +31,7 @@
           "minItems": 2,
           "maxItems": 2
         }
-      },
-      "required": ["resolution"]
+      }
     },
     "preview": {
       "type": "object",
