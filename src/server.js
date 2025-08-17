@@ -2,7 +2,7 @@
 
 import { printLog, setupWSServer } from "./utils/index.js";
 import { setupPrimary } from "@socket.io/cluster-adapter";
-import { loggerMiddleware } from "./middleware.js";
+import { loggerMiddleware } from "./middlewares/index.js";
 import { setupMaster } from "@socket.io/sticky";
 import { Worker } from "node:worker_threads";
 import { config } from "./config.js";

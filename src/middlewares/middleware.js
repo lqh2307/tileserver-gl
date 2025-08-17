@@ -1,6 +1,6 @@
 "use strict";
 
-import { printLog, setMetrics } from "./utils/index.js";
+import { printLog, setMetrics } from "../utils/index.js";
 
 /**
  * Logger middleware
