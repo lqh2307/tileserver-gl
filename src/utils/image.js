@@ -15,45 +15,50 @@ import sharp from "sharp";
 /**
  * Convert a value with unit to pixels
  * @param {number} value Mumeric value
- * @param {"km"|"m"|"dm"|"cm"|"mm"} unit Unit of the value
+ * @param {"km"|"hm"|"dam"|"m"|"dm"|"cm"|"mm"} unit Unit of the value
  * @param {number} ppi Pixel per inch
- * @returns {number} value in pixel
+ * @returns {number} Value in pixel
  */
 export function toPixel(value, unit, ppi = 96) {
   switch (unit) {
     case "km": {
-      {return (value * ppi) / 0.0254 / 1000;}
+      return (value * ppi * 1000) / 0.0254;
     }
 
     case "hm": {
-      {return (value * ppi) / 0.0254 / 100;}
+      return (value * ppi * 100) / 0.0254;
     }
 
     case "dam": {
-      {return (value * ppi) / 0.0254 / 10;}
+      return (value * ppi * 10) / 0.0254;
     }
 
-    case "m":
-      {return (value * ppi) / 0.0254;}
+    case "m": {
+      return (value * ppi) / 0.0254;
+    }
 
-    case "dm":
-      {return (value * ppi * 10) / 0.0254;}
+    case "dm": {
+      return (value * ppi) / 10 / 0.0254;
+    }
 
-    case "cm":
-      {return (value * ppi * 100) / 0.0254;}
+    case "cm": {
+      return (value * ppi) / 100 / 0.0254;
+    }
 
-    case "mm":
-      {return (value * ppi * 1000) / 0.0254;}
+    case "mm": {
+      return (value * ppi) / 1000 / 0.0254;
+    }
 
-    default:
-      {return (value * ppi) / 0.0254;}
+    default: {
+      return (value * ppi) / 0.0254;
+    }
   }
 }
 
 /**
  * Calculate resolution
  * @param {{ filePath: string|Buffer, bbox: [number, number, number, number], width: number, height: number }} input Input object
- * @param {"km"|"m"|"dm"|"cm"|"mm"} unit unit
+ * @param {"km"|"hm"|"dam"|"m"|"dm"|"cm"|"mm"} unit unit
  * @returns {Promise<[number, number]>} [X resolution (m/pixel), Y resolution (m/pixel)]
  */
 export async function calculateResolution(input, unit) {
@@ -121,13 +126,28 @@ export async function getImageMetadata(filePath) {
 }
 
 /**
+ * Convert image
+ * @param {string|Buffer} filePath File path or buffer
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
+ * @returns {Promise<sharp.OutputInfo|Buffer|string>}
+ */
+export async function convertImage(filePath, output) {
+  return await createImageOutput(
+    sharp(filePath, {
+      limitInputPixels: false,
+    }),
+    output
+  );
+}
+
+/**
  * Format degree
  * @param {number} deg Degree
  * @param {boolean} isLat Is lat?
  * @param {"D"|"DMS"|"DMSD"} format Format
  * @returns {string}
  */
-export function formatDegree(deg, isLat, format) {
+function formatDegree(deg, isLat, format) {
   const rounded = Number(deg.toFixed(9));
 
   if (format === "DMS" || format === "DMSD") {
@@ -169,21 +189,6 @@ export function formatDegree(deg, isLat, format) {
 
     return rounded.toFixed(2);
   }
-}
-
-/**
- * Convert image
- * @param {string|Buffer} filePath File path or buffer
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
- * @returns {Promise<sharp.OutputInfo|Buffer|string>}
- */
-export async function convertImage(filePath, output) {
-  return await createImageOutput(
-    sharp(filePath, {
-      limitInputPixels: false,
-    }),
-    output
-  );
 }
 
 /**
@@ -298,6 +303,18 @@ function getSVGTextAlign(rotation, y) {
 }
 
 /**
+ * Create SVG
+ * @param {{ content: string, width: number, height: number }} svg SVG object
+ * @param {boolean} isBuffer Is buffer?
+ * @returns {string|Buffer} SVG string
+ */
+function createSVG(svg, isBuffer) {
+  const svgString = `<svg width="${svg.width}" height="${svg.height}" xmlns="http://www.w3.org/2000/svg">${svg.content}</svg>`;
+
+  return isBuffer ? Buffer.from(svgString) : svgString;
+}
+
+/**
  * Create image output
  * @param {sharp.Sharp} image Sharp object
  * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} options Options
@@ -364,18 +381,6 @@ export async function createImageOutput(image, options) {
   } else {
     return await image.toBuffer();
   }
-}
-
-/**
- * Create SVG
- * @param {{ content: string, width: number, height: number }} svg SVG object
- * @param {boolean} isBuffer Is buffer?
- * @returns {string|Buffer}
- */
-export function createSVG(svg, isBuffer) {
-  const svgString = `<svg width="${svg.width}" height="${svg.height}" xmlns="http://www.w3.org/2000/svg">${svg.content}</svg>`;
-
-  return isBuffer ? Buffer.from(svgString) : svgString;
 }
 
 /**
@@ -1223,10 +1228,12 @@ export async function mergeTilesToImage(input, output) {
  * @returns {Promise<jsPDF|sharp.OutputInfo|Buffer|string>}
  */
 export async function splitImage(input, preview, output) {
+  // Get image size
   const { width, height } = await sharp(input.image, {
     limitInputPixels: false,
   }).metadata();
 
+  // Get paper size (in mm)
   const paperHeight =
     output.orientation === "landscape"
       ? output.paperSize[0]
@@ -1236,347 +1243,220 @@ export async function splitImage(input, preview, output) {
       ? output.paperSize[1]
       : output.paperSize[0];
 
+  let paperHeightPx;
+  let paperWidthPx;
+  let heightPageNum;
+  let widthPageNum;
+  let newHeight;
+  let newWidth;
+
   if (input.resolution) {
-    const stepHeightPX = Math.round(paperHeight / input.resolution[1]);
-    const stepWidthPX = Math.round(paperWidth / input.resolution[0]);
+    // Convert paper size to pixel
+    paperHeightPx = Math.round(paperHeight / input.resolution[1]);
+    paperWidthPx = Math.round(paperWidth / input.resolution[0]);
 
-    const heightPageNum = Math.ceil(
-      height / (paperHeight / input.resolution[1])
-    );
-    const widthPageNum = Math.ceil(width / (paperWidth / input.resolution[0]));
+    // Calculate number of page
+    heightPageNum = Math.ceil(height / (paperHeight / input.resolution[1]));
+    widthPageNum = Math.ceil(width / (paperWidth / input.resolution[0]));
 
-    const newHeight = heightPageNum * stepHeightPX;
-    const newWidth = widthPageNum * stepWidthPX;
+    newHeight = heightPageNum * paperHeightPx;
+    newWidth = widthPageNum * paperWidthPx;
+  } else {
+    // Convert paper size to pixel
+    paperHeightPx = toPixel(paperWidth, "mm");
+    paperWidthPx = toPixel(paperHeight, "mm");
 
-    let extendTop = 0;
-    let extendLeft = 0;
+    // Calculate number of page
+    heightPageNum = 1;
+    widthPageNum = 1;
 
-    if (output.alignContent) {
-      switch (output.alignContent.horizontal) {
-        case "left": {
-          extendTop = 0;
+    newHeight = heightPageNum * paperHeightPx;
+    newWidth = widthPageNum * paperWidthPx;
+  }
 
-          break;
-        }
+  let extendTop = 0;
+  let extendLeft = 0;
 
-        case "center": {
-          extendTop = Math.floor((newHeight - height) / 2);
+  if (output.alignContent) {
+    switch (output.alignContent.horizontal) {
+      case "left": {
+        extendTop = 0;
 
-          break;
-        }
-
-        case "right": {
-          extendTop = Math.floor(newHeight - height);
-
-          break;
-        }
+        break;
       }
 
-      switch (output.alignContent.vertical) {
-        case "top": {
-          extendLeft = 0;
+      case "center": {
+        extendTop = Math.floor((newHeight - height) / 2);
 
-          break;
+        break;
+      }
+
+      case "right": {
+        extendTop = Math.floor(newHeight - height);
+
+        break;
+      }
+    }
+
+    switch (output.alignContent.vertical) {
+      case "top": {
+        extendLeft = 0;
+
+        break;
+      }
+
+      case "middle": {
+        extendLeft = Math.floor((newWidth - width) / 2);
+
+        break;
+      }
+
+      case "bottom": {
+        extendLeft = Math.floor(newWidth - width);
+
+        break;
+      }
+    }
+  }
+
+  const extendBottom = Math.ceil(newHeight - height - extendTop);
+  const extendRight = Math.ceil(newWidth - width - extendLeft);
+
+  // Extend image
+  const extendImage = await sharp(input.image, {
+    limitInputPixels: false,
+  })
+    .extend({
+      top: extendTop,
+      left: extendLeft,
+      bottom: extendBottom,
+      right: extendRight,
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    })
+    .toBuffer();
+
+  // Process preview
+  if (preview) {
+    let {
+      format = "png",
+      lineColor = "rgba(255,0,0,1)",
+      lineWidth = 6,
+      lineStyle = "solid",
+      pageColor = "rgba(255,0,0,1)",
+      pageSize = 100,
+      pageFont = "sans-serif",
+      width,
+      height,
+    } = preview;
+
+    lineStyle = getSVGStrokeDashArray(lineStyle);
+
+    const svg = {
+      content: "",
+      width: newWidth,
+      height: newHeight,
+    };
+
+    for (let y = 0; y < heightPageNum; y++) {
+      for (let x = 0; x < widthPageNum; x++) {
+        if (lineWidth > 0) {
+          svg.content += `<rect x="${x * paperWidthPx}" y="${
+            y * paperHeightPx
+          }" width="${paperWidthPx}" height="${paperHeightPx}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
         }
 
-        case "middle": {
-          extendLeft = Math.floor((newWidth - width) / 2);
-
-          break;
-        }
-
-        case "bottom": {
-          extendLeft = Math.floor(newWidth - width);
-
-          break;
+        if (pageSize > 0) {
+          svg.content += `<text x="${x * paperWidthPx + paperWidthPx / 2}" y="${
+            y * paperHeightPx + paperHeightPx / 2
+          }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
+            y + x + 1
+          }</text>`;
         }
       }
     }
 
-    const extendBottom = Math.ceil(newHeight - height - extendTop);
-    const extendRight = Math.ceil(newWidth - width - extendLeft);
-
-    // Extend image
-    const extendImage = await sharp(input.image, {
+    // Composite image
+    const compositeImage = await sharp(extendImage, {
       limitInputPixels: false,
     })
-      .extend({
-        top: extendTop,
-        left: extendLeft,
-        bottom: extendBottom,
-        right: extendRight,
-        background: { r: 255, g: 255, b: 255, alpha: 0 },
-      })
+      .composite([
+        {
+          limitInputPixels: false,
+          input: createSVG(svg, true),
+          left: 0,
+          top: 0,
+        },
+      ])
       .toBuffer();
 
-    // Process preview
-    if (preview) {
-      let {
-        format = "png",
-        lineColor = "rgba(255,0,0,1)",
-        lineWidth = 6,
-        lineStyle = "solid",
-        pageColor = "rgba(255,0,0,1)",
-        pageSize = 100,
-        pageFont = "sans-serif",
-        width,
-        height,
-      } = preview;
-
-      lineStyle = getSVGStrokeDashArray(lineStyle);
-
-      const svg = {
-        content: "",
-        width: newWidth,
-        height: newHeight,
-      };
-
-      for (let y = 0; y < heightPageNum; y++) {
-        for (let x = 0; x < widthPageNum; x++) {
-          if (lineWidth > 0) {
-            svg.content += `<rect x="${x * stepWidthPX}" y="${
-              y * stepHeightPX
-            }" width="${stepWidthPX}" height="${stepHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
-          }
-
-          if (pageSize > 0) {
-            svg.content += `<text x="${x * stepWidthPX + stepWidthPX / 2}" y="${
-              y * stepHeightPX + stepHeightPX / 2
-            }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
-              y + x + 1
-            }</text>`;
-          }
-        }
-      }
-
-      // Composite image
-      const compositeImage = await sharp(extendImage, {
-        limitInputPixels: false,
-      })
-        .composite([
-          {
-            limitInputPixels: false,
-            input: createSVG(svg, true),
-            left: 0,
-            top: 0,
-          },
-        ])
-        .toBuffer();
-
-      // Return image
-      return await createImageOutput(
-        sharp(compositeImage, {
-          limitInputPixels: false,
-        }),
-        {
-          width: width,
-          height: height,
-          base64: output.base64,
-          filePath: output.filePath,
-          format: format,
-          grayscale: output.grayscale,
-        }
-      );
-    } else {
-      const doc = new jsPDF({
-        orientation: output.orientation,
-        unit: "mm",
-        format: output.paperSize,
-        compress: output.compression,
-      });
-
-      for (let y = 0; y < heightPageNum; y++) {
-        for (let x = 0; x < widthPageNum; x++) {
-          const image = await createImageOutput(
-            sharp(extendImage, {
-              limitInputPixels: false,
-            }).extract({
-              left: x * stepWidthPX,
-              top: y * stepHeightPX,
-              width: stepWidthPX,
-              height: stepHeightPX,
-            }),
-            {
-              format: "png",
-              grayscale: output.grayscale,
-            }
-          );
-
-          if (x > 0 || y > 0) {
-            doc.addPage();
-          }
-
-          let pageWidth = stepWidthPX * input.resolution[0];
-          if (pageWidth > paperWidth) {
-            pageWidth = paperWidth;
-          }
-
-          let pageHeight = stepHeightPX * input.resolution[1];
-          if (pageHeight > paperHeight) {
-            pageHeight = paperHeight;
-          }
-
-          doc.addImage(image, "png", 0, 0, pageWidth, pageHeight);
-        }
-      }
-
-      // Write to output
-      if (output.filePath) {
-        await mkdir(path.dirname(output.filePath), {
-          recursive: true,
-        });
-
-        return doc.save(output.filePath);
-      } else if (output.base64) {
-        return createBase64(Buffer.from(doc.output("arraybuffer")), "pdf");
-      } else {
-        return doc.output("arraybuffer");
-      }
-    }
-  } else {
-    let image = await createImageOutput(
-      sharp(input.image, {
+    // Return image
+    return await createImageOutput(
+      sharp(compositeImage, {
         limitInputPixels: false,
       }),
       {
-        format: "png",
+        width: width,
+        height: height,
+        base64: output.base64,
+        filePath: output.filePath,
+        format: format,
         grayscale: output.grayscale,
       }
     );
+  } else {
+    const doc = new jsPDF({
+      orientation: output.orientation,
+      unit: "mm",
+      format: output.paperSize,
+      compress: output.compression,
+    });
 
-    if (preview) {
-      let {
-        format = "png",
-        lineColor = "rgba(255,0,0,1)",
-        lineWidth = 6,
-        lineStyle = "solid",
-        pageColor = "rgba(255,0,0,1)",
-        pageSize = 100,
-        pageFont = "sans-serif",
-        width,
-        height,
-      } = preview;
-
-      lineStyle = getSVGStrokeDashArray(lineStyle);
-
-      // mm to pixel
-      const widthPX = (paperWidth / 25.4) * 96;
-      const heightPX = (paperHeight / 25.4) * 96;
-
-      const svg = {
-        content: "",
-        width: widthPX,
-        height: heightPX,
-      };
-
-      svg.content += `<rect x="0" y="0" width="${widthPX}" height="${heightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
-      svg.content += `<text x="${widthPX / 2}" y="${
-        heightPX / 2
-      }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">1</text>`;
-
-      console.log(svg);
-
-      // Composite image
-      const compositeImage = await sharp(image, {
-        limitInputPixels: false,
-      })
-        .composite([
-          {
+    for (let y = 0; y < heightPageNum; y++) {
+      for (let x = 0; x < widthPageNum; x++) {
+        const image = await createImageOutput(
+          sharp(extendImage, {
             limitInputPixels: false,
-            input: createSVG(svg, true),
-            left: 0,
-            top: 0,
-          },
-        ])
-        .toBuffer();
+          }).extract({
+            left: x * paperWidthPx,
+            top: y * paperHeightPx,
+            width: paperWidthPx,
+            height: paperHeightPx,
+          }),
+          {
+            format: "png",
+            grayscale: output.grayscale,
+          }
+        );
 
-      // Return image
-      return await createImageOutput(
-        sharp(compositeImage, {
-          limitInputPixels: false,
-        }),
-        {
-          width: width,
-          height: height,
-          base64: output.base64,
-          filePath: output.filePath,
-          format: format,
-          grayscale: output.grayscale,
+        if (x > 0 || y > 0) {
+          doc.addPage();
         }
-      );
-    } else {
-      const doc = new jsPDF({
-        orientation: output.orientation,
-        unit: "pt",
-        format: [paperWidth, paperHeight],
-        compress: output.compression,
+
+        let pageWidth = paperWidthPx * input.resolution[0];
+        if (pageWidth > paperWidth) {
+          pageWidth = paperWidth;
+        }
+
+        let pageHeight = paperHeightPx * input.resolution[1];
+        if (pageHeight > paperHeight) {
+          pageHeight = paperHeight;
+        }
+
+        doc.addImage(image, "png", 0, 0, pageWidth, pageHeight);
+      }
+    }
+
+    // Write to output
+    if (output.filePath) {
+      await mkdir(path.dirname(output.filePath), {
+        recursive: true,
       });
 
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const scaleWidth = pageWidth / width;
-      const scaleHeight = pageHeight / height;
-      const scale = scaleWidth < scaleHeight ? scaleWidth : scaleHeight;
-      const imgWidth = width * scale;
-      const imgHeight = height * scale;
-
-      let x = 0;
-      let y = 0;
-
-      switch (output.alignContent?.horizontal) {
-        case "left": {
-          x = 0;
-
-          break;
-        }
-
-        case "right": {
-          x = pageWidth - imgWidth;
-
-          break;
-        }
-
-        default: {
-          x = (pageWidth - imgWidth) / 2;
-
-          break;
-        }
-      }
-
-      switch (output.alignContent?.vertical) {
-        case "top": {
-          y = 0;
-
-          break;
-        }
-
-        case "bottom": {
-          y = pageHeight - imgHeight;
-
-          break;
-        }
-
-        default: {
-          y = (pageHeight - imgHeight) / 2;
-
-          break;
-        }
-      }
-
-      doc.addImage(image, "PNG", x, y, imgWidth, imgHeight);
-
-      // Write to output
-      if (output.filePath) {
-        await mkdir(path.dirname(output.filePath), {
-          recursive: true,
-        });
-
-        return doc.save(output.filePath);
-      } else if (output.base64) {
-        return createBase64(Buffer.from(doc.output("arraybuffer")), "pdf");
-      } else {
-        return doc.output("arraybuffer");
-      }
+      return doc.save(output.filePath);
+    } else if (output.base64) {
+      return createBase64(Buffer.from(doc.output("arraybuffer")), "pdf");
+    } else {
+      return doc.output("arraybuffer");
     }
   }
 }
