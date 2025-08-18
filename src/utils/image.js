@@ -1247,32 +1247,24 @@ export async function splitImage(input, preview, output) {
   let paperWidthPx;
   let heightPageNum;
   let widthPageNum;
-  let newHeight;
-  let newWidth;
 
+  // Convert paper size to pixel and Calculate number of page
   if (input.resolution) {
-    // Convert paper size to pixel
     paperHeightPx = Math.round(paperHeight / input.resolution[1]);
     paperWidthPx = Math.round(paperWidth / input.resolution[0]);
 
-    // Calculate number of page
     heightPageNum = Math.ceil(height / (paperHeight / input.resolution[1]));
     widthPageNum = Math.ceil(width / (paperWidth / input.resolution[0]));
-
-    newHeight = heightPageNum * paperHeightPx;
-    newWidth = widthPageNum * paperWidthPx;
   } else {
-    // Convert paper size to pixel
-    paperHeightPx = toPixel(paperWidth, "mm");
-    paperWidthPx = toPixel(paperHeight, "mm");
+    paperHeightPx = Math.round(toPixel(paperWidth, "mm"));
+    paperWidthPx = Math.round(toPixel(paperHeight, "mm"));
 
-    // Calculate number of page
-    heightPageNum = 1;
-    widthPageNum = 1;
-
-    newHeight = heightPageNum * paperHeightPx;
-    newWidth = widthPageNum * paperWidthPx;
+    heightPageNum = Math.ceil(height / toPixel(paperWidth, "mm"));
+    widthPageNum = Math.ceil(width / toPixel(paperHeight, "mm"));
   }
+
+  const newHeight = heightPageNum * paperHeightPx;
+  const newWidth = widthPageNum * paperWidthPx;
 
   let extendTop = 0;
   let extendLeft = 0;
