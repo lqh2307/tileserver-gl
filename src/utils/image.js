@@ -13,6 +13,44 @@ import sharp from "sharp";
 // });
 
 /**
+ * Convert a value with unit to pixels
+ * @param {number} value Mumeric value
+ * @param {"km"|"m"|"dm"|"cm"|"mm"} unit Unit of the value
+ * @param {number} ppi Pixel per inch
+ * @returns {number} value in pixel
+ */
+export function toPixel(value, unit, ppi = 96) {
+  switch (unit) {
+    case "km": {
+      {return (value * ppi) / 0.0254 / 1000;}
+    }
+
+    case "hm": {
+      {return (value * ppi) / 0.0254 / 100;}
+    }
+
+    case "dam": {
+      {return (value * ppi) / 0.0254 / 10;}
+    }
+
+    case "m":
+      {return (value * ppi) / 0.0254;}
+
+    case "dm":
+      {return (value * ppi * 10) / 0.0254;}
+
+    case "cm":
+      {return (value * ppi * 100) / 0.0254;}
+
+    case "mm":
+      {return (value * ppi * 1000) / 0.0254;}
+
+    default:
+      {return (value * ppi) / 0.0254;}
+  }
+}
+
+/**
  * Calculate resolution
  * @param {{ filePath: string|Buffer, bbox: [number, number, number, number], width: number, height: number }} input Input object
  * @param {"km"|"m"|"dm"|"cm"|"mm"} unit unit
