@@ -1234,14 +1234,12 @@ export async function splitImage(input, preview, output) {
   }).metadata();
 
   // Get paper size (in mm)
-  const paperHeight =
-    output.orientation === "landscape"
-      ? output.paperSize[0]
-      : output.paperSize[1];
-  const paperWidth =
-    output.orientation === "landscape"
-      ? output.paperSize[1]
-      : output.paperSize[0];
+  let paperHeight = output.paperSize[1]
+  let paperWidth = output.paperSize[0]
+  if (output.orientation === "landscape") {
+    paperHeight = output.paperSize[0]
+    paperWidth = output.paperSize[1]
+  }
 
   let paperHeightPx;
   let paperWidthPx;
@@ -1256,11 +1254,11 @@ export async function splitImage(input, preview, output) {
     heightPageNum = Math.ceil(height / (paperHeight / input.resolution[1]));
     widthPageNum = Math.ceil(width / (paperWidth / input.resolution[0]));
   } else {
-    paperHeightPx = Math.round(toPixel(paperWidth, "mm"));
-    paperWidthPx = Math.round(toPixel(paperHeight, "mm"));
+    paperHeightPx = Math.round(toPixel(paperHeight, "mm"));
+    paperWidthPx = Math.round(toPixel(paperWidth, "mm"));
 
-    heightPageNum = Math.ceil(height / toPixel(paperWidth, "mm"));
-    widthPageNum = Math.ceil(width / toPixel(paperHeight, "mm"));
+    heightPageNum = Math.ceil(height / toPixel(paperHeight, "mm"));
+    widthPageNum = Math.ceil(width / toPixel(paperWidth, "mm"));
   }
 
   const newHeight = heightPageNum * paperHeightPx;
@@ -1270,40 +1268,40 @@ export async function splitImage(input, preview, output) {
   let extendLeft = 0;
 
   if (output.alignContent) {
-    switch (output.alignContent.horizontal) {
-      case "left": {
+    switch (output.alignContent.vertical) {
+      case "top": {
         extendTop = 0;
 
         break;
       }
 
-      case "center": {
+      case "middle": {
         extendTop = Math.floor((newHeight - height) / 2);
 
         break;
       }
 
-      case "right": {
+      case "bottom": {
         extendTop = Math.floor(newHeight - height);
 
         break;
       }
     }
 
-    switch (output.alignContent.vertical) {
-      case "top": {
+    switch (output.alignContent.horizontal) {
+      case "left": {
         extendLeft = 0;
 
         break;
       }
 
-      case "middle": {
+      case "center": {
         extendLeft = Math.floor((newWidth - width) / 2);
 
         break;
       }
 
-      case "bottom": {
+      case "right": {
         extendLeft = Math.floor(newWidth - width);
 
         break;
@@ -1405,7 +1403,11 @@ export async function splitImage(input, preview, output) {
 
     for (let y = 0; y < heightPageNum; y++) {
       for (let x = 0; x < widthPageNum; x++) {
-        const image = await createImageOutput(
+        if (x > 0 || y > 0) {
+          doc.addPage();
+        }
+
+        doc.addImage(await createImageOutput(
           sharp(extendImage, {
             limitInputPixels: false,
           }).extract({
@@ -1418,23 +1420,7 @@ export async function splitImage(input, preview, output) {
             format: "png",
             grayscale: output.grayscale,
           }
-        );
-
-        if (x > 0 || y > 0) {
-          doc.addPage();
-        }
-
-        let pageWidth = paperWidthPx * input.resolution[0];
-        if (pageWidth > paperWidth) {
-          pageWidth = paperWidth;
-        }
-
-        let pageHeight = paperHeightPx * input.resolution[1];
-        if (pageHeight > paperHeight) {
-          pageHeight = paperHeight;
-        }
-
-        doc.addImage(image, "png", 0, 0, pageWidth, pageHeight);
+        ), "png", 0, 0, paperWidth, paperHeight);
       }
     }
 
