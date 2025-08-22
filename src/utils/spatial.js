@@ -232,8 +232,8 @@ export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
  * @returns {{width: number, height: number}} Sizes
  */
 export function calculateSizes(z, bbox, tileSize = 256) {
-  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1], tileSize);
-  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3], tileSize);
+  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
+  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
 
   const resolution =
     tileSize * Math.round(Math.pow(2, z) / (2 * Math.PI * 6378137.0));

@@ -6,7 +6,7 @@ import mlgl from "@maplibre/maplibre-gl-native";
 import { createPool } from "generic-pool";
 import { rm } from "node:fs/promises";
 import { config } from "./config.js";
-import { v4 } from "uuid";
+import { nanoid } from "nanoid";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   calculatePostgreSQLTileExtraInfo,
@@ -544,7 +544,7 @@ export async function renderStyleJSONToImage(
 ) {
   let styleJSONOrPool;
 
-  const id = v4();
+  const id = nanoid();
   const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${format}s/${id}`;
   const xyzDirPath = `${dirPath}/xyz/${id}`;
 
