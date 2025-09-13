@@ -297,7 +297,7 @@ export async function zipFolder(iDirPath, oFilePath) {
 
 /**
  * Create file with lock
- * @param {string} filePath File path to store file
+ * @param {string} filePath File path to store
  * @param {Buffer} data Data buffer
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
@@ -363,7 +363,7 @@ export async function createFileWithLock(filePath, data, timeout) {
 
 /**
  * Remove file with lock
- * @param {string} filePath File path to remove file
+ * @param {string} filePath File path to remove
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */

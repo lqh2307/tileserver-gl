@@ -1,11 +1,14 @@
 "use strict";
 
-import { getRenderedStyleJSON, validateStyle, getStyle } from "../style.js";
 import { renderImageTileData } from "../render_style.js";
-import { getAndCacheDataStyleJSON } from "../data.js";
+import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { config } from "../config.js";
-import { seed } from "../seed.js";
+import {
+  getAndCacheDataStyleJSON,
+  getRenderedStyleJSON,
+  validateStyle,
+  getStyle,
+} from "../resources/index.js";
 import {
   detectContentTypeFromFormat,
   compileHandleBarsTemplate,
@@ -371,8 +374,7 @@ function getRenderedHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${
-            queryStrings.length ? `?${queryStrings.join("&")}` : ""
+          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${queryStrings.length ? `?${queryStrings.join("&")}` : ""
           }`,
         ],
       };

@@ -1,23 +1,10 @@
 "use strict";
 
+import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import { createReadStream } from "fs";
-import { config } from "../config.js";
 import { stat } from "fs/promises";
-import { seed } from "../seed.js";
 import path from "path";
-import {
-  getXYZTileExtraInfoFromCoverages,
-  calculateXYZTileExtraInfo,
-  getXYZMetadata,
-  openXYZMD5DB,
-} from "../tile_xyz.js";
-import {
-  getMBTilesTileExtraInfoFromCoverages,
-  calculateMBTilesTileExtraInfo,
-  getMBTilesMetadata,
-  openMBTilesDB,
-} from "../tile_mbtiles.js";
 import {
   detectContentTypeFromFormat,
   compileHandleBarsTemplate,
@@ -33,22 +20,26 @@ import {
   printLog,
 } from "../utils/index.js";
 import {
-  getPMTilesMetadata,
-  getPMTilesTile,
-  openPMTiles,
-} from "../tile_pmtiles.js";
-import {
   getPostgreSQLTileExtraInfoFromCoverages,
+  getMBTilesTileExtraInfoFromCoverages,
+  getXYZTileExtraInfoFromCoverages,
   calculatePostgreSQLTileExtraInfo,
-  getPostgreSQLMetadata,
-  openPostgreSQLDB,
-} from "../tile_postgresql.js";
-import {
+  calculateMBTilesTileExtraInfo,
   getAndCachePostgreSQLDataTile,
   getAndCacheMBTilesDataTile,
+  calculateXYZTileExtraInfo,
   getAndCacheXYZDataTile,
+  getPostgreSQLMetadata,
   validateTileMetadata,
-} from "../data.js";
+  getMBTilesMetadata,
+  getPMTilesMetadata,
+  openPostgreSQLDB,
+  getXYZMetadata,
+  getPMTilesTile,
+  openMBTilesDB,
+  openXYZMD5DB,
+  openPMTiles,
+} from "../resources/index.js";
 
 /**
  * Serve data handler
@@ -196,8 +187,7 @@ function getDataHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
-            item.tileJSON.format
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format
           }`,
         ],
       };
@@ -1090,8 +1080,8 @@ export const serve_data = {
 
                 /* Get XYZ metadata */
                 dataInfo.tileJSON = await getXYZMetadata(
-                  md5Source,
-                  dataInfo.source
+                  dataInfo.source,
+                  md5Source
                 );
               }
             } else if (item.pg !== undefined) {

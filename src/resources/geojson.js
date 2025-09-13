@@ -6,13 +6,12 @@ import {
   removeFileWithLock,
   createFileWithLock,
   getDataFromURL,
-  printLog,
   retry,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 /**
  * Remove GeoJSON data file with lock
- * @param {string} filePath File path to remove GeoJSON data file
+ * @param {string} filePath GeoJSON file path to remove
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
@@ -23,7 +22,7 @@ export async function removeGeoJSONFile(filePath, timeout) {
 /**
  * Download GeoJSON file
  * @param {string} url The URL to download the file from
- * @param {string} filePath File path
+ * @param {string} filePath GeoJSON file path to store
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {object} headers Headers
@@ -51,11 +50,6 @@ export async function downloadGeoJSONFile(
       await cacheGeoJSONFile(filePath, response.data);
     } catch (error) {
       if (error.statusCode) {
-        printLog(
-          "error",
-          `Failed to download GeoJSON file "${filePath}" - From "${url}": ${error}`
-        );
-
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
           error.statusCode === StatusCodes.NOT_FOUND
@@ -73,7 +67,7 @@ export async function downloadGeoJSONFile(
 
 /**
  * Cache GeoJSON file
- * @param {string} filePath File path
+ * @param {string} filePath GeoJSON file path to store
  * @param {Buffer} data Tile data buffer
  * @returns {Promise<void>}
  */
@@ -86,8 +80,8 @@ export async function cacheGeoJSONFile(filePath, data) {
 }
 
 /**
- * Get GeoJSON
- * @param {string} filePath
+ * Get GeoJSON buffer
+ * @param {string} filePath GeoJSON file path to get
  * @returns {Promise<Buffer>}
  */
 export async function getGeoJSON(filePath) {
@@ -103,8 +97,8 @@ export async function getGeoJSON(filePath) {
 }
 
 /**
- * Get created of GeoJSON
- * @param {string} filePath The path of the file
+ * Get created time of GeoJSON file
+ * @param {string} filePath GeoJSON file path to get
  * @returns {Promise<number>}
  */
 export async function getGeoJSONCreated(filePath) {
@@ -122,8 +116,8 @@ export async function getGeoJSONCreated(filePath) {
 }
 
 /**
- * Get the size of GeoJSON
- * @param {string} filePath The path of the file
+ * Get the size of GeoJSON file
+ * @param {string} filePath GeoJSON file path to get
  * @returns {Promise<number>}
  */
 export async function getGeoJSONSize(filePath) {
@@ -134,10 +128,12 @@ export async function getGeoJSONSize(filePath) {
 
 /**
  * Validate GeoJSON and get geometry types
- * @param {object} geoJSON GeoJSON
- * @returns {string[]} List of geometry types
+ * @param {object|string} data GeoJSON or GeoJSON file path
+ * @returns {Promise<string[]>} List of geometry types
  */
-export function validateAndGetGeometryTypes(geoJSON) {
+export async function validateAndGetGeometryTypes(data) {
+  const geoJSON = typeof data === "object" ? data : JSON.parse(await readFile(data));
+
   const geometryTypes = new Set();
 
   function addGeometryType(geometryType) {

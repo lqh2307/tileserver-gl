@@ -7,7 +7,7 @@ import {
   getJSONSchema,
   validateJSON,
   printLog,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 let config;
 

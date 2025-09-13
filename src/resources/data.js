@@ -1,23 +1,25 @@
 "use strict";
 
 import { cacheSpriteFile, getFallbackSprite, getSprite } from "./sprite.js";
-import { cacheMBtilesTileData, getMBTilesTile } from "./tile_mbtiles.js";
-import { cacheXYZTileFile, getXYZTile } from "./tile_xyz.js";
 import { cacheGeoJSONFile, getGeoJSON } from "./geojson.js";
 import { cacheStyleFile, getStyle } from "./style.js";
-import { config } from "./config.js";
+import { config } from "../configs/index.js";
 import {
   getDataTileFromURL,
   getDataFileFromURL,
   printLog,
-} from "./utils/index.js";
+} from "../utils/index.js";
 import {
   cachePostgreSQLTileData,
+  cacheMBtilesTileData,
   getPostgreSQLTile,
-} from "./tile_postgresql.js";
+  cacheXYZTileFile,
+  getMBTilesTile,
+  getXYZTile,
+} from "./tile.js";
 import {
+  mergePBFFontDatas,
   getFallbackFont,
-  mergeFontDatas,
   cacheFontFile,
   getFont,
 } from "./font.js";
@@ -301,7 +303,7 @@ export async function getAndCacheDataSprite(id, fileName) {
       throw new Error("Sprite does not exist");
     }
 
-    return await getSprite(item.path, fileName);
+    return await getSprite(`${item.path}/${fileName}`);
   } catch (error) {
     try {
       if (item.sourceURL && error.message === "Sprite does not exist") {
@@ -326,7 +328,7 @@ export async function getAndCacheDataSprite(id, fileName) {
             `Caching sprite "${id}" - Filename "${fileName}"...`
           );
 
-          cacheSpriteFile(item.path, fileName, sprite).catch((error) =>
+          cacheSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
             printLog(
               "error",
               `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
@@ -366,7 +368,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
           throw new Error("Font does not exist");
         }
 
-        return await getFont(item.path, fileName);
+        return await getFont(`${item.path}/${fileName}`);
       } catch (error) {
         try {
           if (
@@ -395,7 +397,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
                 `Caching font "${id}" - Filename "${fileName}"...`
               );
 
-              cacheFontFile(item.path, fileName, font).catch((error) =>
+              cacheFontFile(`${item.path}/${fileName}`, font).catch((error) =>
                 printLog(
                   "error",
                   `Failed to cache font "${id}" - Filename "${fileName}": ${error}`
@@ -420,7 +422,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
   );
 
   /* Merge font datas */
-  return mergeFontDatas(buffers);
+  return mergePBFFontDatas(buffers);
 }
 
 /**

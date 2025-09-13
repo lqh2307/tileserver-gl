@@ -3,19 +3,18 @@
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import { config } from "./config.js";
+import { config } from "../configs/index.js";
 import {
   removeFileWithLock,
   createFileWithLock,
   getDataFromURL,
   isLocalURL,
-  printLog,
   retry,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 /**
  * Remove style data file with lock
- * @param {string} filePath File path to remove style data file
+ * @param {string} filePath Style file path to remove
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
@@ -26,7 +25,7 @@ export async function removeStyleFile(filePath, timeout) {
 /**
  * Download style file
  * @param {string} url The URL to download the file from
- * @param {string} filePath File path
+ * @param {string} filePath Style file path to store
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {object} headers Headers
@@ -54,11 +53,6 @@ export async function downloadStyleFile(
       await cacheStyleFile(filePath, response.data);
     } catch (error) {
       if (error.statusCode) {
-        printLog(
-          "error",
-          `Failed to download style file "${filePath}" - From "${url}": ${error}`
-        );
-
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
           error.statusCode === StatusCodes.NOT_FOUND
@@ -76,7 +70,7 @@ export async function downloadStyleFile(
 
 /**
  * Cache style file
- * @param {string} filePath File path
+ * @param {string} filePath Style file path to store
  * @param {Buffer} data Tile data buffer
  * @returns {Promise<void>}
  */
@@ -89,11 +83,171 @@ export async function cacheStyleFile(filePath, data) {
 }
 
 /**
- * Validate style
- * @param {object} styleJSON StyleJSON
+ * Get StyleJSON buffer
+ * @param {string} filePath Style file path to get
+ * @returns {Promise<Buffer>}
+ */
+export async function getStyle(filePath) {
+  try {
+    return await readFile(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error("JSON does not exist");
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get rendered StyleJSON
+ * @param {string} filePath Style file path to render
+ * @returns {Promise<object>}
+ */
+export async function getRenderedStyleJSON(filePath) {
+  try {
+    const styleJSON = JSON.parse(await readFile(filePath));
+
+    await Promise.all(
+      Object.keys(styleJSON.sources).map(async (id) => {
+        const source = styleJSON.sources[id];
+
+        if (source.tiles !== undefined) {
+          const tiles = new Set(
+            source.tiles.map((tile) => {
+              if (isLocalURL(tile)) {
+                const sourceID = tile.split("/")[2];
+                const sourceData = config.datas[sourceID];
+
+                tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+              }
+
+              return tile;
+            })
+          );
+
+          source.tiles = Array.from(tiles);
+        }
+
+        if (source.urls !== undefined) {
+          const otherUrls = [];
+
+          source.urls.forEach((url) => {
+            if (isLocalURL(url)) {
+              const sourceID = url.split("/")[2];
+              const sourceData = config.datas[sourceID];
+
+              const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+
+              if (source.tiles !== undefined) {
+                if (!source.tiles.includes(tile)) {
+                  source.tiles.push(tile);
+                }
+              } else {
+                source.tiles = [tile];
+              }
+            } else {
+              if (!otherUrls.includes(url)) {
+                otherUrls.push(url);
+              }
+            }
+          });
+
+          if (!otherUrls.length) {
+            delete source.urls;
+          } else {
+            source.urls = otherUrls;
+          }
+        }
+
+        if (source.url !== undefined) {
+          if (isLocalURL(source.url)) {
+            const sourceID = source.url.split("/")[2];
+            const sourceData = config.datas[sourceID];
+
+            const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+
+            if (source.tiles !== undefined) {
+              if (!source.tiles.includes(tile)) {
+                source.tiles.push(tile);
+              }
+            } else {
+              source.tiles = [tile];
+            }
+
+            delete source.url;
+          }
+        }
+
+        if (
+          source.url === undefined &&
+          source.urls === undefined &&
+          source.tiles !== undefined
+        ) {
+          if (source.tiles.length === 1) {
+            if (isLocalURL(source.tiles[0])) {
+              const sourceID = source.tiles[0].split("/")[2];
+              const sourceData = config.datas[sourceID];
+
+              styleJSON.sources[id] = {
+                ...sourceData.tileJSON,
+                ...source,
+                tiles: [source.tiles[0]],
+              };
+            }
+          }
+        }
+      })
+    );
+
+    return styleJSON;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error("JSON does not exist");
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get created time of Style file
+ * @param {string} filePath Style file path to get
+ * @returns {Promise<number>}
+ */
+export async function getStyleCreated(filePath) {
+  try {
+    const stats = await stat(filePath);
+
+    return stats.ctimeMs;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error("Style created does not exist");
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get the size of Style file
+ * @param {string} filePath Style file path to get
+ * @returns {Promise<number>}
+ */
+export async function getStyleSize(filePath) {
+  const stats = await stat(filePath);
+
+  return stats.size;
+}
+
+/**
+ * Validate StyleJSON
+ * @param {object|string} data StyleJSON or Style file path
  * @returns {Promise<void>}
  */
-export async function validateStyle(styleJSON) {
+export async function validateStyle(data) {
+  const styleJSON = typeof data === "object" ? data : JSON.parse(await readFile(data));
+
   /* Validate style */
   const validationErrors = validateStyleMin(styleJSON);
   if (validationErrors.length) {
@@ -218,162 +372,4 @@ export async function validateStyle(styleJSON) {
       }
     })
   );
-}
-
-/**
- * Get style
- * @param {string} filePath
- * @returns {Promise<Buffer>}
- */
-export async function getStyle(filePath) {
-  try {
-    return await readFile(filePath);
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("JSON does not exist");
-    } else {
-      throw error;
-    }
-  }
-}
-
-/**
- * Get rendered styleJSON
- * @param {string} filePath
- * @returns {Promise<object|Buffer>}
- */
-export async function getRenderedStyleJSON(filePath) {
-  try {
-    const styleJSON = JSON.parse(await readFile(filePath));
-
-    await Promise.all(
-      Object.keys(styleJSON.sources).map(async (id) => {
-        const source = styleJSON.sources[id];
-
-        if (source.tiles !== undefined) {
-          const tiles = new Set(
-            source.tiles.map((tile) => {
-              if (isLocalURL(tile)) {
-                const sourceID = tile.split("/")[2];
-                const sourceData = config.datas[sourceID];
-
-                tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
-              }
-
-              return tile;
-            })
-          );
-
-          source.tiles = Array.from(tiles);
-        }
-
-        if (source.urls !== undefined) {
-          const otherUrls = [];
-
-          source.urls.forEach((url) => {
-            if (isLocalURL(url)) {
-              const sourceID = url.split("/")[2];
-              const sourceData = config.datas[sourceID];
-
-              const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
-
-              if (source.tiles !== undefined) {
-                if (!source.tiles.includes(tile)) {
-                  source.tiles.push(tile);
-                }
-              } else {
-                source.tiles = [tile];
-              }
-            } else {
-              if (!otherUrls.includes(url)) {
-                otherUrls.push(url);
-              }
-            }
-          });
-
-          if (!otherUrls.length) {
-            delete source.urls;
-          } else {
-            source.urls = otherUrls;
-          }
-        }
-
-        if (source.url !== undefined) {
-          if (isLocalURL(source.url)) {
-            const sourceID = source.url.split("/")[2];
-            const sourceData = config.datas[sourceID];
-
-            const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
-
-            if (source.tiles !== undefined) {
-              if (!source.tiles.includes(tile)) {
-                source.tiles.push(tile);
-              }
-            } else {
-              source.tiles = [tile];
-            }
-
-            delete source.url;
-          }
-        }
-
-        if (
-          source.url === undefined &&
-          source.urls === undefined &&
-          source.tiles !== undefined
-        ) {
-          if (source.tiles.length === 1) {
-            if (isLocalURL(source.tiles[0])) {
-              const sourceID = source.tiles[0].split("/")[2];
-              const sourceData = config.datas[sourceID];
-
-              styleJSON.sources[id] = {
-                ...sourceData.tileJSON,
-                ...source,
-                tiles: [source.tiles[0]],
-              };
-            }
-          }
-        }
-      })
-    );
-
-    return styleJSON;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("JSON does not exist");
-    } else {
-      throw error;
-    }
-  }
-}
-
-/**
- * Get created of style
- * @param {string} filePath The path of the file
- * @returns {Promise<number>}
- */
-export async function getStyleCreated(filePath) {
-  try {
-    const stats = await stat(filePath);
-
-    return stats.ctimeMs;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("Style created does not exist");
-    } else {
-      throw error;
-    }
-  }
-}
-
-/**
- * Get the size of Style
- * @param {string} filePath The path of the file
- * @returns {Promise<number>}
- */
-export async function getStyleSize(filePath) {
-  const stats = await stat(filePath);
-
-  return stats.size;
 }

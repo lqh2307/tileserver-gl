@@ -1,38 +1,32 @@
 "use strict";
 
-import { config } from "./config.js";
+import { config } from "./configs/index.js";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
-  updatePostgreSQLMetadata,
-  cachePostgreSQLTileData,
-  closePostgreSQLDB,
-  openPostgreSQLDB,
-} from "./tile_postgresql.js";
-import {
+  getMBTilesTileExtraInfoFromCoverages,
+  getXYZTileExtraInfoFromCoverages,
   getAndCachePostgreSQLDataTile,
   getAndCacheMBTilesDataTile,
+  updatePostgreSQLMetadata,
+  cachePostgreSQLTileData,
   getAndCacheXYZDataTile,
-} from "./data.js";
-import {
-  getMBTilesTileExtraInfoFromCoverages,
   updateMBTilesMetadata,
   cacheMBtilesTileData,
+  updateXYZMetadata,
+  closePostgreSQLDB,
+  openPostgreSQLDB,
+  cacheXYZTileFile,
   closeMBTilesDB,
   openMBTilesDB,
-} from "./tile_mbtiles.js";
+  closeXYZMD5DB,
+  openXYZMD5DB,
+} from "./resources/index.js";
 import {
   handleTilesConcurrency,
   removeEmptyFolders,
   getTileBounds,
   printLog,
 } from "./utils/index.js";
-import {
-  getXYZTileExtraInfoFromCoverages,
-  updateXYZMetadata,
-  cacheXYZTileFile,
-  closeXYZMD5DB,
-  openXYZMD5DB,
-} from "./tile_xyz.js";
 
 /**
  * Export MBTiles tiles
@@ -212,15 +206,13 @@ export async function exportMBTilesTiles(
 
     printLog(
       "info",
-      `Completed export ${total} tiles of datas "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Completed export ${total} tiles of datas "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to export data "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Failed to export data "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -417,15 +409,13 @@ export async function exportXYZTiles(
 
     printLog(
       "info",
-      `Completed export ${total} tiles of data "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Completed export ${total} tiles of data "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to export data "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Failed to export data "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -606,15 +596,13 @@ export async function exportPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed export ${total} tiles of data "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Completed export ${total} tiles of data "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to export data "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Failed to export data "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {

@@ -11,7 +11,7 @@ import {
   findFiles,
   printLog,
   retry,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 let glyphsProto;
 
@@ -30,7 +30,7 @@ if (!cluster.isPrimary) {
 
 /**
  * Remove font file with lock
- * @param {string} filePath File path to remove font file
+ * @param {string} filePath Font file path to remove
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
@@ -40,14 +40,13 @@ export async function removeFontFile(filePath, timeout) {
 
 /**
  * Cache font file
- * @param {string} sourcePath Font folder path
- * @param {string} fileName Font filename
+ * @param {string} filePath Font file path to store
  * @param {Buffer} data Font buffer
  * @returns {Promise<void>}
  */
-export async function cacheFontFile(sourcePath, fileName, data) {
+export async function cacheFontFile(filePath, data) {
   await createFileWithLock(
-    `${sourcePath}/${fileName}`,
+    filePath,
     data,
     30000 // 30 secs
   );
@@ -56,8 +55,7 @@ export async function cacheFontFile(sourcePath, fileName, data) {
 /**
  * Download font file
  * @param {string} url The URL to download the file from
- * @param {string} id Font ID
- * @param {string} fileName Font filename
+ * @param {string} filePath Font file path to store
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {object} headers Headers
@@ -65,8 +63,7 @@ export async function cacheFontFile(sourcePath, fileName, data) {
  */
 export async function downloadFontFile(
   url,
-  id,
-  fileName,
+  filePath,
   maxTry,
   timeout,
   headers
@@ -84,16 +81,10 @@ export async function downloadFontFile(
 
       // Store data to file
       await cacheFontFile(
-        `${process.env.DATA_DIR}/caches/fonts/${id}`,
-        fileName,
+        filePath,
         response.data
       );
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to download font "${fileName}" - From "${url}": ${error}`
-      );
-
       if (error.statusCode) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
@@ -111,8 +102,8 @@ export async function downloadFontFile(
 }
 
 /**
- * Get created of font
- * @param {string} filePath The path of the file
+ * Get created time of font file
+ * @param {string} filePath Font file path to get
  * @returns {Promise<number>}
  */
 export async function getFontCreated(filePath) {
@@ -130,27 +121,13 @@ export async function getFontCreated(filePath) {
 }
 
 /**
- * Validate font
- * @param {string} pbfDirPath PBF font dir path
- * @returns {Promise<void>}
- */
-export async function validateFont(pbfDirPath) {
-  const pbfFileNames = await findFiles(pbfDirPath, /^\d{1,5}-\d{1,5}\.pbf$/);
-
-  if (!pbfFileNames.length) {
-    throw new Error("Missing some PBF files");
-  }
-}
-
-/**
- * Get font pbf
- * @param {string} dirPath Font dir path
- * @param {string} fileName Font file name
+ * Get font buffer
+ * @param {string} filePath Font file path to get
  * @returns {Promise<Buffer>}
  */
-export async function getFont(dirPath, fileName) {
+export async function getFont(filePath) {
   try {
-    return await readFile(`${dirPath}/${fileName}`);
+    return await readFile(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error("Font does not exist");
@@ -194,15 +171,15 @@ export async function getFallbackFont(fontName, fileName) {
 }
 
 /**
- * Merge font datas
- * @param {Buffer[]} buffers Font buffers
+ * Merge PBF font datas
+ * @param {Buffer[]} pbfBuffers PBF font buffers
  * @returns {Buffer}
  */
-export function mergeFontDatas(buffers) {
+export function mergePBFFontDatas(pbfBuffers) {
   let result;
   const coverage = {};
 
-  for (const buffer of buffers) {
+  for (const buffer of pbfBuffers) {
     const decoded = glyphsProto.glyphs.decode(buffer);
     const glyphs = decoded.stacks[0].glyphs;
 
@@ -231,11 +208,24 @@ export function mergeFontDatas(buffers) {
 }
 
 /**
- * Get the size of Font folder path
- * @param {string} pbfDirPath Font dir path
+ * Validate PBF font
+ * @param {string} pbfDirPath PBF font dir path to validate
+ * @returns {Promise<void>}
+ */
+export async function validatePBFFont(pbfDirPath) {
+  const pbfFileNames = await findFiles(pbfDirPath, /^\d{1,5}-\d{1,5}\.pbf$/);
+
+  if (!pbfFileNames.length) {
+    throw new Error("Missing some PBF files");
+  }
+}
+
+/**
+ * Get the size of PBF font folder path
+ * @param {string} pbfDirPath PBF font dir path to get
  * @returns {Promise<number>}
  */
-export async function getFontSize(pbfDirPath) {
+export async function getPBFFontSize(pbfDirPath) {
   const fileNames = await findFiles(
     pbfDirPath,
     /^\d{1,5}-\d{1,5}\.pbf$/,

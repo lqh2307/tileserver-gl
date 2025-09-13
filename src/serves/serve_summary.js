@@ -1,17 +1,21 @@
 "use strict";
 
-import { countPostgreSQLTiles, getPostgreSQLSize } from "../tile_postgresql.js";
 import { getTileBounds, isExistFile, printLog } from "../utils/index.js";
-import { countMBTilesTiles, getMBTilesSize } from "../tile_mbtiles.js";
-import { countXYZTiles, getXYZSize } from "../tile_xyz.js";
-import { getPMTilesSize } from "../tile_pmtiles.js";
+import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { getGeoJSONSize } from "../geojson.js";
-import { getSpriteSize } from "../sprite.js";
-import { getStyleSize } from "../style.js";
-import { getFontSize } from "../font.js";
-import { config } from "../config.js";
-import { seed } from "../seed.js";
+import {
+  countPostgreSQLTiles,
+  getPostgreSQLSize,
+  countMBTilesTiles,
+  getPMTilesSize,
+  getMBTilesSize,
+  getGeoJSONSize,
+  getPBFFontSize,
+  getSpriteSize,
+  countXYZTiles,
+  getStyleSize,
+  getXYZSize,
+} from "../resources/index.js";
 
 /**
  * Get summary handler
@@ -336,7 +340,7 @@ function serveSummaryHandler() {
             const item = config.fonts[id];
 
             try {
-              result.fonts.size += await getFontSize(item.path);
+              result.fonts.size += await getPBFFontSize(item.path);
             } catch (error) {
               if (!item.cache || error.code !== "ENOENT") {
                 throw error;

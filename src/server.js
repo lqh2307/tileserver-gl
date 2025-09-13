@@ -5,7 +5,7 @@ import { setupPrimary } from "@socket.io/cluster-adapter";
 import { loggerMiddleware } from "./middlewares/index.js";
 import { setupMaster } from "@socket.io/sticky";
 import { Worker } from "node:worker_threads";
-import { config } from "./config.js";
+import { config } from "./configs/index.js";
 import cluster from "cluster";
 import express from "express";
 import http from "http";

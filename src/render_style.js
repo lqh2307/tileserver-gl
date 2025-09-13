@@ -1,38 +1,41 @@
 "use strict";
 
-import { getPMTilesTile } from "./tile_pmtiles.js";
-import { getRenderedStyleJSON } from "./style.js";
 import mlgl from "@maplibre/maplibre-gl-native";
+import { config } from "./configs/index.js";
 import { createPool } from "generic-pool";
 import { rm } from "node:fs/promises";
-import { config } from "./config.js";
 import { nanoid } from "nanoid";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
+  getMBTilesTileExtraInfoFromCoverages,
   calculatePostgreSQLTileExtraInfo,
-  updatePostgreSQLMetadata,
-  cachePostgreSQLTileData,
-  addPostgreSQLOverviews,
-  closePostgreSQLDB,
-  openPostgreSQLDB,
-} from "./tile_postgresql.js";
-import {
+  getXYZTileExtraInfoFromCoverages,
+  calculateMBTilesTileExtraInfo,
   getAndCachePostgreSQLDataTile,
   getAndCacheMBTilesDataTile,
+  calculateXYZTileExtraInfo,
+  updatePostgreSQLMetadata,
+  cachePostgreSQLTileData,
   getAndCacheDataGeoJSON,
   getAndCacheXYZDataTile,
+  addPostgreSQLOverviews,
   getAndCacheDataSprite,
-  getAndCacheDataFonts,
-} from "./data.js";
-import {
-  getMBTilesTileExtraInfoFromCoverages,
-  calculateMBTilesTileExtraInfo,
   updateMBTilesMetadata,
+  getAndCacheDataFonts,
+  getRenderedStyleJSON,
   cacheMBtilesTileData,
   addMBTilesOverviews,
+  closePostgreSQLDB,
+  updateXYZMetadata,
+  cacheXYZTileFile,
+  openPostgreSQLDB,
+  addXYZOverviews,
   closeMBTilesDB,
+  getPMTilesTile,
   openMBTilesDB,
-} from "./tile_mbtiles.js";
+  closeXYZMD5DB,
+  openXYZMD5DB,
+} from "./resources/index.js";
 import {
   processImageStaticRawData,
   processImageTileRawData,
@@ -56,15 +59,6 @@ import {
   splitImage,
   printLog,
 } from "./utils/index.js";
-import {
-  getXYZTileExtraInfoFromCoverages,
-  calculateXYZTileExtraInfo,
-  updateXYZMetadata,
-  cacheXYZTileFile,
-  addXYZOverviews,
-  closeXYZMD5DB,
-  openXYZMD5DB,
-} from "./tile_xyz.js";
 
 /**
  * Create render
@@ -658,15 +652,15 @@ export async function renderStyleJSONToImage(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () => createRenderer("tile", tileScale, styleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () => createRenderer("tile", tileScale, styleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : styleJSON;
 
     /* Socket */
@@ -1005,16 +999,16 @@ export async function renderMBTilesTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderMBTilesTileData(z, x, y, tasks) {
@@ -1102,15 +1096,13 @@ export async function renderMBTilesTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1246,16 +1238,16 @@ export async function renderXYZTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderXYZTileData(z, x, y, tasks) {
@@ -1355,7 +1347,7 @@ export async function renderXYZTiles(
     if (createOverview) {
       printLog("info", `Creating overviews...`);
 
-      await addXYZOverviews(source, sourcePath, concurrency, tileSize);
+      await addXYZOverviews(sourcePath, source, concurrency, tileSize);
 
       printLog("info", "Calculating tile extra info...");
 
@@ -1364,15 +1356,13 @@ export async function renderXYZTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1497,16 +1487,16 @@ export async function renderPostgreSQLTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderPostgreSQLTileData(z, x, y, tasks) {
@@ -1608,15 +1598,13 @@ export async function renderPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {

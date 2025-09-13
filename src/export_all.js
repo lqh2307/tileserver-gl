@@ -1,10 +1,6 @@
 "use strict";
 
-import { cacheStyleFile, getRenderedStyleJSON, getStyle } from "./style.js";
-import { cacheGeoJSONFile } from "./geojson.js";
-import { cacheSpriteFile } from "./sprite.js";
-import { cacheFontFile } from "./font.js";
-import { config } from "./config.js";
+import { config } from "./configs/index.js";
 import {
   createFileWithLock,
   createFolders,
@@ -16,7 +12,13 @@ import {
   getAndCacheDataGeoJSON,
   getAndCacheDataSprite,
   getAndCacheDataFonts,
-} from "./data.js";
+  getRenderedStyleJSON,
+  cacheGeoJSONFile,
+  cacheSpriteFile,
+  cacheStyleFile,
+  cacheFontFile,
+  getStyle,
+} from "./resources/index.js";
 import {
   exportPostgreSQLTiles,
   exportMBTilesTiles,
@@ -200,8 +202,7 @@ export async function exportAll(
                   );
 
                   await cacheFontFile(
-                    `${dirPath}/caches/fonts/${fontFolder}`,
-                    fileName,
+                    `${dirPath}/caches/fonts/${fontFolder}/${fileName}`,
                     fontBuffer
                   );
                 })
@@ -242,11 +243,11 @@ export async function exportAll(
 
             await Promise.all([
               cacheSpriteFile(
-                `${dirPath}/caches/sprites/${spriteFolder}`,
+                `${dirPath}/caches/sprites/${spriteFolder}/sprite.json`,
                 spriteJSONBuffer
               ),
               cacheSpriteFile(
-                `${dirPath}/caches/sprites/${spriteFolder}`,
+                `${dirPath}/caches/sprites/${spriteFolder}/sprite.png`,
                 spritePNGBuffer
               ),
             ]);
@@ -661,11 +662,11 @@ export async function exportAll(
 
           await Promise.all([
             cacheSpriteFile(
-              `${dirPath}/caches/sprites/${spriteFolder}`,
+              `${dirPath}/caches/sprites/${spriteFolder}/sprite.json`,
               spriteJSONBuffer
             ),
             cacheSpriteFile(
-              `${dirPath}/caches/sprites/${spriteFolder}`,
+              `${dirPath}/caches/sprites/${spriteFolder}/sprite.png`,
               spritePNGBuffer
             ),
           ]);
@@ -708,8 +709,7 @@ export async function exportAll(
               const fontBuffer = await getAndCacheDataFonts(fontID, fileName);
 
               await cacheFontFile(
-                `${dirPath}/caches/fonts/${fontFolder}`,
-                fileName,
+                `${dirPath}/caches/fonts/${fontFolder}/${fileName}`,
                 fontBuffer
               );
             })

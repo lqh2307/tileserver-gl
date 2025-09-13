@@ -1,12 +1,10 @@
 "use strict";
 
-import { validateAndGetGeometryTypes, getGeoJSON } from "../geojson.js";
-import { getAndCacheDataGeoJSON } from "../data.js";
+import { validateAndGetGeometryTypes, getAndCacheDataGeoJSON, getGeoJSON } from "../resources/index.js";
+import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import { createReadStream } from "fs";
-import { config } from "../config.js";
 import { stat } from "fs/promises";
-import { seed } from "../seed.js";
 import path from "path";
 import {
   compileHandleBarsTemplate,
@@ -161,9 +159,8 @@ function getGeoJSONInfoHandler() {
       const data = {
         group: id,
         layer: req.params.layer,
-        url: `${getRequestHost(req)}/geojsons/${id}/${
-          req.params.layer
-        }.geojson`,
+        url: `${getRequestHost(req)}/geojsons/${id}/${req.params.layer
+          }.geojson`,
         geometryTypes: item[req.params.layer].geometryTypes,
       };
 
@@ -841,7 +838,7 @@ export const serve_geojson = {
 
                     /* Validate and Get GeoJSON info */
                     geojsonInfo.geometryTypes =
-                      validateAndGetGeometryTypes(geoJSON);
+                      await validateAndGetGeometryTypes(geoJSON);
 
                     geojsonsInfo[layer] = geojsonInfo;
                   } catch (error) {

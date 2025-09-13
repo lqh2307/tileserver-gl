@@ -10,13 +10,12 @@ import {
   getJSONSchema,
   validateJSON,
   findFiles,
-  printLog,
   retry,
-} from "./utils/index.js";
+} from "../utils/index.js";
 
 /**
  * Remove sprite file with lock
- * @param {string} filePath File path to remove sprite file
+ * @param {string} filePath Sprite file path to remove
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
@@ -26,14 +25,13 @@ export async function removeSpriteFile(filePath, timeout) {
 
 /**
  * Cache sprite file
- * @param {string} sourcePath Sprite folder path
- * @param {string} fileName Sprite file name
+ * @param {string} filePath Sprite file path to store
  * @param {Buffer} data Sprite buffer
  * @returns {Promise<void>}
  */
-export async function cacheSpriteFile(sourcePath, fileName, data) {
+export async function cacheSpriteFile(filePath, data) {
   await createFileWithLock(
-    `${sourcePath}/${fileName}`,
+    filePath,
     data,
     30000 // 30 secs
   );
@@ -42,8 +40,7 @@ export async function cacheSpriteFile(sourcePath, fileName, data) {
 /**
  * Download sprite file
  * @param {string} url The URL to download the file from
- * @param {string} id Font ID
- * @param {string} fileName Sprite file name
+ * @param {string} filePath Sprite file path to store
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {object} headers Headers
@@ -51,8 +48,7 @@ export async function cacheSpriteFile(sourcePath, fileName, data) {
  */
 export async function downloadSpriteFile(
   url,
-  id,
-  fileName,
+  filePath,
   maxTry,
   timeout,
   headers
@@ -70,16 +66,10 @@ export async function downloadSpriteFile(
 
       // Store data to file
       await cacheSpriteFile(
-        `${process.env.DATA_DIR}/caches/sprites/${id}`,
-        fileName,
+        filePath,
         response.data
       );
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to download sprite file "${fileName}" - From "${url}": ${error}`
-      );
-
       if (error.statusCode) {
         if (
           error.statusCode === StatusCodes.NO_CONTENT ||
@@ -97,8 +87,8 @@ export async function downloadSpriteFile(
 }
 
 /**
- * Get created of sprite
- * @param {string} filePath The path of the file
+ * Get created time of sprite file
+ * @param {string} filePath Sprite file path to get
  * @returns {Promise<number>}
  */
 export async function getSpriteCreated(filePath) {
@@ -116,8 +106,58 @@ export async function getSpriteCreated(filePath) {
 }
 
 /**
+ * Get sprite buffer
+ * @param {string} filePath Sprite file path to get
+ * @returns {Promise<Buffer>}
+ */
+export async function getSprite(filePath) {
+  try {
+    return await readFile(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error("Sprite does not exist");
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get fallback sprite
+ * @param {string} fileName Sprite file name
+ * @returns {Promise<Buffer>}
+ */
+export async function getFallbackSprite(fileName) {
+  return await readFile(`public/resources/sprites/osm/${fileName}`);
+}
+
+/**
+ * Get the size of Sprite folder path
+ * @param {string} spriteDirPath Sprite dir path to get
+ * @returns {Promise<number>}
+ */
+export async function getSpriteSize(spriteDirPath) {
+  const fileNames = await findFiles(
+    spriteDirPath,
+    /^sprite(@\d+x)?\.(json|png)$/,
+    false,
+    true
+  );
+
+  let size = 0;
+
+  for (const fileName of fileNames) {
+    const stats = await stat(fileName);
+
+    size += stats.size;
+  }
+
+  return size;
+}
+
+/**
  * Validate sprite
- * @param {string} spriteDirPath Sprite dir path
+ * @param {string} spriteDirPath Sprite dir path to validate
  * @returns {Promise<void>}
  */
 export async function validateSprite(spriteDirPath) {
@@ -150,55 +190,4 @@ export async function validateSprite(spriteDirPath) {
       }
     })
   );
-}
-
-/**
- * Get sprite
- * @param {string} dirPath Sprite dir path
- * @param {string} fileName Sprite file name
- * @returns {Promise<Buffer>}
- */
-export async function getSprite(dirPath, fileName) {
-  try {
-    return await readFile(`${dirPath}/${fileName}`);
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("Sprite does not exist");
-    } else {
-      throw error;
-    }
-  }
-}
-
-/**
- * Get fallback sprite
- * @param {string} fileName Sprite file name
- * @returns {Promise<Buffer>}
- */
-export async function getFallbackSprite(fileName) {
-  return await readFile(`public/resources/sprites/osm/${fileName}`);
-}
-
-/**
- * Get the size of Sprite folder path
- * @param {string} spriteDirPath Sprite dir path
- * @returns {Promise<number>}
- */
-export async function getSpriteSize(spriteDirPath) {
-  const fileNames = await findFiles(
-    spriteDirPath,
-    /^sprite(@\d+x)?\.(json|png)$/,
-    false,
-    true
-  );
-
-  let size = 0;
-
-  for (const fileName of fileNames) {
-    const stats = await stat(fileName);
-
-    size += stats.size;
-  }
-
-  return size;
 }

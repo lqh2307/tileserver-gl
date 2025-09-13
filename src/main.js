@@ -1,13 +1,16 @@
 "use strict";
 
 import { removeOldCacheLocks, printLog } from "./utils/index.js";
-import { config, validateConfigFile } from "./config.js";
-import { validateCleanUpFile } from "./cleanup.js";
-import { validateSeedFile } from "./seed.js";
 import chokidar from "chokidar";
 import cluster from "cluster";
 import cron from "node-cron";
 import os from "os";
+import {
+  validateCleanUpFile,
+  validateConfigFile,
+  validateSeedFile,
+  config,
+} from "./configs/index.js";
 import {
   cancelTaskInWorker,
   startTaskInWorker,

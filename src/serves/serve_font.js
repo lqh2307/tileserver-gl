@@ -1,10 +1,8 @@
 "use strict";
 
-import { getFont, validateFont } from "../font.js";
-import { getAndCacheDataFonts } from "../data.js";
+import { getAndCacheDataFonts, getFont, validatePBFFont } from "../resources/index.js";
+import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { config } from "../config.js";
-import { seed } from "../seed.js";
 import {
   detectFormatAndHeaders,
   getRequestHost,
@@ -56,12 +54,12 @@ function getFontHandler() {
 function getFontStaticHandler() {
   return async (req, res) => {
     const id = req.params.id;
+    const format = req.params.format;
 
     try {
       /* Get static Font */
       let data = await getFont(
-        `${process.env.DATA_DIR}/${req.params.format}fonts/${id}`,
-        `${req.params.name}.${req.params.format}`
+        `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`,
       );
 
       /* Add header */
@@ -71,7 +69,7 @@ function getFontStaticHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get font ${req.params.format} "${id}": ${error}`
+        `Failed to get font ${format} "${id}": ${error}`
       );
 
       return res
@@ -319,7 +317,7 @@ export const serve_font = {
               fontInfo.path = `${process.env.DATA_DIR}/fonts/${item.font}`;
 
               /* Validate font */
-              await validateFont(fontInfo.path);
+              await validatePBFFont(fontInfo.path);
             }
 
             /* Add to repo */

@@ -1,10 +1,8 @@
 "use strict";
 
-import { getAndCacheDataSprite } from "../data.js";
+import { getAndCacheDataSprite, validateSprite } from "../resources/index.js";
+import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { validateSprite } from "../sprite.js";
-import { config } from "../config.js";
-import { seed } from "../seed.js";
 import {
   detectContentTypeFromFormat,
   getRequestHost,

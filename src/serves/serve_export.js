@@ -2,8 +2,8 @@
 
 import { getJSONSchema, validateJSON, printLog } from "../utils/index.js";
 import { StatusCodes } from "http-status-codes";
+import { config } from "../configs/index.js";
 import { exportAll } from "../export_all.js";
-import { config } from "../config.js";
 import os from "os";
 import {
   exportPostgreSQLTiles,
@@ -77,8 +77,8 @@ function exportAllHandler() {
         req.body.parentServerHost || "http://localhost:8080",
         req.body.exportData ?? true,
         req.body.refreshBefore?.time ||
-          req.body.refreshBefore?.day ||
-          req.body.refreshBefore?.md5
+        req.body.refreshBefore?.day ||
+        req.body.refreshBefore?.md5
       );
 
       return res.status(StatusCodes.CREATED).send("OK");
