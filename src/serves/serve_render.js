@@ -60,7 +60,7 @@ function renderStyleJSONHandler() {
 
       const headers = {
         "content-type": "application/json",
-        "resolution": JSON.stringify(result.resolution),
+        resolution: JSON.stringify(result.resolution),
         "access-control-expose-headers": "resolution",
       };
 

@@ -1,16 +1,11 @@
 "use strict";
 
 import { removeOldCacheLocks, printLog } from "./utils/index.js";
+import { validateConfig, config } from "./configs/index.js";
 import chokidar from "chokidar";
 import cluster from "cluster";
 import cron from "node-cron";
 import os from "os";
-import {
-  validateCleanUpFile,
-  validateConfigFile,
-  validateSeedFile,
-  config,
-} from "./configs/index.js";
 import {
   cancelTaskInWorker,
   startTaskInWorker,
@@ -44,9 +39,9 @@ async function startClusterServer() {
 
     try {
       await Promise.all([
-        validateConfigFile(),
-        validateSeedFile(),
-        validateCleanUpFile(),
+        validateConfig("config"),
+        validateConfig("seed"),
+        validateConfig("cleanup"),
       ]);
     } catch (error) {
       printLog(

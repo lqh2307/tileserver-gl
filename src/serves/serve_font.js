@@ -1,8 +1,12 @@
 "use strict";
 
-import { getAndCacheDataFonts, getFont, validatePBFFont } from "../resources/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
+import {
+  getAndCacheDataFonts,
+  validatePBFFont,
+  getFont,
+} from "../resources/index.js";
 import {
   detectFormatAndHeaders,
   getRequestHost,
@@ -59,7 +63,7 @@ function getFontStaticHandler() {
     try {
       /* Get static Font */
       let data = await getFont(
-        `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`,
+        `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`
       );
 
       /* Add header */
@@ -67,10 +71,7 @@ function getFontStaticHandler() {
 
       return res.status(StatusCodes.OK).send(data);
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to get font ${format} "${id}": ${error}`
-      );
+      printLog("error", `Failed to get font ${format} "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)

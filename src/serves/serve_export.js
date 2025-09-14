@@ -77,8 +77,8 @@ function exportAllHandler() {
         req.body.parentServerHost || "http://localhost:8080",
         req.body.exportData ?? true,
         req.body.refreshBefore?.time ||
-        req.body.refreshBefore?.day ||
-        req.body.refreshBefore?.md5
+          req.body.refreshBefore?.day ||
+          req.body.refreshBefore?.md5
       );
 
       return res.status(StatusCodes.CREATED).send("OK");

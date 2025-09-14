@@ -2,20 +2,15 @@
 
 import { StatusCodes } from "http-status-codes";
 import {
-  updateCleanUpFile,
   updateConfigFile,
-  readCleanUpFile,
   readConfigFile,
-  updateSeedFile,
-  readSeedFile,
+  validateConfig,
   config,
 } from "../configs/index.js";
 import {
   compileHandleBarsTemplate,
   getXYZFromLonLatZ,
   getRequestHost,
-  getJSONSchema,
-  validateJSON,
   getVersion,
   printLog,
 } from "../utils/index.js";
@@ -158,25 +153,17 @@ function serveFrontPageHandler() {
 }
 
 /**
- * Get config.json/seed.json/cleanUp.json content handler
+ * Get config content handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveConfigHandler() {
   return async (req, res) => {
     try {
-      let data;
-
-      if (req.query.type === "seed") {
-        data = await readSeedFile(false);
-      } else if (req.query.type === "cleanUp") {
-        data = await readCleanUpFile(false);
-      } else {
-        data = await readConfigFile(false);
-      }
-
       res.header("content-type", "application/json");
 
-      return res.status(StatusCodes.OK).send(data);
+      return res
+        .status(StatusCodes.OK)
+        .send(readConfigFile(req.query.type, false));
     } catch (error) {
       printLog("error", `Failed to get config: ${error}`);
 
@@ -188,23 +175,23 @@ function serveConfigHandler() {
 }
 
 /**
- * Update config.json/seed.json/cleanUp.json content handler
+ * Update config content handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveConfigUpdateHandler() {
   return async (req, res) => {
     try {
+      await validateConfig(req.query.type, req.body);
+    } catch (error) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .send(`Invalid ${req.query.type}: ${error}`);
+    }
+
+    try {
+      const config = readConfigFile(req.query.type, true);
+
       if (req.query.type === "seed") {
-        try {
-          validateJSON(await getJSONSchema("seed"), req.body);
-        } catch (error) {
-          return res
-            .status(StatusCodes.BAD_REQUEST)
-            .send(`Seed is invalid: ${error}`);
-        }
-
-        const seedData = await readSeedFile(true);
-
         if (!req.body.styles) {
           printLog("info", "No styles to update in seed. Skipping...");
         } else {
@@ -213,7 +200,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} styles in seed...`);
 
           ids.map((id) => {
-            seedData.styles[id] = req.body.styles[id];
+            config.styles[id] = req.body.styles[id];
           });
         }
 
@@ -225,7 +212,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} GeoJSONs in seed...`);
 
           ids.map((id) => {
-            seedData.geojsons[id] = req.body.geojsons[id];
+            config.geojsons[id] = req.body.geojsons[id];
           });
         }
 
@@ -237,7 +224,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} datas in seed...`);
 
           ids.map((id) => {
-            seedData.datas[id] = req.body.datas[id];
+            config.datas[id] = req.body.datas[id];
           });
         }
 
@@ -249,7 +236,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} sprites in seed...`);
 
           ids.map((id) => {
-            seedData.sprites[id] = req.body.sprites[id];
+            config.sprites[id] = req.body.sprites[id];
           });
         }
 
@@ -261,22 +248,12 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} fonts in seed...`);
 
           ids.map((id) => {
-            seedData.fonts[id] = req.body.fonts[id];
+            config.fonts[id] = req.body.fonts[id];
           });
         }
 
-        await updateSeedFile(seedData, 60000);
-      } else if (req.query.type === "cleanUp") {
-        try {
-          validateJSON(await getJSONSchema("cleanup"), req.body);
-        } catch (error) {
-          return res
-            .status(StatusCodes.BAD_REQUEST)
-            .send(`Cleanup is invalid: ${error}`);
-        }
-
-        const cleanUpData = await readCleanUpFile(true);
-
+        await updateConfigFile("cleanup", config, 60000);
+      } else if (req.query.type === "cleanup") {
         if (!req.body.styles) {
           printLog("info", "No styles to update in cleanup. Skipping...");
         } else {
@@ -285,7 +262,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} styles in cleanup...`);
 
           ids.map((id) => {
-            cleanUpData.styles[id] = req.body.styles[id];
+            config.styles[id] = req.body.styles[id];
           });
         }
 
@@ -297,7 +274,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} GeoJSONs in cleanup...`);
 
           ids.map((id) => {
-            cleanUpData.geojsons[id] = req.body.geojsons[id];
+            config.geojsons[id] = req.body.geojsons[id];
           });
         }
 
@@ -309,7 +286,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} datas in cleanup...`);
 
           ids.map((id) => {
-            cleanUpData.datas[id] = req.body.datas[id];
+            config.datas[id] = req.body.datas[id];
           });
         }
 
@@ -321,7 +298,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} sprites in cleanup...`);
 
           ids.map((id) => {
-            cleanUpData.sprites[id] = req.body.sprites[id];
+            config.sprites[id] = req.body.sprites[id];
           });
         }
 
@@ -333,22 +310,12 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} fonts in cleanup...`);
 
           ids.map((id) => {
-            cleanUpData.fonts[id] = req.body.fonts[id];
+            config.fonts[id] = req.body.fonts[id];
           });
         }
 
-        await updateCleanUpFile(cleanUpData, 60000);
+        await updateConfigFile("cleanup", config, 60000);
       } else {
-        try {
-          validateJSON(await getJSONSchema("config"), req.body);
-        } catch (error) {
-          return res
-            .status(StatusCodes.BAD_REQUEST)
-            .send(`Config is invalid: ${error}`);
-        }
-
-        const configData = await readConfigFile(true);
-
         if (!req.body.styles) {
           printLog("info", "No styles to update in config. Skipping...");
         } else {
@@ -357,7 +324,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} styles in config...`);
 
           ids.map((id) => {
-            configData.styles[id] = req.body.styles[id];
+            config.styles[id] = req.body.styles[id];
           });
         }
 
@@ -375,7 +342,7 @@ function serveConfigUpdateHandler() {
           );
 
           ids.map((id) => {
-            configData.geojsons[id] = req.body.geojsons[id];
+            config.geojsons[id] = req.body.geojsons[id];
           });
         }
 
@@ -387,7 +354,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} datas in config...`);
 
           ids.map((id) => {
-            configData.datas[id] = req.body.datas[id];
+            config.datas[id] = req.body.datas[id];
           });
         }
 
@@ -399,7 +366,7 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} sprites in config...`);
 
           ids.map((id) => {
-            configData.sprites[id] = req.body.sprites[id];
+            config.sprites[id] = req.body.sprites[id];
           });
         }
 
@@ -411,11 +378,11 @@ function serveConfigUpdateHandler() {
           printLog("info", `Updating ${ids.length} fonts in config...`);
 
           ids.map((id) => {
-            configData.fonts[id] = req.body.fonts[id];
+            config.fonts[id] = req.body.fonts[id];
           });
         }
 
-        await updateConfigFile(configData, 60000);
+        await updateConfigFile(config, 60000);
       }
 
       if (req.query.restart === "true") {
@@ -440,23 +407,23 @@ function serveConfigUpdateHandler() {
 }
 
 /**
- * Delete config.json/seed.json/cleanUp.json content handler
+ * Delete config content handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveConfigDeleteHandler() {
   return async (req, res) => {
     try {
-      try {
-        validateJSON(await getJSONSchema("delete"), req.body);
-      } catch (error) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Delete is invalid: ${error}`);
-      }
+      await validateConfig(req.query.type, req.body);
+    } catch (error) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .send(`Invalid ${req.query.type}: ${error}`);
+    }
+
+    try {
+      const config = readConfigFile(req.query.type, true);
 
       if (req.query.type === "seed") {
-        const seedData = await readSeedFile(true);
-
         if (!req.body.styles) {
           printLog("info", "No styles to remove in seed. Skipping...");
         } else {
@@ -466,7 +433,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.styles.map((id) => {
-            delete seedData.styles[id];
+            delete config.styles[id];
           });
         }
 
@@ -479,7 +446,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.geojsons.map((id) => {
-            delete seedData.geojsons[id];
+            delete config.geojsons[id];
           });
         }
 
@@ -492,7 +459,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.datas.map((id) => {
-            delete seedData.datas[id];
+            delete config.datas[id];
           });
         }
 
@@ -505,7 +472,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.sprites.map((id) => {
-            delete seedData.sprites[id];
+            delete config.sprites[id];
           });
         }
 
@@ -518,14 +485,12 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.fonts.map((id) => {
-            delete seedData.fonts[id];
+            delete config.fonts[id];
           });
         }
 
-        await updateSeedFile(seedData, 60000);
-      } else if (req.query.type === "cleanUp") {
-        const cleanUpData = await readCleanUpFile(true);
-
+        await updateConfigFile("cleanup", config, 60000);
+      } else if (req.query.type === "cleanup") {
         if (!req.body.styles) {
           printLog("info", "No styles to remove in cleanup. Skipping...");
         } else {
@@ -535,7 +500,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.styles.map((id) => {
-            delete cleanUpData.styles[id];
+            delete config.styles[id];
           });
         }
 
@@ -548,7 +513,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.geojsons.map((id) => {
-            delete cleanUpData.geojsons[id];
+            delete config.geojsons[id];
           });
         }
 
@@ -561,7 +526,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.datas.map((id) => {
-            delete cleanUpData.datas[id];
+            delete config.datas[id];
           });
         }
 
@@ -574,7 +539,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.sprites.map((id) => {
-            delete cleanUpData.sprites[id];
+            delete config.sprites[id];
           });
         }
 
@@ -587,14 +552,12 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.fonts.map((id) => {
-            delete cleanUpData.fonts[id];
+            delete config.fonts[id];
           });
         }
 
-        await updateCleanUpFile(cleanUpData, 60000);
+        await updateConfigFile("cleanup", config, 60000);
       } else {
-        const configData = await readConfigFile(true);
-
         if (!req.body.styles) {
           printLog("info", "No styles to remove in cleanup. Skipping...");
         } else {
@@ -604,7 +567,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.styles.map((id) => {
-            delete configData.styles[id];
+            delete config.styles[id];
           });
         }
 
@@ -617,7 +580,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.geojsons.map((id) => {
-            delete configData.geojsons[id];
+            delete config.geojsons[id];
           });
         }
 
@@ -630,7 +593,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.datas.map((id) => {
-            delete configData.datas[id];
+            delete config.datas[id];
           });
         }
 
@@ -643,7 +606,7 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.sprites.map((id) => {
-            delete configData.sprites[id];
+            delete config.sprites[id];
           });
         }
 
@@ -656,11 +619,11 @@ function serveConfigDeleteHandler() {
           );
 
           req.body.fonts.map((id) => {
-            delete configData.fonts[id];
+            delete config.fonts[id];
           });
         }
 
-        await updateConfigFile(configData, 60000);
+        await updateConfigFile(config, 60000);
       }
 
       if (req.query.restart === "true") {
@@ -898,7 +861,7 @@ export const serve_common = {
      *         name: type
      *         schema:
      *           type: string
-     *           enum: [config, seed, cleanUp]
+     *           enum: [config, seed, cleanup]
      *           example: config
      *         required: false
      *         description: Config type
@@ -929,7 +892,7 @@ export const serve_common = {
      *         name: type
      *         schema:
      *           type: string
-     *           enum: [config, seed, cleanUp]
+     *           enum: [config, seed, cleanup]
      *           example: config
      *         required: false
      *         description: Config type
@@ -976,7 +939,7 @@ export const serve_common = {
      *         name: type
      *         schema:
      *           type: string
-     *           enum: [config, seed, cleanUp]
+     *           enum: [config, seed, cleanup]
      *           example: config
      *         required: false
      *         description: Config type

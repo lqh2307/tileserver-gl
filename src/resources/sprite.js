@@ -2,14 +2,17 @@
 
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
+import { config } from "../configs/index.js";
 import {
   removeFileWithLock,
   createFileWithLock,
+  getDataFileFromURL,
   getImageMetadata,
   getDataFromURL,
   getJSONSchema,
   validateJSON,
   findFiles,
+  printLog,
   retry,
 } from "../utils/index.js";
 
@@ -65,10 +68,7 @@ export async function downloadSpriteFile(
       );
 
       // Store data to file
-      await cacheSpriteFile(
-        filePath,
-        response.data
-      );
+      await cacheSpriteFile(filePath, response.data);
     } catch (error) {
       if (error.statusCode) {
         if (
@@ -190,4 +190,66 @@ export async function validateSprite(spriteDirPath) {
       }
     })
   );
+}
+
+/**
+ * Get and cache data Sprite
+ * @param {string} id Sprite id
+ * @param {string} fileName Sprite file name
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheDataSprite(id, fileName) {
+  const item = config.sprites[id];
+
+  try {
+    if (!item) {
+      throw new Error("Sprite does not exist");
+    }
+
+    return await getSprite(`${item.path}/${fileName}`);
+  } catch (error) {
+    try {
+      if (item.sourceURL && error.message === "Sprite does not exist") {
+        const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
+
+        printLog(
+          "info",
+          `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
+        );
+
+        /* Get sprite */
+        const sprite = await getDataFileFromURL(
+          targetURL,
+          item.headers,
+          30000 // 30 secs
+        );
+
+        /* Cache */
+        if (item.storeCache) {
+          printLog(
+            "info",
+            `Caching sprite "${id}" - Filename "${fileName}"...`
+          );
+
+          cacheSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
+            printLog(
+              "error",
+              `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
+            )
+          );
+        }
+
+        return sprite;
+      } else {
+        throw error;
+      }
+    } catch (error) {
+      printLog(
+        "warn",
+        `Failed to get sprite "${id}" - Filename "${fileName}": ${error}. Using fallback sprite "osm"...`
+      );
+
+      return await getFallbackSprite(fileName);
+    }
+  }
 }

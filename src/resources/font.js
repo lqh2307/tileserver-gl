@@ -2,11 +2,13 @@
 
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
+import { config } from "../configs/index.js";
 import protobuf from "protocol-buffers";
 import cluster from "cluster";
 import {
   removeFileWithLock,
   createFileWithLock,
+  getDataFileFromURL,
   getDataFromURL,
   findFiles,
   printLog,
@@ -80,10 +82,7 @@ export async function downloadFontFile(
       );
 
       // Store data to file
-      await cacheFontFile(
-        filePath,
-        response.data
-      );
+      await cacheFontFile(filePath, response.data);
     } catch (error) {
       if (error.statusCode) {
         if (
@@ -242,4 +241,78 @@ export async function getPBFFontSize(pbfDirPath) {
   }
 
   return size;
+}
+
+/**
+ * Get and cache data Fonts
+ * @param {string} ids Font ids
+ * @param {string} fileName Font file name
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheDataFonts(ids, fileName) {
+  /* Get font datas */
+  const buffers = await Promise.all(
+    ids.split(",").map(async (id) => {
+      const item = config.fonts[id];
+
+      try {
+        if (!item) {
+          throw new Error("Font does not exist");
+        }
+
+        return await getFont(`${item.path}/${fileName}`);
+      } catch (error) {
+        try {
+          if (
+            item &&
+            item.sourceURL &&
+            error.message === "Font does not exist"
+          ) {
+            const targetURL = item.sourceURL.replace("{range}.pbf", fileName);
+
+            printLog(
+              "info",
+              `Forwarding font "${id}" - Filename "${fileName}" - To "${targetURL}"...`
+            );
+
+            /* Get font */
+            const font = await getDataFileFromURL(
+              targetURL,
+              item.headers,
+              30000 // 30 secs
+            );
+
+            /* Cache */
+            if (item.storeCache) {
+              printLog(
+                "info",
+                `Caching font "${id}" - Filename "${fileName}"...`
+              );
+
+              cacheFontFile(`${item.path}/${fileName}`, font).catch((error) =>
+                printLog(
+                  "error",
+                  `Failed to cache font "${id}" - Filename "${fileName}": ${error}`
+                )
+              );
+            }
+
+            return font;
+          } else {
+            throw error;
+          }
+        } catch (error) {
+          printLog(
+            "warn",
+            `Failed to get font "${id}": ${error}. Using fallback font "Open Sans"...`
+          );
+
+          return await getFallbackFont(id, fileName);
+        }
+      }
+    })
+  );
+
+  /* Merge font datas */
+  return mergePBFFontDatas(buffers);
 }

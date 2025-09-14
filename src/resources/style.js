@@ -7,8 +7,10 @@ import { config } from "../configs/index.js";
 import {
   removeFileWithLock,
   createFileWithLock,
+  getDataFileFromURL,
   getDataFromURL,
   isLocalURL,
+  printLog,
   retry,
 } from "../utils/index.js";
 
@@ -246,7 +248,8 @@ export async function getStyleSize(filePath) {
  * @returns {Promise<void>}
  */
 export async function validateStyle(data) {
-  const styleJSON = typeof data === "object" ? data : JSON.parse(await readFile(data));
+  const styleJSON =
+    typeof data === "object" ? data : JSON.parse(await readFile(data));
 
   /* Validate style */
   const validationErrors = validateStyleMin(styleJSON);
@@ -372,4 +375,42 @@ export async function validateStyle(data) {
       }
     })
   );
+}
+
+/**
+ * Get and cache data StyleJSON
+ * @param {string} id StyleJSON id
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheDataStyleJSON(id) {
+  const item = config.styles[id];
+
+  try {
+    return await getStyle(item.path);
+  } catch (error) {
+    if (item.sourceURL && error.message === "JSON does not exist") {
+      printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
+
+      const styleJSON = await getDataFileFromURL(
+        item.sourceURL,
+        item.headers,
+        30000 // 30 secs
+      );
+
+      if (item.storeCache) {
+        printLog("info", `Caching style "${id}" - File "${item.path}"...`);
+
+        cacheStyleFile(item.path, styleJSON).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache style "${id}" - File "${item.path}": ${error}`
+          )
+        );
+      }
+
+      return styleJSON;
+    } else {
+      throw error;
+    }
+  }
 }

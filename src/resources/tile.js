@@ -4,6 +4,7 @@ import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import { PMTiles, FetchSource } from "pmtiles";
 import { openSync, readSync } from "node:fs";
+import { config } from "../configs/index.js";
 import protobuf from "protocol-buffers";
 import sharp from "sharp";
 import {
@@ -14,6 +15,7 @@ import {
   execSQLWithTimeout,
   removeFileWithLock,
   createFileWithLock,
+  getDataTileFromURL,
   handleConcurrency,
   createImageOutput,
   runSQLWithTimeout,
@@ -233,7 +235,8 @@ export function getMBTilesTileExtraInfoFromCoverages(
   rows.forEach((row) => {
     if (row[extraInfoType] !== null) {
       result[
-        `${row.zoom_level}/${row.tile_column}/${(1 << row.zoom_level) - 1 - row.tile_row
+        `${row.zoom_level}/${row.tile_column}/${
+          (1 << row.zoom_level) - 1 - row.tile_row
         }`
       ] = row[extraInfoType];
     }
@@ -931,6 +934,67 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
       `
     )
     .run(["minzoom", metadata.maxzoom - deltaZ]);
+}
+
+/**
+ * Get and cache MBTiles data tile
+ * @param {string} id Data id
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheMBTilesDataTile(id, z, x, y) {
+  const item = config.datas[id];
+  const tileName = `${z}/${x}/${y}`;
+
+  try {
+    return getMBTilesTile(item.source, z, x, y);
+  } catch (error) {
+    if (item.sourceURL && error.message === "Tile does not exist") {
+      const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+      const targetURL = item.sourceURL
+        .replace("{z}", `${z}`)
+        .replace("{x}", `${x}`)
+        .replace("{y}", `${tmpY}`);
+
+      printLog(
+        "info",
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+      );
+
+      /* Get data */
+      const dataTile = await getDataTileFromURL(
+        targetURL,
+        item.headers,
+        30000 // 30 secs
+      );
+
+      /* Cache */
+      if (item.storeCache) {
+        printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+        cacheMBtilesTileData(
+          item.source,
+          z,
+          x,
+          tmpY,
+          dataTile.data,
+          item.storeTransparent
+        ).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+          )
+        );
+      }
+
+      return dataTile;
+    } else {
+      throw error;
+    }
+  }
 }
 
 /*********************************** PMTiles *************************************/
@@ -2016,6 +2080,67 @@ export async function addPostgreSQLOverviews(
   );
 }
 
+/**
+ * Get and cache PostgreSQL data tile
+ * @param {string} id Data id
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {Promise<object>}
+ */
+export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
+  const item = config.datas[id];
+  const tileName = `${z}/${x}/${y}`;
+
+  try {
+    return await getPostgreSQLTile(item.source, z, x, y);
+  } catch (error) {
+    if (item.sourceURL && error.message === "Tile does not exist") {
+      const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+      const targetURL = item.sourceURL
+        .replace("{z}", `${z}`)
+        .replace("{x}", `${x}`)
+        .replace("{y}", `${tmpY}`);
+
+      printLog(
+        "info",
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+      );
+
+      /* Get data */
+      const dataTile = await getDataTileFromURL(
+        targetURL,
+        item.headers,
+        30000 // 30 secs
+      );
+
+      /* Cache */
+      if (item.storeCache) {
+        printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+        cachePostgreSQLTileData(
+          item.source,
+          z,
+          x,
+          tmpY,
+          dataTile.data,
+          item.storeTransparent
+        ).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+          )
+        );
+      }
+
+      return dataTile;
+    } else {
+      throw error;
+    }
+  }
+}
+
 /*********************************** XYZ *************************************/
 
 /**
@@ -2115,11 +2240,11 @@ async function getXYZZoomLevelFromTiles(sourcePath, zoomType) {
       if (zoomType === "minzoom") {
         if (zooms[i] < zoom) {
           zoom = zooms[i];
-        };
+        }
       } else {
         if (zooms[i] > zoom) {
           zoom = zooms[i];
-        };
+        }
       }
     }
 
@@ -2270,12 +2395,17 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function removeXYZTile(sourcePath, source, z, x, y, format, timeout) {
+export async function removeXYZTile(
+  sourcePath,
+  source,
+  z,
+  x,
+  y,
+  format,
+  timeout
+) {
   await Promise.all([
-    removeFileWithLock(
-      `${sourcePath}/${z}/${x}/${y}.${format}`,
-      timeout
-    ),
+    removeFileWithLock(`${sourcePath}/${z}/${x}/${y}.${format}`, timeout),
     runSQLWithTimeout(
       source,
       `
@@ -2962,4 +3092,99 @@ export async function addXYZOverviews(
       `
     )
     .run(["minzoom", metadata.maxzoom - deltaZ]);
+}
+
+/**
+ * Get and cache XYZ data tile
+ * @param {string} id Data id
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheXYZDataTile(id, z, x, y) {
+  const item = config.datas[id];
+  const tileName = `${z}/${x}/${y}`;
+
+  try {
+    return await getXYZTile(item.source, z, x, y, item.tileJSON.format);
+  } catch (error) {
+    if (item.sourceURL && error.message === "Tile does not exist") {
+      const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
+
+      const targetURL = item.sourceURL
+        .replace("{z}", `${z}`)
+        .replace("{x}", `${x}`)
+        .replace("{y}", `${tmpY}`);
+
+      printLog(
+        "info",
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+      );
+
+      /* Get data */
+      const dataTile = await getDataTileFromURL(
+        targetURL,
+        item.headers,
+        30000 // 30 secs
+      );
+
+      /* Cache */
+      if (item.storeCache) {
+        printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+
+        cacheXYZTileFile(
+          item.source,
+          item.md5Source,
+          z,
+          x,
+          tmpY,
+          item.tileJSON.format,
+          dataTile.data,
+          item.storeTransparent
+        ).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
+          )
+        );
+      }
+
+      return dataTile;
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Validate tile metadata (no validate json field)
+ * @param {object} metadata Metadata object
+ * @returns {void}
+ */
+export function validateTileMetadata(metadata) {
+  /* Validate name */
+  if (metadata.name === undefined) {
+    throw new Error(`"name" property is invalid`);
+  }
+
+  /* Validate type */
+  if (metadata.type !== undefined) {
+    if (!["baselayer", "overlay"].includes(metadata.type)) {
+      throw new Error(`"type" property is invalid`);
+    }
+  }
+
+  /* Validate format */
+  if (
+    ["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(metadata.format) ===
+    false
+  ) {
+    throw new Error(`"format" property is invalid`);
+  }
+
+  /* Validate json */
+  if (metadata.format === "pbf" && metadata.vector_layers === undefined) {
+    throw new Error(`"vector_layers" property is invalid`);
+  }
 }

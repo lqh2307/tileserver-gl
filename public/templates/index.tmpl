@@ -762,7 +762,7 @@
                 <p>description: View cleanup.json content</p>
               </div>
               <div class="viewers">
-                <a class="btn" href="${baseURL}/config?type=cleanUp">View</a>
+                <a class="btn" href="${baseURL}/config?type=cleanup">View</a>
               </div>
             </div>
             <div class="item">
@@ -1085,7 +1085,7 @@
         document.getElementById("updateCleanUpForm").onsubmit = (event) => {
           event.preventDefault();
 
-          fetch(`${baseURL}/config?type=cleanUp&restart=true`, {
+          fetch(`${baseURL}/config?type=cleanup&restart=true`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -1163,7 +1163,7 @@
         document.getElementById("deleteCleanUpForm").onsubmit = (event) => {
           event.preventDefault();
 
-          fetch(`${baseURL}/config?type=cleanUp&restart=true`, {
+          fetch(`${baseURL}/config?type=cleanup&restart=true`, {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",

@@ -1,11 +1,15 @@
 "use strict";
 
-import { validateAndGetGeometryTypes, getAndCacheDataGeoJSON, getGeoJSON } from "../resources/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import path from "path";
+import {
+  validateAndGetGeometryTypes,
+  getAndCacheDataGeoJSON,
+  getGeoJSON,
+} from "../resources/index.js";
 import {
   compileHandleBarsTemplate,
   calculateMD5OfFile,
@@ -159,8 +163,9 @@ function getGeoJSONInfoHandler() {
       const data = {
         group: id,
         layer: req.params.layer,
-        url: `${getRequestHost(req)}/geojsons/${id}/${req.params.layer
-          }.geojson`,
+        url: `${getRequestHost(req)}/geojsons/${id}/${
+          req.params.layer
+        }.geojson`,
         geometryTypes: item[req.params.layer].geometryTypes,
       };
 

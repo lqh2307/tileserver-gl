@@ -2,10 +2,13 @@
 
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
+import { config } from "../configs/index.js";
 import {
   removeFileWithLock,
   createFileWithLock,
+  getDataFileFromURL,
   getDataFromURL,
+  printLog,
   retry,
 } from "../utils/index.js";
 
@@ -132,7 +135,8 @@ export async function getGeoJSONSize(filePath) {
  * @returns {Promise<string[]>} List of geometry types
  */
 export async function validateAndGetGeometryTypes(data) {
-  const geoJSON = typeof data === "object" ? data : JSON.parse(await readFile(data));
+  const geoJSON =
+    typeof data === "object" ? data : JSON.parse(await readFile(data));
 
   const geometryTypes = new Set();
 
@@ -341,4 +345,46 @@ export async function validateAndGetGeometryTypes(data) {
   }
 
   return Array.from(geometryTypes);
+}
+
+/**
+ * Get and cache data GeoJSON
+ * @param {string} id GeoJSON group id
+ * @param {string} layer GeoJSON group layer
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheDataGeoJSON(id, layer) {
+  const item = config.geojsons[id][layer];
+
+  try {
+    return await getGeoJSON(item.path);
+  } catch (error) {
+    if (item.sourceURL && error.message === "JSON does not exist") {
+      printLog(
+        "info",
+        `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`
+      );
+
+      const geoJSON = await getDataFileFromURL(
+        item.sourceURL,
+        item.headers,
+        30000 // 30 secs
+      );
+
+      if (item.storeCache) {
+        printLog("info", `Caching GeoJSON "${id}" - File "${item.path}"...`);
+
+        cacheGeoJSONFile(item.path, geoJSON).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache GeoJSON "${id}" - File "${item.path}": ${error}`
+          )
+        );
+      }
+
+      return geoJSON;
+    } else {
+      throw error;
+    }
+  }
 }
