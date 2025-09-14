@@ -3,13 +3,13 @@
 import { getJSONSchema, validateJSON, printLog } from "../utils/index.js";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
-import { exportAll } from "../export_all.js";
 import os from "os";
 import {
   exportPostgreSQLTiles,
   exportMBTilesTiles,
   exportXYZTiles,
-} from "../export_data.js";
+  exportAll,
+} from "../export.js";
 import {
   renderPostgreSQLTiles,
   renderMBTilesTiles,

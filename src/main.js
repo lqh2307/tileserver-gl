@@ -1,6 +1,6 @@
 "use strict";
 
-import { removeOldCacheLocks, printLog } from "./utils/index.js";
+import { removeOldLocks, printLog } from "./utils/index.js";
 import { validateConfig, config } from "./configs/index.js";
 import chokidar from "chokidar";
 import cluster from "cluster";
@@ -31,11 +31,8 @@ async function startClusterServer() {
 
     printLog("info", log);
 
-    /* Validate config.json, seed.json and cleanup.json files */
-    printLog(
-      "info",
-      "Validate config.json, seed.json and cleanup.json files..."
-    );
+    /* Validate config files */
+    printLog("info", "Validate config files...");
 
     try {
       await Promise.all([
@@ -44,10 +41,7 @@ async function startClusterServer() {
         validateConfig("cleanup"),
       ]);
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to validate config.json, seed.json and cleanup.json files: ${error}`
-      );
+      printLog("error", `Failed to validate config files: ${error}`);
 
       process.exit(1);
     }
@@ -76,17 +70,17 @@ async function startClusterServer() {
       process.env.BACKEND_RENDER = "true";
     } catch (error) {
       printLog(
-        "error",
+        "warn",
         `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render!`
       );
 
       process.env.BACKEND_RENDER = "false";
     }
 
-    /* Remove old cache locks */
-    printLog("info", "Removing old cache locks before start server...");
+    /* Remove old locks */
+    printLog("info", "Removing old locks before start server...");
 
-    await removeOldCacheLocks();
+    await removeOldLocks();
 
     printLog(
       "info",
@@ -96,11 +90,18 @@ async function startClusterServer() {
     /* Setup watch config file change */
     if (process.env.RESTART_AFTER_CONFIG_CHANGE === "true") {
       chokidar
-        .watch(`${process.env.DATA_DIR}/config.json`, {
-          usePolling: true,
-          awaitWriteFinish: true,
-          interval: 500,
-        })
+        .watch(
+          [
+            `${process.env.DATA_DIR}/config.json`,
+            `${process.env.DATA_DIR}/seed.json`,
+            `${process.env.DATA_DIR}/cleanup.json`,
+          ],
+          {
+            usePolling: true,
+            awaitWriteFinish: true,
+            interval: 500,
+          }
+        )
         .on("change", () => {
           printLog("info", "Config file has changed. Restarting server...");
 
@@ -161,7 +162,7 @@ async function startClusterServer() {
           case "killServer": {
             printLog(
               "info",
-              `Received "killServer" message from worker with PID = ${worker.process.pid}. Killing server...`
+              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Killing server...`
             );
 
             process.exit(0);
@@ -170,7 +171,7 @@ async function startClusterServer() {
           case "restartServer": {
             printLog(
               "info",
-              `Received "restartServer" message from worker with PID = ${worker.process.pid}. Restarting server...`
+              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Restarting server...`
             );
 
             process.exit(1);
@@ -179,7 +180,7 @@ async function startClusterServer() {
           case "startTask": {
             printLog(
               "info",
-              `Received "startTask" message from worker with PID = ${worker.process.pid}. Starting task...`
+              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Starting task...`
             );
 
             startTaskInWorker(message);
@@ -190,7 +191,7 @@ async function startClusterServer() {
           case "cancelTask": {
             printLog(
               "info",
-              `Received "cancelTask" message from worker with PID = ${worker.process.pid}. Canceling task...`
+              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Canceling task...`
             );
 
             cancelTaskInWorker();

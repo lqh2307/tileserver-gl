@@ -116,13 +116,26 @@ export async function removeEmptyFolders(folderPath, regex) {
 }
 
 /**
- * Recursively removes old cache locks
+ * Recursively removes old locks
  * @returns {Promise<void>}
  */
-export async function removeOldCacheLocks() {
-  let fileNames = await findFiles(
-    `${process.env.DATA_DIR}/caches`,
-    /^.*\.(lock|tmp)$/,
+export async function removeOldLocks() {
+  // const fileNames = await findFiles(
+  //   `${process.env.DATA_DIR}/caches`,
+  //   /^.*\.lock$/,
+  //   true,
+  //   true
+  // );
+
+  // fileNames.push(
+  //   `${process.env.DATA_DIR}/config.json.lock`,
+  //   `${process.env.DATA_DIR}/seed.json.lock`,
+  //   `${process.env.DATA_DIR}/cleanup.json.lock`
+  // );
+
+  const fileNames = await findFiles(
+    `${process.env.DATA_DIR}`,
+    /^.*\.lock$/,
     true,
     true
   );
