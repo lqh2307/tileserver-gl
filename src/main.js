@@ -62,10 +62,7 @@ async function startClusterServer() {
     try {
       await import("@maplibre/maplibre-gl-native");
 
-      printLog(
-        "info",
-        `Success to import "@maplibre/maplibre-gl-native". Enable backend render!`
-      );
+      printLog("info", "Enable backend render!");
 
       process.env.BACKEND_RENDER = "true";
     } catch (error) {
