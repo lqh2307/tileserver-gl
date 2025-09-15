@@ -67,7 +67,7 @@ export async function calculateResolution(input, unit) {
   const [maxX, maxY] = lonLat4326ToXY3857(input.bbox[2], input.bbox[3]);
   let resolution;
 
-  // Get image dimensions
+  // Get origin image size
   if (input.filePath) {
     const { width, height } = await sharp(input.filePath, {
       limitInputPixels: false,
@@ -397,6 +397,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     limitInputPixels: false,
   });
 
+  // Get origin image size
   const { width, height } = await image.metadata();
   const bbox = input.bbox;
 
@@ -1033,7 +1034,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
  * @returns {Promise<sharp.OutputInfo|Buffer|string>}
  */
 export async function mergeTilesToImage(input, output) {
-  // Detect tile size
+  // Detect origin tile size
   const { width, height } = await sharp(
     `${input.dirPath}/${input.z}/${input.xMin}/${input.yMin}.${input.format}`,
     {
@@ -1110,11 +1111,11 @@ export async function mergeTilesToImage(input, output) {
  * Split image to PDF
  * @param {{ image: string|Buffer, res: [number, number] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot", pageColor: string, pageSize: number, pageFont: string; }} preview Preview options object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, compression: boolean, grayscale: boolean }} output Output object
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, compression: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<jsPDF|sharp.OutputInfo|Buffer|string>}
  */
 export async function splitImage(input, preview, output) {
-  // Get image size
+  // Get origin image size
   const { width, height } = await sharp(input.image, {
     limitInputPixels: false,
   }).metadata();
@@ -1127,91 +1128,161 @@ export async function splitImage(input, preview, output) {
     paperWidth = output.paperSize[1];
   }
 
+  let image;
+
   let paperHeightPx;
   let paperWidthPx;
+
   let heightPageNum;
   let widthPageNum;
 
-  // Convert paper size to pixel and Calculate number of page
-  if (input.resolution) {
-    paperHeightPx = Math.round(paperHeight / input.resolution[1]);
-    paperWidthPx = Math.round(paperWidth / input.resolution[0]);
+  let newHeight;
+  let newWidth;
 
-    heightPageNum = Math.ceil(height / (paperHeight / input.resolution[1]));
-    widthPageNum = Math.ceil(width / (paperWidth / input.resolution[0]));
-  } else {
-    paperHeightPx = Math.round(toPixel(paperHeight, "mm"));
-    paperWidthPx = Math.round(toPixel(paperWidth, "mm"));
+  const horizontalAlign = output.alignContent?.horizontal || "center";
+  const verticalAlign = output.alignContent?.vertical || "middle";
 
-    heightPageNum = Math.ceil(height / toPixel(paperHeight, "mm"));
-    widthPageNum = Math.ceil(width / toPixel(paperWidth, "mm"));
-  }
-
-  const newHeight = heightPageNum * paperHeightPx;
-  const newWidth = widthPageNum * paperWidthPx;
-
-  let extendTop = 0;
-  let extendLeft = 0;
-
-  if (output.alignContent) {
-    switch (output.alignContent.vertical) {
-      case "top": {
-        extendTop = 0;
-
-        break;
+  // Process image
+  switch (output.fit) {
+    default: {
+      // Convert paper size to pixel
+      if (input.resolution) {
+        paperHeightPx = paperHeight / input.resolution[1];
+        paperWidthPx = paperWidth / input.resolution[0];
+      } else {
+        paperHeightPx = toPixel(paperHeight, "mm");
+        paperWidthPx = toPixel(paperWidth, "mm");
       }
 
-      case "middle": {
-        extendTop = Math.floor((newHeight - height) / 2);
+      // Calculate number of page
+      heightPageNum = Math.ceil(height / paperHeightPx);
+      widthPageNum = Math.ceil(width / paperWidthPx);
 
-        break;
+      // Round
+      paperHeightPx = Math.round(paperHeightPx);
+      paperWidthPx = Math.round(paperWidthPx);
+
+      // Asign new image size
+      newHeight = heightPageNum * paperHeightPx;
+      newWidth = widthPageNum * paperWidthPx;
+
+      let extendLeft;
+      let extendTop;
+
+      // Align
+      switch (horizontalAlign) {
+        default: {
+          extendLeft = 0;
+
+          break;
+        }
+
+        case "center": {
+          extendLeft = Math.floor((newWidth - width) / 2);
+
+          break;
+        }
+
+        case "right": {
+          extendLeft = Math.floor(newWidth - width);
+
+          break;
+        }
       }
 
-      case "bottom": {
-        extendTop = Math.floor(newHeight - height);
+      switch (verticalAlign) {
+        default: {
+          extendTop = 0;
 
-        break;
+          break;
+        }
+
+        case "middle": {
+          extendTop = Math.floor((newHeight - height) / 2);
+
+          break;
+        }
+
+        case "bottom": {
+          extendTop = Math.floor(newHeight - height);
+
+          break;
+        }
       }
+
+      // Extend image
+      image = await sharp(input.image, {
+        limitInputPixels: false,
+      })
+        .extend({
+          top: extendTop,
+          left: extendLeft,
+          bottom: Math.ceil(newHeight - height - extendTop),
+          right: Math.ceil(newWidth - width - extendLeft),
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        })
+        .toBuffer();
+
+      break;
     }
 
-    switch (output.alignContent.horizontal) {
-      case "left": {
-        extendLeft = 0;
+    case "cover":
+    case "contain":
+    case "fill": {
+      // Convert paper size to pixel and Calculate number of page
+      paperHeightPx = toPixel(paperHeight, "mm");
+      paperWidthPx = toPixel(paperWidth, "mm");
 
-        break;
+      heightPageNum = 1;
+      widthPageNum = 1;
+
+      // Round
+      paperHeightPx = Math.round(paperHeightPx);
+      paperWidthPx = Math.round(paperWidthPx);
+
+      // Asign new image size
+      newHeight = paperHeightPx;
+      newWidth = paperWidthPx;
+
+      let position;
+
+      // Align
+      if (horizontalAlign === "left" && verticalAlign === "top") {
+        position = "left top";
+      } else if (horizontalAlign === "center" && verticalAlign === "top") {
+        position = "top";
+      } else if (horizontalAlign === "right" && verticalAlign === "top") {
+        position = "right top";
+      } else if (horizontalAlign === "left" && verticalAlign === "middle") {
+        position = "left";
+      } else if (horizontalAlign === "right" && verticalAlign === "middle") {
+        position = "right";
+      } else if (horizontalAlign === "left" && verticalAlign === "bottom") {
+        position = "left bottom";
+      } else if (horizontalAlign === "center" && verticalAlign === "bottom") {
+        position = "bottom";
+      } else if (horizontalAlign === "right" && verticalAlign === "bottom") {
+        position = "right bottom";
+      } else {
+        position = "center";
       }
 
-      case "center": {
-        extendLeft = Math.floor((newWidth - width) / 2);
+      // Resize image
+      image = await sharp(input.image, {
+        limitInputPixels: false,
+      })
+        .resize(newWidth, newHeight, {
+          fit: output.fit,
+          position: position,
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        })
+        .toBuffer();
 
-        break;
-      }
-
-      case "right": {
-        extendLeft = Math.floor(newWidth - width);
-
-        break;
-      }
+      break;
     }
   }
 
-  const extendBottom = Math.ceil(newHeight - height - extendTop);
-  const extendRight = Math.ceil(newWidth - width - extendLeft);
-
-  // Extend image
-  const extendImage = await sharp(input.image, {
-    limitInputPixels: false,
-  })
-    .extend({
-      top: extendTop,
-      left: extendLeft,
-      bottom: extendBottom,
-      right: extendRight,
-      background: { r: 255, g: 255, b: 255, alpha: 0 },
-    })
-    .toBuffer();
-
-  // Process preview
+  // Process Preview or PDF
   if (preview) {
     let {
       format = "png",
@@ -1249,7 +1320,7 @@ export async function splitImage(input, preview, output) {
     }
 
     // Composite image
-    const compositeImage = await sharp(extendImage, {
+    const compositeImage = await sharp(image, {
       limitInputPixels: false,
     })
       .composite([
@@ -1291,7 +1362,7 @@ export async function splitImage(input, preview, output) {
         }
 
         doc.addImage(await createImageOutput(
-          sharp(extendImage, {
+          sharp(image, {
             limitInputPixels: false,
           }).extract({
             left: x * paperWidthPx,
