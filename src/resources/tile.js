@@ -847,31 +847,18 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
       }
 
       if (composites.length) {
-        const compositeImage = sharp({
-          create: {
+        const image = await createImageOutput(undefined, {
+          createOption: {
             width: width * 2,
             height: height * 2,
             channels: 4,
             background: { r: 255, g: 255, b: 255, alpha: 0 },
           },
+          compositesOption: composites,
+          format: metadata.format,
+          width: width,
+          height: height,
         });
-
-        const image = await createImageOutput(
-          sharp(
-            await compositeImage
-              .composite(composites)
-              .toFormat(metadata.format)
-              .toBuffer(),
-            {
-              limitInputPixels: false,
-            }
-          ),
-          {
-            format: metadata.format,
-            width: width,
-            height: height,
-          }
-        );
 
         await runSQLWithTimeout(
           source,
@@ -1994,6 +1981,19 @@ export async function addPostgreSQLOverviews(
       }
 
       if (composites.length) {
+        const image = await createImageOutput(undefined, {
+          createOption: {
+            width: width * 2,
+            height: height * 2,
+            channels: 4,
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+          compositesOption: composites,
+          format: metadata.format,
+          width: width,
+          height: height,
+        });
+
         const compositeImage = sharp({
           create: {
             width: width * 2,
@@ -2002,23 +2002,6 @@ export async function addPostgreSQLOverviews(
             background: { r: 255, g: 255, b: 255, alpha: 0 },
           },
         });
-
-        const image = await createImageOutput(
-          sharp(
-            await compositeImage
-              .composite(composites)
-              .toFormat(metadata.format)
-              .toBuffer(),
-            {
-              limitInputPixels: false,
-            }
-          ),
-          {
-            format: metadata.format,
-            width: width,
-            height: height,
-          }
-        );
 
         await source.query(
           `
@@ -3000,31 +2983,18 @@ export async function addXYZOverviews(
     }
 
     if (composites.length) {
-      const compositeImage = sharp({
-        create: {
+      const image = await createImageOutput(undefined, {
+        createOption: {
           width: width * 2,
           height: height * 2,
           channels: 4,
           background: { r: 255, g: 255, b: 255, alpha: 0 },
         },
+        compositesOption: composites,
+        format: metadata.format,
+        width: width,
+        height: height,
       });
-
-      const image = await createImageOutput(
-        sharp(
-          await compositeImage
-            .composite(composites)
-            .toFormat(metadata.format)
-            .toBuffer(),
-          {
-            limitInputPixels: false,
-          }
-        ),
-        {
-          format: metadata.format,
-          width: width,
-          height: height,
-        }
-      );
 
       await Promise.all([
         createFileWithLock(

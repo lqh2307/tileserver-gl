@@ -388,3 +388,66 @@ export function detectContentTypeFromFormat(format) {
     }
   }
 }
+
+/**
+ * Convert a value from one unit to another
+ * @param {number} value Numeric value
+ * @param {"km"|"hm"|"dam"|"m"|"dm"|"cm"|"mm"} from Unit of input value (Default: "m")
+ * @param {"km"|"hm"|"dam"|"m"|"dm"|"cm"|"mm"} to Unit of output value (Default: "m")
+ * @returns {number} Converted value
+ */
+export function convertLength(value, from, to) {
+  const factors = {
+    km: 1000,
+    hm: 100,
+    dam: 10,
+    m: 1,
+    dm: 0.1,
+    cm: 0.01,
+    mm: 0.001,
+  };
+
+  return value * (factors[from] ?? factors["m"]) / (factors[to] ?? factors["m"]);
+}
+
+/**
+ * Convert a value with unit to pixels
+ * @param {number} value Mumeric value
+ * @param {"km"|"hm"|"dam"|"m"|"dm"|"cm"|"mm"} unit Unit of the value (Default: m)
+ * @param {number} ppi Pixel per inch
+ * @returns {number} Value in pixel
+ */
+export function toPixel(value, unit, ppi = 96) {
+  const factors = {
+    km: 1000,
+    hm: 100,
+    dam: 10,
+    m: 1,
+    dm: 0.1,
+    cm: 0.01,
+    mm: 0.001,
+  };
+
+  return (value * ppi * (factors[unit] ?? factors["m"])) / 0.0254;
+}
+
+/**
+ * Convert pixels to a value with unit
+ * @param {number} pixels Value in pixel
+ * @param {"km"|"hm"|"dam"|"m"|"dm"|"cm"|"mm"} unit Target unit (Default: m)
+ * @param {number} ppi Pixel per inch
+ * @returns {number} Value in the given unit
+ */
+export function fromPixel(pixels, unit, ppi = 96) {
+  const factors = {
+    km: 1000,
+    hm: 100,
+    dam: 10,
+    m: 1,
+    dm: 0.1,
+    cm: 0.01,
+    mm: 0.001,
+  };
+
+  return (pixels * 0.0254) / (ppi * (factors[unit] ?? factors["m"]));
+}

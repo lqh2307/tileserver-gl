@@ -37,8 +37,6 @@ import {
   openXYZMD5DB,
 } from "./resources/index.js";
 import {
-  processImageStaticRawData,
-  processImageTileRawData,
   detectFormatAndHeaders,
   createFallbackTileData,
   handleTilesConcurrency,
@@ -46,13 +44,13 @@ import {
   removeEmptyFolders,
   mergeTilesToImage,
   handleConcurrency,
+  createImageOutput,
   getLonLatFromXYZ,
   addFrameToImage,
   getDataFromURL,
   calculateSizes,
   getTileBounds,
   emitWSMessage,
-  convertImage,
   calculateMD5,
   createBase64,
   unzipAsync,
@@ -436,13 +434,18 @@ export async function renderImageTileData(
     ? Math.floor(originTileSize / 2)
     : undefined;
 
-  return await processImageTileRawData(
-    data,
-    originTileSize,
-    targetTileSize,
-    format,
-    filePath
-  );
+  return await createImageOutput(data, {
+    rawOption: {
+      premultiplied: true,
+      width: originTileSize,
+      height: originTileSize,
+      channels: 4,
+    },
+    format: format,
+    width: targetTileSize,
+    height: targetTileSize,
+    filePath: filePath,
+  });
 }
 
 /**
@@ -489,15 +492,16 @@ export async function renderImageStaticData(
     );
   });
 
-  return await processImageStaticRawData(
-    data,
-    sizes.width,
-    sizes.height,
-    undefined,
-    undefined,
-    format,
-    filePath
-  );
+  return await createImageOutput(data, {
+    rawOption: {
+      premultiplied: true,
+      width: sizes.width,
+      height: sizes.height,
+      channels: 4,
+    },
+    format: format,
+    filePath: filePath,
+  });
 }
 
 /**
@@ -817,7 +821,7 @@ export async function renderSVGToImage(format, overlays, concurrency, base64) {
   const targetOverlays = Array(overlays.length);
 
   async function renderSVGToImageData(idx, overlays) {
-    targetOverlays[idx] = await convertImage(
+    targetOverlays[idx] = await createImageOutput(
       Buffer.from(overlays[idx].content),
       {
         format: overlays[idx].format || format,
