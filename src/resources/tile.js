@@ -6,7 +6,6 @@ import { PMTiles, FetchSource } from "pmtiles";
 import { openSync, readSync } from "node:fs";
 import { config } from "../configs/index.js";
 import protobuf from "protocol-buffers";
-import sharp from "sharp";
 import {
   isFullTransparentPNGImage,
   detectFormatAndHeaders,
@@ -19,6 +18,7 @@ import {
   handleConcurrency,
   createImageOutput,
   runSQLWithTimeout,
+  getImageMetadata,
   getBBoxFromTiles,
   closePostgreSQL,
   getDataFromURL,
@@ -235,8 +235,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
   rows.forEach((row) => {
     if (row[extraInfoType] !== null) {
       result[
-        `${row.zoom_level}/${row.tile_column}/${
-          (1 << row.zoom_level) - 1 - row.tile_row
+        `${row.zoom_level}/${row.tile_column}/${(1 << row.zoom_level) - 1 - row.tile_row
         }`
       ] = row[extraInfoType];
     }
@@ -792,9 +791,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
     return;
   }
 
-  const { width, height } = await sharp(data.tile_data, {
-    limitInputPixels: false,
-  }).metadata();
+  const { width, height } = await getImageMetadata(data.tile_data);
 
   /* Get source width & height */
   const metadata = await getMBTilesMetadata(source);
@@ -838,9 +835,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
         }
 
         composites.push({
-          input: await sharp(tile.tile_data, {
-            limitInputPixels: false,
-          }).toBuffer(),
+          input: await createImageOutput(tile.tile_data),
           left: (tile.tile_column - minX) * width,
           top: (maxY - tile.tile_row) * height,
         });
@@ -1922,13 +1917,11 @@ export async function addPostgreSQLOverviews(
   /* Get tile width & height */
   const data = await source.query("SELECT tile_data FROM tiles LIMIT 1;");
 
-  if (!data.rows.length || !data.rows[0].tile_data) {
+  if (!data?.rows?.length || !data.rows[0].tile_data) {
     return;
   }
 
-  const { width, height } = await sharp(data.tile_data, {
-    limitInputPixels: false,
-  }).metadata();
+  const { width, height } = await getImageMetadata(data.rows[0].tile_data);
 
   /* Get source width & height */
   const metadata = await getPostgreSQLMetadata(source);
@@ -1972,9 +1965,7 @@ export async function addPostgreSQLOverviews(
         }
 
         composites.push({
-          input: await sharp(tile.tile_data, {
-            limitInputPixels: false,
-          }).toBuffer(),
+          input: await createImageOutput(tile.tile_data),
           left: (tile.tile_column - minX) * width,
           top: (tile.tile_row - minY) * height,
         });
@@ -1992,15 +1983,6 @@ export async function addPostgreSQLOverviews(
           format: metadata.format,
           width: width,
           height: height,
-        });
-
-        const compositeImage = sharp({
-          create: {
-            width: width * 2,
-            height: height * 2,
-            channels: 4,
-            background: { r: 255, g: 255, b: 255, alpha: 0 },
-          },
         });
 
         await source.query(
@@ -2932,9 +2914,7 @@ export async function addXYZOverviews(
     return;
   }
 
-  const { width, height } = await sharp(data, {
-    limitInputPixels: false,
-  }).metadata();
+  const { width, height } = await getImageMetadata(data);
 
   /* Get source width & height */
   const metadata = await getXYZMetadata(sourcePath, source);
@@ -2970,9 +2950,7 @@ export async function addXYZOverviews(
           }
 
           composites.push({
-            input: await sharp(tile, {
-              limitInputPixels: false,
-            }).toBuffer(),
+            input: await createImageOutput(tile),
             left: (dx - minX) * width,
             top: (dy - minY) * height,
           });

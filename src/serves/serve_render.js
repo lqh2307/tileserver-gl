@@ -16,7 +16,7 @@ import {
 } from "../utils/index.js";
 
 /**
- * Render style JSON handler
+ * Render styleJSON handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function renderStyleJSONHandler() {
@@ -33,15 +33,15 @@ function renderStyleJSONHandler() {
       const bbox = req.body.bbox
         ? req.body.bbox
         : [
-            req.body.extent[0],
-            req.body.extent[3],
-            req.body.extent[2],
-            req.body.extent[1],
-          ];
+          req.body.extent[0],
+          req.body.extent[3],
+          req.body.extent[2],
+          req.body.extent[1],
+        ];
 
       /* Render style */
       const result = await renderStyleJSONToImage(
-        req.body.styleID || req.body.styleJSON,
+        req.body.styleJSON,
         bbox,
         req.body.zoom,
         format,
@@ -74,7 +74,7 @@ function renderStyleJSONHandler() {
 
       return res.status(StatusCodes.CREATED).send(result.image);
     } catch (error) {
-      printLog("error", `Failed to render style JSON: ${error}`);
+      printLog("error", `Failed to render styleJSON: ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -198,7 +198,7 @@ export const serve_render = {
      *   post:
      *     tags:
      *       - Render
-     *     summary: Render style JSON
+     *     summary: Render styleJSON
      *     parameters:
      *       - in: query
      *         name: compression
@@ -213,7 +213,7 @@ export const serve_render = {
      *             schema:
      *               type: object
      *               example: {}
-     *       description: Render style JSON options
+     *       description: Render styleJSON options
      *     responses:
      *       201:
      *         description: Style JSON rendered

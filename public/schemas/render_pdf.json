@@ -20,7 +20,11 @@
               "minLength": 1
             }
           },
-          "required": ["clientID", "requestID", "event"]
+          "required": [
+            "clientID",
+            "requestID",
+            "event"
+          ]
         },
         "resolution": {
           "type": "array",
@@ -38,7 +42,13 @@
       "properties": {
         "format": {
           "type": "string",
-          "enum": ["gif", "png", "jpg", "jpeg", "webp"]
+          "enum": [
+            "gif",
+            "png",
+            "jpg",
+            "jpeg",
+            "webp"
+          ]
         },
         "width": {
           "type": "integer",
@@ -58,7 +68,13 @@
         },
         "lineStyle": {
           "type": "string",
-          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
+          "enum": [
+            "solid",
+            "dashed",
+            "longDashed",
+            "dotted",
+            "dashedDot"
+          ]
         },
         "pageColor": {
           "type": "string",
@@ -82,11 +98,19 @@
           "properties": {
             "horizontal": {
               "type": "string",
-              "enum": ["left", "center", "right"]
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
             },
             "vertical": {
               "type": "string",
-              "enum": ["top", "middle", "bottom"]
+              "enum": [
+                "top",
+                "middle",
+                "bottom"
+              ]
             }
           }
         },
@@ -101,7 +125,10 @@
         },
         "orientation": {
           "type": "string",
-          "enum": ["portrait", "landscape"]
+          "enum": [
+            "portrait",
+            "landscape"
+          ]
         },
         "paperSize": {
           "type": "array",
@@ -111,10 +138,24 @@
           },
           "minItems": 2,
           "maxItems": 2
+        },
+        "fit": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "cover",
+            "contain",
+            "fill"
+          ]
         }
       },
-      "required": ["paperSize"]
+      "required": [
+        "paperSize"
+      ]
     }
   },
-  "required": ["input", "output"]
+  "required": [
+    "input",
+    "output"
+  ]
 }

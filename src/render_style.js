@@ -520,7 +520,7 @@ export async function renderImageStaticData(
  * @param {boolean} base64 Is base64?
  * @param {boolean} grayscale Is grayscale?
  * @param {{ clientID: string, requestID: string, event: string }} ws WS object
- * @param {{name: string, content: string, bbox: [number, number, number, number]}[]} overlays Overlays
+ * @param {{ content: string, bbox: [number, number, number, number], format: "svg"|"jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Overlays
  * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
  */
 export async function renderStyleJSONToImage(
@@ -542,11 +542,7 @@ export async function renderStyleJSONToImage(
 ) {
   let styleJSONOrPool;
 
-  const id = nanoid();
-  const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${format}s/${id}`;
-  const xyzDirPath = `${dirPath}/xyz/${id}`;
-
-  const driver = format.toUpperCase();
+  const dirPath = `${process.env.DATA_DIR}/exports/style_renders/xyzs/${nanoid()}`;
 
   try {
     const targetZoom = Math.round(zoom);
@@ -560,7 +556,7 @@ export async function renderStyleJSONToImage(
       tileSize: tileSize,
     });
 
-    let log = `Rendering ${total} tiles of style JSON to ${driver} with:`;
+    let log = `Rendering ${total} tiles of styleJSON to ${format.toUpperCase()} with:`;
     log += `\n\tTemporary dir path: ${dirPath}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
     log += `\n\tZoom: ${zoom} - Target zoom: ${targetZoom}`;
@@ -577,78 +573,26 @@ export async function renderStyleJSONToImage(
 
     printLog("info", log);
 
-    const targetOverlays = [];
-
-    /* Process style JSON */
-    if (typeof styleJSON === "object") {
-      for (const sourceStyleName of Object.keys(styleJSON.sources)) {
-        const sourceStyle = styleJSON.sources[sourceStyleName];
-
-        if (sourceStyle.url?.startsWith("data:")) {
-          delete styleJSON.sources[sourceStyleName];
-
-          for (let i = styleJSON.layers.length - 1; i >= 0; i--) {
-            const layerStyle = styleJSON.layers[i];
-
-            if (layerStyle.source === sourceStyleName) {
-              styleJSON.layers.splice(i, 1);
-            }
-          }
-
-          const overlayBBox = [
-            ...sourceStyle.coordinates[3],
-            ...sourceStyle.coordinates[1],
-          ];
-
-          if (
-            overlayBBox[2] <= bbox[0] ||
-            overlayBBox[0] >= bbox[2] ||
-            overlayBBox[3] <= bbox[1] ||
-            overlayBBox[1] >= bbox[3]
-          ) {
-            printLog(
-              "info",
-              `Overlay ${sourceStyleName} is outside bbox. Skipping...`
-            );
-
-            continue;
-          }
-
-          targetOverlays.push({
-            content: Buffer.from(
-              sourceStyle.url.slice(sourceStyle.url.indexOf(",") + 1),
-              "base64"
-            ),
-            bbox: overlayBBox,
-          });
-        }
-      }
-    } else {
-      styleJSON = await getRenderedStyleJSON(config.styles[styleJSON].path);
-    }
-
-    /* Process SVG layers */
+    /* Process overlays */
     if (overlays) {
-      for (const overlay of overlays) {
+      for (let idx = 0; idx < overlays.length; idx++) {
+        const overlay = overlays[idx];
+
         if (
           overlay.bbox[2] <= bbox[0] ||
           overlay.bbox[0] >= bbox[2] ||
           overlay.bbox[3] <= bbox[1] ||
           overlay.bbox[1] >= bbox[3]
         ) {
-          printLog(
-            "info",
-            `SVG layer ${overlay.name} is outside bbox. Skipping...`
-          );
+          printLog("info", `Overlay index ${idx} is outside bbox. Skipping...`);
 
           continue;
         }
 
-        targetOverlays.push({
-          content: Buffer.from(overlay.content),
-          bbox: overlay.bbox,
-          format: overlay.format,
-        });
+        overlay.content = Buffer.from(
+          overlay.content.slice(overlay.content.indexOf(",") + 1),
+          "base64"
+        );
       }
     }
 
@@ -656,15 +600,15 @@ export async function renderStyleJSONToImage(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () => createRenderer("tile", tileScale, styleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () => createRenderer("tile", tileScale, styleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : styleJSON;
 
     /* Socket */
@@ -696,7 +640,7 @@ export async function renderStyleJSONToImage(
 
       printLog(
         "info",
-        `Rendering style JSON - Tile "${tileName}" - ${completeTasks}/${total}...`
+        `Rendering styleJSON - Tile "${tileName}" - ${completeTasks}/${total}...`
       );
 
       try {
@@ -709,7 +653,7 @@ export async function renderStyleJSONToImage(
           y,
           format,
           maxRendererPoolSize > 0,
-          `${xyzDirPath}/${z}/${x}/${y}.${format}`
+          `${dirPath}/${z}/${x}/${y}.${format}`
         );
 
         if (ws && completeTasks % callbackAtTaskNum === 0) {
@@ -720,7 +664,7 @@ export async function renderStyleJSONToImage(
       } catch (error) {
         printLog(
           "error",
-          `Failed to render style JSON - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+          `Failed to render styleJSON - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
         );
 
         throw error;
@@ -736,7 +680,7 @@ export async function renderStyleJSONToImage(
 
     const mergedImage = await mergeTilesToImage(
       {
-        dirPath: xyzDirPath,
+        dirPath: dirPath,
         format: format,
         tileSize: tileSize,
         scheme: scheme,
@@ -767,21 +711,12 @@ export async function renderStyleJSONToImage(
         bbox: bbox,
         format: format,
       },
-      targetOverlays,
+      overlays,
       frame,
       grid,
       {
         format: format,
       }
-    );
-
-    /* Calculate resolution */
-    const resolution = await calculateResolution(
-      {
-        filePath: image,
-        bbox: bbox,
-      },
-      "mm"
     );
 
     if (ws) {
@@ -791,7 +726,13 @@ export async function renderStyleJSONToImage(
     /* Response */
     return {
       image: base64 ? createBase64(image, format) : image,
-      resolution: resolution,
+      resolution: calculateResolution(
+        {
+          filePath: image,
+          bbox: bbox,
+        },
+        "mm"
+      ),
     };
   } catch (error) {
     throw error;
@@ -1003,16 +944,16 @@ export async function renderMBTilesTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderMBTilesTileData(z, x, y, tasks) {
@@ -1100,15 +1041,13 @@ export async function renderMBTilesTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1244,16 +1183,16 @@ export async function renderXYZTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderXYZTileData(z, x, y, tasks) {
@@ -1362,15 +1301,13 @@ export async function renderXYZTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1495,16 +1432,16 @@ export async function renderPostgreSQLTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderPostgreSQLTileData(z, x, y, tasks) {
@@ -1606,15 +1543,13 @@ export async function renderPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
