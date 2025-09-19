@@ -835,6 +835,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
         }
 
         composites.push({
+          limitInputPixels: false,
           input: await createImageOutput(tile.tile_data),
           left: (tile.tile_column - minX) * width,
           top: (maxY - tile.tile_row) * height,
@@ -1965,6 +1966,7 @@ export async function addPostgreSQLOverviews(
         }
 
         composites.push({
+          limitInputPixels: false,
           input: await createImageOutput(tile.tile_data),
           left: (tile.tile_column - minX) * width,
           top: (tile.tile_row - minY) * height,
@@ -2950,6 +2952,7 @@ export async function addXYZOverviews(
           }
 
           composites.push({
+            limitInputPixels: false,
             input: await createImageOutput(tile),
             left: (dx - minX) * width,
             top: (dy - minY) * height,

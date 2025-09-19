@@ -4,6 +4,10 @@
     "input": {
       "type": "object",
       "properties": {
+        "images": {
+          "type": "array",
+          "minItems": 1
+        },
         "ws": {
           "type": "object",
           "properties": {

@@ -167,6 +167,8 @@ function renderPDFHandler() {
 
       return res.status(StatusCodes.CREATED).send(result);
     } catch (error) {
+      console.log(error);
+
       printLog("error", `Failed to render PDF: ${error}`);
 
       if (error instanceof SyntaxError) {

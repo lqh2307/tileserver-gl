@@ -801,10 +801,10 @@ export async function renderImageToPDF(input, preview, output) {
 
   const image = await splitImage(
     {
-      image: Buffer.from(
-        input.image.slice(input.image.indexOf(",") + 1),
+      images: input.images.map((item) => Buffer.from(
+        item.slice(item.indexOf(",") + 1),
         "base64"
-      ),
+      )),
       resolution: input.resolution,
     },
     preview,

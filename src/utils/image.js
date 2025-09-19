@@ -231,35 +231,52 @@ export async function getImageMetadata(filePath) {
  * @returns {Promise<void|Buffer|string>}
  */
 export async function createImageOutput(image, options) {
-  // Read input
-  let targetImage = options.createOption
-    ? sharp({
-      limitInputPixels: false,
-      create: options.createOption,
-    }).png()
-    : sharp(image, {
-      limitInputPixels: false,
-      raw: options.rawOption,
-    });
+  let targetImage;
 
-  // Extend
-  if (options.extendOption) {
-    if (options.compositesOption || options.extractOption || options.width || options.height || options.grayscale) {
-      targetImage = sharp(await targetImage.extend(options.extendOption).toBuffer(), {
+  if ((options.extendOption || options.compositesOption) && (options.extractOption || options.width || options.height || options.grayscale)) {
+    // Read input
+    targetImage = options.createOption
+      ? sharp({
         limitInputPixels: false,
+        create: options.createOption,
+      }).png()
+      : sharp(image, {
+        limitInputPixels: false,
+        raw: options.rawOption,
       });
-    } else {
+
+    // Extend
+    if (options.extendOption) {
       targetImage.extend(options.extendOption);
     }
-  }
 
-  // Composites
-  if (options.compositesOption) {
-    if (options.extractOption || options.width || options.height || options.grayscale) {
-      targetImage = sharp(await targetImage.composite(options.compositesOption).toBuffer(), {
+    // Composites
+    if (options.compositesOption) {
+      targetImage.composite(options.compositesOption);
+    }
+
+    targetImage = sharp(await targetImage.toBuffer(), {
+      limitInputPixels: false,
+    });
+  } else {
+    // Read input
+    targetImage = options.createOption
+      ? sharp({
         limitInputPixels: false,
+        create: options.createOption,
+      }).png()
+      : sharp(image, {
+        limitInputPixels: false,
+        raw: options.rawOption,
       });
-    } else {
+
+    // Extend
+    if (options.extendOption) {
+      targetImage.extend(options.extendOption);
+    }
+
+    // Composites
+    if (options.compositesOption) {
       targetImage.composite(options.compositesOption);
     }
   }
@@ -278,6 +295,8 @@ export async function createImageOutput(image, options) {
   if (options.grayscale) {
     targetImage.grayscale(true);
   }
+
+  console.log(image, options);
 
   // Format
   switch (options.format) {
@@ -314,6 +333,7 @@ export async function createImageOutput(image, options) {
       break;
     }
   }
+
 
   // Buffer
   const buffer = await targetImage.toBuffer();
@@ -968,6 +988,7 @@ export async function mergeTilesToImage(input, output) {
   for (let x = input.xMin; x <= input.xMax; x++) {
     for (let y = input.yMin; y <= input.yMax; y++) {
       compositesOption.push({
+        limitInputPixels: false,
         input: `${input.dirPath}/${input.z}/${x}/${y}.${input.format}`,
         top: (y - input.yMin) * height,
         left: (x - input.xMin) * width,
@@ -1018,15 +1039,12 @@ export async function mergeTilesToImage(input, output) {
 
 /**
  * Split image to PDF
- * @param {{ image: string|Buffer, res: [number, number] }} input Input object
+ * @param {{ images: string[]|Buffer[], res: [number, number] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot", pageColor: string, pageSize: number, pageFont: string; }} preview Preview options object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, compression: boolean, grayscale: boolean }} output Output object
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, compression: boolean, grayscale: boolean, grid: { row: number, column: number, paddingX: number, paddingY: number, gapX: number, gapY: number } }} output Output object
  * @returns {Promise<void|Buffer|string>}
  */
 export async function splitImage(input, preview, output) {
-  // Get origin image size
-  const { width, height } = await getImageMetadata(input.image);
-
   // Get paper size (in mm)
   let paperHeight = output.paperSize[1];
   let paperWidth = output.paperSize[0];
@@ -1052,22 +1070,21 @@ export async function splitImage(input, preview, output) {
   // Process image
   switch (output.fit) {
     default: {
+      // Get origin image size
+      const { width, height } = await getImageMetadata(input.images[0]);
+
       // Convert paper size to pixel
       if (input.resolution) {
-        paperHeightPx = paperHeight / input.resolution[1];
-        paperWidthPx = paperWidth / input.resolution[0];
+        paperHeightPx = Math.round(paperHeight / input.resolution[1]);
+        paperWidthPx = Math.round(paperWidth / input.resolution[0]);
       } else {
-        paperHeightPx = toPixel(paperHeight, "mm");
-        paperWidthPx = toPixel(paperWidth, "mm");
+        paperHeightPx = Math.round(toPixel(paperHeight, "mm"));
+        paperWidthPx = Math.round(toPixel(paperWidth, "mm"));
       }
 
       // Calculate number of page
       heightPageNum = Math.ceil(height / paperHeightPx);
       widthPageNum = Math.ceil(width / paperWidthPx);
-
-      // Round
-      paperHeightPx = Math.round(paperHeightPx);
-      paperWidthPx = Math.round(paperWidthPx);
 
       // Asign new image size
       newHeight = heightPageNum * paperHeightPx;
@@ -1118,7 +1135,7 @@ export async function splitImage(input, preview, output) {
       }
 
       // Asign extended image
-      image = await createImageOutput(input.image, {
+      image = await createImageOutput(input.images[0], {
         extendOption: {
           top: extendTop,
           left: extendLeft,
@@ -1134,20 +1151,29 @@ export async function splitImage(input, preview, output) {
     case "cover":
     case "contain":
     case "fill": {
-      // Convert paper size to pixel and Calculate number of page
-      paperHeightPx = toPixel(paperHeight, "mm");
-      paperWidthPx = toPixel(paperWidth, "mm");
+      let { row = 1, column = 1, paddingX = 0, paddingY = 0, gapX = 0, gapY = 0 } = output.grid ?? {};
 
+      // Convert padding and gap to pixel
+      const paddingXPx = Math.round(toPixel(paddingX, "mm"));
+      const paddingYPx = Math.round(toPixel(paddingY, "mm"));
+      const gapXPx = Math.round(toPixel(gapX, "mm"));
+      const gapYPx = Math.round(toPixel(gapY, "mm"));
+
+      // Convert paper size to pixel
+      paperHeightPx = Math.round(toPixel(paperHeight, "mm"));
+      paperWidthPx = Math.round(toPixel(paperWidth, "mm"));
+
+      // Calculate number of page
       heightPageNum = 1;
       widthPageNum = 1;
-
-      // Round
-      paperHeightPx = Math.round(paperHeightPx);
-      paperWidthPx = Math.round(paperWidthPx);
 
       // Asign new image size
       newHeight = paperHeightPx;
       newWidth = paperWidthPx;
+
+      // Calculate cell size
+      const cellHeight = Math.floor((paperHeightPx - paddingYPx * 2 - (row - 1) * gapYPx) / row);
+      const cellWidth = Math.floor((paperWidthPx - paddingXPx * 2 - (column - 1) * gapXPx) / column);
 
       let position;
 
@@ -1172,20 +1198,38 @@ export async function splitImage(input, preview, output) {
         position = "center";
       }
 
+      const composites = await Promise.all(input.images.map(async (item, idx) => {
+        return {
+          limitInputPixels: false,
+          input: await createImageOutput(item, {
+            resizeOption: {
+              fit: output.fit,
+              position: position,
+            }
+          }),
+          width: cellWidth + 10,
+          height: cellHeight + 10,
+          left: paddingXPx + (idx % column) * (cellWidth + gapXPx),
+          top: paddingYPx + (Math.floor(idx / column) * (cellHeight + gapYPx)),
+        };
+      }));
+
       // Asign resized image
-      image = await createImageOutput(input.image, {
-        resizeOption: {
-          fit: output.fit,
-          position: position,
+      image = await createImageOutput(undefined, {
+        createOption: {
+          width: newWidth,
+          height: newHeight,
+          channels: 4,
           background: { r: 255, g: 255, b: 255, alpha: 0 },
         },
-        width: newWidth,
-        height: newHeight,
+        compositesOption: composites,
       });
 
       break;
     }
   }
+
+  console.log("HEHEE");
 
   // Process Preview or PDF
   if (preview) {
