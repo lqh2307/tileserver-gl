@@ -22,14 +22,10 @@
             },
             "anyOf": [
               {
-                "required": [
-                  "time"
-                ]
+                "required": ["time"]
               },
               {
-                "required": [
-                  "day"
-                ]
+                "required": ["day"]
               }
             ]
           }
@@ -57,14 +53,10 @@
             },
             "anyOf": [
               {
-                "required": [
-                  "time"
-                ]
+                "required": ["time"]
               },
               {
-                "required": [
-                  "day"
-                ]
+                "required": ["day"]
               }
             ]
           }
@@ -118,16 +110,10 @@
               },
               "anyOf": [
                 {
-                  "required": [
-                    "zoom",
-                    "bbox"
-                  ]
+                  "required": ["zoom", "bbox"]
                 },
                 {
-                  "required": [
-                    "zoom",
-                    "circle"
-                  ]
+                  "required": ["zoom", "circle"]
                 }
               ]
             },
@@ -150,21 +136,15 @@
             },
             "anyOf": [
               {
-                "required": [
-                  "time"
-                ]
+                "required": ["time"]
               },
               {
-                "required": [
-                  "day"
-                ]
+                "required": ["day"]
               }
             ]
           }
         },
-        "required": [
-          "coverages"
-        ]
+        "required": ["coverages"]
       }
     },
     "sprites": {
@@ -189,14 +169,10 @@
             },
             "anyOf": [
               {
-                "required": [
-                  "time"
-                ]
+                "required": ["time"]
               },
               {
-                "required": [
-                  "day"
-                ]
+                "required": ["day"]
               }
             ]
           }
@@ -225,14 +201,10 @@
             },
             "anyOf": [
               {
-                "required": [
-                  "time"
-                ]
+                "required": ["time"]
               },
               {
-                "required": [
-                  "day"
-                ]
+                "required": ["day"]
               }
             ]
           }

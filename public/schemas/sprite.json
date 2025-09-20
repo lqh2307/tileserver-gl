@@ -24,12 +24,6 @@
         "minimum": 1
       }
     },
-    "required": [
-      "height",
-      "pixelRatio",
-      "width",
-      "x",
-      "y"
-    ]
+    "required": ["height", "pixelRatio", "width", "x", "y"]
   }
 }

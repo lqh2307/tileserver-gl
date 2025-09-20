@@ -6,19 +6,17 @@
     },
     "format": {
       "type": "string",
-      "enum": [
-        "gif",
-        "png",
-        "jpg",
-        "jpeg",
-        "webp"
-      ]
+      "enum": ["gif", "png", "jpg", "jpeg", "webp"]
     },
     "overlays": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1
+          },
           "width": {
             "type": "integer",
             "minimum": 0
@@ -29,19 +27,11 @@
           },
           "format": {
             "type": "string",
-            "enum": [
-              "gif",
-              "png",
-              "jpg",
-              "jpeg",
-              "webp"
-            ]
+            "enum": ["gif", "png", "jpg", "jpeg", "webp"]
           }
         }
       }
     }
   },
-  "required": [
-    "overlays"
-  ]
+  "required": ["overlays"]
 }

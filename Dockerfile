@@ -9,7 +9,7 @@ RUN \
   export DEBIAN_FRONTEND=noninteractive; \
   apt-get -y update; \
   apt-get -y install \
-    wget; \
+  wget; \
   apt-get -y --purge autoremove; \
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;
@@ -38,17 +38,17 @@ RUN \
   export DEBIAN_FRONTEND=noninteractive; \
   apt-get -y update; \
   apt-get -y install \
-    xvfb \
-    fontconfig \
-    libglfw3 \
-    libuv1 \
-    libjpeg-turbo8 \
-    libicu70 \
-    libgif7 \
-    libopengl0 \
-    libpng16-16 \
-    libwebp7 \
-    libcurl4; \
+  xvfb \
+  fontconfig \
+  libglfw3 \
+  libuv1 \
+  libjpeg-turbo8 \
+  libicu70 \
+  libgif7 \
+  libopengl0 \
+  libpng16-16 \
+  libwebp7 \
+  libcurl4; \
   apt-get -y --purge autoremove; \
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;

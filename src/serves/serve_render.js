@@ -4,8 +4,9 @@ import { StatusCodes } from "http-status-codes";
 import os from "os";
 import {
   renderStyleJSONToImage,
-  renderImageToPDF,
+  renderHighQualityPDF,
   renderSVGToImage,
+  renderPDF,
 } from "../render_style.js";
 import {
   detectContentTypeFromFormat,
@@ -33,11 +34,11 @@ function renderStyleJSONHandler() {
       const bbox = req.body.bbox
         ? req.body.bbox
         : [
-          req.body.extent[0],
-          req.body.extent[3],
-          req.body.extent[2],
-          req.body.extent[1],
-        ];
+            req.body.extent[0],
+            req.body.extent[3],
+            req.body.extent[2],
+            req.body.extent[1],
+          ];
 
       /* Render style */
       const result = await renderStyleJSONToImage(
@@ -153,7 +154,7 @@ function renderPDFHandler() {
         throw new SyntaxError(error);
       }
 
-      const result = await renderImageToPDF(
+      const result = await renderPDF(
         req.body.input,
         req.body.preview,
         req.body.output
@@ -170,6 +171,51 @@ function renderPDFHandler() {
       console.log(error);
 
       printLog("error", `Failed to render PDF: ${error}`);
+
+      if (error instanceof SyntaxError) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send(`Options parameter is invalid: ${error}`);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Render PDF high quality handler
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
+ */
+function renderHighQualityPDFHandler() {
+  return async (req, res) => {
+    try {
+      /* Validate options */
+      try {
+        validateJSON(await getJSONSchema("render_high_quality_pdf"), req.body);
+      } catch (error) {
+        throw new SyntaxError(error);
+      }
+
+      const result = await renderHighQualityPDF(
+        req.body.input,
+        req.body.preview,
+        req.body.output
+      );
+
+      res.set({
+        "content-type": detectContentTypeFromFormat(
+          !req.body.preview ? "pdf" : req.body.preview.format
+        ),
+      });
+
+      return res.status(StatusCodes.CREATED).send(result);
+    } catch (error) {
+      console.log(error);
+
+      printLog("error", `Failed to render high quality PDF: ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -282,6 +328,45 @@ export const serve_render = {
      *         description: Internal server error
      */
     app.post("/renders/svg", renderSVGHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Render
+     *     description: Render related endpoints
+     * /renders/high-quality-pdf:
+     *   post:
+     *     tags:
+     *       - Render
+     *     summary: Render high quality PDF
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *             schema:
+     *               type: object
+     *               example: {}
+     *       description: Render high quality PDF options
+     *     responses:
+     *       201:
+     *         description: High quality PDF rendered
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.post("/renders/high-quality-pdf", renderHighQualityPDFHandler());
 
     /**
      * @swagger

@@ -22,28 +22,15 @@
         },
         "type": {
           "type": "string",
-          "enum": [
-            "baselayer",
-            "overlay"
-          ]
+          "enum": ["baselayer", "overlay"]
         },
         "scheme": {
           "type": "string",
-          "enum": [
-            "tms",
-            "xyz"
-          ]
+          "enum": ["tms", "xyz"]
         },
         "format": {
           "type": "string",
-          "enum": [
-            "gif",
-            "png",
-            "jpg",
-            "jpeg",
-            "webp",
-            "pbf"
-          ]
+          "enum": ["gif", "png", "jpg", "jpeg", "webp", "pbf"]
         },
         "minzoom": {
           "type": "integer",
@@ -103,9 +90,7 @@
                 }
               }
             },
-            "required": [
-              "id"
-            ]
+            "required": ["id"]
           },
           "minItems": 0
         },
@@ -118,10 +103,7 @@
           }
         }
       },
-      "required": [
-        "format",
-        "bounds"
-      ]
+      "required": ["format", "bounds"]
     },
     "coverages": {
       "type": "array",
@@ -165,16 +147,10 @@
         },
         "anyOf": [
           {
-            "required": [
-              "zoom",
-              "bbox"
-            ]
+            "required": ["zoom", "bbox"]
           },
           {
-            "required": [
-              "zoom",
-              "circle"
-            ]
+            "required": ["zoom", "circle"]
           }
         ]
       },
@@ -204,35 +180,20 @@
       },
       "anyOf": [
         {
-          "required": [
-            "time"
-          ]
+          "required": ["time"]
         },
         {
-          "required": [
-            "day"
-          ]
+          "required": ["day"]
         },
         {
-          "required": [
-            "md5"
-          ]
+          "required": ["md5"]
         }
       ]
     },
     "storeType": {
       "type": "string",
-      "enum": [
-        "xyz",
-        "mbtiles",
-        "pg"
-      ]
+      "enum": ["xyz", "mbtiles", "pg"]
     }
   },
-  "required": [
-    "id",
-    "metadata",
-    "storeType",
-    "coverages"
-  ]
+  "required": ["id", "metadata", "storeType", "coverages"]
 }

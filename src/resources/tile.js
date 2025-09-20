@@ -235,7 +235,8 @@ export function getMBTilesTileExtraInfoFromCoverages(
   rows.forEach((row) => {
     if (row[extraInfoType] !== null) {
       result[
-        `${row.zoom_level}/${row.tile_column}/${(1 << row.zoom_level) - 1 - row.tile_row
+        `${row.zoom_level}/${row.tile_column}/${
+          (1 << row.zoom_level) - 1 - row.tile_row
         }`
       ] = row[extraInfoType];
     }
