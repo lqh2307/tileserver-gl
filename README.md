@@ -127,23 +127,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "basic": {
       "style": "basic/style.json"
     },
-    "basic-v2": {
-      "style": "basic-v2/style.json"
-    },
     "bright": {
       "style": "bright/style.json"
-    },
-    "dark-matter": {
-      "style": "dark-matter/style.json"
-    },
-    "dataviz": {
-      "style": "dataviz/style.json"
-    },
-    "dataviz-dark": {
-      "style": "dataviz-dark/style.json"
-    },
-    "dataviz-light": {
-      "style": "dataviz-light/style.json"
     },
     "fiord": {
       "style": "fiord/style.json"
@@ -160,29 +145,17 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "openstreetmap": {
       "style": "openstreetmap/style.json"
     },
-    "outdoor-v2": {
-      "style": "outdoor-v2/style.json"
-    },
     "positron": {
       "style": "positron/style.json"
     },
     "protomap": {
       "style": "protomap/style.json"
     },
-    "streets-v2": {
-      "style": "streets-v2/style.json"
-    },
-    "terrain": {
-      "style": "terrain/style.json"
-    },
     "toner": {
       "style": "toner/style.json"
     },
     "topo": {
       "style": "topo/style.json"
-    },
-    "winter-v2": {
-      "style": "winter-v2/style.json"
     },
     "demotiles_cache": {
       "style": "demotiles_cache",
@@ -225,18 +198,12 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     }
   },
   "datas": {
-    "asia_vietnam": {
-      "mbtiles": "asia_vietnam/asia_vietnam.mbtiles"
-    },
     "satellite": {
       "mbtiles": "satellite_cache",
       "cache": {
         "forward": true,
         "store": true
       }
-    },
-    "asia_cambodia": {
-      "mbtiles": "asia_cambodia/asia_cambodia.mbtiles"
     },
     "openstreetmap": {
       "pmtiles": "https://data.source.coop/protomaps/openstreetmap/tiles/v3.pmtiles"
@@ -246,9 +213,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     },
     "ODbL_firenze": {
       "pmtiles": "ODbL_firenze/ODbL_firenze.pmtiles"
-    },
-    "zurich_switzerland": {
-      "mbtiles": "zurich_switzerland/zurich_switzerland.mbtiles"
     },
     "osm": {
       "mbtiles": "osm_cache",
@@ -273,23 +237,11 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     }
   },
   "sprites": {
-    "basic-v2": {
-      "sprite": "basic-v2"
-    },
     "bright": {
       "sprite": "bright"
     },
     "dark-matter": {
       "sprite": "dark-matter"
-    },
-    "dataviz": {
-      "sprite": "dataviz"
-    },
-    "dataviz-dark": {
-      "sprite": "dataviz-dark"
-    },
-    "dataviz-light": {
-      "sprite": "dataviz-light"
     },
     "fiord": {
       "sprite": "fiord"
@@ -306,26 +258,17 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "openstreetmap": {
       "sprite": "openstreetmap"
     },
-    "outdoor-v2": {
-      "sprite": "outdoor-v2"
-    },
     "positron": {
       "sprite": "positron"
     },
     "protomap": {
       "sprite": "protomap"
     },
-    "streets-v2": {
-      "sprite": "streets-v2"
-    },
     "toner": {
       "sprite": "toner"
     },
     "topo": {
       "sprite": "topo"
-    },
-    "winter-v2": {
-      "sprite": "winter-v2"
     }
   },
   "fonts": {
@@ -934,10 +877,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "name": "osm_style",
     "description": "osm_style",
     "format": "png",
-    "bounds": [
-      105.49716130998576, 20.876622106776722, 106.0674070653468,
-      21.131314326667038
-    ],
+    "bounds": [105.49716130998576, 20.876622106776722, 106.0674070653468, 21.131314326667038],
     "center": [108, 5, 10],
     "minzoom": 14,
     "maxzoom": 14
@@ -1127,7 +1067,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "pitch": 0,
     "sources": {
       "source": {
-        "url": "http://localhost:8080/datas/asia_vietnam.json",
+        "url": "http://localhost:8080/datas/vietnam.json",
         "type": "vector"
       }
     },
@@ -1160,10 +1100,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["in", "class", "residential", "suburbs", "neighbourhood"]
-        ]
+        "filter": ["all", ["in", "class", "residential", "suburbs", "neighbourhood"]]
       },
       {
         "id": "Cemetery",
@@ -1178,11 +1115,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-color": "hsl(129, 24%, 73%)",
           "fill-opacity": 1
         },
-        "filter": [
-          "all",
-          ["==", "class", "cemetery"],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["==", "class", "cemetery"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Military",
@@ -1197,11 +1130,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-color": "hsl(0, 75%, 95%)",
           "fill-opacity": 1
         },
-        "filter": [
-          "all",
-          ["==", "class", "military"],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["==", "class", "military"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Railway",
@@ -1216,11 +1145,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-color": "hsl(311, 29%, 89%)",
           "fill-opacity": 1
         },
-        "filter": [
-          "all",
-          ["==", "class", "railway"],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["==", "class", "railway"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Garage",
@@ -1235,11 +1160,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-color": "hsl(53, 21%, 84%)",
           "fill-opacity": 1
         },
-        "filter": [
-          "all",
-          ["==", "class", "garages"],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["==", "class", "garages"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Dam",
@@ -1285,11 +1206,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-opacity": 1,
           "fill-outline-color": "hsl(309, 14%, 74%)"
         },
-        "filter": [
-          "all",
-          ["==", "class", "industrial"],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["==", "class", "industrial"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Retail",
@@ -1320,11 +1237,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-opacity": 1,
           "fill-outline-color": "hsl(2, 49%, 90%)"
         },
-        "filter": [
-          "all",
-          ["==", "class", "commercial"],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["==", "class", "commercial"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Education and Health",
@@ -1339,19 +1252,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-color": "hsl(60, 100%, 95%)",
           "fill-opacity": 1
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "class",
-            "school",
-            "university",
-            "kindergarten",
-            "college",
-            "hospital"
-          ],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["in", "class", "school", "university", "kindergarten", "college", "hospital"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Aeroway",
@@ -1542,11 +1443,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-color": "hsl(157, 47%, 77%)",
           "fill-opacity": 1
         },
-        "filter": [
-          "all",
-          ["in", "class", "pitch", "track"],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["in", "class", "pitch", "track"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Stadium",
@@ -1561,11 +1458,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-color": "hsl(126, 100%, 92%)",
           "fill-opacity": 1
         },
-        "filter": [
-          "all",
-          ["in", "class", "stadium", "playground"],
-          ["==", "$type", "Polygon"]
-        ]
+        "filter": ["all", ["in", "class", "stadium", "playground"], ["==", "$type", "Polygon"]]
       },
       {
         "id": "Garden",
@@ -1700,10 +1593,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-antialias": true,
           "fill-color": "hsl(109, 48%, 76%)"
         },
-        "filter": [
-          "all",
-          ["in", "subclass", "orchard", "plant_nursery", "vineyard"]
-        ]
+        "filter": ["all", ["in", "subclass", "orchard", "plant_nursery", "vineyard"]]
       },
       {
         "id": "Meadow",
@@ -1718,10 +1608,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-antialias": true,
           "fill-color": "hsl(91, 60%, 81%)"
         },
-        "filter": [
-          "all",
-          ["in", "subclass", "meadow", "reedbed", "saltmarsh", "village_green"]
-        ]
+        "filter": ["all", ["in", "subclass", "meadow", "reedbed", "saltmarsh", "village_green"]]
       },
       {
         "id": "Mangrove",
@@ -1883,103 +1770,10 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "visibility": "visible"
         },
         "paint": {
-          "fill-opacity": [
-            "match",
-            ["get", "subclass"],
-            "beach",
-            0.4,
-            "forest",
-            0.4,
-            "bare_rock",
-            0.3,
-            "scrub",
-            0.6,
-            "scree",
-            0.3,
-            "wood",
-            0.4,
-            1
-          ],
-          "fill-pattern": [
-            "match",
-            ["get", "subclass"],
-            "allotments",
-            "allotments",
-            "bare_rock",
-            "rock_overlay",
-            "beach",
-            "beach",
-            "bog",
-            "wetland_bog",
-            "scrub",
-            "scrub",
-            "forest",
-            "leaftype_unknown",
-            "mangrove",
-            "wetland_mangrove",
-            "marsh",
-            "wetland_marsh",
-            "orchard",
-            "orchard",
-            "plant_nursery",
-            "plant_nursery",
-            "reedbed",
-            "wetland_reed",
-            "saltmarsh",
-            "wetland_marsh",
-            "scree",
-            "scree_overlay",
-            "swamp",
-            "wetland_swamp",
-            "vineyard",
-            "vineyard",
-            "wet_meadow",
-            "wetland_marsh",
-            "wetland",
-            "wetland",
-            "wood",
-            "leaftype_unknown",
-            ""
-          ]
+          "fill-opacity": ["match", ["get", "subclass"], "beach", 0.4, "forest", 0.4, "bare_rock", 0.3, "scrub", 0.6, "scree", 0.3, "wood", 0.4, 1],
+          "fill-pattern": ["match", ["get", "subclass"], "allotments", "allotments", "bare_rock", "rock_overlay", "beach", "beach", "bog", "wetland_bog", "scrub", "scrub", "forest", "leaftype_unknown", "mangrove", "wetland_mangrove", "marsh", "wetland_marsh", "orchard", "orchard", "plant_nursery", "plant_nursery", "reedbed", "wetland_reed", "saltmarsh", "wetland_marsh", "scree", "scree_overlay", "swamp", "wetland_swamp", "vineyard", "vineyard", "wet_meadow", "wetland_marsh", "wetland", "wetland", "wood", "leaftype_unknown", ""]
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "subclass",
-            "allotments",
-            "bare_rock",
-            "beach",
-            "bog",
-            "dune",
-            "scrub",
-            "farm",
-            "farmland",
-            "forest",
-            "grass",
-            "grassland",
-            "golf_course",
-            "heath",
-            "mangrove",
-            "marsh",
-            "meadow",
-            "orchard",
-            "park",
-            "plant_nursery",
-            "recreation_ground",
-            "reedbed",
-            "saltern",
-            "saltmarsh",
-            "sand",
-            "scree",
-            "swamp",
-            "village_green",
-            "vineyard",
-            "wet_meadow",
-            "wetland",
-            "wood"
-          ]
-        ]
+        "filter": ["all", ["in", "subclass", "allotments", "bare_rock", "beach", "bog", "dune", "scrub", "farm", "farmland", "forest", "grass", "grassland", "golf_course", "heath", "mangrove", "marsh", "meadow", "orchard", "park", "plant_nursery", "recreation_ground", "reedbed", "saltern", "saltmarsh", "sand", "scree", "swamp", "village_green", "vineyard", "wet_meadow", "wetland", "wood"]]
       },
       {
         "id": "Grass",
@@ -1994,10 +1788,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-antialias": true,
           "fill-color": "hsl(91, 60%, 81%)"
         },
-        "filter": [
-          "all",
-          ["in", "subclass", "grass", "grassland", "golf_course"]
-        ]
+        "filter": ["all", ["in", "subclass", "grass", "grassland", "golf_course"]]
       },
       {
         "id": "Landcover outline",
@@ -2009,39 +1800,11 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "visibility": "visible"
         },
         "paint": {
-          "line-color": [
-            "match",
-            ["get", "subclass"],
-            "allotments",
-            "hsl(102, 21%, 72%)",
-            "farm",
-            "hsl(35, 43%, 68%)",
-            "farmland",
-            "hsl(64, 20%, 74%)",
-            "recreation_ground",
-            "hsl(126, 26%, 32%)",
-            "hsl(0, 0%, 0%)"
-          ],
+          "line-color": ["match", ["get", "subclass"], "allotments", "hsl(102, 21%, 72%)", "farm", "hsl(35, 43%, 68%)", "farmland", "hsl(64, 20%, 74%)", "recreation_ground", "hsl(126, 26%, 32%)", "hsl(0, 0%, 0%)"],
           "line-opacity": 1,
-          "line-width": [
-            "match",
-            ["get", "subclass"],
-            "recreation_ground",
-            0.3,
-            0.5
-          ]
+          "line-width": ["match", ["get", "subclass"], "recreation_ground", 0.3, 0.5]
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "subclass",
-            "allotments",
-            "farm",
-            "farmland",
-            "recreation_ground"
-          ]
-        ]
+        "filter": ["all", ["in", "subclass", "allotments", "farm", "farmland", "recreation_ground"]]
       },
       {
         "id": "Glacier",
@@ -2123,12 +1886,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "river"],
-          ["!=", "brunnel", "tunnel"],
-          ["!=", "intermittent", 1]
-        ]
+        "filter": ["all", ["==", "class", "river"], ["!=", "brunnel", "tunnel"], ["!=", "intermittent", 1]]
       },
       {
         "id": "River intermittent",
@@ -2149,12 +1907,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "river"],
-          ["!=", "brunnel", "tunnel"],
-          ["==", "intermittent", 1]
-        ]
+        "filter": ["all", ["==", "class", "river"], ["!=", "brunnel", "tunnel"], ["==", "intermittent", 1]]
       },
       {
         "id": "Other waterway",
@@ -2175,12 +1928,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!=", "class", "river"],
-          ["!=", "brunnel", "tunnel"],
-          ["!=", "intermittent", 1]
-        ]
+        "filter": ["all", ["!=", "class", "river"], ["!=", "brunnel", "tunnel"], ["!=", "intermittent", 1]]
       },
       {
         "id": "Other waterway intermittent",
@@ -2202,12 +1950,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!=", "class", "river"],
-          ["!=", "brunnel", "tunnel"],
-          ["==", "intermittent", 1]
-        ]
+        "filter": ["all", ["!=", "class", "river"], ["!=", "brunnel", "tunnel"], ["==", "intermittent", 1]]
       },
       {
         "id": "Water intermittent",
@@ -2234,11 +1977,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "fill-color": "hsl(194, 45%, 77%)"
         },
-        "filter": [
-          "all",
-          ["!=", "intermittent", 1],
-          ["!=", "brunnel", "tunnel"]
-        ]
+        "filter": ["all", ["!=", "intermittent", 1], ["!=", "brunnel", "tunnel"]]
       },
       {
         "id": "National parks",
@@ -2298,11 +2037,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "runway"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "runway"]]
       },
       {
         "id": "Taxiway",
@@ -2324,11 +2059,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "taxiway"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "taxiway"]]
       },
       {
         "id": "Landuse pattern",
@@ -2342,24 +2073,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "fill-antialias": true,
           "fill-color": "hsl(0, 0%, 0%)",
           "fill-opacity": ["match", ["get", "class"], "quarry", 0.6, 1],
-          "fill-outline-color": [
-            "match",
-            ["get", "class"],
-            "quarry",
-            "hsl(0, 0%, 44%)",
-            "hsla(0, 0%, 0%, 0)"
-          ],
-          "fill-pattern": [
-            "match",
-            ["get", "class"],
-            "military",
-            "military_red_hatch",
-            "cemetery",
-            "grave_yard_generic",
-            "quarry",
-            "quarry",
-            ""
-          ]
+          "fill-outline-color": ["match", ["get", "class"], "quarry", "hsl(0, 0%, 44%)", "hsla(0, 0%, 0%, 0)"],
+          "fill-pattern": ["match", ["get", "class"], "military", "military_red_hatch", "cemetery", "grave_yard_generic", "quarry", "quarry", ""]
         },
         "filter": ["all", ["in", "class", "military", "cemetery", "quarry"]]
       },
@@ -2373,116 +2088,12 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "visibility": "visible"
         },
         "paint": {
-          "line-color": [
-            "match",
-            ["get", "class"],
-            "railway",
-            "hsl(309, 14%, 74%)",
-            "military",
-            "hsl(0, 100%, 67%)",
-            "residential",
-            "hsl(0, 0%, 73%)",
-            "commercial",
-            "hsl(2, 49%, 90%)",
-            "industrial",
-            "hsl(309, 14%, 74%)",
-            "retail",
-            "hsl(6, 47%, 72%)",
-            "school",
-            "hsl(60, 13%, 60%)",
-            "university",
-            "hsl(60, 13%, 60%)",
-            "kindergarten",
-            "hsl(60, 13%, 60%)",
-            "college",
-            "hsl(60, 13%, 60%)",
-            "hospital",
-            "hsl(60, 13%, 60%)",
-            "stadium",
-            "hsl(126, 19%, 57%)",
-            "pitch",
-            "hsl(156, 22%, 57%)",
-            "playground",
-            "hsl(126, 26%, 32%)",
-            "track",
-            "hsl(155, 22%, 57%)",
-            "theme_park",
-            "hsl(330, 100%, 20%)",
-            "zoo",
-            "hsl(330, 100%, 20%)",
-            "dam",
-            "hsl(0, 0%, 27%)",
-            "hsl(0, 0%, 0%)"
-          ],
+          "line-color": ["match", ["get", "class"], "railway", "hsl(309, 14%, 74%)", "military", "hsl(0, 100%, 67%)", "residential", "hsl(0, 0%, 73%)", "commercial", "hsl(2, 49%, 90%)", "industrial", "hsl(309, 14%, 74%)", "retail", "hsl(6, 47%, 72%)", "school", "hsl(60, 13%, 60%)", "university", "hsl(60, 13%, 60%)", "kindergarten", "hsl(60, 13%, 60%)", "college", "hsl(60, 13%, 60%)", "hospital", "hsl(60, 13%, 60%)", "stadium", "hsl(126, 19%, 57%)", "pitch", "hsl(156, 22%, 57%)", "playground", "hsl(126, 26%, 32%)", "track", "hsl(155, 22%, 57%)", "theme_park", "hsl(330, 100%, 20%)", "zoo", "hsl(330, 100%, 20%)", "dam", "hsl(0, 0%, 27%)", "hsl(0, 0%, 0%)"],
           "line-offset": ["match", ["get", "class"], "military", 1, 0],
           "line-opacity": ["match", ["get", "class"], "military", 0.24, 1],
-          "line-width": [
-            "match",
-            ["get", "class"],
-            "railway",
-            0.7,
-            "military",
-            2,
-            "residential",
-            0.5,
-            "commercial",
-            0.5,
-            "industrial",
-            0.5,
-            "retail",
-            0.5,
-            "school",
-            0.3,
-            "university",
-            0.3,
-            "kindergarten",
-            0.3,
-            "college",
-            0.3,
-            "hospital",
-            0.3,
-            "stadium",
-            0.3,
-            "pitch",
-            0.5,
-            "playground",
-            0.3,
-            "track",
-            0.5,
-            "theme_park",
-            1,
-            "zoo",
-            1,
-            "dam",
-            2,
-            1
-          ]
+          "line-width": ["match", ["get", "class"], "railway", 0.7, "military", 2, "residential", 0.5, "commercial", 0.5, "industrial", 0.5, "retail", 0.5, "school", 0.3, "university", 0.3, "kindergarten", 0.3, "college", 0.3, "hospital", 0.3, "stadium", 0.3, "pitch", 0.5, "playground", 0.3, "track", 0.5, "theme_park", 1, "zoo", 1, "dam", 2, 1]
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "class",
-            "railway",
-            "military",
-            "residential",
-            "commercial",
-            "industrial",
-            "retail",
-            "school",
-            "university",
-            "kindergarten",
-            "college",
-            "hospital",
-            "stadium",
-            "pitch",
-            "playground",
-            "track",
-            "theme_park",
-            "zoo",
-            "dam"
-          ]
-        ]
+        "filter": ["all", ["in", "class", "railway", "military", "residential", "commercial", "industrial", "retail", "school", "university", "kindergarten", "college", "hospital", "stadium", "pitch", "playground", "track", "theme_park", "zoo", "dam"]]
       },
       {
         "id": "Theme park",
@@ -2568,12 +2179,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway_link"],
-          ["==", "ramp", 1],
-          ["==", "brunnel", "tunnel"]
-        ]
+        "filter": ["all", ["==", "class", "motorway_link"], ["==", "ramp", 1], ["==", "brunnel", "tunnel"]]
       },
       {
         "id": "Service tunnel outline",
@@ -2596,11 +2202,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "service", "track"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "service", "track"]]
       },
       {
         "id": "Link tunnel outline",
@@ -2624,12 +2226,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "ramp", "1"],
-          ["==", "brunnel", "tunnel"],
-          [">", "layer", 0]
-        ]
+        "filter": ["all", ["==", "ramp", "1"], ["==", "brunnel", "tunnel"], [">", "layer", 0]]
       },
       {
         "id": "Street tunnel outline",
@@ -2658,11 +2255,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "street", "street_limited"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "street", "street_limited"]]
       },
       {
         "id": "Tertiary tunnel outline",
@@ -2692,11 +2285,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "tertiary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "tertiary"]]
       },
       {
         "id": "Secondary tunnel outline",
@@ -2726,11 +2315,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "secondary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "secondary"]]
       },
       {
         "id": "Trunk tunnel outline",
@@ -2789,11 +2374,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "trunk_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "trunk_construction"]]
       },
       {
         "id": "Primary tunnel outline",
@@ -2825,11 +2406,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "primary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "primary"]]
       },
       {
         "id": "Highway tunnel under construction outline",
@@ -2857,11 +2434,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway_construction"],
-          ["==", "brunnel", "tunnel"]
-        ]
+        "filter": ["all", ["==", "class", "motorway_construction"], ["==", "brunnel", "tunnel"]]
       },
       {
         "id": "Highway tunnel outline",
@@ -2889,11 +2462,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway"],
-          ["==", "brunnel", "tunnel"]
-        ]
+        "filter": ["all", ["==", "class", "motorway"], ["==", "brunnel", "tunnel"]]
       },
       {
         "id": "Path tunnel second outline",
@@ -2917,12 +2486,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "tunnel"],
-          ["==", "class", "path"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "tunnel"], ["==", "class", "path"]]
       },
       {
         "id": "Path tunnel outline",
@@ -2946,12 +2510,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "tunnel"],
-          ["==", "class", "path"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "tunnel"], ["==", "class", "path"]]
       },
       {
         "id": "Cycleway path tunnel",
@@ -2973,17 +2532,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "path"],
-          [
-            "any",
-            ["==", "subclass", "cycleway"],
-            ["==", "bicycle", "designated"]
-          ]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "tunnel"], ["in", "class", "path"], ["any", ["==", "subclass", "cycleway"], ["==", "bicycle", "designated"]]]
       },
       {
         "id": "Bridleway path tunnel",
@@ -3005,18 +2554,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "path"],
-          [
-            "any",
-            ["==", "subclass", "bridleway"],
-            ["==", "horse", "designated"]
-          ],
-          ["!=", "bicycle", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "tunnel"], ["in", "class", "path"], ["any", ["==", "subclass", "bridleway"], ["==", "horse", "designated"]], ["!=", "bicycle", "designated"]]
       },
       {
         "id": "Footway path tunnel",
@@ -3038,15 +2576,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "path"],
-          ["in", "subclass", "footway", "path"],
-          ["!=", "bicycle", "designated"],
-          ["!=", "horse", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "tunnel"], ["in", "class", "path"], ["in", "subclass", "footway", "path"], ["!=", "bicycle", "designated"], ["!=", "horse", "designated"]]
       },
       {
         "id": "Highway link tunnel",
@@ -3076,12 +2606,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway"],
-          ["==", "ramp", 1],
-          ["==", "brunnel", "tunnel"]
-        ]
+        "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "tunnel"]]
       },
       {
         "id": "Service tunnel",
@@ -3106,11 +2631,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "service", "track"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "service", "track"]]
       },
       {
         "id": "Service tunnel under construction",
@@ -3136,11 +2657,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "service_construction", "track_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "service_construction", "track_construction"]]
       },
       {
         "id": "Link tunnel",
@@ -3163,12 +2680,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "ramp", "1"],
-          ["==", "brunnel", "tunnel"],
-          [">", "layer", 0]
-        ]
+        "filter": ["all", ["==", "ramp", "1"], ["==", "brunnel", "tunnel"], [">", "layer", 0]]
       },
       {
         "id": "Minor tunnel",
@@ -3215,11 +2727,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "minor_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "minor_construction"]]
       },
       {
         "id": "Tertiary tunnel",
@@ -3246,11 +2754,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "tertiary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "tertiary"]]
       },
       {
         "id": "Tertiary tunnel under construction",
@@ -3278,11 +2782,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "tertiary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "tertiary_construction"]]
       },
       {
         "id": "Secondary tunnel",
@@ -3313,11 +2813,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "secondary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "secondary"]]
       },
       {
         "id": "Secondary tunnel under construction",
@@ -3349,11 +2845,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "secondary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "secondary_construction"]]
       },
       {
         "id": "Primary tunnel",
@@ -3386,11 +2878,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "primary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "primary"]]
       },
       {
         "id": "Primary tunnel under construction",
@@ -3424,11 +2912,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "primary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "primary_construction"]]
       },
       {
         "id": "Trunk tunnel",
@@ -3498,11 +2982,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "tunnel"],
-          ["in", "class", "trunk_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "trunk_construction"]]
       },
       {
         "id": "Highway tunnel",
@@ -3529,11 +3009,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway"],
-          ["==", "brunnel", "tunnel"]
-        ]
+        "filter": ["all", ["==", "class", "motorway"], ["==", "brunnel", "tunnel"]]
       },
       {
         "id": "Highway tunnel under construction",
@@ -3561,11 +3037,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway_construction"],
-          ["==", "brunnel", "tunnel"]
-        ]
+        "filter": ["all", ["==", "class", "motorway_construction"], ["==", "brunnel", "tunnel"]]
       },
       {
         "id": "Major rail tunnel",
@@ -3614,11 +3086,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "rail"]
-        ]
+        "filter": ["all", ["in", "brunnel", "bridge", "tunnel"], ["==", "class", "rail"]]
       },
       {
         "id": "Pier",
@@ -3653,11 +3121,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "pier"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "pier"]]
       },
       {
         "id": "Bridge area",
@@ -3685,13 +3149,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "fill-color": "hsl(0, 0%, 73%)"
         },
-        "filter": [
-          "all",
-          ["==", "$type", "Polygon"],
-          ["!has", "brunnel"],
-          ["==", "class", "path"],
-          ["==", "subclass", "platform"]
-        ]
+        "filter": ["all", ["==", "$type", "Polygon"], ["!has", "brunnel"], ["==", "class", "path"], ["==", "subclass", "platform"]]
       },
       {
         "id": "Pedestrian area",
@@ -3704,12 +3162,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "fill-color": "hsl(240, 19%, 89%)"
         },
-        "filter": [
-          "all",
-          ["==", "$type", "Polygon"],
-          ["!has", "brunnel"],
-          ["!in", "class", "bridge", "pier"]
-        ]
+        "filter": ["all", ["==", "$type", "Polygon"], ["!has", "brunnel"], ["!in", "class", "bridge", "pier"]]
       },
       {
         "id": "Service road link outline",
@@ -3735,11 +3188,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "service", "track"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "service", "track"]]
       },
       {
         "id": "Primary road link outline",
@@ -3772,12 +3221,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "ramp", 1],
-          ["in", "class", "primary"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "ramp", 1], ["in", "class", "primary"]]
       },
       {
         "id": "Trunk road link outline",
@@ -3809,12 +3253,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "ramp", 1],
-          ["in", "class", "trunk"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "ramp", 1], ["in", "class", "trunk"]]
       },
       {
         "id": "Highway link outline",
@@ -3848,12 +3287,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "motorway"],
-          ["==", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["==", "ramp", 1]]
       },
       {
         "id": "Minor road outline",
@@ -3886,13 +3320,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "minor"],
-          ["!=", "ramp", "1"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "minor"], ["!=", "ramp", "1"]]
       },
       {
         "id": "Tertiary road outline",
@@ -3922,12 +3350,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "tertiary"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "tertiary"], ["!=", "ramp", 1]]
       },
       {
         "id": "Secondary road link outline",
@@ -3962,12 +3385,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "secondary"],
-          ["==", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary"], ["==", "ramp", 1]]
       },
       {
         "id": "Secondary road outline",
@@ -4002,12 +3420,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "secondary"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary"], ["!=", "ramp", 1]]
       },
       {
         "id": "Trunk road outline",
@@ -4042,13 +3455,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["!=", "ramp", 1],
-          ["in", "class", "trunk"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!=", "ramp", 1], ["in", "class", "trunk"], ["!=", "ramp", 1]]
       },
       {
         "id": "Primary road outline",
@@ -4083,13 +3490,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["!=", "ramp", 1],
-          ["in", "class", "primary"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!=", "ramp", 1], ["in", "class", "primary"], ["!=", "ramp", 1]]
       },
       {
         "id": "Highway road outline",
@@ -4118,12 +3519,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "motorway"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["!=", "ramp", 1]]
       },
       {
         "id": "Pedestrian road outline",
@@ -4146,13 +3542,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "path"],
-          ["==", "subclass", "pedestrian"],
-          ["!=", "brunel", "tunnel"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "path"], ["==", "subclass", "pedestrian"], ["!=", "brunel", "tunnel"]]
       },
       {
         "id": "Pedestrian road",
@@ -4175,13 +3565,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "path"],
-          ["==", "subclass", "pedestrian"],
-          ["!=", "brunel", "tunnel"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "path"], ["==", "subclass", "pedestrian"], ["!=", "brunel", "tunnel"]]
       },
       {
         "id": "Steps path outline",
@@ -4206,13 +3590,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path"],
-          ["==", "subclass", "steps"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path"], ["==", "subclass", "steps"]]
       },
       {
         "id": "Bridleway path outline",
@@ -4237,18 +3615,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path"],
-          [
-            "any",
-            ["==", "subclass", "bridleway"],
-            ["==", "horse", "designated"]
-          ],
-          ["!=", "bicycle", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path"], ["any", ["==", "subclass", "bridleway"], ["==", "horse", "designated"]], ["!=", "bicycle", "designated"]]
       },
       {
         "id": "Cycleway path outline",
@@ -4273,17 +3640,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path"],
-          [
-            "any",
-            ["==", "subclass", "cycleway"],
-            ["==", "bicycle", "designated"]
-          ]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path"], ["any", ["==", "subclass", "cycleway"], ["==", "bicycle", "designated"]]]
       },
       {
         "id": "Footway path outline",
@@ -4308,15 +3665,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path"],
-          ["in", "subclass", "footway", "path"],
-          ["!=", "bicycle", "designated"],
-          ["!=", "horse", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path"], ["in", "subclass", "footway", "path"], ["!=", "bicycle", "designated"], ["!=", "horse", "designated"]]
       },
       {
         "id": "Path minor",
@@ -4342,15 +3691,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path_pedestrian"],
-          ["in", "subclass", "footway", "path"],
-          ["!=", "bicycle", "designated"],
-          ["!=", "horse", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path_pedestrian"], ["in", "subclass", "footway", "path"], ["!=", "bicycle", "designated"], ["!=", "horse", "designated"]]
       },
       {
         "id": "Cycleway path",
@@ -4375,17 +3716,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path"],
-          [
-            "any",
-            ["==", "subclass", "cycleway"],
-            ["==", "bicycle", "designated"]
-          ]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path"], ["any", ["==", "subclass", "cycleway"], ["==", "bicycle", "designated"]]]
       },
       {
         "id": "Steps path",
@@ -4410,13 +3741,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path"],
-          ["==", "subclass", "steps"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path"], ["==", "subclass", "steps"]]
       },
       {
         "id": "Bridleway path",
@@ -4441,18 +3766,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path"],
-          [
-            "any",
-            ["==", "subclass", "bridleway"],
-            ["==", "horse", "designated"]
-          ],
-          ["!=", "bicycle", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path"], ["any", ["==", "subclass", "bridleway"], ["==", "horse", "designated"]], ["!=", "bicycle", "designated"]]
       },
       {
         "id": "Footway path",
@@ -4478,15 +3792,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "path"],
-          ["in", "subclass", "footway", "path"],
-          ["!=", "bicycle", "designated"],
-          ["!=", "horse", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path"], ["in", "subclass", "footway", "path"], ["!=", "bicycle", "designated"], ["!=", "horse", "designated"]]
       },
       {
         "id": "Primary road link",
@@ -4513,12 +3819,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "ramp", 1],
-          ["in", "class", "primary"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "ramp", 1], ["in", "class", "primary"]]
       },
       {
         "id": "Trunk road link",
@@ -4550,12 +3851,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "ramp", 1],
-          ["in", "class", "trunk"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "ramp", 1], ["in", "class", "trunk"]]
       },
       {
         "id": "Highway road link",
@@ -4589,12 +3885,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "motorway"],
-          ["==", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["==", "ramp", 1]]
       },
       {
         "id": "Service road",
@@ -4622,11 +3913,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "service", "track"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "service", "track"]]
       },
       {
         "id": "Service road under construction",
@@ -4653,11 +3940,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "service_construction", "track_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "service_construction", "track_construction"]]
       },
       {
         "id": "Raceway road",
@@ -4702,26 +3985,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(0, 0%, 83%)",
           "line-opacity": 1,
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "minor_construction"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "minor_construction"]]
       },
       {
         "id": "Minor road under construction dash",
@@ -4741,26 +4007,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           },
           "line-dasharray": [1, 1],
           "line-opacity": 1,
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "minor_construction"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "minor_construction"]]
       },
       {
         "id": "Minor road",
@@ -4794,12 +4043,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "minor"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "minor"]]
       },
       {
         "id": "Tertiary road under construction",
@@ -4812,25 +4056,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         },
         "paint": {
           "line-color": "hsl(0, 0%, 73%)",
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "tertiary_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "tertiary_construction"]]
       },
       {
         "id": "Tertiary road under construction dash",
@@ -4849,25 +4077,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           },
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "tertiary_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "tertiary_construction"]]
       },
       {
         "id": "Tertiary road",
@@ -4903,11 +4115,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "tertiary"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "tertiary"]]
       },
       {
         "id": "Secondary road under construction",
@@ -4921,34 +4129,10 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "visibility": "visible"
         },
         "paint": {
-          "line-color": [
-            "interpolate",
-            ["exponential", 1],
-            ["zoom"],
-            10.5,
-            "hsl(0, 0%, 73%)",
-            10.6,
-            "hsl(63, 86%, 86%)"
-          ],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-color": ["interpolate", ["exponential", 1], ["zoom"], 10.5, "hsl(0, 0%, 73%)", 10.6, "hsl(63, 86%, 86%)"],
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "secondary_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary_construction"]]
       },
       {
         "id": "Secondary road under construction dash",
@@ -4962,25 +4146,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(0, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "secondary_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary_construction"]]
       },
       {
         "id": "Secondary road",
@@ -5017,11 +4185,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "secondary"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary"]]
       },
       {
         "id": "Primary road under construction",
@@ -5041,26 +4205,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
               [11, "hsl(34, 94%, 82%)"]
             ]
           },
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["!=", "ramp", 1],
-          ["in", "class", "primary_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!=", "ramp", 1], ["in", "class", "primary_construction"]]
       },
       {
         "id": "Primary road under construction dash",
@@ -5074,26 +4221,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(35, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["!=", "ramp", 1],
-          ["in", "class", "primary_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!=", "ramp", 1], ["in", "class", "primary_construction"]]
       },
       {
         "id": "Primary road",
@@ -5130,12 +4260,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["!=", "ramp", 1],
-          ["in", "class", "primary"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!=", "ramp", 1], ["in", "class", "primary"]]
       },
       {
         "id": "Trunk road under construction",
@@ -5155,26 +4280,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
               [11, "hsl(14, 89%, 79%)"]
             ]
           },
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["!=", "ramp", 1],
-          ["in", "class", "trunk_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!=", "ramp", 1], ["in", "class", "trunk_construction"]]
       },
       {
         "id": "Trunk road under construction dash",
@@ -5188,26 +4296,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(15, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["!=", "ramp", 1],
-          ["in", "class", "trunk_construction"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!=", "ramp", 1], ["in", "class", "trunk_construction"]]
       },
       {
         "id": "Trunk road",
@@ -5246,12 +4337,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["!=", "ramp", 1],
-          ["in", "class", "trunk"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!=", "ramp", 1], ["in", "class", "trunk"]]
       },
       {
         "id": "Highway road under construction",
@@ -5272,28 +4358,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
               [10, "hsl(347, 71%, 67%)"]
             ]
           },
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            5,
-            1,
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 5, 1, 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "motorway_construction"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway_construction"], ["!=", "ramp", 1]]
       },
       {
         "id": "Highway road under construction dash",
@@ -5307,28 +4374,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(349, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            5,
-            0,
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 5, 0, 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "motorway_construction"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway_construction"], ["!=", "ramp", 1]]
       },
       {
         "id": "Highway road",
@@ -5357,12 +4405,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "motorway"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["!=", "ramp", 1]]
       },
       {
         "id": "Subway line",
@@ -5383,11 +4426,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "transit"],
-          ["==", "subclass", "subway"]
-        ]
+        "filter": ["all", ["==", "class", "transit"], ["==", "subclass", "subway"]]
       },
       {
         "id": "Major rail",
@@ -5414,11 +4453,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "class", "rail"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "rail"]]
       },
       {
         "id": "Minor rail",
@@ -5439,11 +4474,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "subclass", "tram", "light_rail"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "subclass", "tram", "light_rail"]]
       },
       {
         "id": "Major rail hatching",
@@ -5471,11 +4502,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["==", "class", "rail"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "rail"]]
       },
       {
         "id": "Minor rail hatching",
@@ -5497,11 +4524,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["!in", "brunnel", "bridge", "tunnel"],
-          ["in", "subclass", "tram", "light_rail"]
-        ]
+        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "subclass", "tram", "light_rail"]]
       },
       {
         "id": "River bridge outline",
@@ -5529,11 +4552,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "bridge"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"]]
       },
       {
         "id": "River bridge",
@@ -5554,11 +4573,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "bridge"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"]]
       },
       {
         "id": "Highway link bridge outline",
@@ -5587,12 +4602,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway"],
-          ["==", "ramp", 1],
-          ["==", "brunnel", "bridge"]
-        ]
+        "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "bridge"]]
       },
       {
         "id": "Service bridge outline",
@@ -5613,11 +4623,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "service", "track"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "service", "track"]]
       },
       {
         "id": "Link bridge outline",
@@ -5669,11 +4675,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "street", "street_limited"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "street", "street_limited"]]
       },
       {
         "id": "Path bridge second outline",
@@ -5699,12 +4701,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "path"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path"]]
       },
       {
         "id": "Path bridge outline",
@@ -5730,12 +4727,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "path"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path"]]
       },
       {
         "id": "Secondary bridge outline",
@@ -5762,11 +4754,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "secondary", "tertiary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary", "tertiary"]]
       },
       {
         "id": "Tertiary bridge outline",
@@ -5787,11 +4775,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "secondary", "tertiary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary", "tertiary"]]
       },
       {
         "id": "Trunk bridge outline",
@@ -5846,11 +4830,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "primary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "primary"]]
       },
       {
         "id": "Highway bridge outline",
@@ -5872,12 +4852,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway"],
-          ["==", "brunnel", "bridge"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["==", "class", "motorway"], ["==", "brunnel", "bridge"], ["!=", "ramp", 1]]
       },
       {
         "id": "Cycleway bridge",
@@ -5899,17 +4874,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "path"],
-          [
-            "any",
-            ["==", "subclass", "cycleway"],
-            ["==", "bicycle", "designated"]
-          ]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path"], ["any", ["==", "subclass", "cycleway"], ["==", "bicycle", "designated"]]]
       },
       {
         "id": "Bridleway bridge",
@@ -5931,18 +4896,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "path"],
-          [
-            "any",
-            ["==", "subclass", "bridleway"],
-            ["==", "horse", "designated"]
-          ],
-          ["!=", "bicycle", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path"], ["any", ["==", "subclass", "bridleway"], ["==", "horse", "designated"]], ["!=", "bicycle", "designated"]]
       },
       {
         "id": "Footway bridge",
@@ -5964,15 +4918,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "path"],
-          ["in", "subclass", "footway", "path"],
-          ["!=", "bicycle", "designated"],
-          ["!=", "horse", "designated"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path"], ["in", "subclass", "footway", "path"], ["!=", "bicycle", "designated"], ["!=", "horse", "designated"]]
       },
       {
         "id": "Highway link bridge",
@@ -6000,12 +4946,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway"],
-          ["==", "ramp", 1],
-          ["==", "brunnel", "bridge"]
-        ]
+        "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "bridge"]]
       },
       {
         "id": "Service bridge under construction",
@@ -6028,11 +4969,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "service_construction", "track_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "service_construction", "track_construction"]]
       },
       {
         "id": "Service bridge",
@@ -6054,11 +4991,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "service", "track"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "service", "track"]]
       },
       {
         "id": "Link bridge",
@@ -6095,25 +5028,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(0, 0%, 83%)",
           "line-opacity": 1,
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "minor_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "minor_construction"]]
       },
       {
         "id": "Minor bridge under construction dash",
@@ -6127,25 +5044,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "line-color": "hsl(0, 0%, 100%)",
           "line-dasharray": [1, 1],
           "line-opacity": 1,
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "minor_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "minor_construction"]]
       },
       {
         "id": "Minor bridge",
@@ -6179,25 +5080,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         },
         "paint": {
           "line-color": "hsl(0, 0%, 83%)",
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "tertiary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "tertiary_construction"]]
       },
       {
         "id": "Tertiary bridge under construction dash",
@@ -6207,25 +5092,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(0, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "tertiary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "tertiary_construction"]]
       },
       {
         "id": "Tertiary bridge",
@@ -6253,11 +5122,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "tertiary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "tertiary"]]
       },
       {
         "id": "Secondary bridge under construction",
@@ -6269,25 +5134,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         },
         "paint": {
           "line-color": "hsl(63, 86%, 86%)",
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "secondary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary_construction"]]
       },
       {
         "id": "Secondary bridge under construction dash",
@@ -6297,25 +5146,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(0, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "secondary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary_construction"]]
       },
       {
         "id": "Secondary bridge",
@@ -6344,11 +5177,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "secondary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary"]]
       },
       {
         "id": "Primary bridge under construction",
@@ -6361,25 +5190,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         },
         "paint": {
           "line-color": "hsl(34, 94%, 82%)",
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["==", "class", "primary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["==", "class", "primary_construction"]]
       },
       {
         "id": "Primary bridge under construction dash",
@@ -6392,25 +5205,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(34, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["==", "class", "primary_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["==", "class", "primary_construction"]]
       },
       {
         "id": "Primary bridge",
@@ -6437,11 +5234,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "primary"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "primary"]]
       },
       {
         "id": "Trunk bridge under construction",
@@ -6454,25 +5247,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         },
         "paint": {
           "line-color": "hsl(14, 89%, 79%)",
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["==", "class", "trunk_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["==", "class", "trunk_construction"]]
       },
       {
         "id": "Trunk bridge under construction dash",
@@ -6486,25 +5263,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(48, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            11,
-            0,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 11, 0, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "brunnel", "bridge"],
-          ["in", "class", "primary_construction", "trunk_construction"]
-        ]
+        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "primary_construction", "trunk_construction"]]
       },
       {
         "id": "Trunk bridge",
@@ -6547,28 +5308,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
               [10, "hsl(347, 71%, 67%)"]
             ]
           },
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            5,
-            1,
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 5, 1, 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway_construction"],
-          ["==", "brunnel", "bridge"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["==", "class", "motorway_construction"], ["==", "brunnel", "bridge"], ["!=", "ramp", 1]]
       },
       {
         "id": "Highway bridge under construction dash",
@@ -6578,28 +5320,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "line-color": "hsl(349, 0%, 100%)",
           "line-dasharray": [1, 1],
-          "line-width": [
-            "interpolate",
-            ["exponential", 1.2],
-            ["zoom"],
-            5,
-            0,
-            11,
-            1,
-            12,
-            2,
-            13,
-            4,
-            16,
-            7
-          ]
+          "line-width": ["interpolate", ["exponential", 1.2], ["zoom"], 5, 0, 11, 1, 12, 2, 13, 4, 16, 7]
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway_construction"],
-          ["==", "brunnel", "bridge"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["==", "class", "motorway_construction"], ["==", "brunnel", "bridge"], ["!=", "ramp", 1]]
       },
       {
         "id": "Highway bridge",
@@ -6625,12 +5348,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          ["==", "class", "motorway"],
-          ["==", "brunnel", "bridge"],
-          ["!=", "ramp", 1]
-        ]
+        "filter": ["all", ["==", "class", "motorway"], ["==", "brunnel", "bridge"], ["!=", "ramp", 1]]
       },
       {
         "id": "Major rail bridge",
@@ -6937,46 +5655,14 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "icon-halo-blur": 1,
           "icon-halo-color": "hsl(0, 0%, 100%)",
           "icon-halo-width": 0.5,
-          "icon-opacity": [
-            "step",
-            ["zoom"],
-            0,
-            15,
-            ["match", ["get", "subclass"], ["supermarket"], 1, 0],
-            16,
-            ["match", ["get", "subclass"], ["supermarket"], 1, 0],
-            17,
-            1
-          ],
+          "icon-opacity": ["step", ["zoom"], 0, 15, ["match", ["get", "subclass"], ["supermarket"], 1, 0], 16, ["match", ["get", "subclass"], ["supermarket"], 1, 0], 17, 1],
           "text-color": "hsl(300, 50%, 40%)",
           "text-halo-blur": 0.5,
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1,
-          "text-opacity": [
-            "step",
-            ["zoom"],
-            0,
-            15,
-            ["match", ["get", "subclass"], ["supermarket"], 1, 0],
-            16,
-            ["match", ["get", "subclass"], ["supermarket"], 1, 0],
-            17,
-            1
-          ]
+          "text-opacity": ["step", ["zoom"], 0, 15, ["match", ["get", "subclass"], ["supermarket"], 1, 0], 16, ["match", ["get", "subclass"], ["supermarket"], 1, 0], 17, 1]
         },
-        "filter": [
-          "any",
-          [
-            "in",
-            "class",
-            "alcohol_shop",
-            "clothing_store",
-            "grocery",
-            "music",
-            "shop"
-          ],
-          ["in", "subclass", "books", "supermarket"]
-        ]
+        "filter": ["any", ["in", "class", "alcohol_shop", "clothing_store", "grocery", "music", "shop"], ["in", "subclass", "books", "supermarket"]]
       },
       {
         "id": "Waste",
@@ -7012,17 +5698,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "class",
-            "recycling",
-            "waste_basket",
-            "drinking_water",
-            "toilets"
-          ]
-        ]
+        "filter": ["all", ["in", "class", "recycling", "waste_basket", "drinking_water", "toilets"]]
       },
       {
         "id": "Mortuary",
@@ -7085,10 +5761,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-translate": [0, 5],
           "text-translate-anchor": "viewport"
         },
-        "filter": [
-          "all",
-          ["in", "class", "college", "kindergarten", "school", "university"]
-        ]
+        "filter": ["all", ["in", "class", "college", "kindergarten", "school", "university"]]
       },
       {
         "id": "Outdoor",
@@ -7121,10 +5794,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1
         },
-        "filter": [
-          "all",
-          ["in", "class", "pitch", "playground", "stile", "garden", "gate"]
-        ]
+        "filter": ["all", ["in", "class", "pitch", "playground", "stile", "garden", "gate"]]
       },
       {
         "id": "Sport",
@@ -7158,18 +5828,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 0.2
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "class",
-            "golf",
-            "stadium",
-            "swimming_pool",
-            "sports_centre",
-            "water_park"
-          ]
-        ]
+        "filter": ["all", ["in", "class", "golf", "stadium", "swimming_pool", "sports_centre", "water_park"]]
       },
       {
         "id": "Ferry",
@@ -7205,11 +5864,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1
         },
-        "filter": [
-          "all",
-          ["==", "subclass", "ferry_terminal"],
-          ["==", "class", "ferry_terminal"]
-        ]
+        "filter": ["all", ["==", "subclass", "ferry_terminal"], ["==", "class", "ferry_terminal"]]
       },
       {
         "id": "Food",
@@ -7245,19 +5900,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "class",
-            "ice_cream",
-            "cafe",
-            "beer",
-            "bar",
-            "fast_food",
-            "restaurant"
-          ]
-        ]
+        "filter": ["all", ["in", "class", "ice_cream", "cafe", "beer", "bar", "fast_food", "restaurant"]]
       },
       {
         "id": "Public",
@@ -7293,23 +5936,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "class",
-            "atm",
-            "town_hall",
-            "post",
-            "library",
-            "police",
-            "information",
-            "cinema",
-            "theatre",
-            "fire_station"
-          ],
-          ["!=", "subclass", "books"]
-        ]
+        "filter": ["all", ["in", "class", "atm", "town_hall", "post", "library", "police", "information", "cinema", "theatre", "fire_station"], ["!=", "subclass", "books"]]
       },
       {
         "id": "Cultural",
@@ -7345,22 +5972,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "class",
-            "cinema",
-            "library",
-            "museum",
-            "castle",
-            "monument",
-            "art_gallery",
-            "arts_centre",
-            "gallery"
-          ],
-          ["!in", "subclass", "books", "musical_instrument", "art"]
-        ]
+        "filter": ["all", ["in", "class", "cinema", "library", "museum", "castle", "monument", "art_gallery", "arts_centre", "gallery"], ["!in", "subclass", "books", "musical_instrument", "art"]]
       },
       {
         "id": "Attraction",
@@ -7428,27 +6040,13 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "icon-halo-blur": 1,
           "icon-halo-color": "hsl(0, 0%, 100%)",
           "icon-halo-width": 0.5,
-          "icon-opacity": [
-            "step",
-            ["zoom"],
-            0,
-            15,
-            ["match", ["get", "class"], ["parking"], 1, 0],
-            16,
-            ["match", ["get", "class"], ["parking"], 1, 0],
-            17,
-            1
-          ],
+          "icon-opacity": ["step", ["zoom"], 0, 15, ["match", ["get", "class"], ["parking"], 1, 0], 16, ["match", ["get", "class"], ["parking"], 1, 0], 17, 1],
           "text-color": "hsl(216, 100%, 50%)",
           "text-halo-blur": 0.5,
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1
         },
-        "filter": [
-          "all",
-          ["==", "$type", "Point"],
-          ["in", "class", "bicycle_parking", "car", "fuel", "parking"]
-        ]
+        "filter": ["all", ["==", "$type", "Point"], ["in", "class", "bicycle_parking", "car", "fuel", "parking"]]
       },
       {
         "id": "Health",
@@ -7479,39 +6077,14 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "icon-halo-blur": 1,
           "icon-halo-color": "hsl(0, 0%, 100%)",
           "icon-halo-width": 0.5,
-          "icon-opacity": [
-            "step",
-            ["zoom"],
-            0,
-            14,
-            ["match", ["get", "class"], ["hospital"], 1, 0],
-            16,
-            ["match", ["get", "class"], ["hospital", "pharmacy"], 1, 0],
-            17,
-            1
-          ],
+          "icon-opacity": ["step", ["zoom"], 0, 14, ["match", ["get", "class"], ["hospital"], 1, 0], 16, ["match", ["get", "class"], ["hospital", "pharmacy"], 1, 0], 17, 1],
           "text-color": "hsl(0, 100%, 37%)",
           "text-halo-blur": 0.5,
           "text-halo-color": "hsl(0, 0%, 100%)",
           "text-halo-width": 1,
-          "text-opacity": [
-            "step",
-            ["zoom"],
-            0,
-            14,
-            ["match", ["get", "class"], ["hospital"], 1, 0],
-            16,
-            ["match", ["get", "class"], ["hospital", "pharmacy"], 1, 0],
-            17,
-            1,
-            22,
-            1
-          ]
+          "text-opacity": ["step", ["zoom"], 0, 14, ["match", ["get", "class"], ["hospital"], 1, 0], 16, ["match", ["get", "class"], ["hospital", "pharmacy"], 1, 0], 17, 1, 22, 1]
         },
-        "filter": [
-          "all",
-          ["in", "class", "hospital", "pharmacy", "dentist", "veterinary"]
-        ]
+        "filter": ["all", ["in", "class", "hospital", "pharmacy", "dentist", "veterinary"]]
       },
       {
         "id": "Campsite",
@@ -7700,11 +6273,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-translate": [0, 5],
           "text-translate-anchor": "viewport"
         },
-        "filter": [
-          "all",
-          ["in", "class", "bus"],
-          ["!in", "subclass", "bus_stop"]
-        ]
+        "filter": ["all", ["in", "class", "bus"], ["!in", "subclass", "bus_stop"]]
       },
       {
         "id": "Harbor",
@@ -7858,21 +6427,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "icon-opacity": 1
         },
-        "filter": [
-          "all",
-          ["==", "oneway", 1],
-          [
-            "in",
-            "class",
-            "motorway",
-            "trunk",
-            "primary",
-            "secondary",
-            "tertiary",
-            "minor",
-            "service"
-          ]
-        ]
+        "filter": ["all", ["==", "oneway", 1], ["in", "class", "motorway", "trunk", "primary", "secondary", "tertiary", "minor", "service"]]
       },
       {
         "id": "Oneway opposite",
@@ -7898,21 +6453,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "icon-opacity": 0.5
         },
-        "filter": [
-          "all",
-          ["==", "oneway", -1],
-          [
-            "in",
-            "class",
-            "motorway",
-            "trunk",
-            "primary",
-            "secondary",
-            "tertiary",
-            "minor",
-            "service"
-          ]
-        ]
+        "filter": ["all", ["==", "oneway", -1], ["in", "class", "motorway", "trunk", "primary", "secondary", "tertiary", "minor", "service"]]
       },
       {
         "id": "Ferry line",
@@ -8026,12 +6567,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "text-color": "hsl(0, 0%, 23%)"
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "tertiary"],
-          ["has", "ref"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "tertiary"], ["has", "ref"]]
       },
       {
         "id": "Secondary road shield",
@@ -8071,12 +6607,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "text-color": "hsl(69, 100%, 12%)"
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "secondary"],
-          ["has", "ref"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "secondary"], ["has", "ref"]]
       },
       {
         "id": "Primary road shield",
@@ -8116,12 +6647,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "text-color": "hsl(36, 100%, 15%)"
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "primary"],
-          ["has", "ref"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "primary"], ["has", "ref"]]
       },
       {
         "id": "Highway shield",
@@ -8164,12 +6690,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "paint": {
           "text-color": "hsl(338, 87%, 21%)"
         },
-        "filter": [
-          "all",
-          ["==", "$type", "LineString"],
-          ["==", "class", "motorway"],
-          ["has", "ref"]
-        ]
+        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "motorway"], ["has", "ref"]]
       },
       {
         "id": "Major airport labels",
@@ -8307,19 +6828,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
             ]
           }
         },
-        "filter": [
-          "all",
-          [
-            "in",
-            "class",
-            "hamlet",
-            "island",
-            "islet",
-            "neighbourhood",
-            "suburb",
-            "place"
-          ]
-        ]
+        "filter": ["all", ["in", "class", "hamlet", "island", "islet", "neighbourhood", "suburb", "place"]]
       },
       {
         "id": "Local park",
@@ -8670,17 +7179,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-field": "{name:en}",
           "text-font": ["Open Sans Semibold", "Noto Sans Bold"],
           "text-max-width": 6.25,
-          "text-size": [
-            "interpolate",
-            ["linear", 1],
-            ["zoom"],
-            4.99,
-            ["case", [">", ["get", "rank"], 2], 0, 11],
-            5,
-            ["case", [">", ["get", "rank"], 2], 13, 14],
-            7,
-            ["case", [">", ["get", "rank"], 2], 17, 19]
-          ],
+          "text-size": ["interpolate", ["linear", 1], ["zoom"], 4.99, ["case", [">", ["get", "rank"], 2], 0, 11], 5, ["case", [">", ["get", "rank"], 2], 13, 14], 7, ["case", [">", ["get", "rank"], 2], 17, 19]],
           "text-transform": "none",
           "visibility": "visible"
         },
