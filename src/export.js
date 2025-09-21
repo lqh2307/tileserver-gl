@@ -931,6 +931,7 @@ export async function exportMBTilesTiles(
       }
     }
 
+    // Export tiles with concurrency
     printLog("info", "Exporting datas...");
 
     await handleTilesConcurrency(

@@ -107,7 +107,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} sprites after: ${(Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} sprites after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -152,7 +153,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} fonts after: ${(Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} fonts after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -197,7 +199,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} styles after: ${(Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} styles after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -242,7 +245,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} geojsons after: ${(Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} geojsons after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -281,7 +285,7 @@ export async function runTasks(opts) {
                       seedDataItem.metadata.format,
                       cleanUpDataItem.coverages,
                       cleanUpDataItem.cleanUpBefore?.time ||
-                      cleanUpDataItem.cleanUpBefore?.day
+                        cleanUpDataItem.cleanUpBefore?.day
                     );
 
                     break;
@@ -292,7 +296,7 @@ export async function runTasks(opts) {
                       id,
                       cleanUpDataItem.coverages,
                       cleanUpDataItem.cleanUpBefore?.time ||
-                      cleanUpDataItem.cleanUpBefore?.day
+                        cleanUpDataItem.cleanUpBefore?.day
                     );
 
                     break;
@@ -303,7 +307,7 @@ export async function runTasks(opts) {
                       id,
                       cleanUpDataItem.coverages,
                       cleanUpDataItem.cleanUpBefore?.time ||
-                      cleanUpDataItem.cleanUpBefore?.day
+                        cleanUpDataItem.cleanUpBefore?.day
                     );
 
                     break;
@@ -319,7 +323,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} datas after: ${(Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} datas after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -356,8 +361,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
                   item.headers
                 );
               } catch (error) {
@@ -370,7 +375,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} sprites after: ${(Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} sprites after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -408,8 +414,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
                   item.headers
                 );
               } catch (error) {
@@ -422,7 +428,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} fonts after: ${(Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} fonts after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -459,8 +466,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
                   item.headers
                 );
               } catch (error) {
@@ -473,7 +480,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} styles after: ${(Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} styles after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -510,8 +518,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
                   item.headers
                 );
               } catch (error) {
@@ -524,7 +532,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} geojsons after: ${(Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} geojsons after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -568,8 +577,8 @@ export async function runTasks(opts) {
                       item.timeout ?? 60000,
                       item.storeTransparent ?? true,
                       item.refreshBefore?.time ||
-                      item.refreshBefore?.day ||
-                      item.refreshBefore?.md5,
+                        item.refreshBefore?.day ||
+                        item.refreshBefore?.md5,
                       item.headers
                     );
 
@@ -588,8 +597,8 @@ export async function runTasks(opts) {
                       item.timeout ?? 60000,
                       item.storeTransparent ?? true,
                       item.refreshBefore?.time ||
-                      item.refreshBefore?.day ||
-                      item.refreshBefore?.md5,
+                        item.refreshBefore?.day ||
+                        item.refreshBefore?.md5,
                       item.headers
                     );
 
@@ -608,8 +617,8 @@ export async function runTasks(opts) {
                       item.timeout ?? 60000,
                       item.storeTransparent ?? true,
                       item.refreshBefore?.time ||
-                      item.refreshBefore?.day ||
-                      item.refreshBefore?.md5,
+                        item.refreshBefore?.day ||
+                        item.refreshBefore?.md5,
                       item.headers
                     );
 
@@ -626,7 +635,8 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} datas after: ${(Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} datas after: ${
+                (Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -856,7 +866,8 @@ async function seedMBTilesTiles(
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of mbtiles "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed seed ${total} tiles of mbtiles "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -1075,7 +1086,8 @@ async function seedPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of postgresql "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed seed ${total} tiles of postgresql "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -1304,7 +1316,8 @@ async function seedXYZTiles(
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of xyz "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed seed ${total} tiles of xyz "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -1611,6 +1624,7 @@ async function seedFont(
 
   printLog("info", "Downloading fonts...");
 
+  // Batch run
   await handleConcurrency(
     concurrency,
     seedFontData,
@@ -1622,7 +1636,8 @@ async function seedFont(
 
   printLog(
     "info",
-    `Completed seed ${total} fonts of font "${id}" after ${(Date.now() - startTime) / 1000
+    `Completed seed ${total} fonts of font "${id}" after ${
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -1867,7 +1882,8 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of mbtiles "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed cleanup ${total} tiles of mbtiles "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -1979,7 +1995,8 @@ async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
 
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of postgresql "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed cleanup ${total} tiles of postgresql "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -2107,7 +2124,8 @@ async function cleanUpXYZTiles(id, format, coverages, cleanUpBefore) {
 
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of xyz "${id}" after ${(Date.now() - startTime) / 1000
+      `Completed cleanup ${total} tiles of xyz "${id}" after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
@@ -2190,7 +2208,8 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup geojson "${id}" after ${(Date.now() - startTime) / 1000
+    `Completed cleanup geojson "${id}" after ${
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -2277,7 +2296,8 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup sprite "${id}" after ${(Date.now() - startTime) / 1000
+    `Completed cleanup sprite "${id}" after ${
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -2367,7 +2387,8 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup ${total} fonts of font "${id}" after ${(Date.now() - startTime) / 1000
+    `Completed cleanup ${total} fonts of font "${id}" after ${
+      (Date.now() - startTime) / 1000
     }s!`
   );
 }

@@ -435,6 +435,7 @@ export async function renderImageTileData(
     ? Math.floor(originTileSize / 2)
     : undefined;
 
+  // Create image
   return await createImageOutput(data, {
     rawOption: {
       premultiplied: true,
@@ -493,6 +494,7 @@ export async function renderImageStaticData(
     );
   });
 
+  // Create image
   return await createImageOutput(data, {
     rawOption: {
       premultiplied: true,
@@ -672,11 +674,12 @@ export async function renderStyleJSONToImage(
       }
     }
 
+    // Render tiles with concurrency
     printLog("info", "Rendering tiles to XYZ...");
 
     await handleTilesConcurrency(concurrency, renderTileData, tileBounds);
 
-    /* Create image */
+    // Merge tiles to image
     printLog("info", "Merge tiles to image...");
 
     const mergedImage = await mergeTilesToImage(
@@ -763,6 +766,7 @@ export async function renderSVGToImage(format, overlays, concurrency, base64) {
   const targetOverlays = Array(overlays.length);
 
   async function renderSVGToImageData(idx, overlays) {
+    // Create image
     targetOverlays[idx] = await createImageOutput(
       Buffer.from(overlays[idx].content),
       {
@@ -774,6 +778,7 @@ export async function renderSVGToImage(format, overlays, concurrency, base64) {
     );
   }
 
+  // Batch run
   await handleConcurrency(concurrency, renderSVGToImageData, overlays);
 
   return targetOverlays;
@@ -1015,6 +1020,7 @@ export async function renderMBTilesTiles(
       }
     }
 
+    // Render tiles with concurrency
     printLog("info", "Rendering tiles to MBTiles...");
 
     await handleTilesConcurrency(
@@ -1274,6 +1280,7 @@ export async function renderXYZTiles(
       }
     }
 
+    // Render tiles with concurrency
     printLog("info", "Rendering tiles to XYZ...");
 
     await handleTilesConcurrency(
@@ -1521,6 +1528,7 @@ export async function renderPostgreSQLTiles(
       }
     }
 
+    // Render tiles with concurrency
     printLog("info", "Rendering tiles to PostgreSQL...");
 
     await handleTilesConcurrency(

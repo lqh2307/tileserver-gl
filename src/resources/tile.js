@@ -828,14 +828,15 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
       .all([z + 1, minX, maxX, minY, maxY]);
 
     if (tiles.length) {
-      const composites = [];
+      // Create composites option
+      const compositesOption = [];
 
       for (const tile of tiles) {
         if (!tile.tile_data) {
           continue;
         }
 
-        composites.push({
+        compositesOption.push({
           limitInputPixels: false,
           input: await createImageOutput(tile.tile_data),
           left: (tile.tile_column - minX) * width,
@@ -843,7 +844,8 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
         });
       }
 
-      if (composites.length) {
+      if (compositesOption.length) {
+        // Create image
         const image = await createImageOutput(undefined, {
           createOption: {
             width: width * 2,
@@ -851,7 +853,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
             channels: 4,
             background: { r: 255, g: 255, b: 255, alpha: 0 },
           },
-          compositesOption: composites,
+          compositesOption: compositesOption,
           format: metadata.format,
           width: width,
           height: height,
@@ -1959,14 +1961,15 @@ export async function addPostgreSQLOverviews(
       .all([z + 1, minX, maxX, minY, maxY]);
 
     if (tiles.rows.length) {
-      const composites = [];
+      // Create composites option
+      const compositesOption = [];
 
       for (const tile of tiles.rows) {
         if (!tile.tile_data) {
           continue;
         }
 
-        composites.push({
+        compositesOption.push({
           limitInputPixels: false,
           input: await createImageOutput(tile.tile_data),
           left: (tile.tile_column - minX) * width,
@@ -1974,7 +1977,8 @@ export async function addPostgreSQLOverviews(
         });
       }
 
-      if (composites.length) {
+      if (compositesOption.length) {
+        // Create image
         const image = await createImageOutput(undefined, {
           createOption: {
             width: width * 2,
@@ -1982,7 +1986,7 @@ export async function addPostgreSQLOverviews(
             channels: 4,
             background: { r: 255, g: 255, b: 255, alpha: 0 },
           },
-          compositesOption: composites,
+          compositesOption: compositesOption,
           format: metadata.format,
           width: width,
           height: height,
@@ -2132,6 +2136,7 @@ async function getXYZLayersFromTiles(sourcePath) {
       .forEach((layer) => layerNames.add(layer));
   }
 
+  // Batch run
   await handleConcurrency(batchSize, getLayer, pbfFilePaths);
 
   return Array.from(layerNames);
@@ -2939,7 +2944,8 @@ export async function addXYZOverviews(
     const minY = y * 2;
     const maxY = minY + 1;
 
-    const composites = [];
+    // Create composites option
+    const compositesOption = [];
 
     for (let dx = minX; dx <= maxX; dx++) {
       for (let dy = minY; dy <= maxY; dy++) {
@@ -2952,7 +2958,7 @@ export async function addXYZOverviews(
             continue;
           }
 
-          composites.push({
+          compositesOption.push({
             limitInputPixels: false,
             input: await createImageOutput(tile),
             left: (dx - minX) * width,
@@ -2964,7 +2970,8 @@ export async function addXYZOverviews(
       }
     }
 
-    if (composites.length) {
+    if (compositesOption.length) {
+      // Create image
       const image = await createImageOutput(undefined, {
         createOption: {
           width: width * 2,
@@ -2972,7 +2979,7 @@ export async function addXYZOverviews(
           channels: 4,
           background: { r: 255, g: 255, b: 255, alpha: 0 },
         },
-        compositesOption: composites,
+        compositesOption: compositesOption,
         format: metadata.format,
         width: width,
         height: height,

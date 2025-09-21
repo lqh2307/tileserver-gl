@@ -380,30 +380,33 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     const xRes = width / (maxX - minX);
     const yRes = height / (maxY - minY);
 
-    // Asign composited image
-    image = await createImageOutput(input.filePath, {
-      compositesOption: await Promise.all(
-        overlays.map(async (overlay) => {
-          const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(
-            overlay.bbox[0],
-            overlay.bbox[1]
-          );
-          const [overlayMaxX, overlayMaxY] = lonLat4326ToXY3857(
-            overlay.bbox[2],
-            overlay.bbox[3]
-          );
+    // Create overlays composites option
+    const compositesOption = await Promise.all(
+      overlays.map(async (overlay) => {
+        const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(
+          overlay.bbox[0],
+          overlay.bbox[1]
+        );
+        const [overlayMaxX, overlayMaxY] = lonLat4326ToXY3857(
+          overlay.bbox[2],
+          overlay.bbox[3]
+        );
 
-          return {
-            limitInputPixels: false,
-            input: await createImageOutput(overlay.content, {
-              width: Math.round((overlayMaxX - overlayMinX) * xRes),
-              height: Math.round((overlayMaxY - overlayMinY) * yRes),
-            }),
-            left: Math.floor((overlayMinX - minX) * xRes),
-            top: Math.floor((maxY - overlayMaxY) * yRes),
-          };
-        })
-      ),
+        return {
+          limitInputPixels: false,
+          input: await createImageOutput(overlay.content, {
+            width: Math.round((overlayMaxX - overlayMinX) * xRes),
+            height: Math.round((overlayMaxY - overlayMinY) * yRes),
+          }),
+          left: Math.floor((overlayMinX - minX) * xRes),
+          top: Math.floor((maxY - overlayMaxY) * yRes),
+        };
+      })
+    );
+
+    // Create composited image
+    image = await createImageOutput(input.filePath, {
+      compositesOption: compositesOption,
     });
   }
 
@@ -480,19 +483,21 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
     totalMargin = frameMargin + frameSpace;
 
+    // Assign SVG size
     svg.width = totalMargin * 2 + width;
     svg.height = totalMargin * 2 + height;
 
-    // Inner frame
+    // Assign SVG inner frame
     svg.content += `<rect x="${totalMargin}" y="${totalMargin}" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`;
 
-    // Outer frame
+    // Asign SVG outer frame
     svg.content += `<rect x="${frameMargin}" y="${frameMargin}" width="${
       width + frameSpace * 2
     }" height="${
       height + frameSpace * 2
     }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`;
 
+    // Asign SVG ticks and labels
     const xTickMajorLons = [];
     const yTickMajorLats = [];
 
@@ -956,6 +961,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
       }
     }
 
+    // Create extend option
     extendOption = {
       top: totalMargin,
       left: totalMargin,
@@ -982,6 +988,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     majorGridStyle = getSVGStrokeDashArray(majorGridStyle);
     minorGridStyle = getSVGStrokeDashArray(minorGridStyle);
 
+    // Assign SVG grids
     const xGridMajorLons = [];
     const yGridMajorLats = [];
 
@@ -1070,19 +1077,22 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     }
   }
 
-  // Return image
+  // Create SVG composites option
+  const compositesOption = svg.content
+    ? [
+        {
+          limitInputPixels: false,
+          input: createSVG(svg, true),
+          left: 0,
+          top: 0,
+        },
+      ]
+    : undefined;
+
+  // Create image
   return await createImageOutput(image ?? input.filePath, {
     extendOption: extendOption,
-    compositesOption: svg.content
-      ? [
-          {
-            limitInputPixels: false,
-            input: createSVG(svg, true),
-            left: 0,
-            top: 0,
-          },
-        ]
-      : undefined,
+    compositesOption: compositesOption,
     ...output,
   });
 }
@@ -1159,7 +1169,7 @@ export async function mergeTilesToImage(input, output) {
 }
 
 /**
- * Render image to PDF high quality
+ * Render image to PDF or Preview image with high quality
  * @param {{ image: string|Buffer, res: [number, number] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot", pageColor: string, pageSize: number, pageFont: string }} preview Preview object
  * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean }} output Output object
@@ -1198,7 +1208,6 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
   const newWidth = widthPageNum * paperWidthPx;
 
   let extendLeft;
-  let extendTop;
 
   // Process horizontal align
   switch (output.alignContent?.horizontal) {
@@ -1221,6 +1230,8 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     }
   }
 
+  let extendTop;
+
   // Process vertical align
   switch (output.alignContent?.vertical) {
     default: {
@@ -1242,16 +1253,14 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     }
   }
 
-  // Asign extended image
-  let image = await createImageOutput(input.image, {
-    extendOption: {
-      top: extendTop,
-      left: extendLeft,
-      bottom: Math.ceil(newHeight - height - extendTop),
-      right: Math.ceil(newWidth - width - extendLeft),
-      background: { r: 255, g: 255, b: 255, alpha: 0 },
-    },
-  });
+  // Create extend option
+  const extendOption = {
+    top: extendTop,
+    left: extendLeft,
+    bottom: Math.ceil(newHeight - height - extendTop),
+    right: Math.ceil(newWidth - width - extendLeft),
+    background: { r: 255, g: 255, b: 255, alpha: 0 },
+  };
 
   // Process Preview or PDF
   if (preview) {
@@ -1293,7 +1302,8 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       }
     }
 
-    const composites = [
+    // Create SVG composites option
+    const compositesOption = [
       {
         limitInputPixels: false,
         input: createSVG(svg, true),
@@ -1302,9 +1312,10 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       },
     ];
 
-    // Return image
-    return await createImageOutput(image, {
-      compositesOption: composites,
+    // Create image
+    return await createImageOutput(input.image, {
+      extendOption: extendOption,
+      compositesOption: compositesOption,
       format: format,
       height: height,
       width: width,
@@ -1313,6 +1324,17 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       base64: output.base64,
     });
   } else {
+    // Create extended image
+    const image = await createImageOutput(input.image, {
+      extendOption: {
+        top: extendTop,
+        left: extendLeft,
+        bottom: Math.ceil(newHeight - height - extendTop),
+        right: Math.ceil(newWidth - width - extendLeft),
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
+      },
+    });
+
     const doc = new jsPDF({
       orientation: output.orientation,
       unit: "mm",
@@ -1365,7 +1387,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
 }
 
 /**
- * Render image to PDF
+ * Render image to PDF or Preview image
  * @param {{ images: string[]|Buffer[] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number }} preview Preview object
  * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, grayscale: boolean, grid: { row: number, column: number, paddingX: number, paddingY: number, gapX: number, gapY: number } }} output Output object
@@ -1385,9 +1407,6 @@ export async function renderImageToPDF(input, preview, output) {
 
   let heightPageNum;
   let widthPageNum;
-
-  let newHeight;
-  let newWidth;
 
   // Process image
   let {
@@ -1412,10 +1431,6 @@ export async function renderImageToPDF(input, preview, output) {
   // Calculate number of page
   heightPageNum = 1;
   widthPageNum = 1;
-
-  // Asign new image size
-  newHeight = paperHeightPx;
-  newWidth = paperWidthPx;
 
   // Calculate cell size
   const cellHeight = Math.floor(
@@ -1451,7 +1466,8 @@ export async function renderImageToPDF(input, preview, output) {
     position = "center";
   }
 
-  const composites = await Promise.all(
+  // Create composites option
+  const compositesOption = await Promise.all(
     input.images.map(async (item, idx) => {
       return {
         limitInputPixels: false,
@@ -1461,37 +1477,44 @@ export async function renderImageToPDF(input, preview, output) {
             position: position,
           },
         }),
-        width: cellWidth + 10,
-        height: cellHeight + 10,
+        width: cellWidth,
+        height: cellHeight,
         left: paddingXPx + (idx % column) * (cellWidth + gapXPx),
         top: paddingYPx + Math.floor(idx / column) * (cellHeight + gapYPx),
       };
     })
   );
 
-  // Asign resized image
-  let image = await createImageOutput(undefined, {
-    createOption: {
-      width: newWidth,
-      height: newHeight,
-      channels: 4,
-      background: { r: 255, g: 255, b: 255, alpha: 0 },
-    },
-    compositesOption: composites,
-  });
-
   // Process Preview or PDF
   if (preview) {
-    // Return image
-    return await createImageOutput(image, {
+    // Create image
+    return await createImageOutput(undefined, {
+      createOption: {
+        width: paperWidthPx,
+        height: paperHeightPx,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
+      },
+      compositesOption: compositesOption,
+      format: preview.format || "png",
       width: preview.width,
       height: preview.height,
       base64: output.base64,
       filePath: output.filePath,
-      format: preview.format || "png",
       grayscale: output.grayscale,
     });
   } else {
+    // Create image
+    const image = await createImageOutput(undefined, {
+      createOption: {
+        width: paperWidthPx,
+        height: paperHeightPx,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
+      },
+      compositesOption: compositesOption,
+    });
+
     const doc = new jsPDF({
       orientation: output.orientation,
       unit: "mm",
