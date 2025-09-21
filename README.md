@@ -121,9 +121,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "3d": {
       "style": "3d/style.json"
     },
-    "backdrop": {
-      "style": "backdrop/style.json"
-    },
     "basic": {
       "style": "basic/style.json"
     },
@@ -132,12 +129,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     },
     "fiord": {
       "style": "fiord/style.json"
-    },
-    "hybrid": {
-      "style": "hybrid/style.json"
-    },
-    "landscape": {
-      "style": "landscape/style.json"
     },
     "liberty": {
       "style": "liberty/style.json"
@@ -156,16 +147,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     },
     "topo": {
       "style": "topo/style.json"
-    },
-    "demotiles_cache": {
-      "style": "demotiles_cache",
-      "cache": {
-        "forward": true,
-        "store": true
-      }
-    },
-    "demotiles": {
-      "style": "demotiles/style.json"
     }
   },
   "geojsons": {
@@ -245,12 +226,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     },
     "fiord": {
       "sprite": "fiord"
-    },
-    "hybrid": {
-      "sprite": "hybrid"
-    },
-    "landscape": {
-      "sprite": "landscape"
     },
     "liberty": {
       "sprite": "liberty"
@@ -392,17 +367,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 
 ```json
 {
-  "styles": {
-    "demotiles_cache": {
-      "metadata": {
-        "name": "demotiles"
-      },
-      "url": "https://demotiles.maplibre.org/style.json",
-      "refreshBefore": {
-        "time": "2024-10-10T00:00:00"
-      }
-    }
-  },
+  "styles": {},
   "geojsons": {},
   "datas": {
     "osm_cache": {
