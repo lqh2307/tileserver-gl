@@ -17,7 +17,8 @@
           "minItems": 2,
           "maxItems": 2
         }
-      }
+      },
+      "required": ["image"]
     },
     "preview": {
       "type": "object",
@@ -28,11 +29,11 @@
         },
         "width": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 1
         },
         "height": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 1
         },
         "lineColor": {
           "type": "string",

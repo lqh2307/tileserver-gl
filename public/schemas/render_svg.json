@@ -1,37 +1,29 @@
 {
-  "type": "object",
-  "properties": {
-    "base64": {
-      "type": "boolean"
-    },
-    "format": {
-      "type": "string",
-      "enum": ["gif", "png", "jpg", "jpeg", "webp"]
-    },
-    "overlays": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string",
-            "minLength": 1
-          },
-          "width": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "height": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "format": {
-            "type": "string",
-            "enum": ["gif", "png", "jpg", "jpeg", "webp"]
-          }
-        }
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string",
+        "minLength": 1
+      },
+      "width": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "height": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "format": {
+        "type": "string",
+        "enum": ["gif", "png", "jpg", "jpeg", "webp"]
+      },
+      "base64": {
+        "type": "boolean"
       }
-    }
-  },
-  "required": ["overlays"]
+    },
+    "minItems": 1,
+    "required": ["content"]
+  }
 }

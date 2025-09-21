@@ -6,9 +6,14 @@
       "properties": {
         "images": {
           "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "minItems": 1
         }
-      }
+      },
+      "required": ["images"]
     },
     "preview": {
       "type": "object",
@@ -19,11 +24,11 @@
         },
         "width": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 1
         },
         "height": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 1
         }
       }
     },

@@ -1,7 +1,6 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
-import os from "os";
 import {
   renderStyleJSONToImage,
   renderHighQualityPDF,
@@ -47,7 +46,6 @@ function renderStyleJSONHandler() {
         req.body.zoom,
         format,
         req.body.maxRendererPoolSize,
-        req.body.concurrency || os.cpus().length,
         req.body.tileScale || 1,
         req.body.tileSize || 512,
         req.body.scheme || "xyz",
@@ -104,12 +102,7 @@ function renderSVGHandler() {
         throw new SyntaxError(error);
       }
 
-      const result = await renderSVGToImage(
-        req.body.format || "png",
-        req.body.overlays,
-        req.body.concurrency || os.cpus().length,
-        req.body.base64
-      );
+      const result = await renderSVGToImage(req.body);
 
       const headers = {
         "content-type": "application/json",
@@ -305,8 +298,22 @@ export const serve_render = {
      *       content:
      *         application/json:
      *             schema:
-     *               type: object
-     *               example: {}
+     *               type: array
+     *               items:
+     *                 type: object
+     *                 properties:
+     *                   content:
+     *                     type: string
+     *                   width:
+     *                     type: number
+     *                   height:
+     *                     type: number
+     *                   format:
+     *                    type: string
+     *                    enum: [jpeg, jpg, png, webp, gif]
+     *                   base64:
+     *                    type: boolean
+     *               example: []
      *       description: Render SVG options
      *     responses:
      *       201:
@@ -314,7 +321,7 @@ export const serve_render = {
      *         content:
      *           application/json:
      *             schema:
-     *               type: object
+     *               type: array
      *       404:
      *         description: Not found
      *       503:

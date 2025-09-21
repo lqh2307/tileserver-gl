@@ -5,6 +5,7 @@ import { config } from "./configs/index.js";
 import { createPool } from "generic-pool";
 import { rm } from "node:fs/promises";
 import { nanoid } from "nanoid";
+import os from "os";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   getMBTilesTileExtraInfoFromCoverages,
@@ -514,7 +515,6 @@ export async function renderImageStaticData(
  * @param {number} zoom Zoom level
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
  * @param {number} maxRendererPoolSize Max renderer pool size
- * @param {number} concurrency Concurrency
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {"tms"|"xyz"} scheme Tile scheme
@@ -532,7 +532,6 @@ export async function renderStyleJSONToImage(
   zoom,
   format,
   maxRendererPoolSize,
-  concurrency,
   tileScale,
   tileSize,
   scheme,
@@ -561,7 +560,7 @@ export async function renderStyleJSONToImage(
 
     let log = `Rendering ${total} tiles of styleJSON to ${format.toUpperCase()} with:`;
     log += `\n\tTemporary dir path: ${dirPath}`;
-    log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
     log += `\n\tZoom: ${zoom} - Target zoom: ${targetZoom}`;
     log += `\n\tFormat: ${format}`;
     log += `\n\tTile scale: ${tileScale} - Target tile scale: ${targetScale} - Tile size: ${tileSize}`;
@@ -677,7 +676,7 @@ export async function renderStyleJSONToImage(
     // Render tiles with concurrency
     printLog("info", "Rendering tiles to XYZ...");
 
-    await handleTilesConcurrency(concurrency, renderTileData, tileBounds);
+    await handleTilesConcurrency(os.cpus().length, renderTileData, tileBounds);
 
     // Merge tiles to image
     printLog("info", "Merge tiles to image...");
@@ -756,13 +755,10 @@ export async function renderStyleJSONToImage(
 
 /**
  * Render SVG to Image
- * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @param {{ content: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays SVG overlays
- * @param {number} concurrency Concurrency
- * @param {boolean} base64 Is base64?
+ * @param {{ content: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean }[]} overlays SVG overlays
  * @returns {Promise<string[]>}
  */
-export async function renderSVGToImage(format, overlays, concurrency, base64) {
+export async function renderSVGToImage(overlays) {
   const targetOverlays = Array(overlays.length);
 
   async function renderSVGToImageData(idx, overlays) {
@@ -770,16 +766,16 @@ export async function renderSVGToImage(format, overlays, concurrency, base64) {
     targetOverlays[idx] = await createImageOutput(
       Buffer.from(overlays[idx].content),
       {
-        format: overlays[idx].format || format,
+        format: overlays[idx].format,
         width: overlays[idx].width,
         height: overlays[idx].height,
-        base64: base64,
+        base64: overlays[idx].base64,
       }
     );
   }
 
   // Batch run
-  await handleConcurrency(concurrency, renderSVGToImageData, overlays);
+  await handleConcurrency(os.cpus().length, renderSVGToImageData, overlays);
 
   return targetOverlays;
 }
