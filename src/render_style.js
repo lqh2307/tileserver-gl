@@ -523,7 +523,7 @@ export async function renderImageStaticData(
  * @param {boolean} base64 Is base64?
  * @param {boolean} grayscale Is grayscale?
  * @param {{ clientID: string, requestID: string, event: string }} ws WS object
- * @param {{ content: string, bbox: [number, number, number, number], format: "svg"|"jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Overlays
+ * @param {{ content: string, bbox: [number, number, number, number] }[]} overlays Overlays
  * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
  */
 export async function renderStyleJSONToImage(

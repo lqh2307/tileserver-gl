@@ -233,6 +233,10 @@
       "items": {
         "type": "object",
         "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1
+          },
           "bbox": {
             "type": "array",
             "items": {
@@ -242,10 +246,6 @@
             },
             "minItems": 4,
             "maxItems": 4
-          },
-          "format": {
-            "type": "string",
-            "enum": ["svg", "gif", "png", "jpg", "jpeg", "webp"]
           }
         }
       }
