@@ -795,8 +795,8 @@ export async function renderHighQualityPDF(input, preview, output) {
   return await renderImageToHighQualityPDF(
     {
       images: input.images.map((item) => {
-        return { 
-          image: Buffer.from(item.slice(item.indexOf(",") + 1), "base64"), 
+        return {
+          image: Buffer.from(item.image.slice(item.image.indexOf(",") + 1), "base64"),
           res: item.resolution,
         };
       }),

@@ -1203,7 +1203,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
 
   for (const image of input.images) {
     // Get origin image size
-    const { width, height } = await getImageMetadata(image);
+    const { width, height } = await getImageMetadata(image.image);
 
     // Calculate number of page
     const widthPageNum = Math.ceil(width / paperWidthPX);
@@ -1319,7 +1319,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       ];
 
       // Create image
-      const image = await createImageOutput(image, {
+      const previewImage = await createImageOutput(image.image, {
         extendOption: extendOption,
         compositesOption: compositesOption,
         format: format,
@@ -1331,10 +1331,10 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       });
 
       // Add image to array
-      images.push(image);
+      images.push(previewImage);
     } else {
       // Create extended image
-      const baseImage = await createImageOutput(image, {
+      const baseImage = await createImageOutput(image.image, {
         extendOption: {
           left: extendLeft,
           top: extendTop,
@@ -1352,7 +1352,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
           }
 
           // Create image
-          const image = await createImageOutput(baseImage, {
+          const pdfImage = await createImageOutput(baseImage, {
             extractOption: {
               left: x * paperWidthPX,
               top: y * paperHeightPX,
@@ -1364,7 +1364,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
           });
 
           // Add image to page
-          images.addImage(image, "png", 0, 0, paperWidth, paperHeight);
+          images.addImage(pdfImage, "png", 0, 0, paperWidth, paperHeight);
         }
       }
     }
@@ -1487,7 +1487,7 @@ export async function renderImageToPDF(input, preview, output) {
       );
 
       // Create image
-      const image = await createImageOutput(undefined, {
+      const previewImage = await createImageOutput(undefined, {
         createOption: {
           width: paperWidthPX,
           height: paperHeightPX,
@@ -1503,7 +1503,7 @@ export async function renderImageToPDF(input, preview, output) {
       });
 
       // Add image to array
-      images.push(image);
+      images.push(previewImage);
     }
 
     return images;
@@ -1542,7 +1542,7 @@ export async function renderImageToPDF(input, preview, output) {
       );
 
       // Create image
-      const image = await createImageOutput(undefined, {
+      const pdfImage = await createImageOutput(undefined, {
         createOption: {
           width: paperWidthPX,
           height: paperHeightPX,
@@ -1555,7 +1555,7 @@ export async function renderImageToPDF(input, preview, output) {
       });
 
       // Add image to page
-      images.addImage(image, "png", 0, 0, paperWidth, paperHeight);
+      images.addImage(pdfImage, "png", 0, 0, paperWidth, paperHeight);
     }
 
     // Create array buffer

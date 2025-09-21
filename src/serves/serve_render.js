@@ -180,6 +180,8 @@ function renderHighQualityPDFHandler() {
     } catch (error) {
       printLog("error", `Failed to render high quality PDF: ${error}`);
 
+      console.log(error);
+
       if (error instanceof SyntaxError) {
         return res
           .status(StatusCodes.BAD_REQUEST)
