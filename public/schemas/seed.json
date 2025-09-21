@@ -60,13 +60,19 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               },
               {
-                "required": ["md5"]
+                "required": [
+                  "md5"
+                ]
               }
             ]
           },
@@ -79,7 +85,10 @@
             "minimum": 1
           }
         },
-        "required": ["metadata", "url"]
+        "required": [
+          "metadata",
+          "url"
+        ]
       }
     },
     "geojsons": {
@@ -118,13 +127,19 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               },
               {
-                "required": ["md5"]
+                "required": [
+                  "md5"
+                ]
               }
             ]
           },
@@ -137,7 +152,10 @@
             "minimum": 1
           }
         },
-        "required": ["metadata", "url"]
+        "required": [
+          "metadata",
+          "url"
+        ]
       }
     },
     "datas": {
@@ -162,15 +180,28 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["baselayer", "overlay"]
+                "enum": [
+                  "baselayer",
+                  "overlay"
+                ]
               },
               "scheme": {
                 "type": "string",
-                "enum": ["tms", "xyz"]
+                "enum": [
+                  "tms",
+                  "xyz"
+                ]
               },
               "format": {
                 "type": "string",
-                "enum": ["gif", "png", "jpg", "jpeg", "webp", "pbf"]
+                "enum": [
+                  "gif",
+                  "png",
+                  "jpg",
+                  "jpeg",
+                  "webp",
+                  "pbf"
+                ]
               },
               "minzoom": {
                 "type": "integer",
@@ -230,7 +261,9 @@
                       }
                     }
                   },
-                  "required": ["id"]
+                  "required": [
+                    "id"
+                  ]
                 },
                 "minItems": 0
               },
@@ -243,7 +276,10 @@
                 }
               }
             },
-            "required": ["format", "bounds"]
+            "required": [
+              "format",
+              "bounds"
+            ]
           },
           "url": {
             "type": "string",
@@ -258,7 +294,10 @@
           },
           "scheme": {
             "type": "string",
-            "enum": ["tms", "xyz"]
+            "enum": [
+              "tms",
+              "xyz"
+            ]
           },
           "skip": {
             "type": "boolean"
@@ -280,13 +319,19 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               },
               {
-                "required": ["md5"]
+                "required": [
+                  "md5"
+                ]
               }
             ]
           },
@@ -332,10 +377,16 @@
               },
               "anyOf": [
                 {
-                  "required": ["zoom", "bbox"]
+                  "required": [
+                    "zoom",
+                    "bbox"
+                  ]
                 },
                 {
-                  "required": ["zoom", "circle"]
+                  "required": [
+                    "zoom",
+                    "circle"
+                  ]
                 }
               ]
             },
@@ -355,13 +406,21 @@
           },
           "storeType": {
             "type": "string",
-            "enum": ["xyz", "mbtiles", "pg"]
+            "enum": [
+              "xyz",
+              "mbtiles",
+              "pg"
+            ]
           },
           "storeTransparent": {
             "type": "boolean"
           }
         },
-        "required": ["metadata", "storeType", "url"]
+        "required": [
+          "metadata",
+          "storeType",
+          "url"
+        ]
       }
     },
     "sprites": {
@@ -394,10 +453,14 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               }
             ]
           },
@@ -413,7 +476,9 @@
             "type": "boolean"
           }
         },
-        "required": ["url"]
+        "required": [
+          "url"
+        ]
       }
     },
     "fonts": {
@@ -446,10 +511,14 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               }
             ]
           },
@@ -469,7 +538,9 @@
             "type": "boolean"
           }
         },
-        "required": ["url"]
+        "required": [
+          "url"
+        ]
       }
     }
   }

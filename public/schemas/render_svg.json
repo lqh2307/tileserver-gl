@@ -17,13 +17,21 @@
       },
       "format": {
         "type": "string",
-        "enum": ["gif", "png", "jpg", "jpeg", "webp"]
+        "enum": [
+          "gif",
+          "png",
+          "jpg",
+          "jpeg",
+          "webp"
+        ]
       },
       "base64": {
         "type": "boolean"
       }
     },
     "minItems": 1,
-    "required": ["content"]
+    "required": [
+      "content"
+    ]
   }
 }

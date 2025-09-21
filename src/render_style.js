@@ -523,7 +523,7 @@ export async function renderImageStaticData(
  * @param {boolean} base64 Is base64?
  * @param {boolean} grayscale Is grayscale?
  * @param {{ clientID: string, requestID: string, event: string }} ws WS object
- * @param {{ content: string, bbox: [number, number, number, number] }[]} overlays Overlays
+ * @param {{ image: string, bbox: [number, number, number, number] }[]} overlays Overlays
  * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
  */
 export async function renderStyleJSONToImage(
@@ -591,8 +591,8 @@ export async function renderStyleJSONToImage(
           continue;
         }
 
-        overlay.content = Buffer.from(
-          overlay.content.slice(overlay.content.indexOf(",") + 1),
+        overlay.image = Buffer.from(
+          overlay.image.slice(overlay.image.indexOf(",") + 1),
           "base64"
         );
       }
@@ -755,21 +755,25 @@ export async function renderStyleJSONToImage(
 
 /**
  * Render SVG to Image
- * @param {{ content: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean }[]} overlays SVG overlays
+ * @param {{ image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean }[]} overlays SVG overlays
  * @returns {Promise<string[]>}
  */
 export async function renderSVGToImage(overlays) {
   const targetOverlays = Array(overlays.length);
 
   async function renderSVGToImageData(idx, overlays) {
+    const overlay = overlays[idx];
+
     // Create image
     targetOverlays[idx] = await createImageOutput(
-      Buffer.from(overlays[idx].content),
+      Buffer.from(overlay.image.slice(overlay.image.indexOf(",") + 1),
+        "base64"
+      ),
       {
-        format: overlays[idx].format,
-        width: overlays[idx].width,
-        height: overlays[idx].height,
-        base64: overlays[idx].base64,
+        format: overlay.format,
+        width: overlay.width,
+        height: overlay.height,
+        base64: overlay.base64,
       }
     );
   }
@@ -785,22 +789,21 @@ export async function renderSVGToImage(overlays) {
  * @param {object} input Input object
  * @param {object} preview Preview object
  * @param {object} output Output object
- * @returns {Promise<Buffer|string>}
+ * @returns {Promise<string[]>}
  */
 export async function renderHighQualityPDF(input, preview, output) {
-  const image = await renderImageToHighQualityPDF(
+  return await renderImageToHighQualityPDF(
     {
-      image: Buffer.from(
-        input.image.slice(input.image.indexOf(",") + 1),
-        "base64"
-      ),
-      resolution: input.resolution,
+      images: input.images.map((item) => {
+        return { 
+          image: Buffer.from(item.slice(item.indexOf(",") + 1), "base64"), 
+          res: item.resolution,
+        };
+      }),
     },
     preview,
     output
   );
-
-  return image;
 }
 
 /**
@@ -808,10 +811,10 @@ export async function renderHighQualityPDF(input, preview, output) {
  * @param {object} input Input object
  * @param {object} preview Preview object
  * @param {object} output Output object
- * @returns {Promise<Buffer[]|string[]>}
+ * @returns {Promise<string[]>}
  */
 export async function renderPDF(input, preview, output) {
-  const images = await renderImageToPDF(
+  return await renderImageToPDF(
     {
       images: input.images.map((item) =>
         Buffer.from(item.slice(item.indexOf(",") + 1), "base64")
@@ -820,8 +823,6 @@ export async function renderPDF(input, preview, output) {
     preview,
     output
   );
-
-  return images;
 }
 
 /**

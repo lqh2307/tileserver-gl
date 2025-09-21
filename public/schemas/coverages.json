@@ -40,10 +40,16 @@
     },
     "anyOf": [
       {
-        "required": ["zoom", "bbox"]
+        "required": [
+          "zoom",
+          "bbox"
+        ]
       },
       {
-        "required": ["zoom", "circle"]
+        "required": [
+          "zoom",
+          "circle"
+        ]
       }
     ]
   },

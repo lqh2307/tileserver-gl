@@ -1,5 +1,6 @@
 "use strict";
 
+import { getJSONSchema, validateJSON, printLog } from "../utils/index.js";
 import { StatusCodes } from "http-status-codes";
 import {
   renderStyleJSONToImage,
@@ -7,13 +8,6 @@ import {
   renderSVGToImage,
   renderPDF,
 } from "../render_style.js";
-import {
-  detectContentTypeFromFormat,
-  getJSONSchema,
-  validateJSON,
-  gzipAsync,
-  printLog,
-} from "../utils/index.js";
 
 /**
  * Render styleJSON handler
@@ -57,19 +51,11 @@ function renderStyleJSONHandler() {
         req.body.overlays
       );
 
-      const headers = {
+      res.set({
         "content-type": "application/json",
-        resolution: JSON.stringify(result.resolution),
+        "resolution": JSON.stringify(result.resolution),
         "access-control-expose-headers": "resolution",
-      };
-
-      if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result.image));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      });
 
       return res.status(StatusCodes.CREATED).send(result.image);
     } catch (error) {
@@ -104,17 +90,9 @@ function renderSVGHandler() {
 
       const result = await renderSVGToImage(req.body);
 
-      const headers = {
+      res.set({
         "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      });
 
       return res.status(StatusCodes.CREATED).send(result);
     } catch (error) {
@@ -154,15 +132,11 @@ function renderPDFHandler() {
       );
 
       res.set({
-        "content-type": detectContentTypeFromFormat(
-          !req.body.preview ? "pdf" : req.body.preview.format
-        ),
+        "content-type": "application/json",
       });
 
       return res.status(StatusCodes.CREATED).send(result);
     } catch (error) {
-      console.log(error);
-
       printLog("error", `Failed to render PDF: ${error}`);
 
       if (error instanceof SyntaxError) {
@@ -199,15 +173,11 @@ function renderHighQualityPDFHandler() {
       );
 
       res.set({
-        "content-type": detectContentTypeFromFormat(
-          !req.body.preview ? "pdf" : req.body.preview.format
-        ),
+        "content-type": "application/json",
       });
 
       return res.status(StatusCodes.CREATED).send(result);
     } catch (error) {
-      console.log(error);
-
       printLog("error", `Failed to render high quality PDF: ${error}`);
 
       if (error instanceof SyntaxError) {
@@ -240,13 +210,6 @@ export const serve_render = {
      *     tags:
      *       - Render
      *     summary: Render styleJSON
-     *     parameters:
-     *       - in: query
-     *         name: compression
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Compressed response
      *     requestBody:
      *       required: true
      *       content:
@@ -286,13 +249,6 @@ export const serve_render = {
      *     tags:
      *       - Render
      *     summary: Render SVG
-     *     parameters:
-     *       - in: query
-     *         name: compression
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Compressed response
      *     requestBody:
      *       required: true
      *       content:

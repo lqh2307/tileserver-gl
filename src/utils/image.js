@@ -358,7 +358,7 @@ export async function createImageOutput(image, options) {
 /**
  * Add frame to image
  * @param {{ filePath: string|Buffer, bbox: [number, number, number, number] }} input Input object
- * @param {{ content: Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
+ * @param {{ image: Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
  * @param {object} frame Frame object
  * @param {object} grid Grid object
  * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
@@ -394,7 +394,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
         return {
           limitInputPixels: false,
-          input: await createImageOutput(overlay.content, {
+          input: await createImageOutput(overlay.image, {
             width: Math.round((overlayMaxX - overlayMinX) * xRes),
             height: Math.round((overlayMaxY - overlayMinY) * yRes),
           }),
@@ -1170,15 +1170,12 @@ export async function mergeTilesToImage(input, output) {
 
 /**
  * Render image to PDF or Preview image with high quality
- * @param {{ image: string|Buffer, res: [number, number] }} input Input object
+ * @param {{ images: { image: string|Buffer, res: [number, number] }[], res: [number, number] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot", pageColor: string, pageSize: number, pageFont: string }} preview Preview object
  * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean }} output Output object
  * @returns {Promise<void|Buffer|string>}
  */
 export async function renderImageToHighQualityPDF(input, preview, output) {
-  // Get origin image size
-  const { width, height } = await getImageMetadata(input.image);
-
   // Get paper size (in mm)
   const [paperWidth, paperHeight] =
     output.orientation === "landscape"
@@ -1197,176 +1194,187 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     paperHeightPX = Math.round(toPixel(paperHeight, "mm"));
   }
 
-  // Calculate number of page
-  const widthPageNum = Math.ceil(width / paperWidthPX);
-  const heightPageNum = Math.ceil(height / paperHeightPX);
+  const images = preview ? [] : new jsPDF({
+    orientation: output.orientation,
+    unit: "mm",
+    format: output.paperSize,
+    compress: true,
+  });
 
-  // Asign new image size
-  const newWidthPX = widthPageNum * paperWidthPX;
-  const newHeightPX = heightPageNum * paperHeightPX;
+  for (const image of input.images) {
+    // Get origin image size
+    const { width, height } = await getImageMetadata(image);
 
-  // Process horizontal align
-  let extendLeft;
+    // Calculate number of page
+    const widthPageNum = Math.ceil(width / paperWidthPX);
+    const heightPageNum = Math.ceil(height / paperHeightPX);
 
-  switch (output.alignContent?.horizontal) {
-    default: {
-      extendLeft = Math.floor((newWidthPX - width) / 2);
+    // Asign new image size
+    const newWidthPX = widthPageNum * paperWidthPX;
+    const newHeightPX = heightPageNum * paperHeightPX;
 
-      break;
+    // Process horizontal align
+    let extendLeft;
+
+    switch (output.alignContent?.horizontal) {
+      default: {
+        extendLeft = Math.floor((newWidthPX - width) / 2);
+
+        break;
+      }
+
+      case "left": {
+        extendLeft = 0;
+
+        break;
+      }
+
+      case "right": {
+        extendLeft = Math.floor(newWidthPX - width);
+
+        break;
+      }
     }
 
-    case "left": {
-      extendLeft = 0;
+    // Process vertical align
+    let extendTop;
 
-      break;
+    switch (output.alignContent?.vertical) {
+      default: {
+        extendTop = Math.floor((newHeightPX - height) / 2);
+
+        break;
+      }
+
+      case "top": {
+        extendTop = 0;
+
+        break;
+      }
+
+      case "bottom": {
+        extendTop = Math.floor(newHeightPX - height);
+
+        break;
+      }
     }
 
-    case "right": {
-      extendLeft = Math.floor(newWidthPX - width);
-
-      break;
-    }
-  }
-
-  // Process vertical align
-  let extendTop;
-
-  switch (output.alignContent?.vertical) {
-    default: {
-      extendTop = Math.floor((newHeightPX - height) / 2);
-
-      break;
-    }
-
-    case "top": {
-      extendTop = 0;
-
-      break;
-    }
-
-    case "bottom": {
-      extendTop = Math.floor(newHeightPX - height);
-
-      break;
-    }
-  }
-
-  // Create extend option
-  const extendOption = {
-    left: extendLeft,
-    top: extendTop,
-    right: Math.ceil(newWidthPX - width - extendLeft),
-    bottom: Math.ceil(newHeightPX - height - extendTop),
-    background: { r: 255, g: 255, b: 255, alpha: 0 },
-  };
-
-  // Process Preview or PDF
-  if (preview) {
-    let {
-      format = "png",
-      lineColor = "rgba(255,0,0,1)",
-      lineWidth = 6,
-      lineStyle = "solid",
-      pageColor = "rgba(255,0,0,1)",
-      pageSize = 100,
-      pageFont = "sans-serif",
-      width,
-      height,
-    } = preview;
-
-    lineStyle = getSVGStrokeDashArray(lineStyle);
-
-    const svg = {
-      content: "",
-      width: newWidthPX,
-      height: newHeightPX,
+    // Create extend option
+    const extendOption = {
+      left: extendLeft,
+      top: extendTop,
+      right: Math.ceil(newWidthPX - width - extendLeft),
+      bottom: Math.ceil(newHeightPX - height - extendTop),
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
     };
 
-    for (let y = 0; y < heightPageNum; y++) {
-      for (let x = 0; x < widthPageNum; x++) {
-        if (lineWidth > 0) {
-          svg.content += `<rect x="${x * paperWidthPX}" y="${
-            y * paperHeightPX
-          }" width="${paperWidthPX}" height="${paperHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
-        }
+    // Process Preview or PDF
+    if (preview) {
+      let {
+        format = "png",
+        lineColor = "rgba(255,0,0,1)",
+        lineWidth = 6,
+        lineStyle = "solid",
+        pageColor = "rgba(255,0,0,1)",
+        pageSize = 100,
+        pageFont = "sans-serif",
+        width,
+        height,
+      } = preview;
 
-        if (pageSize > 0) {
-          svg.content += `<text x="${x * paperWidthPX + paperWidthPX / 2}" y="${
-            y * paperHeightPX + paperHeightPX / 2
-          }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
-            y + x + 1
-          }</text>`;
+      lineStyle = getSVGStrokeDashArray(lineStyle);
+
+      const svg = {
+        content: "",
+        width: newWidthPX,
+        height: newHeightPX,
+      };
+
+      for (let y = 0; y < heightPageNum; y++) {
+        for (let x = 0; x < widthPageNum; x++) {
+          if (lineWidth > 0) {
+            svg.content += `<rect x="${x * paperWidthPX}" y="${
+              y * paperHeightPX
+            }" width="${paperWidthPX}" height="${paperHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
+          }
+
+          if (pageSize > 0) {
+            svg.content += `<text x="${x * paperWidthPX + paperWidthPX / 2}" y="${
+              y * paperHeightPX + paperHeightPX / 2
+            }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
+              y + x + 1
+            }</text>`;
+          }
+        }
+      }
+
+      // Create SVG composites option
+      const compositesOption = [
+        {
+          limitInputPixels: false,
+          input: createSVG(svg, true),
+          left: 0,
+          top: 0,
+        },
+      ];
+
+      // Create image
+      const image = await createImageOutput(image, {
+        extendOption: extendOption,
+        compositesOption: compositesOption,
+        format: format,
+        height: height,
+        width: width,
+        grayscale: output.grayscale,
+        filePath: output.filePath,
+        base64: output.base64,
+      });
+
+      // Add image to array
+      images.push(image);
+    } else {
+      // Create extended image
+      const baseImage = await createImageOutput(image, {
+        extendOption: {
+          left: extendLeft,
+          top: extendTop,
+          right: Math.ceil(newWidthPX - width - extendLeft),
+          bottom: Math.ceil(newHeightPX - height - extendTop),
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        },
+      });
+
+      for (let y = 0; y < heightPageNum; y++) {
+        for (let x = 0; x < widthPageNum; x++) {
+          // Add new page
+          if (x > 0 || y > 0) {
+            images.addPage();
+          }
+
+          // Create image
+          const image = await createImageOutput(baseImage, {
+            extractOption: {
+              left: x * paperWidthPX,
+              top: y * paperHeightPX,
+              width: paperWidthPX,
+              height: paperHeightPX,
+            },
+            format: "png",
+            grayscale: output.grayscale,
+          });
+
+          // Add image to page
+          images.addImage(image, "png", 0, 0, paperWidth, paperHeight);
         }
       }
     }
+  }
 
-    // Create SVG composites option
-    const compositesOption = [
-      {
-        limitInputPixels: false,
-        input: createSVG(svg, true),
-        left: 0,
-        top: 0,
-      },
-    ];
-
-    // Create image
-    return await createImageOutput(input.image, {
-      extendOption: extendOption,
-      compositesOption: compositesOption,
-      format: format,
-      height: height,
-      width: width,
-      grayscale: output.grayscale,
-      filePath: output.filePath,
-      base64: output.base64,
-    });
+  if (preview) {
+    return images;
   } else {
-    // Create extended image
-    const baseImage = await createImageOutput(input.image, {
-      extendOption: {
-        left: extendLeft,
-        top: extendTop,
-        right: Math.ceil(newWidthPX - width - extendLeft),
-        bottom: Math.ceil(newHeightPX - height - extendTop),
-        background: { r: 255, g: 255, b: 255, alpha: 0 },
-      },
-    });
-
-    // Create PDF
-    const doc = new jsPDF({
-      orientation: output.orientation,
-      unit: "mm",
-      format: output.paperSize,
-      compress: true,
-    });
-
-    for (let y = 0; y < heightPageNum; y++) {
-      for (let x = 0; x < widthPageNum; x++) {
-        // Add new page
-        if (x > 0 || y > 0) {
-          doc.addPage();
-        }
-
-        // Create image
-        const image = await createImageOutput(baseImage, {
-          extractOption: {
-            left: x * paperWidthPX,
-            top: y * paperHeightPX,
-            width: paperWidthPX,
-            height: paperHeightPX,
-          },
-          format: "png",
-          grayscale: output.grayscale,
-        });
-
-        // Add image to page
-        doc.addImage(image, "png", 0, 0, paperWidth, paperHeight);
-      }
-    }
-
     // Create array buffer
-    const arrayBuffer = doc.output("arraybuffer");
+    const arrayBuffer = images.output("arraybuffer");
 
     // Write to output
     if (output.filePath) {
@@ -1501,7 +1509,7 @@ export async function renderImageToPDF(input, preview, output) {
     return images;
   } else {
     // Create PDF
-    const doc = new jsPDF({
+    const images = new jsPDF({
       orientation: output.orientation,
       unit: "mm",
       format: output.paperSize,
@@ -1511,7 +1519,7 @@ export async function renderImageToPDF(input, preview, output) {
     for (let page = 0; page < pageNum; page++) {
       // Add new page
       if (page > 0) {
-        doc.addPage();
+        images.addPage();
       }
 
       // Create composites option
@@ -1547,11 +1555,11 @@ export async function renderImageToPDF(input, preview, output) {
       });
 
       // Add image to page
-      doc.addImage(image, "png", 0, 0, paperWidth, paperHeight);
+      images.addImage(image, "png", 0, 0, paperWidth, paperHeight);
     }
 
     // Create array buffer
-    const arrayBuffer = doc.output("arraybuffer");
+    const arrayBuffer = images.output("arraybuffer");
 
     // Write to output
     if (output.filePath) {
