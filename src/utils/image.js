@@ -1176,43 +1176,41 @@ export async function mergeTilesToImage(input, output) {
  * @returns {Promise<void|Buffer|string>}
  */
 export async function renderImageToHighQualityPDF(input, preview, output) {
-  // Get paper size (in mm)
-  let paperHeight = output.paperSize[1];
-  let paperWidth = output.paperSize[0];
-  if (output.orientation === "landscape") {
-    paperHeight = output.paperSize[0];
-    paperWidth = output.paperSize[1];
-  }
-
-  let paperHeightPx;
-  let paperWidthPx;
-
   // Get origin image size
   const { width, height } = await getImageMetadata(input.image);
 
+  // Get paper size (in mm)
+  const [paperWidth, paperHeight] =
+    output.orientation === "landscape"
+      ? [output.paperSize[1], output.paperSize[0]]
+      : output.paperSize;
+
   // Convert paper size to pixel
+  let paperWidthPX;
+  let paperHeightPX;
+
   if (input.resolution) {
-    paperHeightPx = Math.round(paperHeight / input.resolution[1]);
-    paperWidthPx = Math.round(paperWidth / input.resolution[0]);
+    paperWidthPX = Math.round(paperWidth / input.resolution[0]);
+    paperHeightPX = Math.round(paperHeight / input.resolution[1]);
   } else {
-    paperHeightPx = Math.round(toPixel(paperHeight, "mm"));
-    paperWidthPx = Math.round(toPixel(paperWidth, "mm"));
+    paperWidthPX = Math.round(toPixel(paperWidth, "mm"));
+    paperHeightPX = Math.round(toPixel(paperHeight, "mm"));
   }
 
   // Calculate number of page
-  const heightPageNum = Math.ceil(height / paperHeightPx);
-  const widthPageNum = Math.ceil(width / paperWidthPx);
+  const widthPageNum = Math.ceil(width / paperWidthPX);
+  const heightPageNum = Math.ceil(height / paperHeightPX);
 
   // Asign new image size
-  const newHeight = heightPageNum * paperHeightPx;
-  const newWidth = widthPageNum * paperWidthPx;
-
-  let extendLeft;
+  const newWidthPX = widthPageNum * paperWidthPX;
+  const newHeightPX = heightPageNum * paperHeightPX;
 
   // Process horizontal align
+  let extendLeft;
+
   switch (output.alignContent?.horizontal) {
     default: {
-      extendLeft = Math.floor((newWidth - width) / 2);
+      extendLeft = Math.floor((newWidthPX - width) / 2);
 
       break;
     }
@@ -1224,18 +1222,18 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     }
 
     case "right": {
-      extendLeft = Math.floor(newWidth - width);
+      extendLeft = Math.floor(newWidthPX - width);
 
       break;
     }
   }
 
+  // Process vertical align
   let extendTop;
 
-  // Process vertical align
   switch (output.alignContent?.vertical) {
     default: {
-      extendTop = Math.floor((newHeight - height) / 2);
+      extendTop = Math.floor((newHeightPX - height) / 2);
 
       break;
     }
@@ -1247,7 +1245,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     }
 
     case "bottom": {
-      extendTop = Math.floor(newHeight - height);
+      extendTop = Math.floor(newHeightPX - height);
 
       break;
     }
@@ -1255,10 +1253,10 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
 
   // Create extend option
   const extendOption = {
-    top: extendTop,
     left: extendLeft,
-    bottom: Math.ceil(newHeight - height - extendTop),
-    right: Math.ceil(newWidth - width - extendLeft),
+    top: extendTop,
+    right: Math.ceil(newWidthPX - width - extendLeft),
+    bottom: Math.ceil(newHeightPX - height - extendTop),
     background: { r: 255, g: 255, b: 255, alpha: 0 },
   };
 
@@ -1280,21 +1278,21 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
 
     const svg = {
       content: "",
-      width: newWidth,
-      height: newHeight,
+      width: newWidthPX,
+      height: newHeightPX,
     };
 
     for (let y = 0; y < heightPageNum; y++) {
       for (let x = 0; x < widthPageNum; x++) {
         if (lineWidth > 0) {
-          svg.content += `<rect x="${x * paperWidthPx}" y="${
-            y * paperHeightPx
-          }" width="${paperWidthPx}" height="${paperHeightPx}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
+          svg.content += `<rect x="${x * paperWidthPX}" y="${
+            y * paperHeightPX
+          }" width="${paperWidthPX}" height="${paperHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
         }
 
         if (pageSize > 0) {
-          svg.content += `<text x="${x * paperWidthPx + paperWidthPx / 2}" y="${
-            y * paperHeightPx + paperHeightPx / 2
+          svg.content += `<text x="${x * paperWidthPX + paperWidthPX / 2}" y="${
+            y * paperHeightPX + paperHeightPX / 2
           }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
             y + x + 1
           }</text>`;
@@ -1325,16 +1323,17 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     });
   } else {
     // Create extended image
-    const image = await createImageOutput(input.image, {
+    const baseImage = await createImageOutput(input.image, {
       extendOption: {
-        top: extendTop,
         left: extendLeft,
-        bottom: Math.ceil(newHeight - height - extendTop),
-        right: Math.ceil(newWidth - width - extendLeft),
+        top: extendTop,
+        right: Math.ceil(newWidthPX - width - extendLeft),
+        bottom: Math.ceil(newHeightPX - height - extendTop),
         background: { r: 255, g: 255, b: 255, alpha: 0 },
       },
     });
 
+    // Create PDF
     const doc = new jsPDF({
       orientation: output.orientation,
       unit: "mm",
@@ -1344,27 +1343,25 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
 
     for (let y = 0; y < heightPageNum; y++) {
       for (let x = 0; x < widthPageNum; x++) {
+        // Add new page
         if (x > 0 || y > 0) {
           doc.addPage();
         }
 
-        doc.addImage(
-          await createImageOutput(image, {
-            extractOption: {
-              left: x * paperWidthPx,
-              top: y * paperHeightPx,
-              width: paperWidthPx,
-              height: paperHeightPx,
-            },
-            format: "png",
-            grayscale: output.grayscale,
-          }),
-          "png",
-          0,
-          0,
-          paperWidth,
-          paperHeight
-        );
+        // Create image
+        const image = await createImageOutput(baseImage, {
+          extractOption: {
+            left: x * paperWidthPX,
+            top: y * paperHeightPX,
+            width: paperWidthPX,
+            height: paperHeightPX,
+          },
+          format: "png",
+          grayscale: output.grayscale,
+        });
+
+        // Add image to page
+        doc.addImage(image, "png", 0, 0, paperWidth, paperHeight);
       }
     }
 
@@ -1391,24 +1388,20 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
  * @param {{ images: string[]|Buffer[] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number }} preview Preview object
  * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, grayscale: boolean, grid: { row: number, column: number, paddingX: number, paddingY: number, gapX: number, gapY: number } }} output Output object
- * @returns {Promise<void|Buffer|string>}
+ * @returns {Promise<void|Buffer[]|string[]>}
  */
 export async function renderImageToPDF(input, preview, output) {
   // Get paper size (in mm)
-  let paperHeight = output.paperSize[1];
-  let paperWidth = output.paperSize[0];
-  if (output.orientation === "landscape") {
-    paperHeight = output.paperSize[0];
-    paperWidth = output.paperSize[1];
-  }
+  const [paperWidth, paperHeight] =
+    output.orientation === "landscape"
+      ? [output.paperSize[1], output.paperSize[0]]
+      : output.paperSize;
 
-  let paperHeightPx;
-  let paperWidthPx;
+  // Convert paper size to pixel
+  const paperWidthPX = Math.round(toPixel(paperWidth, "mm"));
+  const paperHeightPX = Math.round(toPixel(paperHeight, "mm"));
 
-  let heightPageNum;
-  let widthPageNum;
-
-  // Process image
+  // Get grid info
   let {
     row = 1,
     column = 1,
@@ -1419,30 +1412,21 @@ export async function renderImageToPDF(input, preview, output) {
   } = output.grid ?? {};
 
   // Convert padding and gap to pixel
-  const paddingXPx = Math.round(toPixel(paddingX, "mm"));
-  const paddingYPx = Math.round(toPixel(paddingY, "mm"));
-  const gapXPx = Math.round(toPixel(gapX, "mm"));
-  const gapYPx = Math.round(toPixel(gapY, "mm"));
+  const paddingXPX = Math.round(toPixel(paddingX, "mm"));
+  const paddingYPX = Math.round(toPixel(paddingY, "mm"));
+  const gapXPX = Math.round(toPixel(gapX, "mm"));
+  const gapYPX = Math.round(toPixel(gapY, "mm"));
 
-  // Convert paper size to pixel
-  paperHeightPx = Math.round(toPixel(paperHeight, "mm"));
-  paperWidthPx = Math.round(toPixel(paperWidth, "mm"));
-
-  // Calculate number of page
-  heightPageNum = 1;
-  widthPageNum = 1;
-
-  // Calculate cell size
   const cellHeight = Math.floor(
-    (paperHeightPx - paddingYPx * 2 - (row - 1) * gapYPx) / row
+    (paperHeightPX - paddingYPX * 2 - (row - 1) * gapYPX) / row
   );
   const cellWidth = Math.floor(
-    (paperWidthPx - paddingXPx * 2 - (column - 1) * gapXPx) / column
+    (paperWidthPX - paddingXPX * 2 - (column - 1) * gapXPX) / column
   );
 
+  // Process align
   let position;
 
-  // Process align
   const horizontalAlign = output.alignContent?.horizontal || "center";
   const verticalAlign = output.alignContent?.vertical || "middle";
 
@@ -1466,55 +1450,57 @@ export async function renderImageToPDF(input, preview, output) {
     position = "center";
   }
 
-  // Create composites option
-  const compositesOption = await Promise.all(
-    input.images.map(async (item, idx) => {
-      return {
-        limitInputPixels: false,
-        input: await createImageOutput(item, {
-          resizeOption: {
-            fit: output.fit,
-            position: position,
-          },
-        }),
-        width: cellWidth,
-        height: cellHeight,
-        left: paddingXPx + (idx % column) * (cellWidth + gapXPx),
-        top: paddingYPx + Math.floor(idx / column) * (cellHeight + gapYPx),
-      };
-    })
-  );
+  // Calculate number of page
+  const imageInPageNum = row * column;
+  const pageNum = Math.ceil(input.images.length / imageInPageNum);
 
   // Process Preview or PDF
   if (preview) {
-    // Create image
-    return await createImageOutput(undefined, {
-      createOption: {
-        width: paperWidthPx,
-        height: paperHeightPx,
-        channels: 4,
-        background: { r: 255, g: 255, b: 255, alpha: 0 },
-      },
-      compositesOption: compositesOption,
-      format: preview.format || "png",
-      width: preview.width,
-      height: preview.height,
-      base64: output.base64,
-      filePath: output.filePath,
-      grayscale: output.grayscale,
-    });
-  } else {
-    // Create image
-    const image = await createImageOutput(undefined, {
-      createOption: {
-        width: paperWidthPx,
-        height: paperHeightPx,
-        channels: 4,
-        background: { r: 255, g: 255, b: 255, alpha: 0 },
-      },
-      compositesOption: compositesOption,
-    });
+    const images = [];
 
+    for (let page = 0; page < pageNum; page++) {
+      // Create composites option
+      const compositesOption = await Promise.all(
+        input.images
+          .slice(page * imageInPageNum, (page + 1) * imageInPageNum)
+          .map(async (item, idx) => ({
+            limitInputPixels: false,
+            input: await createImageOutput(item, {
+              resizeOption: {
+                fit: output.fit,
+                position: position,
+              },
+            }),
+            width: cellWidth,
+            height: cellHeight,
+            left: paddingXPX + (idx % column) * (cellWidth + gapXPX),
+            top: paddingYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
+          }))
+      );
+
+      // Create image
+      const image = await createImageOutput(undefined, {
+        createOption: {
+          width: paperWidthPX,
+          height: paperHeightPX,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        },
+        compositesOption,
+        format: preview.format || "png",
+        width: preview.width,
+        height: preview.height,
+        base64: output.base64,
+        grayscale: output.grayscale,
+      });
+
+      // Add image to array
+      images.push(image);
+    }
+
+    return images;
+  } else {
+    // Create PDF
     const doc = new jsPDF({
       orientation: output.orientation,
       unit: "mm",
@@ -1522,30 +1508,46 @@ export async function renderImageToPDF(input, preview, output) {
       compress: true,
     });
 
-    for (let y = 0; y < heightPageNum; y++) {
-      for (let x = 0; x < widthPageNum; x++) {
-        if (x > 0 || y > 0) {
-          doc.addPage();
-        }
-
-        doc.addImage(
-          await createImageOutput(image, {
-            extractOption: {
-              left: x * paperWidthPx,
-              top: y * paperHeightPx,
-              width: paperWidthPx,
-              height: paperHeightPx,
-            },
-            format: "png",
-            grayscale: output.grayscale,
-          }),
-          "png",
-          0,
-          0,
-          paperWidth,
-          paperHeight
-        );
+    for (let page = 0; page < pageNum; page++) {
+      // Add new page
+      if (page > 0) {
+        doc.addPage();
       }
+
+      // Create composites option
+      const compositesOption = await Promise.all(
+        input.images
+          .slice(page * imageInPageNum, (page + 1) * imageInPageNum)
+          .map(async (item, idx) => ({
+            limitInputPixels: false,
+            input: await createImageOutput(item, {
+              resizeOption: {
+                fit: output.fit,
+                position: position,
+              },
+            }),
+            width: cellWidth,
+            height: cellHeight,
+            left: paddingXPX + (idx % column) * (cellWidth + gapXPX),
+            top: paddingYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
+          }))
+      );
+
+      // Create image
+      const image = await createImageOutput(undefined, {
+        createOption: {
+          width: paperWidthPX,
+          height: paperHeightPX,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        },
+        compositesOption,
+        format: "png",
+        grayscale: output.grayscale,
+      });
+
+      // Add image to page
+      doc.addImage(image, "png", 0, 0, paperWidth, paperHeight);
     }
 
     // Create array buffer
