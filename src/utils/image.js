@@ -243,13 +243,13 @@ export async function createImageOutput(image, options) {
     // Read input
     targetImage = options.createOption
       ? sharp({
-          limitInputPixels: false,
-          create: options.createOption,
-        }).png()
+        limitInputPixels: false,
+        create: options.createOption,
+      }).png()
       : sharp(image, {
-          limitInputPixels: false,
-          raw: options.rawOption,
-        });
+        limitInputPixels: false,
+        raw: options.rawOption,
+      });
 
     // Extend
     if (options.extendOption) {
@@ -268,13 +268,13 @@ export async function createImageOutput(image, options) {
     // Read input
     targetImage = options.createOption
       ? sharp({
-          limitInputPixels: false,
-          create: options.createOption,
-        }).png()
+        limitInputPixels: false,
+        create: options.createOption,
+      }).png()
       : sharp(image, {
-          limitInputPixels: false,
-          raw: options.rawOption,
-        });
+        limitInputPixels: false,
+        raw: options.rawOption,
+      });
 
     // Extend
     if (options.extendOption) {
@@ -491,11 +491,9 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     svg.content += `<rect x="${totalMargin}" y="${totalMargin}" width="${width}" height="${height}" fill="none" stroke="${frameInnerColor}" stroke-width="${frameInnerWidth}" ${frameInnerStyle}/>`;
 
     // Asign SVG outer frame
-    svg.content += `<rect x="${frameMargin}" y="${frameMargin}" width="${
-      width + frameSpace * 2
-    }" height="${
-      height + frameSpace * 2
-    }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`;
+    svg.content += `<rect x="${frameMargin}" y="${frameMargin}" width="${width + frameSpace * 2
+      }" height="${height + frameSpace * 2
+      }" fill="none" stroke="${frameOuterColor}" stroke-width="${frameOuterWidth}" ${frameOuterStyle}/>`;
 
     // Asign SVG ticks and labels
     const xTickMajorLons = [];
@@ -520,18 +518,14 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         const x = (lon - bbox[0]) / degPerPixelX;
 
         // Top tick
-        svg.content += `<line x1="${totalMargin + x}" y1="${totalMargin}" x2="${
-          totalMargin + x
-        }" y2="${
-          totalMargin - majorTickSize
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + x}" y1="${totalMargin}" x2="${totalMargin + x
+          }" y2="${totalMargin - majorTickSize
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         // Bottom tick
-        svg.content += `<line x1="${totalMargin + x}" y1="${
-          totalMargin + height
-        }" x2="${totalMargin + x}" y2="${
-          totalMargin + height + majorTickSize
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + x}" y1="${totalMargin + height
+          }" x2="${totalMargin + x}" y2="${totalMargin + height + majorTickSize
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         if (majorTickLabelSize > 0) {
           const label = formatDegree(
@@ -541,26 +535,18 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           );
 
           // Top label
-          svg.content += `<text x="${totalMargin + x}" y="${
-            totalMargin - majorTickSize - xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            xMajor.topTextAnchor
-          }" dominant-baseline="${
-            xMajor.topDominantBaseline
-          }" transform="rotate(${xTickMajorLabelRotation},${totalMargin + x},${
-            totalMargin - majorTickSize - xTickLabelOffset
-          })">${label}</text>`;
+          svg.content += `<text x="${totalMargin + x}" y="${totalMargin - majorTickSize - xTickLabelOffset
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${xMajor.topTextAnchor
+            }" dominant-baseline="${xMajor.topDominantBaseline
+            }" transform="rotate(${xTickMajorLabelRotation},${totalMargin + x},${totalMargin - majorTickSize - xTickLabelOffset
+            })">${label}</text>`;
 
           // Bottom label
-          svg.content += `<text x="${totalMargin + x}" y="${
-            totalMargin + height + majorTickSize + xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            xMajor.bottomTextAnchor
-          }" dominant-baseline="${
-            xMajor.bottomDominantBaseline
-          }" transform="rotate(${xTickMajorLabelRotation},${totalMargin + x},${
-            totalMargin + height + majorTickSize + xTickLabelOffset
-          })">${label}</text>`;
+          svg.content += `<text x="${totalMargin + x}" y="${totalMargin + height + majorTickSize + xTickLabelOffset
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${xMajor.bottomTextAnchor
+            }" dominant-baseline="${xMajor.bottomDominantBaseline
+            }" transform="rotate(${xTickMajorLabelRotation},${totalMargin + x},${totalMargin + height + majorTickSize + xTickLabelOffset
+            })">${label}</text>`;
         }
       }
 
@@ -569,32 +555,24 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         const xEnd = (bbox[2] - bbox[0]) / degPerPixelX;
 
         // Top start tick end
-        svg.content += `<line x1="${
-          totalMargin + xStart
-        }" y1="${totalMargin}" x2="${totalMargin + xStart}" y2="${
-          totalMargin - majorTickSize
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + xStart
+          }" y1="${totalMargin}" x2="${totalMargin + xStart}" y2="${totalMargin - majorTickSize
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         // Bottom start tick end
-        svg.content += `<line x1="${totalMargin + xStart}" y1="${
-          totalMargin + height
-        }" x2="${totalMargin + xStart}" y2="${
-          totalMargin + height + majorTickSize
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + xStart}" y1="${totalMargin + height
+          }" x2="${totalMargin + xStart}" y2="${totalMargin + height + majorTickSize
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         // Top end tick end
-        svg.content += `<line x1="${
-          totalMargin + xEnd
-        }" y1="${totalMargin}" x2="${totalMargin + xEnd}" y2="${
-          totalMargin - majorTickSize
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + xEnd
+          }" y1="${totalMargin}" x2="${totalMargin + xEnd}" y2="${totalMargin - majorTickSize
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         // Bottom end tick end
-        svg.content += `<line x1="${totalMargin + xEnd}" y1="${
-          totalMargin + height
-        }" x2="${totalMargin + xEnd}" y2="${
-          totalMargin + height + majorTickSize
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + xEnd}" y1="${totalMargin + height
+          }" x2="${totalMargin + xEnd}" y2="${totalMargin + height + majorTickSize
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         if (majorTickLabelSize > 0) {
           let label = formatDegree(
@@ -604,30 +582,20 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           );
 
           // Top start label end
-          svg.content += `<text x="${totalMargin + xStart}" y="${
-            totalMargin - majorTickSize - xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            xMajor.topTextAnchor
-          }" dominant-baseline="${
-            xMajor.topDominantBaseline
-          }" transform="rotate(${xTickMajorLabelRotation},${
-            totalMargin + xStart
-          },${
-            totalMargin - majorTickSize - xTickLabelOffset
-          })">${label}</text>`;
+          svg.content += `<text x="${totalMargin + xStart}" y="${totalMargin - majorTickSize - xTickLabelOffset
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${xMajor.topTextAnchor
+            }" dominant-baseline="${xMajor.topDominantBaseline
+            }" transform="rotate(${xTickMajorLabelRotation},${totalMargin + xStart
+            },${totalMargin - majorTickSize - xTickLabelOffset
+            })">${label}</text>`;
 
           // Bottom start label end
-          svg.content += `<text x="${totalMargin + xStart}" y="${
-            totalMargin + height + majorTickSize + xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            xMajor.bottomTextAnchor
-          }" dominant-baseline="${
-            xMajor.bottomDominantBaseline
-          }" transform="rotate(${xTickMajorLabelRotation},${
-            totalMargin + xStart
-          },${
-            totalMargin + height + majorTickSize + xTickLabelOffset
-          })">${label}</text>`;
+          svg.content += `<text x="${totalMargin + xStart}" y="${totalMargin + height + majorTickSize + xTickLabelOffset
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${xMajor.bottomTextAnchor
+            }" dominant-baseline="${xMajor.bottomDominantBaseline
+            }" transform="rotate(${xTickMajorLabelRotation},${totalMargin + xStart
+            },${totalMargin + height + majorTickSize + xTickLabelOffset
+            })">${label}</text>`;
 
           label = formatDegree(
             bbox[0] + xEnd * degPerPixelX,
@@ -636,30 +604,20 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           );
 
           // Top end label end
-          svg.content += `<text x="${totalMargin + xEnd}" y="${
-            totalMargin - majorTickSize - xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            xMajor.topTextAnchor
-          }" dominant-baseline="${
-            xMajor.topDominantBaseline
-          }" transform="rotate(${xTickMajorLabelRotation},${
-            totalMargin + xEnd
-          },${
-            totalMargin - majorTickSize - xTickLabelOffset
-          })">${label}</text>`;
+          svg.content += `<text x="${totalMargin + xEnd}" y="${totalMargin - majorTickSize - xTickLabelOffset
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${xMajor.topTextAnchor
+            }" dominant-baseline="${xMajor.topDominantBaseline
+            }" transform="rotate(${xTickMajorLabelRotation},${totalMargin + xEnd
+            },${totalMargin - majorTickSize - xTickLabelOffset
+            })">${label}</text>`;
 
           // Bottom end label end
-          svg.content += `<text x="${totalMargin + xEnd}" y="${
-            totalMargin + height + majorTickSize + xTickLabelOffset
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            xMajor.bottomTextAnchor
-          }" dominant-baseline="${
-            xMajor.bottomDominantBaseline
-          }" transform="rotate(${xTickMajorLabelRotation},${
-            totalMargin + xEnd
-          },${
-            totalMargin + height + majorTickSize + xTickLabelOffset
-          })">${label}</text>`;
+          svg.content += `<text x="${totalMargin + xEnd}" y="${totalMargin + height + majorTickSize + xTickLabelOffset
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${xMajor.bottomTextAnchor
+            }" dominant-baseline="${xMajor.bottomDominantBaseline
+            }" transform="rotate(${xTickMajorLabelRotation},${totalMargin + xEnd
+            },${totalMargin + height + majorTickSize + xTickLabelOffset
+            })">${label}</text>`;
         }
       }
 
@@ -681,18 +639,14 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         const y = (bbox[3] - lat) / degPerPixelY;
 
         // Left tick
-        svg.content += `<line x1="${totalMargin}" y1="${totalMargin + y}" x2="${
-          totalMargin - majorTickSize
-        }" y2="${
-          totalMargin + y
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin}" y1="${totalMargin + y}" x2="${totalMargin - majorTickSize
+          }" y2="${totalMargin + y
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         // Right tick
-        svg.content += `<line x1="${totalMargin + width}" y1="${
-          totalMargin + y
-        }" x2="${totalMargin + width + majorTickSize}" y2="${
-          totalMargin + y
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + width}" y1="${totalMargin + y
+          }" x2="${totalMargin + width + majorTickSize}" y2="${totalMargin + y
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         if (majorTickLabelSize > 0) {
           const label = formatDegree(
@@ -702,30 +656,20 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           );
 
           // Left label
-          svg.content += `<text x="${
-            totalMargin - majorTickSize - yTickLabelOffset
-          }" y="${
-            totalMargin + y
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            yMajor.leftTextAnchor
-          }" dominant-baseline="${
-            yMajor.leftDominantBaseline
-          }" transform="rotate(${yTickMajorLabelRotation},${
-            totalMargin - majorTickSize - yTickLabelOffset
-          },${totalMargin + y})">${label}</text>`;
+          svg.content += `<text x="${totalMargin - majorTickSize - yTickLabelOffset
+            }" y="${totalMargin + y
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${yMajor.leftTextAnchor
+            }" dominant-baseline="${yMajor.leftDominantBaseline
+            }" transform="rotate(${yTickMajorLabelRotation},${totalMargin - majorTickSize - yTickLabelOffset
+            },${totalMargin + y})">${label}</text>`;
 
           // Right label
-          svg.content += `<text x="${
-            totalMargin + width + majorTickSize + yTickLabelOffset
-          }" y="${
-            totalMargin + y
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            yMajor.rightTextAnchor
-          }" dominant-baseline="${
-            yMajor.rightDominantBaseline
-          }" transform="rotate(${yTickMajorLabelRotation},${
-            totalMargin + width + majorTickSize + yTickLabelOffset
-          },${totalMargin + y})">${label}</text>`;
+          svg.content += `<text x="${totalMargin + width + majorTickSize + yTickLabelOffset
+            }" y="${totalMargin + y
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${yMajor.rightTextAnchor
+            }" dominant-baseline="${yMajor.rightDominantBaseline
+            }" transform="rotate(${yTickMajorLabelRotation},${totalMargin + width + majorTickSize + yTickLabelOffset
+            },${totalMargin + y})">${label}</text>`;
         }
       }
 
@@ -734,32 +678,24 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         const yEnd = (bbox[3] - bbox[1]) / degPerPixelY;
 
         // Left start tick end
-        svg.content += `<line x1="${totalMargin}" y1="${
-          totalMargin + yStart
-        }" x2="${totalMargin - majorTickSize}" y2="${
-          totalMargin + yStart
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin}" y1="${totalMargin + yStart
+          }" x2="${totalMargin - majorTickSize}" y2="${totalMargin + yStart
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         // Right start tick end
-        svg.content += `<line x1="${totalMargin + width}" y1="${
-          totalMargin + yStart
-        }" x2="${totalMargin + width + majorTickSize}" y2="${
-          totalMargin + yStart
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + width}" y1="${totalMargin + yStart
+          }" x2="${totalMargin + width + majorTickSize}" y2="${totalMargin + yStart
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         // Left end tick end
-        svg.content += `<line x1="${totalMargin}" y1="${
-          totalMargin + yEnd
-        }" x2="${totalMargin - majorTickSize}" y2="${
-          totalMargin + yEnd
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin}" y1="${totalMargin + yEnd
+          }" x2="${totalMargin - majorTickSize}" y2="${totalMargin + yEnd
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         // Right end tick end
-        svg.content += `<line x1="${totalMargin + width}" y1="${
-          totalMargin + yEnd
-        }" x2="${totalMargin + width + majorTickSize}" y2="${
-          totalMargin + yEnd
-        }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + width}" y1="${totalMargin + yEnd
+          }" x2="${totalMargin + width + majorTickSize}" y2="${totalMargin + yEnd
+          }" stroke="${majorTickColor}" stroke-width="${majorTickWidth}" />`;
 
         if (majorTickLabelSize > 0) {
           let label = formatDegree(
@@ -769,30 +705,20 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           );
 
           // Left start label end
-          svg.content += `<text x="${
-            totalMargin - majorTickSize - yTickLabelOffset
-          }" y="${
-            totalMargin + yStart
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            yMajor.leftTextAnchor
-          }" dominant-baseline="${
-            yMajor.leftDominantBaseline
-          }" transform="rotate(${yTickMajorLabelRotation},${
-            totalMargin - majorTickSize - yTickLabelOffset
-          },${totalMargin + yStart})">${label}</text>`;
+          svg.content += `<text x="${totalMargin - majorTickSize - yTickLabelOffset
+            }" y="${totalMargin + yStart
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${yMajor.leftTextAnchor
+            }" dominant-baseline="${yMajor.leftDominantBaseline
+            }" transform="rotate(${yTickMajorLabelRotation},${totalMargin - majorTickSize - yTickLabelOffset
+            },${totalMargin + yStart})">${label}</text>`;
 
           // Right start label end
-          svg.content += `<text x="${
-            totalMargin + width + majorTickSize + yTickLabelOffset
-          }" y="${
-            totalMargin + yStart
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            yMajor.rightTextAnchor
-          }" dominant-baseline="${
-            yMajor.rightDominantBaseline
-          }" transform="rotate(${yTickMajorLabelRotation},${
-            totalMargin + width + majorTickSize + yTickLabelOffset
-          },${totalMargin + yStart})">${label}</text>`;
+          svg.content += `<text x="${totalMargin + width + majorTickSize + yTickLabelOffset
+            }" y="${totalMargin + yStart
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${yMajor.rightTextAnchor
+            }" dominant-baseline="${yMajor.rightDominantBaseline
+            }" transform="rotate(${yTickMajorLabelRotation},${totalMargin + width + majorTickSize + yTickLabelOffset
+            },${totalMargin + yStart})">${label}</text>`;
 
           label = formatDegree(
             bbox[3] - yEnd * degPerPixelY,
@@ -801,30 +727,20 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           );
 
           // Left end label end
-          svg.content += `<text x="${
-            totalMargin - majorTickSize - yTickLabelOffset
-          }" y="${
-            totalMargin + yEnd
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            yMajor.leftTextAnchor
-          }" dominant-baseline="${
-            yMajor.leftDominantBaseline
-          }" transform="rotate(${yTickMajorLabelRotation},${
-            totalMargin - majorTickSize - yTickLabelOffset
-          },${totalMargin + yEnd})">${label}</text>`;
+          svg.content += `<text x="${totalMargin - majorTickSize - yTickLabelOffset
+            }" y="${totalMargin + yEnd
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${yMajor.leftTextAnchor
+            }" dominant-baseline="${yMajor.leftDominantBaseline
+            }" transform="rotate(${yTickMajorLabelRotation},${totalMargin - majorTickSize - yTickLabelOffset
+            },${totalMargin + yEnd})">${label}</text>`;
 
           // Right end label end
-          svg.content += `<text x="${
-            totalMargin + width + majorTickSize + yTickLabelOffset
-          }" y="${
-            totalMargin + yEnd
-          }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${
-            yMajor.rightTextAnchor
-          }" dominant-baseline="${
-            yMajor.rightDominantBaseline
-          }" transform="rotate(${yTickMajorLabelRotation},${
-            totalMargin + width + majorTickSize + yTickLabelOffset
-          },${totalMargin + yEnd})">${label}</text>`;
+          svg.content += `<text x="${totalMargin + width + majorTickSize + yTickLabelOffset
+            }" y="${totalMargin + yEnd
+            }" font-size="${majorTickLabelSize}" font-family="${majorTickLabelFont}" fill="${majorTickLabelColor}" text-anchor="${yMajor.rightTextAnchor
+            }" dominant-baseline="${yMajor.rightDominantBaseline
+            }" transform="rotate(${yTickMajorLabelRotation},${totalMargin + width + majorTickSize + yTickLabelOffset
+            },${totalMargin + yEnd})">${label}</text>`;
         }
       }
     }
@@ -849,18 +765,14 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         const x = (lon - bbox[0]) / degPerPixelX;
 
         // Top tick
-        svg.content += `<line x1="${totalMargin + x}" y1="${totalMargin}" x2="${
-          totalMargin + x
-        }" y2="${
-          totalMargin - minorTickSize
-        }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + x}" y1="${totalMargin}" x2="${totalMargin + x
+          }" y2="${totalMargin - minorTickSize
+          }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`;
 
         // Bottom tick
-        svg.content += `<line x1="${totalMargin + x}" y1="${
-          totalMargin + height
-        }" x2="${totalMargin + x}" y2="${
-          totalMargin + height + minorTickSize
-        }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + x}" y1="${totalMargin + height
+          }" x2="${totalMargin + x}" y2="${totalMargin + height + minorTickSize
+          }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`;
 
         if (minorTickLabelSize > 0) {
           const label = formatDegree(
@@ -870,26 +782,18 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           );
 
           // Top label
-          svg.content += `<text x="${totalMargin + x}" y="${
-            totalMargin - minorTickSize - xTickLabelOffset
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${
-            xMinor.topTextAnchor
-          }" dominant-baseline="${
-            xMinor.topDominantBaseline
-          }" transform="rotate(${xTickMinorLabelRotation},${totalMargin + x},${
-            totalMargin - minorTickSize - xTickLabelOffset
-          })">${label}</text>`;
+          svg.content += `<text x="${totalMargin + x}" y="${totalMargin - minorTickSize - xTickLabelOffset
+            }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${xMinor.topTextAnchor
+            }" dominant-baseline="${xMinor.topDominantBaseline
+            }" transform="rotate(${xTickMinorLabelRotation},${totalMargin + x},${totalMargin - minorTickSize - xTickLabelOffset
+            })">${label}</text>`;
 
           // Bottom label
-          svg.content += `<text x="${totalMargin + x}" y="${
-            totalMargin + height + minorTickSize + xTickLabelOffset
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${
-            xMinor.bottomTextAnchor
-          }" dominant-baseline="${
-            xMinor.bottomDominantBaseline
-          }" transform="rotate(${xTickMinorLabelRotation},${totalMargin + x},${
-            totalMargin + height + minorTickSize + xTickLabelOffset
-          })">${label}</text>`;
+          svg.content += `<text x="${totalMargin + x}" y="${totalMargin + height + minorTickSize + xTickLabelOffset
+            }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${xMinor.bottomTextAnchor
+            }" dominant-baseline="${xMinor.bottomDominantBaseline
+            }" transform="rotate(${xTickMinorLabelRotation},${totalMargin + x},${totalMargin + height + minorTickSize + xTickLabelOffset
+            })">${label}</text>`;
         }
       }
 
@@ -912,18 +816,14 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         const y = (bbox[3] - lat) / degPerPixelY;
 
         // Left tick
-        svg.content += `<line x1="${totalMargin}" y1="${totalMargin + y}" x2="${
-          totalMargin - minorTickSize
-        }" y2="${
-          totalMargin + y
-        }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin}" y1="${totalMargin + y}" x2="${totalMargin - minorTickSize
+          }" y2="${totalMargin + y
+          }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`;
 
         // Right tick
-        svg.content += `<line x1="${totalMargin + width}" y1="${
-          totalMargin + y
-        }" x2="${totalMargin + width + minorTickSize}" y2="${
-          totalMargin + y
-        }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`;
+        svg.content += `<line x1="${totalMargin + width}" y1="${totalMargin + y
+          }" x2="${totalMargin + width + minorTickSize}" y2="${totalMargin + y
+          }" stroke="${minorTickColor}" stroke-width="${minorTickWidth}" />`;
 
         if (minorTickLabelSize > 0) {
           const label = formatDegree(
@@ -933,30 +833,20 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           );
 
           // Left label
-          svg.content += `<text x="${
-            totalMargin - minorTickSize - yTickLabelOffset
-          }" y="${
-            totalMargin + y
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${
-            yMinor.leftTextAnchor
-          }" dominant-baseline="${
-            yMinor.leftDominantBaseline
-          }" transform="rotate(${yTickMinorLabelRotation},${
-            totalMargin - minorTickSize - yTickLabelOffset
-          },${totalMargin + y})">${label}</text>`;
+          svg.content += `<text x="${totalMargin - minorTickSize - yTickLabelOffset
+            }" y="${totalMargin + y
+            }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${yMinor.leftTextAnchor
+            }" dominant-baseline="${yMinor.leftDominantBaseline
+            }" transform="rotate(${yTickMinorLabelRotation},${totalMargin - minorTickSize - yTickLabelOffset
+            },${totalMargin + y})">${label}</text>`;
 
           // Right label
-          svg.content += `<text x="${
-            totalMargin + width + minorTickSize + yTickLabelOffset
-          }" y="${
-            totalMargin + y
-          }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${
-            yMinor.rightTextAnchor
-          }" dominant-baseline="${
-            yMinor.rightDominantBaseline
-          }" transform="rotate(${yTickMinorLabelRotation},${
-            totalMargin + width + minorTickSize + yTickLabelOffset
-          },${totalMargin + y})">${label}</text>`;
+          svg.content += `<text x="${totalMargin + width + minorTickSize + yTickLabelOffset
+            }" y="${totalMargin + y
+            }" font-size="${minorTickLabelSize}" font-family="${minorTickLabelFont}" fill="${minorTickLabelColor}" text-anchor="${yMinor.rightTextAnchor
+            }" dominant-baseline="${yMinor.rightDominantBaseline
+            }" transform="rotate(${yTickMinorLabelRotation},${totalMargin + width + minorTickSize + yTickLabelOffset
+            },${totalMargin + y})">${label}</text>`;
         }
       }
     }
@@ -1007,9 +897,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
         const x = totalMargin + (lon - bbox[0]) / degPerPixelX;
 
-        svg.content += `<line x1="${x}" y1="${totalMargin}" x2="${x}" y2="${
-          totalMargin + height
-        }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`;
+        svg.content += `<line x1="${x}" y1="${totalMargin}" x2="${x}" y2="${totalMargin + height
+          }" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`;
       }
 
       // Y-axis major grids
@@ -1026,9 +915,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
         const y = totalMargin + (bbox[3] - lat) / degPerPixelY;
 
-        svg.content += `<line x1="${totalMargin}" y1="${y}" x2="${
-          totalMargin + width
-        }" y2="${y}" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`;
+        svg.content += `<line x1="${totalMargin}" y1="${y}" x2="${totalMargin + width
+          }" y2="${y}" stroke="${majorGridColor}" stroke-width="${majorGridWidth}" ${majorGridStyle}/>`;
       }
     }
 
@@ -1049,9 +937,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
         const x = totalMargin + (lon - bbox[0]) / degPerPixelX;
 
-        svg.content += `<line x1="${x}" y1="${totalMargin}" x2="${x}" y2="${
-          totalMargin + height
-        }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`;
+        svg.content += `<line x1="${x}" y1="${totalMargin}" x2="${x}" y2="${totalMargin + height
+          }" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`;
       }
 
       // Y-axis minor grids
@@ -1070,9 +957,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
         const y = totalMargin + (bbox[3] - lat) / degPerPixelY;
 
-        svg.content += `<line x1="${totalMargin}" y1="${y}" x2="${
-          totalMargin + width
-        }" y2="${y}" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`;
+        svg.content += `<line x1="${totalMargin}" y1="${y}" x2="${totalMargin + width
+          }" y2="${y}" stroke="${minorGridColor}" stroke-width="${minorGridWidth}" ${minorGridStyle}/>`;
       }
     }
   }
@@ -1080,13 +966,13 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
   // Create SVG composites option
   const compositesOption = svg.content
     ? [
-        {
-          limitInputPixels: false,
-          input: createSVG(svg, true),
-          left: 0,
-          top: 0,
-        },
-      ]
+      {
+        limitInputPixels: false,
+        input: createSVG(svg, true),
+        left: 0,
+        top: 0,
+      },
+    ]
     : undefined;
 
   // Create image
@@ -1134,14 +1020,14 @@ export async function mergeTilesToImage(input, output) {
     const originBBox = input.bbox
       ? input.bbox
       : getBBoxFromTiles(
-          input.xMin,
-          input.yMin,
-          input.xMax,
-          input.yMax,
-          input.z,
-          input.scheme,
-          input.tileSize
-        );
+        input.xMin,
+        input.yMin,
+        input.xMax,
+        input.yMax,
+        input.z,
+        input.scheme,
+        input.tileSize
+      );
 
     const xRes = targetWidth / (originBBox[2] - originBBox[0]);
     const yRes = targetHeight / (originBBox[3] - originBBox[1]);
@@ -1194,6 +1080,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     paperHeightPX = Math.round(toPixel(paperHeight, "mm"));
   }
 
+  // Init images
   const images = preview ? [] : new jsPDF({
     orientation: output.orientation,
     unit: "mm",
@@ -1272,51 +1159,56 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     if (preview) {
       let {
         format = "png",
-        lineColor = "rgba(255,0,0,1)",
         lineWidth = 6,
-        lineStyle = "solid",
-        pageColor = "rgba(255,0,0,1)",
         pageSize = 100,
-        pageFont = "sans-serif",
         width,
         height,
       } = preview;
 
-      lineStyle = getSVGStrokeDashArray(lineStyle);
+      // Process Preview
+      let compositesOption;
 
-      const svg = {
-        content: "",
-        width: newWidthPX,
-        height: newHeightPX,
-      };
+      if (lineWidth > 0 || pageSize > 0) {
+        let {
+          lineColor = "rgba(255,0,0,1)",
+          lineStyle = "solid",
+          pageColor = "rgba(255,0,0,1)",
+          pageFont = "sans-serif",
+        } = preview;
 
-      for (let y = 0; y < heightPageNum; y++) {
-        for (let x = 0; x < widthPageNum; x++) {
-          if (lineWidth > 0) {
-            svg.content += `<rect x="${x * paperWidthPX}" y="${
-              y * paperHeightPX
-            }" width="${paperWidthPX}" height="${paperHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
-          }
+        lineStyle = getSVGStrokeDashArray(lineStyle);
 
-          if (pageSize > 0) {
-            svg.content += `<text x="${x * paperWidthPX + paperWidthPX / 2}" y="${
-              y * paperHeightPX + paperHeightPX / 2
-            }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${
-              y + x + 1
-            }</text>`;
+        const svg = {
+          content: "",
+          width: newWidthPX,
+          height: newHeightPX,
+        };
+
+        for (let y = 0; y < heightPageNum; y++) {
+          for (let x = 0; x < widthPageNum; x++) {
+            if (lineWidth > 0) {
+              svg.content += `<rect x="${x * paperWidthPX}" y="${y * paperHeightPX
+                }" width="${paperWidthPX}" height="${paperHeightPX}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${lineStyle}/>`;
+            }
+
+            if (pageSize > 0) {
+              svg.content += `<text x="${x * paperWidthPX + paperWidthPX / 2}" y="${y * paperHeightPX + paperHeightPX / 2
+                }" text-anchor="middle" alignment-baseline="middle" font-family="${pageFont}" font-size="${pageSize}" fill="${pageColor}">${y + x + 1
+                }</text>`;
+            }
           }
         }
-      }
 
-      // Create SVG composites option
-      const compositesOption = [
-        {
-          limitInputPixels: false,
-          input: createSVG(svg, true),
-          left: 0,
-          top: 0,
-        },
-      ];
+        // Create SVG composites option
+        compositesOption = [
+          {
+            limitInputPixels: false,
+            input: createSVG(svg, true),
+            left: 0,
+            top: 0,
+          },
+        ];
+      }
 
       // Create image
       const previewImage = await createImageOutput(image.image, {
@@ -1335,15 +1227,10 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
     } else {
       // Create extended image
       const baseImage = await createImageOutput(image.image, {
-        extendOption: {
-          left: extendLeft,
-          top: extendTop,
-          right: Math.ceil(newWidthPX - width - extendLeft),
-          bottom: Math.ceil(newHeightPX - height - extendTop),
-          background: { r: 255, g: 255, b: 255, alpha: 0 },
-        },
+        extendOption: extendOption,
       });
 
+      // Process PDF
       for (let y = 0; y < heightPageNum; y++) {
         for (let x = 0; x < widthPageNum; x++) {
           // Add new page
@@ -1394,8 +1281,8 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
 /**
  * Render image to PDF or Preview image
  * @param {{ images: string[]|Buffer[] }} input Input object
- * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number }} preview Preview object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, grayscale: boolean, grid: { row: number, column: number, paddingX: number, paddingY: number, gapX: number, gapY: number } }} output Output object
+ * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot" }} preview Preview object
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, grayscale: boolean, grid: { row: number, column: number, marginX: number, marginY: number, gapX: number, gapY: number } }} output Output object
  * @returns {Promise<void|Buffer[]|string[]>}
  */
 export async function renderImageToPDF(input, preview, output) {
@@ -1413,23 +1300,23 @@ export async function renderImageToPDF(input, preview, output) {
   let {
     row = 1,
     column = 1,
-    paddingX = 0,
-    paddingY = 0,
+    marginX = 0,
+    marginY = 0,
     gapX = 0,
     gapY = 0,
   } = output.grid ?? {};
 
   // Convert padding and gap to pixel
-  const paddingXPX = Math.round(toPixel(paddingX, "mm"));
-  const paddingYPX = Math.round(toPixel(paddingY, "mm"));
+  const marginXPX = Math.round(toPixel(marginX, "mm"));
+  const marginYPX = Math.round(toPixel(marginY, "mm"));
   const gapXPX = Math.round(toPixel(gapX, "mm"));
   const gapYPX = Math.round(toPixel(gapY, "mm"));
 
-  const cellHeight = Math.floor(
-    (paperHeightPX - paddingYPX * 2 - (row - 1) * gapYPX) / row
-  );
   const cellWidth = Math.floor(
-    (paperWidthPX - paddingXPX * 2 - (column - 1) * gapXPX) / column
+    (paperWidthPX - marginXPX * 2 - (column - 1) * gapXPX) / column
+  );
+  const cellHeight = Math.floor(
+    (paperHeightPX - marginYPX * 2 - (row - 1) * gapYPX) / row
   );
 
   // Process align
@@ -1464,27 +1351,62 @@ export async function renderImageToPDF(input, preview, output) {
 
   // Process Preview or PDF
   if (preview) {
+    let {
+      format = "png",
+      lineWidth = 6,
+      width,
+      height,
+    } = preview;
+
+    // Create SVG
+    let svg;
+
+    if (lineWidth > 0) {
+      let {
+        lineColor = "rgba(255,0,0,1)",
+        lineStyle = "solid",
+      } = preview;
+
+      svg = createSVG({
+        content: `<rect x="0" y="0" width="${cellWidth}" height="${cellHeight}" fill="none" stroke="${lineColor}" stroke-width="${lineWidth}" ${getSVGStrokeDashArray(lineStyle)}/>`,
+        width: cellWidth,
+        height: cellHeight,
+      }, true);
+    }
+
+    // Create Preview
     const images = [];
 
+    // Process Preview
     for (let page = 0; page < pageNum; page++) {
+      const items = input.images.slice(page * imageInPageNum, (page + 1) * imageInPageNum);
+
       // Create composites option
       const compositesOption = await Promise.all(
-        input.images
-          .slice(page * imageInPageNum, (page + 1) * imageInPageNum)
-          .map(async (item, idx) => ({
-            limitInputPixels: false,
-            input: await createImageOutput(item, {
-              resizeOption: {
-                fit: output.fit,
-                position: position,
-              },
-            }),
+        items.map(async (item, idx) => ({
+          limitInputPixels: false,
+          input: await createImageOutput(item, {
+            resizeOption: {
+              fit: output.fit,
+              position: position,
+              background: { r: 255, g: 255, b: 255, alpha: 0 },
+            },
             width: cellWidth,
             height: cellHeight,
-            left: paddingXPX + (idx % column) * (cellWidth + gapXPX),
-            top: paddingYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
-          }))
+          }),
+          left: marginXPX + (idx % column) * (cellWidth + gapXPX),
+          top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
+        }))
       );
+
+      if (svg) {
+        items.forEach((_, idx) => compositesOption.push({
+          limitInputPixels: false,
+          input: svg,
+          left: marginXPX + (idx % column) * (cellWidth + gapXPX),
+          top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
+        }));
+      }
 
       // Create image
       const previewImage = await createImageOutput(undefined, {
@@ -1494,10 +1416,10 @@ export async function renderImageToPDF(input, preview, output) {
           channels: 4,
           background: { r: 255, g: 255, b: 255, alpha: 0 },
         },
-        compositesOption,
-        format: preview.format || "png",
-        width: preview.width,
-        height: preview.height,
+        compositesOption: compositesOption,
+        format: format,
+        width: width,
+        height: height,
         base64: output.base64,
         grayscale: output.grayscale,
       });
@@ -1516,6 +1438,7 @@ export async function renderImageToPDF(input, preview, output) {
       compress: true,
     });
 
+    // Process PDF
     for (let page = 0; page < pageNum; page++) {
       // Add new page
       if (page > 0) {
@@ -1532,12 +1455,13 @@ export async function renderImageToPDF(input, preview, output) {
               resizeOption: {
                 fit: output.fit,
                 position: position,
+                background: { r: 255, g: 255, b: 255, alpha: 0 },
               },
+              width: cellWidth,
+              height: cellHeight,
             }),
-            width: cellWidth,
-            height: cellHeight,
-            left: paddingXPX + (idx % column) * (cellWidth + gapXPX),
-            top: paddingYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
+            left: marginXPX + (idx % column) * (cellWidth + gapXPX),
+            top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
           }))
       );
 
@@ -1549,7 +1473,7 @@ export async function renderImageToPDF(input, preview, output) {
           channels: 4,
           background: { r: 255, g: 255, b: 255, alpha: 0 },
         },
-        compositesOption,
+        compositesOption: compositesOption,
         format: "png",
         grayscale: output.grayscale,
       });

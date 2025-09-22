@@ -187,8 +187,7 @@ function getDataHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
-            item.tileJSON.format
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format
           }`,
         ],
       };
@@ -988,6 +987,7 @@ export const serve_data = {
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
                   }).targetCoverages,
+                  ...(item.tilejson ?? {})
                 });
               } else {
                 /* Get MBTiles path */
@@ -1001,7 +1001,10 @@ export const serve_data = {
                 );
 
                 /* Get MBTiles metadata */
-                dataInfo.tileJSON = await getMBTilesMetadata(dataInfo.source);
+                dataInfo.tileJSON = {
+                  ...(await getMBTilesMetadata(dataInfo.source)),
+                  ...(item.tilejson ?? {}),
+                };
               }
             } else if (item.pmtiles !== undefined) {
               dataInfo.sourceType = "pmtiles";
@@ -1018,7 +1021,10 @@ export const serve_data = {
                 dataInfo.source = openPMTiles(dataInfo.path);
 
                 /* Get PMTiles metadata */
-                dataInfo.tileJSON = await getPMTilesMetadata(dataInfo.source);
+                dataInfo.tileJSON = {
+                  ...(await getPMTilesMetadata(dataInfo.source)),
+                  ...(item.tilejson ?? {}),
+                };
               } else {
                 /* Get PMTiles path */
                 dataInfo.path = `${process.env.DATA_DIR}/pmtiles/${item.pmtiles}`;
@@ -1027,7 +1033,10 @@ export const serve_data = {
                 dataInfo.source = openPMTiles(dataInfo.path);
 
                 /* Get PMTiles metadata */
-                dataInfo.tileJSON = await getPMTilesMetadata(dataInfo.source);
+                dataInfo.tileJSON = {
+                  ...(await getPMTilesMetadata(dataInfo.source)),
+                  ...(item.tilejson ?? {}),
+                };
               }
             } else if (item.xyz !== undefined) {
               dataInfo.sourceType = "xyz";
@@ -1065,6 +1074,7 @@ export const serve_data = {
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
                   }).targetCoverages,
+                  ...(item.tilejson ?? {}),
                 });
               } else {
                 /* Get XYZ path */
@@ -1080,10 +1090,10 @@ export const serve_data = {
                 );
 
                 /* Get XYZ metadata */
-                dataInfo.tileJSON = await getXYZMetadata(
-                  dataInfo.source,
-                  md5Source
-                );
+                dataInfo.tileJSON = dataInfo.tileJSON = {
+                  ...(await getXYZMetadata(dataInfo.source, md5Source)),
+                  ...(item.tilejson ?? {}),
+                }
               }
             } else if (item.pg !== undefined) {
               dataInfo.sourceType = "pg";
@@ -1116,6 +1126,7 @@ export const serve_data = {
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
                   }).targetCoverages,
+                  ...(item.tilejson ?? {}),
                 });
               } else {
                 /* Get XYZ path */
@@ -1125,9 +1136,10 @@ export const serve_data = {
                 dataInfo.source = await openPostgreSQLDB(dataInfo.path, false);
 
                 /* Get PostgreSQL metadata */
-                dataInfo.tileJSON = await getPostgreSQLMetadata(
-                  dataInfo.source
-                );
+                dataInfo.tileJSON = {
+                  ...(await getPostgreSQLMetadata(dataInfo.source)),
+                  ...(item.tilejson ?? {}),
+                }
               }
             }
 

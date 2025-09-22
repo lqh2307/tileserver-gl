@@ -37,6 +37,24 @@
         "height": {
           "type": "integer",
           "minimum": 1
+        },
+        "lineColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineWidth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lineStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "longDashed",
+            "dotted",
+            "dashedDot"
+          ]
         }
       }
     },

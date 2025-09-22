@@ -161,10 +161,7 @@
               }
             ]
           }
-        },
-        "required": [
-          "coverages"
-        ]
+        }
       }
     },
     "sprites": {

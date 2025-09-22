@@ -24,9 +24,8 @@ async function startClusterServer() {
     process.env.RESTART_AFTER_CONFIG_CHANGE =
       process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
 
-    let log = `Starting server with:`;
+    let log = `Starting ${process.env.SERVICE_NAME} server with:`;
     log += `\n\tData dir: ${process.env.DATA_DIR}`;
-    log += `\n\tService name: ${process.env.SERVICE_NAME}`;
     log += `\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}`;
 
     printLog("info", log);

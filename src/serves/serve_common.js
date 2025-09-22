@@ -158,14 +158,16 @@ function serveFrontPageHandler() {
  */
 function serveConfigHandler() {
   return async (req, res) => {
+    const type = req.query.type || "config";
+
     try {
       res.header("content-type", "application/json");
 
       return res
         .status(StatusCodes.OK)
-        .send(readConfigFile(req.query.type, false));
+        .send(readConfigFile(type, false));
     } catch (error) {
-      printLog("error", `Failed to get config: ${error}`);
+      printLog("error", `Failed to get ${type}: ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -180,210 +182,80 @@ function serveConfigHandler() {
  */
 function serveConfigUpdateHandler() {
   return async (req, res) => {
+    const type = req.query.type || "config";
+
     try {
-      await validateConfig(req.query.type, req.body);
+      await validateConfig(type, req.body);
     } catch (error) {
       return res
         .status(StatusCodes.BAD_REQUEST)
-        .send(`Invalid ${req.query.type}: ${error}`);
+        .send(`Invalid ${type}: ${error}`);
     }
 
     try {
-      const config = readConfigFile(req.query.type, true);
+      const config = readConfigFile(type, true);
 
-      if (req.query.type === "seed") {
-        if (!req.body.styles) {
-          printLog("info", "No styles to update in seed. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.styles);
-
-          printLog("info", `Updating ${ids.length} styles in seed...`);
-
-          ids.map((id) => {
-            config.styles[id] = req.body.styles[id];
-          });
-        }
-
-        if (!req.body.geojsons) {
-          printLog("info", "No GeoJSONs to update in seed. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.geojsons);
-
-          printLog("info", `Updating ${ids.length} GeoJSONs in seed...`);
-
-          ids.map((id) => {
-            config.geojsons[id] = req.body.geojsons[id];
-          });
-        }
-
-        if (!req.body.datas) {
-          printLog("info", "No datas to update in seed. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.datas);
-
-          printLog("info", `Updating ${ids.length} datas in seed...`);
-
-          ids.map((id) => {
-            config.datas[id] = req.body.datas[id];
-          });
-        }
-
-        if (!req.body.sprites) {
-          printLog("info", "No sprites to update in seed. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.sprites);
-
-          printLog("info", `Updating ${ids.length} sprites in seed...`);
-
-          ids.map((id) => {
-            config.sprites[id] = req.body.sprites[id];
-          });
-        }
-
-        if (!req.body.fonts) {
-          printLog("info", "No fonts to update in seed. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.fonts);
-
-          printLog("info", `Updating ${ids.length} fonts in seed...`);
-
-          ids.map((id) => {
-            config.fonts[id] = req.body.fonts[id];
-          });
-        }
-
-        await updateConfigFile("cleanup", config, 60000);
-      } else if (req.query.type === "cleanup") {
-        if (!req.body.styles) {
-          printLog("info", "No styles to update in cleanup. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.styles);
-
-          printLog("info", `Updating ${ids.length} styles in cleanup...`);
-
-          ids.map((id) => {
-            config.styles[id] = req.body.styles[id];
-          });
-        }
-
-        if (!req.body.geojsons) {
-          printLog("info", "No GeoJSONs to update in cleanup. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.geojsons);
-
-          printLog("info", `Updating ${ids.length} GeoJSONs in cleanup...`);
-
-          ids.map((id) => {
-            config.geojsons[id] = req.body.geojsons[id];
-          });
-        }
-
-        if (!req.body.datas) {
-          printLog("info", "No datas to update in cleanup. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.datas);
-
-          printLog("info", `Updating ${ids.length} datas in cleanup...`);
-
-          ids.map((id) => {
-            config.datas[id] = req.body.datas[id];
-          });
-        }
-
-        if (!req.body.sprites) {
-          printLog("info", "No sprites to update in cleanup. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.sprites);
-
-          printLog("info", `Updating ${ids.length} sprites in cleanup...`);
-
-          ids.map((id) => {
-            config.sprites[id] = req.body.sprites[id];
-          });
-        }
-
-        if (!req.body.fonts) {
-          printLog("info", "No fonts to update in cleanup. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.fonts);
-
-          printLog("info", `Updating ${ids.length} fonts in cleanup...`);
-
-          ids.map((id) => {
-            config.fonts[id] = req.body.fonts[id];
-          });
-        }
-
-        await updateConfigFile("cleanup", config, 60000);
+      if (!req.body.styles) {
+        printLog("info", `No styles to update in ${type}. Skipping...`);
       } else {
-        if (!req.body.styles) {
-          printLog("info", "No styles to update in config. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.styles);
+        const ids = Object.keys(req.body.styles);
 
-          printLog("info", `Updating ${ids.length} styles in config...`);
+        printLog("info", `Updating ${ids.length} styles in ${type}...`);
 
-          ids.map((id) => {
-            config.styles[id] = req.body.styles[id];
-          });
-        }
-
-        if (!req.body.geojsons) {
-          printLog(
-            "info",
-            "No GeoJSON groups to update in config. Skipping..."
-          );
-        } else {
-          const ids = Object.keys(req.body.geojsons);
-
-          printLog(
-            "info",
-            `Updating ${ids.length} GeoJSON groups in config...`
-          );
-
-          ids.map((id) => {
-            config.geojsons[id] = req.body.geojsons[id];
-          });
-        }
-
-        if (!req.body.datas) {
-          printLog("info", "No datas to update in config. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.datas);
-
-          printLog("info", `Updating ${ids.length} datas in config...`);
-
-          ids.map((id) => {
-            config.datas[id] = req.body.datas[id];
-          });
-        }
-
-        if (!req.body.sprites) {
-          printLog("info", "No sprites to update in config. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.sprites);
-
-          printLog("info", `Updating ${ids.length} sprites in config...`);
-
-          ids.map((id) => {
-            config.sprites[id] = req.body.sprites[id];
-          });
-        }
-
-        if (!req.body.fonts) {
-          printLog("info", "No fonts to update in config. Skipping...");
-        } else {
-          const ids = Object.keys(req.body.fonts);
-
-          printLog("info", `Updating ${ids.length} fonts in config...`);
-
-          ids.map((id) => {
-            config.fonts[id] = req.body.fonts[id];
-          });
-        }
-
-        await updateConfigFile(config, 60000);
+        ids.map((id) => {
+          config.styles[id] = req.body.styles[id];
+        });
       }
+
+      if (!req.body.geojsons) {
+        printLog("info", `No GeoJSONs to update in ${type}. Skipping...`);
+      } else {
+        const ids = Object.keys(req.body.geojsons);
+
+        printLog("info", `Updating ${ids.length} GeoJSONs in ${type}...`);
+
+        ids.map((id) => {
+          config.geojsons[id] = req.body.geojsons[id];
+        });
+      }
+
+      if (!req.body.datas) {
+        printLog("info", `No datas to update in ${type}. Skipping...`);
+      } else {
+        const ids = Object.keys(req.body.datas);
+
+        printLog("info", `Updating ${ids.length} datas in ${type}...`);
+
+        ids.map((id) => {
+          config.datas[id] = req.body.datas[id];
+        });
+      }
+
+      if (!req.body.sprites) {
+        printLog("info", `No sprites to update in ${type}. Skipping...`);
+      } else {
+        const ids = Object.keys(req.body.sprites);
+
+        printLog("info", `Updating ${ids.length} sprites in ${type}...`);
+
+        ids.map((id) => {
+          config.sprites[id] = req.body.sprites[id];
+        });
+      }
+
+      if (!req.body.fonts) {
+        printLog("info", `No fonts to update in ${type}. Skipping...`);
+      } else {
+        const ids = Object.keys(req.body.fonts);
+
+        printLog("info", `Updating ${ids.length} fonts in ${type}...`);
+
+        ids.map((id) => {
+          config.fonts[id] = req.body.fonts[id];
+        });
+      }
+
+      await updateConfigFile(type, config, 60000);
 
       if (req.query.restart === "true") {
         setTimeout(
@@ -412,219 +284,80 @@ function serveConfigUpdateHandler() {
  */
 function serveConfigDeleteHandler() {
   return async (req, res) => {
+    const type = req.query.type || "config";
+
     try {
-      await validateConfig(req.query.type, req.body);
+      await validateConfig(type, req.body);
     } catch (error) {
       return res
         .status(StatusCodes.BAD_REQUEST)
-        .send(`Invalid ${req.query.type}: ${error}`);
+        .send(`Invalid ${type}: ${error}`);
     }
 
     try {
-      const config = readConfigFile(req.query.type, true);
+      const config = readConfigFile(type, true);
 
-      if (req.query.type === "seed") {
-        if (!req.body.styles) {
-          printLog("info", "No styles to remove in seed. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.styles.length} styles in seed...`
-          );
-
-          req.body.styles.map((id) => {
-            delete config.styles[id];
-          });
-        }
-
-        if (!req.body.geojsons) {
-          printLog("info", "No GeoJSONs to remove in seed. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.geojsons.length} GeoJSONs in seed...`
-          );
-
-          req.body.geojsons.map((id) => {
-            delete config.geojsons[id];
-          });
-        }
-
-        if (!req.body.datas) {
-          printLog("info", "No datas to remove in seed. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.datas.length} datas in seed...`
-          );
-
-          req.body.datas.map((id) => {
-            delete config.datas[id];
-          });
-        }
-
-        if (!req.body.sprites) {
-          printLog("info", "No sprites to remove in seed. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.sprites.length} sprites in seed...`
-          );
-
-          req.body.sprites.map((id) => {
-            delete config.sprites[id];
-          });
-        }
-
-        if (!req.body.fonts) {
-          printLog("info", "No fonts to remove in seed. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.fonts.length} fonts in seed...`
-          );
-
-          req.body.fonts.map((id) => {
-            delete config.fonts[id];
-          });
-        }
-
-        await updateConfigFile("cleanup", config, 60000);
-      } else if (req.query.type === "cleanup") {
-        if (!req.body.styles) {
-          printLog("info", "No styles to remove in cleanup. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.styles.length} styles in cleanup...`
-          );
-
-          req.body.styles.map((id) => {
-            delete config.styles[id];
-          });
-        }
-
-        if (!req.body.geojsons) {
-          printLog("info", "No GeoJSONs to remove in cleanup. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.geojsons.length} GeoJSONs in cleanup...`
-          );
-
-          req.body.geojsons.map((id) => {
-            delete config.geojsons[id];
-          });
-        }
-
-        if (!req.body.datas) {
-          printLog("info", "No datas to remove in cleanup. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.datas.length} datas in cleanup...`
-          );
-
-          req.body.datas.map((id) => {
-            delete config.datas[id];
-          });
-        }
-
-        if (!req.body.sprites) {
-          printLog("info", "No sprites to remove in cleanup. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.sprites.length} sprites in cleanup...`
-          );
-
-          req.body.sprites.map((id) => {
-            delete config.sprites[id];
-          });
-        }
-
-        if (!req.body.fonts) {
-          printLog("info", "No fonts to remove in cleanup. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.fonts.length} fonts in cleanup...`
-          );
-
-          req.body.fonts.map((id) => {
-            delete config.fonts[id];
-          });
-        }
-
-        await updateConfigFile("cleanup", config, 60000);
+      if (!req.body.styles) {
+        printLog("info", `No styles to remove in ${type}. Skipping...`);
       } else {
-        if (!req.body.styles) {
-          printLog("info", "No styles to remove in cleanup. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.styles.length} styles in cleanup...`
-          );
+        const ids = Object.keys(req.body.styles);
 
-          req.body.styles.map((id) => {
-            delete config.styles[id];
-          });
-        }
+        printLog("info", `Removing ${ids.length} styles in ${type}...`);
 
-        if (!req.body.geojsons) {
-          printLog("info", "No GeoJSONs to remove in cleanup. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.geojsons.length} GeoJSONs in config...`
-          );
-
-          req.body.geojsons.map((id) => {
-            delete config.geojsons[id];
-          });
-        }
-
-        if (!req.body.datas) {
-          printLog("info", "No datas to remove in config. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.datas.length} datas in config...`
-          );
-
-          req.body.datas.map((id) => {
-            delete config.datas[id];
-          });
-        }
-
-        if (!req.body.sprites) {
-          printLog("info", "No sprites to remove in config. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.sprites.length} sprites in config...`
-          );
-
-          req.body.sprites.map((id) => {
-            delete config.sprites[id];
-          });
-        }
-
-        if (!req.body.fonts) {
-          printLog("info", "No fonts to remove in config. Skipping...");
-        } else {
-          printLog(
-            "info",
-            `Removing ${req.body.fonts.length} fonts in config...`
-          );
-
-          req.body.fonts.map((id) => {
-            delete config.fonts[id];
-          });
-        }
-
-        await updateConfigFile(config, 60000);
+        ids.map((id) => {
+          delete config.styles[id];
+        });
       }
+
+      if (!req.body.geojsons) {
+        printLog("info", `No GeoJSONs to remove in ${type}. Skipping...`);
+      } else {
+        const ids = Object.keys(req.body.geojsons);
+
+        printLog("info", `Removing ${ids.length} GeoJSONs in ${type}...`);
+
+        ids.map((id) => {
+          delete config.geojsons[id];
+        });
+      }
+
+      if (!req.body.datas) {
+        printLog("info", `No datas to remove in ${type}. Skipping...`);
+      } else {
+        const ids = Object.keys(req.body.datas);
+
+        printLog("info", `Removing ${ids.length} datas in ${type}...`);
+
+        ids.map((id) => {
+          delete config.datas[id];
+        });
+      }
+
+      if (!req.body.sprites) {
+        printLog("info", `No sprites to remove in ${type}. Skipping...`);
+      } else {
+        const ids = Object.keys(req.body.sprites);
+
+        printLog("info", `Removing ${ids.length} sprites in ${type}...`);
+
+        ids.map((id) => {
+          delete config.sprites[id];
+        });
+      }
+
+      if (!req.body.fonts) {
+        printLog("info", `No fonts to remove in ${type}. Skipping...`);
+      } else {
+        const ids = Object.keys(req.body.fonts);
+
+        printLog("info", `Removing ${ids.length} fonts in ${type}...`);
+
+        ids.map((id) => {
+          delete config.fonts[id];
+        });
+      }
+
+      await updateConfigFile(type, config, 60000);
 
       if (req.query.restart === "true") {
         setTimeout(

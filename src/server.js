@@ -148,7 +148,7 @@ export async function startServer() {
         )
         .use(
           express.json({
-            limit: "100mb",
+            limit: "1gb",
           })
         )
         .use(loggerMiddleware())

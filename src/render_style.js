@@ -602,15 +602,15 @@ export async function renderStyleJSONToImage(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () => createRenderer("tile", tileScale, styleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () => createRenderer("tile", tileScale, styleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : styleJSON;
 
     /* Socket */
@@ -785,7 +785,7 @@ export async function renderSVGToImage(overlays) {
 }
 
 /**
- * Render PDF high quality
+ * Render high quality PDF
  * @param {object} input Input object
  * @param {object} preview Preview object
  * @param {object} output Output object
@@ -942,16 +942,16 @@ export async function renderMBTilesTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderMBTilesTileData(z, x, y, tasks) {
@@ -1040,15 +1040,13 @@ export async function renderMBTilesTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1184,16 +1182,16 @@ export async function renderXYZTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderXYZTileData(z, x, y, tasks) {
@@ -1303,15 +1301,13 @@ export async function renderXYZTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1436,16 +1432,16 @@ export async function renderPostgreSQLTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-            {
-              create: () =>
-                createRenderer("tile", tileScale, renderedStyleJSON),
-              destroy: (renderer) => renderer.release(),
-            },
-            {
-              min: 1,
-              max: maxRendererPoolSize,
-            }
-          )
+          {
+            create: () =>
+              createRenderer("tile", tileScale, renderedStyleJSON),
+            destroy: (renderer) => renderer.release(),
+          },
+          {
+            min: 1,
+            max: maxRendererPoolSize,
+          }
+        )
         : renderedStyleJSON;
 
     async function renderPostgreSQLTileData(z, x, y, tasks) {
@@ -1548,15 +1544,13 @@ export async function renderPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {

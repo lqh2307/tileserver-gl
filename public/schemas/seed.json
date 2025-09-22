@@ -84,11 +84,7 @@
             "type": "integer",
             "minimum": 1
           }
-        },
-        "required": [
-          "metadata",
-          "url"
-        ]
+        }
       }
     },
     "geojsons": {
@@ -151,11 +147,7 @@
             "type": "integer",
             "minimum": 1
           }
-        },
-        "required": [
-          "metadata",
-          "url"
-        ]
+        }
       }
     },
     "datas": {
@@ -415,12 +407,7 @@
           "storeTransparent": {
             "type": "boolean"
           }
-        },
-        "required": [
-          "metadata",
-          "storeType",
-          "url"
-        ]
+        }
       }
     },
     "sprites": {
@@ -475,10 +462,7 @@
           "skip": {
             "type": "boolean"
           }
-        },
-        "required": [
-          "url"
-        ]
+        }
       }
     },
     "fonts": {
@@ -537,10 +521,7 @@
           "skip": {
             "type": "boolean"
           }
-        },
-        "required": [
-          "url"
-        ]
+        }
       }
     }
   }
