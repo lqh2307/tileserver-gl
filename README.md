@@ -118,11 +118,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "osm": {
       "style": "osm/style.json"
     },
-    "3d": {
-      "style": "3d/style.json"
-    },
-    "basic": {
-      "style": "basic/style.json"
+    "dark": {
+      "style": "dark/style.json"
     },
     "bright": {
       "style": "bright/style.json"
@@ -139,9 +136,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "positron": {
       "style": "positron/style.json"
     },
-    "protomap": {
-      "style": "protomap/style.json"
-    },
     "toner": {
       "style": "toner/style.json"
     },
@@ -150,11 +144,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     }
   },
   "geojsons": {
-    "test_group": {
-      "test_layer": {
-        "geojson": "test/geojson.geojson"
-      }
-    },
     "crimea": {
       "crimea": {
         "geojson": "crimea/crimea.geojson"
@@ -189,9 +178,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "openstreetmap": {
       "pmtiles": "https://data.source.coop/protomaps/openstreetmap/tiles/v3.pmtiles"
     },
-    "building_footprints": {
-      "pmtiles": "https://data.source.coop/vida/google-microsoft-open-buildings/pmtiles/go_ms_building_footprints.pmtiles"
-    },
     "ODbL_firenze": {
       "pmtiles": "ODbL_firenze/ODbL_firenze.pmtiles"
     },
@@ -221,8 +207,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "bright": {
       "sprite": "bright"
     },
-    "dark-matter": {
-      "sprite": "dark-matter"
+    "dark": {
+      "sprite": "dark"
     },
     "fiord": {
       "sprite": "fiord"
@@ -235,9 +221,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     },
     "positron": {
       "sprite": "positron"
-    },
-    "protomap": {
-      "sprite": "protomap"
     },
     "toner": {
       "sprite": "toner"
@@ -5986,7 +5969,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-field": {
             "stops": [
               [15, ""],
-              [16, "{name}"]
+              [16, "{name:latin}"]
             ]
           },
           "text-font": ["Open Sans Semibold", "Noto Sans Bold"],
@@ -6101,7 +6084,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-field": {
             "stops": [
               [17, ""],
-              [18, "{name}"]
+              [18, "{name:latin}"]
             ]
           },
           "text-font": ["Open Sans Semibold", "Noto Sans Bold"],
@@ -6144,7 +6127,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-field": {
             "stops": [
               [15, ""],
-              [16, "{name}"]
+              [16, "{name:latin}"]
             ]
           },
           "text-font": ["Open Sans Semibold", "Noto Sans Bold"],
@@ -6675,7 +6658,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "text-field": {
             "stops": [
               [8, " "],
-              [11, "{name}"]
+              [11, "{name:latin}"]
             ]
           },
           "text-font": ["Open Sans Italic", "Noto Sans Italic"],
@@ -6966,7 +6949,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "minzoom": 8,
         "layout": {
           "symbol-sort-key": ["to-number", ["get", "rank"]],
-          "text-field": "{name}",
+          "text-field": "{name:latin}",
           "text-font": ["Open Sans Semibold", "Noto Sans Regular"],
           "text-max-width": 8,
           "text-size": {
@@ -7107,7 +7090,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "icon-size": 1,
           "symbol-sort-key": ["to-number", ["get", "rank"]],
           "text-anchor": "bottom",
-          "text-field": "{name:en}",
+          "text-field": "{name:latin}",
           "text-font": ["Open Sans Semibold", "Noto Sans Regular"],
           "text-max-width": 8,
           "text-offset": [0, 0],
@@ -7141,7 +7124,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         "maxzoom": 12,
         "layout": {
           "symbol-sort-key": ["to-number", ["get", "rank"]],
-          "text-field": "{name:en}",
+          "text-field": "{name:latin}",
           "text-font": ["Open Sans Semibold", "Noto Sans Bold"],
           "text-max-width": 6.25,
           "text-size": ["interpolate", ["linear", 1], ["zoom"], 4.99, ["case", [">", ["get", "rank"], 2], 0, 11], 5, ["case", [">", ["get", "rank"], 2], 13, 14], 7, ["case", [">", ["get", "rank"], 2], 17, 19]],

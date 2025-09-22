@@ -3,7 +3,7 @@
 import { deepClone } from "./util.js";
 
 /**
- * Create fallback tile data (1px x 1px)
+ * Create fallback tile data (rgba(255, 255, 255, 0) - 1px x 1px)
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"|"pbf"} format Tile format
  * @returns {Buffer}
  */
