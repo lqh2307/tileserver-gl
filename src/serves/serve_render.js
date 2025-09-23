@@ -15,6 +15,68 @@ import {
   addFrame,
 } from "../render_style.js";
 
+// /**
+//  * Render styleJSON handler
+//  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
+//  */
+// function renderStyleJSONHandler() {
+//   return async (req, res) => {
+//     try {
+//       /* Validate options */
+//       try {
+//         validateJSON(await getJSONSchema("render_stylejson"), req.body);
+//       } catch (error) {
+//         throw new SyntaxError(error);
+//       }
+
+//       const format = req.body.format || "png";
+//       const bbox = req.body.bbox
+//         ? req.body.bbox
+//         : [
+//           req.body.extent[0],
+//           req.body.extent[3],
+//           req.body.extent[2],
+//           req.body.extent[1],
+//         ];
+
+//       /* Render style */
+//       const result = await renderStyleJSON(
+//         req.body.styleJSON,
+//         bbox,
+//         req.body.zoom,
+//         format,
+//         req.body.maxRendererPoolSize,
+//         req.body.tileScale || 1,
+//         req.body.tileSize || 512,
+//         req.body.scheme || "xyz",
+//         req.body.base64,
+//         req.body.grayscale,
+//         req.body.ws,
+//       );
+
+//       res.set({
+//         "content-type": detectContentTypeFromFormat(format),
+//         "resolution": JSON.stringify(result.resolution),
+//         "access-control-expose-headers": "resolution",
+//       });
+
+//       return res.status(StatusCodes.CREATED).send(result.image);
+//     } catch (error) {
+//       printLog("error", `Failed to render styleJSON: ${error}`);
+
+//       if (error instanceof SyntaxError) {
+//         return res
+//           .status(StatusCodes.BAD_REQUEST)
+//           .send(`Options parameter is invalid: ${error}`);
+//       } else {
+//         return res
+//           .status(StatusCodes.INTERNAL_SERVER_ERROR)
+//           .send("Internal server error");
+//       }
+//     }
+//   };
+// }
+
 /**
  * Render styleJSON handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
@@ -45,13 +107,10 @@ function renderStyleJSONHandler() {
         bbox,
         req.body.zoom,
         format,
-        req.body.maxRendererPoolSize,
         req.body.tileScale || 1,
         req.body.tileSize || 512,
-        req.body.scheme || "xyz",
         req.body.base64,
-        req.body.grayscale,
-        req.body.ws,
+        req.body.grayscale
       );
 
       res.set({
