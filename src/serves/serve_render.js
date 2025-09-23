@@ -1,12 +1,18 @@
 "use strict";
 
-import { getJSONSchema, validateJSON, printLog } from "../utils/index.js";
 import { StatusCodes } from "http-status-codes";
 import {
-  renderStyleJSONToImage,
+  detectContentTypeFromFormat,
+  getJSONSchema,
+  validateJSON,
+  printLog,
+} from "../utils/index.js";
+import {
   renderHighQualityPDF,
   renderSVGToImage,
+  renderStyleJSON,
   renderPDF,
+  addFrame,
 } from "../render_style.js";
 
 /**
@@ -27,14 +33,14 @@ function renderStyleJSONHandler() {
       const bbox = req.body.bbox
         ? req.body.bbox
         : [
-            req.body.extent[0],
-            req.body.extent[3],
-            req.body.extent[2],
-            req.body.extent[1],
-          ];
+          req.body.extent[0],
+          req.body.extent[3],
+          req.body.extent[2],
+          req.body.extent[1],
+        ];
 
       /* Render style */
-      const result = await renderStyleJSONToImage(
+      const result = await renderStyleJSON(
         req.body.styleJSON,
         bbox,
         req.body.zoom,
@@ -43,16 +49,13 @@ function renderStyleJSONHandler() {
         req.body.tileScale || 1,
         req.body.tileSize || 512,
         req.body.scheme || "xyz",
-        req.body.frame,
-        req.body.grid,
         req.body.base64,
         req.body.grayscale,
         req.body.ws,
-        req.body.overlays
       );
 
       res.set({
-        "content-type": "application/json",
+        "content-type": detectContentTypeFromFormat(format),
         "resolution": JSON.stringify(result.resolution),
         "access-control-expose-headers": "resolution",
       });
@@ -60,6 +63,50 @@ function renderStyleJSONHandler() {
       return res.status(StatusCodes.CREATED).send(result.image);
     } catch (error) {
       printLog("error", `Failed to render styleJSON: ${error}`);
+
+      if (error instanceof SyntaxError) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send(`Options parameter is invalid: ${error}`);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Add frame handler
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
+ */
+function addFrameHandler() {
+  return async (req, res) => {
+    try {
+      /* Validate options */
+      try {
+        validateJSON(await getJSONSchema("add_frame"), req.body);
+      } catch (error) {
+        throw new SyntaxError(error);
+      }
+
+      /* Add frame */
+      const image = await addFrame(
+        req.body.input,
+        req.body.overlays,
+        req.body.frame,
+        req.body.grid,
+        req.body.output,
+      );
+
+      res.set({
+        "content-type": detectContentTypeFromFormat(req.body.output.format || "png"),
+      });
+
+      return res.status(StatusCodes.CREATED).send(image);
+    } catch (error) {
+      printLog("error", `Failed to add frame: ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -200,6 +247,45 @@ export const serve_render = {
    * @returns {void}
    */
   init: (app) => {
+    /**
+     * @swagger
+     * tags:
+     *   - name: Render
+     *     description: Render related endpoints
+     * /renders/add-frame:
+     *   post:
+     *     tags:
+     *       - Render
+     *     summary: Add frame to image
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *             schema:
+     *               type: object
+     *               example: {}
+     *       description: Add frame options
+     *     responses:
+     *       201:
+     *         description: Frame added
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.post("/renders/add-frame", addFrameHandler());
+
     /**
      * @swagger
      * tags:

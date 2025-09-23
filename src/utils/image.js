@@ -187,7 +187,7 @@ function createSVG(svg, isBuffer) {
 
 /**
  * Calculate resolution
- * @param {{ filePath: string|Buffer, bbox: [number, number, number, number], width: number, height: number }} input Input object
+ * @param {{ image: string|Buffer, bbox: [number, number, number, number], width: number, height: number }} input Input object
  * @param {"km"|"hm"|"dam"|"m"|"dm"|"cm"|"mm"} unit unit
  * @returns {Promise<[number, number]>} [X resolution (m/pixel), Y resolution (m/pixel)]
  */
@@ -198,8 +198,8 @@ export async function calculateResolution(input, unit) {
   let resolution;
 
   // Get origin image size
-  if (input.filePath) {
-    const { width, height } = await getImageMetadata(input.filePath);
+  if (input.image) {
+    const { width, height } = await getImageMetadata(input.image);
 
     resolution = [(maxX - minX) / width, (maxY - minY) / height];
   } else {
@@ -357,16 +357,16 @@ export async function createImageOutput(image, options) {
 
 /**
  * Add frame to image
- * @param {{ filePath: string|Buffer, bbox: [number, number, number, number] }} input Input object
- * @param {{ image: Buffer, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif" }[]} overlays Array of overlay object
- * @param {object} frame Frame object
- * @param {object} grid Grid object
+ * @param {{ image: string|Buffer, bbox: [number, number, number, number] }} input Input object
+ * @param {{ image: string, bbox: [number, number, number, number] }[]} overlays Array of overlay object
+ * @param {{ frameMargin: number, frameInnerColor: string, frameInnerWidth: number, frameInnerStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameOuterColor: string, frameOuterWidth: number, frameOuterStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameSpace: number, tickLabelFormat: "D"|"DMS"|"DMSD", majorTickStep: number, minorTickStep: number, majorTickWidth: number, minorTickWidth: number, majorTickSize: number, minorTickSize: number, majorTickLabelSize: number, minorTickLabelSize: number, majorTickColor: string, minorTickColor: string, majorTickLabelColor: string, minorTickLabelColor: string, majorTickLabelFont: string, minorTickLabelFont: string, xTickLabelOffset: number, yTickLabelOffset: number, xTickEnd: boolean, xTickMajorLabelRotation: number, xTickMinorLabelRotation: number, yTickMajorLabelRotation: number, yTickEnd: boolean, yTickMinorLabelRotation: number }} frame Frame object
+ * @param {{ majorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", majorGridWidth: number, majorGridStep: number, majorGridColor: string, minorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", minorGridWidth: number, minorGridStep: number, minorGridColor: string }} grid Grid object
  * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<void|Buffer|string>}
  */
 export async function addFrameToImage(input, overlays, frame, grid, output) {
   // Get origin image size
-  const { width, height } = await getImageMetadata(input.filePath);
+  const { width, height } = await getImageMetadata(input.image);
   const bbox = input.bbox;
 
   let image;
@@ -394,7 +394,10 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
         return {
           limitInputPixels: false,
-          input: await createImageOutput(overlay.image, {
+          input: await createImageOutput(Buffer.from(
+            overlay.image.slice(overlay.image.indexOf(",") + 1),
+            "base64"
+          ), {
             width: Math.round((overlayMaxX - overlayMinX) * xRes),
             height: Math.round((overlayMaxY - overlayMinY) * yRes),
           }),
@@ -405,7 +408,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     );
 
     // Create composited image
-    image = await createImageOutput(input.filePath, {
+    image = await createImageOutput(input.image, {
       compositesOption: compositesOption,
     });
   }
@@ -976,7 +979,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     : undefined;
 
   // Create image
-  return await createImageOutput(image ?? input.filePath, {
+  return await createImageOutput(image ?? input.image, {
     extendOption: extendOption,
     compositesOption: compositesOption,
     ...output,

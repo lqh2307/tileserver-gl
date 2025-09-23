@@ -1093,7 +1093,7 @@ export const serve_data = {
                 dataInfo.tileJSON = dataInfo.tileJSON = {
                   ...(await getXYZMetadata(dataInfo.source, md5Source)),
                   ...(item.tilejson ?? {}),
-                }
+                };
               }
             } else if (item.pg !== undefined) {
               dataInfo.sourceType = "pg";
@@ -1139,7 +1139,7 @@ export const serve_data = {
                 dataInfo.tileJSON = {
                   ...(await getPostgreSQLMetadata(dataInfo.source)),
                   ...(item.tilejson ?? {}),
-                }
+                };
               }
             }
 

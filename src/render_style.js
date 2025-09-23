@@ -459,7 +459,7 @@ export async function renderImageTileData(
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
  * @param {string} filePath File path
- * @returns {Promise<Buffer|>}
+ * @returns {Promise<Buffer>}
  */
 export async function renderImageStaticData(
   styleJSON,
@@ -509,7 +509,7 @@ export async function renderImageStaticData(
 }
 
 /**
- * Render styleJSON to Image
+ * Render styleJSON
  * @param {object|string} styleJSON Style JSON
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} zoom Zoom level
@@ -518,15 +518,11 @@ export async function renderImageStaticData(
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {"tms"|"xyz"} scheme Tile scheme
- * @param {object} frame Add frame options?
- * @param {object} grid Add grid options?
- * @param {boolean} base64 Is base64?
  * @param {boolean} grayscale Is grayscale?
  * @param {{ clientID: string, requestID: string, event: string }} ws WS object
- * @param {{ image: string, bbox: [number, number, number, number] }[]} overlays Overlays
  * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
  */
-export async function renderStyleJSONToImage(
+export async function renderStyleJSON(
   styleJSON,
   bbox,
   zoom,
@@ -535,12 +531,9 @@ export async function renderStyleJSONToImage(
   tileScale,
   tileSize,
   scheme,
-  frame,
-  grid,
   base64,
   grayscale,
   ws,
-  overlays
 ) {
   let styleJSONOrPool;
 
@@ -565,38 +558,12 @@ export async function renderStyleJSONToImage(
     log += `\n\tFormat: ${format}`;
     log += `\n\tTile scale: ${tileScale} - Target tile scale: ${targetScale} - Tile size: ${tileSize}`;
     log += `\n\tScheme: ${scheme}`;
-    log += `\n\tFrame: ${JSON.stringify(frame)}`;
-    log += `\n\tGrid: ${JSON.stringify(grid)}`;
     log += `\n\tIs base64: ${base64}`;
     log += `\n\tIs grayscale: ${grayscale}`;
     log += `\n\tWS: ${JSON.stringify(ws)}`;
-    log += `\n\tOverlays: ${overlays ? true : false}`;
     log += `\n\tBBox: ${JSON.stringify(bbox)}`;
 
     printLog("info", log);
-
-    /* Process overlays */
-    if (overlays) {
-      for (let idx = 0; idx < overlays.length; idx++) {
-        const overlay = overlays[idx];
-
-        if (
-          overlay.bbox[2] <= bbox[0] ||
-          overlay.bbox[0] >= bbox[2] ||
-          overlay.bbox[3] <= bbox[1] ||
-          overlay.bbox[1] >= bbox[3]
-        ) {
-          printLog("info", `Overlay index ${idx} is outside bbox. Skipping...`);
-
-          continue;
-        }
-
-        overlay.image = Buffer.from(
-          overlay.image.slice(overlay.image.indexOf(",") + 1),
-          "base64"
-        );
-      }
-    }
 
     /* Create renderer pool */
     styleJSONOrPool =
@@ -681,7 +648,7 @@ export async function renderStyleJSONToImage(
     // Merge tiles to image
     printLog("info", "Merge tiles to image...");
 
-    const mergedImage = await mergeTilesToImage(
+    const image = await mergeTilesToImage(
       {
         dirPath: dirPath,
         format: format,
@@ -702,36 +669,15 @@ export async function renderStyleJSONToImage(
     );
 
     if (ws) {
-      socketCallback(90);
-    }
-
-    /* Add frame */
-    printLog("info", "Adding frame to image...");
-
-    const image = await addFrameToImage(
-      {
-        filePath: mergedImage,
-        bbox: bbox,
-        format: format,
-      },
-      overlays,
-      frame,
-      grid,
-      {
-        format: format,
-      }
-    );
-
-    if (ws) {
       socketCallback(100);
     }
 
     /* Response */
     return {
       image: base64 ? createBase64(image, format) : image,
-      resolution: calculateResolution(
+      resolution: await calculateResolution(
         {
-          filePath: image,
+          image: image,
           bbox: bbox,
         },
         "mm"
@@ -751,6 +697,22 @@ export async function renderStyleJSONToImage(
       force: true,
     });
   }
+}
+
+/**
+ * Add frame to Image
+ * @param {{ filePath: string|Buffer, bbox: [number, number, number, number] }} input Input object
+ * @param {{ image: Buffer, bbox: [number, number, number, number] }[]} overlays Array of overlay object
+ * @param {{ frameMargin: number, frameInnerColor: string, frameInnerWidth: number, frameInnerStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameOuterColor: string, frameOuterWidth: number, frameOuterStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameSpace: number, tickLabelFormat: "D"|"DMS"|"DMSD", majorTickStep: number, minorTickStep: number, majorTickWidth: number, minorTickWidth: number, majorTickSize: number, minorTickSize: number, majorTickLabelSize: number, minorTickLabelSize: number, majorTickColor: string, minorTickColor: string, majorTickLabelColor: string, minorTickLabelColor: string, majorTickLabelFont: string, minorTickLabelFont: string, xTickLabelOffset: number, yTickLabelOffset: number, xTickEnd: boolean, xTickMajorLabelRotation: number, xTickMinorLabelRotation: number, yTickMajorLabelRotation: number, yTickEnd: boolean, yTickMinorLabelRotation: number }} frame Frame object
+ * @param {{ majorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", majorGridWidth: number, majorGridStep: number, majorGridColor: string, minorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", minorGridWidth: number, minorGridStep: number, minorGridColor: string }} grid Grid object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
+ * @returns {Promise<Buffer|string>} Response
+ */
+export async function addFrame(input, overlays, frame, grid, output) {
+  return await addFrameToImage({
+    image: Buffer.from(input.image.slice(input.image.indexOf(",") + 1), "base64"),
+    bbox: input.bbox,
+  }, overlays, frame, grid, output);
 }
 
 /**

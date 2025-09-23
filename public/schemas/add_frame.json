@@ -1,0 +1,261 @@
+{
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bbox": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "image",
+        "bbox"
+      ]
+    },
+    "overlays": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "image": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bbox": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "minItems": 4,
+            "maxItems": 4
+          }
+        }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "properties": {
+        "frameMargin": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frameInnerColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frameInnerWidth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frameInnerStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "longDashed",
+            "dotted",
+            "dashedDot"
+          ]
+        },
+        "frameOuterColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frameOuterWidth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frameOuterStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "longDashed",
+            "dotted",
+            "dashedDot"
+          ]
+        },
+        "frameSpace": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tickLabelFormat": {
+          "type": "string",
+          "enum": [
+            "D",
+            "DMS",
+            "DMSD"
+          ]
+        },
+        "majorTickStep": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minorTickStep": {
+          "type": "number",
+          "minimum": 0
+        },
+        "majorTickWidth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minorTickWidth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "majorTickSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minorTickSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "majorTickLabelSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minorTickLabelSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "majorTickColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minorTickColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "majorTickLabelColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minorTickLabelColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "majorTickLabelFont": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minorTickLabelFont": {
+          "type": "string",
+          "minLength": 1
+        },
+        "xTickLabelOffset": {
+          "type": "integer"
+        },
+        "yTickLabelOffset": {
+          "type": "integer"
+        },
+        "xTickEnd": {
+          "type": "boolean"
+        },
+        "xTickMajorLabelRotation": {
+          "type": "number"
+        },
+        "xTickMinorLabelRotation": {
+          "type": "number"
+        },
+        "yTickMajorLabelRotation": {
+          "type": "number"
+        },
+        "yTickEnd": {
+          "type": "boolean"
+        },
+        "yTickMinorLabelRotation": {
+          "type": "number"
+        }
+      }
+    },
+    "grid": {
+      "type": "object",
+      "properties": {
+        "majorGridStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "longDashed",
+            "dotted",
+            "dashedDot"
+          ]
+        },
+        "majorGridWidth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "majorGridStep": {
+          "type": "number",
+          "minimum": 0
+        },
+        "majorGridColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minorGridStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "longDashed",
+            "dotted",
+            "dashedDot"
+          ]
+        },
+        "minorGridWidth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minorGridStep": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minorGridColor": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": [
+            "gif",
+            "png",
+            "jpg",
+            "jpeg",
+            "webp"
+          ]
+        },
+        "base64": {
+          "type": "boolean"
+        },
+        "grayscale": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "required": [
+    "input",
+    "output"
+  ]
+}
