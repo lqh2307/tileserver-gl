@@ -3,8 +3,6 @@
 import mlgl from "@maplibre/maplibre-gl-native";
 import { config } from "./configs/index.js";
 import { createPool } from "generic-pool";
-import { rm } from "node:fs/promises";
-import { nanoid } from "nanoid";
 import os from "os";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
@@ -44,7 +42,6 @@ import {
   handleTilesConcurrency,
   calculateResolution,
   removeEmptyFolders,
-  mergeTilesToImage,
   handleConcurrency,
   createImageOutput,
   getLonLatFromXYZ,
@@ -53,7 +50,6 @@ import {
   getDataFromURL,
   calculateSizes,
   getTileBounds,
-  emitWSMessage,
   calculateMD5,
   createBase64,
   unzipAsync,
@@ -77,6 +73,7 @@ function createRenderer(mode, scale, styleJSON) {
       let data = null;
       let err = null;
 
+      // Handle get resource
       switch (scheme) {
         /* Get sprite */
         case "sprites": {
@@ -85,14 +82,9 @@ function createRenderer(mode, scale, styleJSON) {
           try {
             data = await getAndCacheDataSprite(parts[2], parts[3]);
           } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty sprite...`
-            );
+            printLog("error", `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}`);
 
-            data = createFallbackTileData(
-              parts[3].slice(parts[3].lastIndexOf(".") + 1)
-            );
+            err = error;
           }
 
           break;
@@ -114,12 +106,9 @@ function createRenderer(mode, scale, styleJSON) {
               data = await unzipAsync(data);
             }
           } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}. Serving empty font...`
-            );
+            printLog("error", `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}`);
 
-            data = createFallbackTileData("pbf");
+            err = error;
           }
 
           break;
@@ -132,12 +121,9 @@ function createRenderer(mode, scale, styleJSON) {
           try {
             data = await getAndCacheDataGeoJSON(parts[2], parts[3]);
           } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get GeoJSON group "${parts[2]}" - Layer "${parts[3]}": ${error}. Serving empty geojson...`
-            );
+            printLog("error", `Failed to get GeoJSON group "${parts[2]}" - Layer "${parts[3]}": ${error}.`);
 
-            data = createFallbackTileData("geojson");
+            err = error;
           }
 
           break;
@@ -309,14 +295,20 @@ function createRenderer(mode, scale, styleJSON) {
               data = dataRemote.data;
             }
           } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get data from "${req.url}": ${error}. Serving empty data...`
-            );
+            if (req.kind === 3) {
+              printLog(
+                "warn",
+                `Failed to get tile from "${req.url}": ${error}. Serving empty tile...`
+              );
 
-            data = createFallbackTileData(
-              req.url.slice(req.url.lastIndexOf(".") + 1)
-            );
+              data = createFallbackTileData(
+                req.url.slice(req.url.lastIndexOf(".") + 1)
+              );
+            } else {
+              printLog("error", `Failed to get data from "${req.url}": ${error}`);
+
+              err = error;
+            }
           }
 
           break;
@@ -325,8 +317,6 @@ function createRenderer(mode, scale, styleJSON) {
         /* Get base64 data */
         case "data": {
           try {
-            printLog("info", "Decoding base64 data...");
-
             const dataBase64 = Buffer.from(
               req.url.slice(req.url.indexOf(",") + 1),
               "base64"
@@ -344,14 +334,9 @@ function createRenderer(mode, scale, styleJSON) {
               data = dataBase64;
             }
           } catch (error) {
-            printLog(
-              "warn",
-              `Failed to decode base64 data: ${error}. Serving empty data...`
-            );
+            printLog("error", `Failed to decode base64 data: ${error}`);
 
-            data = createFallbackTileData(
-              req.url.slice(req.url.indexOf("/") + 1, req.url.indexOf(";"))
-            );
+            err = error;
           }
 
           break;
@@ -361,7 +346,7 @@ function createRenderer(mode, scale, styleJSON) {
         default: {
           err = new Error(`Unknown scheme: "${scheme}"`);
 
-          printLog("warn", `Failed to render: ${err}. Skipping...`);
+          printLog("error", `Failed to render: ${err}`);
 
           break;
         }
@@ -373,6 +358,7 @@ function createRenderer(mode, scale, styleJSON) {
     },
   });
 
+  // Load style
   renderer.load(styleJSON);
 
   return renderer;
@@ -453,33 +439,20 @@ export async function renderImageTileData(
 
 /**
  * Render image static data
- * @param {object} styleJSON StyleJSON
- * @param {number} tileScale Tile scale
- * @param {256|512} tileSize Tile size
- * @param {number} z Zoom level
- * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
- * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @param {string} filePath File path
- * @returns {Promise<Buffer>}
+ * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number] }} input Input object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number }} output Output object
+ * @returns {Promise<Buffer|string>}
  */
-export async function renderImageStaticData(
-  styleJSON,
-  tileScale,
-  tileSize,
-  z,
-  bbox,
-  format,
-  filePath
-) {
-  const sizes = calculateSizes(z, bbox, tileScale, tileSize);
+export async function renderImageStaticData(input, output) {
+  const sizes = calculateSizes(input.zoom, input.bbox, input.tileScale, input.tileSize);
 
-  const renderer = createRenderer("static", tileScale, styleJSON);
+  const renderer = createRenderer("static", input.tileScale, input.styleJSON);
 
   const data = await new Promise((resolve, reject) => {
     renderer.render(
       {
-        zoom: z,
-        center: [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2],
+        zoom: input.zoom,
+        center: [(input.bbox[0] + input.bbox[2]) / 2, (input.bbox[1] + input.bbox[3]) / 2],
         width: sizes.width,
         height: sizes.height,
       },
@@ -505,240 +478,27 @@ export async function renderImageStaticData(
       height: sizes.height,
       channels: 4,
     },
-    format: format,
-    filePath: filePath,
+    ...output,
   });
 }
 
-// /**
-//  * Render styleJSON
-//  * @param {object|string} styleJSON Style JSON
-//  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
-//  * @param {number} zoom Zoom level
-//  * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
-//  * @param {number} maxRendererPoolSize Max renderer pool size
-//  * @param {number} tileScale Tile scale
-//  * @param {256|512} tileSize Tile size
-//  * @param {"tms"|"xyz"} scheme Tile scheme
-//  * @param {boolean} grayscale Is grayscale?
-//  * @param {{ clientID: string, requestID: string, event: string }} ws WS object
-//  * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
-//  */
-// export async function renderStyleJSON(
-//   styleJSON,
-//   bbox,
-//   zoom,
-//   format,
-//   maxRendererPoolSize,
-//   tileScale,
-//   tileSize,
-//   scheme,
-//   base64,
-//   grayscale,
-//   ws,
-// ) {
-//   let styleJSONOrPool;
-
-//   const dirPath = `${process.env.DATA_DIR}/exports/style_renders/xyzs/${nanoid()}`;
-
-//   try {
-//     const targetZoom = Math.round(zoom);
-//     const targetScale = tileScale * Math.pow(2, zoom - targetZoom);
-
-//     /* Calculate summary */
-//     const { realBBox, total, tileBounds } = getTileBounds({
-//       bbox: bbox,
-//       minZoom: targetZoom,
-//       maxZoom: targetZoom,
-//       tileSize: tileSize,
-//     });
-
-//     let log = `Rendering ${total} tiles of styleJSON to ${format.toUpperCase()} with:`;
-//     log += `\n\tTemporary dir path: ${dirPath}`;
-//     log += `\n\tMax renderer pool size: ${maxRendererPoolSize}`;
-//     log += `\n\tZoom: ${zoom} - Target zoom: ${targetZoom}`;
-//     log += `\n\tFormat: ${format}`;
-//     log += `\n\tTile scale: ${tileScale} - Target tile scale: ${targetScale} - Tile size: ${tileSize}`;
-//     log += `\n\tScheme: ${scheme}`;
-//     log += `\n\tIs base64: ${base64}`;
-//     log += `\n\tIs grayscale: ${grayscale}`;
-//     log += `\n\tWS: ${JSON.stringify(ws)}`;
-//     log += `\n\tBBox: ${JSON.stringify(bbox)}`;
-
-//     printLog("info", log);
-
-//     /* Create renderer pool */
-//     styleJSONOrPool =
-//       maxRendererPoolSize > 0
-//         ? createPool(
-//           {
-//             create: () => createRenderer("tile", tileScale, styleJSON),
-//             destroy: (renderer) => renderer.release(),
-//           },
-//           {
-//             min: 1,
-//             max: maxRendererPoolSize,
-//           }
-//         )
-//         : styleJSON;
-
-//     /* Socket */
-//     const callbackAtTaskNum = Math.round(0.1 * total);
-//     function socketCallback(progress) {
-//       try {
-//         emitWSMessage(
-//           ws.event,
-//           JSON.stringify({
-//             requestID: ws.requestID,
-//             data: {
-//               progress: progress,
-//             },
-//           }),
-//           [ws.clientID]
-//         );
-//       } catch (error) {
-//         printLog(
-//           "info",
-//           `Failed to send WS message to client id ${ws.clientID}: ${error}`
-//         );
-//       }
-//     }
-
-//     async function renderTileData(z, x, y, tasks) {
-//       const tileName = `${z}/${x}/${y}`;
-
-//       const completeTasks = tasks.completeTasks;
-
-//       printLog(
-//         "info",
-//         `Rendering styleJSON - Tile "${tileName}" - ${completeTasks}/${total}...`
-//       );
-
-//       try {
-//         await renderImageTileData(
-//           styleJSONOrPool,
-//           targetScale,
-//           tileSize,
-//           z,
-//           x,
-//           y,
-//           format,
-//           maxRendererPoolSize > 0,
-//           `${dirPath}/${z}/${x}/${y}.${format}`
-//         );
-
-//         if (ws && completeTasks % callbackAtTaskNum === 0) {
-//           const progress = Math.round((completeTasks / total) * 80);
-
-//           socketCallback(progress);
-//         }
-//       } catch (error) {
-//         printLog(
-//           "error",
-//           `Failed to render styleJSON - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-//         );
-
-//         throw error;
-//       }
-//     }
-
-//     // Render tiles with concurrency
-//     printLog("info", "Rendering tiles to XYZ...");
-
-//     await handleTilesConcurrency(os.cpus().length, renderTileData, tileBounds);
-
-//     // Merge tiles to image
-//     printLog("info", "Merge tiles to image...");
-
-//     const image = await mergeTilesToImage(
-//       {
-//         dirPath: dirPath,
-//         format: format,
-//         tileSize: tileSize,
-//         scheme: scheme,
-//         bbox: realBBox,
-//         z: targetZoom,
-//         xMin: tileBounds[0].x[0],
-//         xMax: tileBounds[0].x[1],
-//         yMin: tileBounds[0].y[0],
-//         yMax: tileBounds[0].y[1],
-//       },
-//       {
-//         bbox: bbox,
-//         format: format,
-//         grayscale: grayscale,
-//       }
-//     );
-
-//     if (ws) {
-//       socketCallback(100);
-//     }
-
-//     /* Response */
-//     return {
-//       image: base64 ? createBase64(image, format) : image,
-//       resolution: await calculateResolution(
-//         {
-//           image: image,
-//           bbox: bbox,
-//         },
-//         "mm"
-//       ),
-//     };
-//   } catch (error) {
-//     throw error;
-//   } finally {
-//     /* Destroy renderer pool */
-//     if (maxRendererPoolSize > 0 && styleJSONOrPool) {
-//       styleJSONOrPool.drain().then(() => styleJSONOrPool.clear());
-//     }
-
-//     /* Remove tmp */
-//     await rm(dirPath, {
-//       recursive: true,
-//       force: true,
-//     });
-//   }
-// }
-
 /**
- * Render styleJSON
- * @param {object|string} styleJSON Style JSON
- * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
- * @param {number} zoom Zoom level
- * @param {"jpeg"|"jpg"|"png"|"webp"|"gif"} format Image format
- * @param {number} tileScale Tile scale
- * @param {256|512} tileSize Tile size
- * @param {boolean} grayscale Is grayscale?
- * @returns {Promise<{image: Buffer|string, resolution: [number, number]}>} Response
+ * Render image static data
+ * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number] }} input Input object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number }} output Output object
+ * @returns {Promise<{ image: Buffer|string, resolution: [number, number] }>} Response
  */
-export async function renderStyleJSON(
-  styleJSON,
-  bbox,
-  zoom,
-  format,
-  tileScale,
-  tileSize,
-  base64,
-  grayscale,
-) {
+export async function renderStyleJSON(input, output) {
   /* Render image */
-  const image = await renderImageStaticData(
-    styleJSON,
-    tileScale,
-    tileSize,
-    zoom,
-    bbox,
-    format,
-  );
+  const image = await renderImageStaticData(input, output);
 
   /* Response */
   return {
-    image: base64 ? createBase64(image, format) : image,
+    image: output.base64 ? createBase64(image, output.format) : image,
     resolution: await calculateResolution(
       {
         image: image,
-        bbox: bbox,
+        bbox: input.bbox,
       },
       "mm"
     ),
@@ -751,7 +511,7 @@ export async function renderStyleJSON(
  * @param {{ image: Buffer, bbox: [number, number, number, number] }[]} overlays Array of overlay object
  * @param {{ frameMargin: number, frameInnerColor: string, frameInnerWidth: number, frameInnerStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameOuterColor: string, frameOuterWidth: number, frameOuterStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameSpace: number, tickLabelFormat: "D"|"DMS"|"DMSD", majorTickStep: number, minorTickStep: number, majorTickWidth: number, minorTickWidth: number, majorTickSize: number, minorTickSize: number, majorTickLabelSize: number, minorTickLabelSize: number, majorTickColor: string, minorTickColor: string, majorTickLabelColor: string, minorTickLabelColor: string, majorTickLabelFont: string, minorTickLabelFont: string, xTickLabelOffset: number, yTickLabelOffset: number, xTickEnd: boolean, xTickMajorLabelRotation: number, xTickMinorLabelRotation: number, yTickMajorLabelRotation: number, yTickEnd: boolean, yTickMinorLabelRotation: number }} frame Frame object
  * @param {{ majorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", majorGridWidth: number, majorGridStep: number, majorGridColor: string, minorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", minorGridWidth: number, minorGridStep: number, minorGridColor: string }} grid Grid object
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<Buffer|string>} Response
  */
 export async function addFrame(input, overlays, frame, grid, output) {

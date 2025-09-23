@@ -157,7 +157,7 @@ export function getLonLatFromXYZ(x, y, z, position, scheme, tileSize = 256) {
  * @param {number} width Width of image
  * @param {number} height Height of image
  * @param {256|512} tileSize Tile size
- * @returns {Promise<{minZoom: number, maxZoom: number}>} Zoom levels
+ * @returns {Promise<{ minZoom: number, maxZoom: number }>} Zoom levels
  */
 export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
   const [xRes, yRes] = await calculateResolution({

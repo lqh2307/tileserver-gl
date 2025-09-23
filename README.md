@@ -996,15 +996,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 
 ```json
 {
-  "format": "png",
-  "zoom": 9,
-  "bbox": [102, 8, 110, 24],
-  "tileScale": 1,
-  "tileSize": 512,
-  "styleJSON": {
-    "format": "png",
+  "input": {
     "zoom": 9.146,
-    "bbox": [105, 20, 110, 22],
+    "bbox": [102, 8, 110, 24],
     "tileScale": 1,
     "tileSize": 512,
     "styleJSON": {
@@ -3135,6 +3129,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
         }
       ]
     }
+  },
+  "output": {
+    "format": "png"
   }
 }
 ```
