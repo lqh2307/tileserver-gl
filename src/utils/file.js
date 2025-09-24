@@ -37,7 +37,7 @@ export async function calculateMD5OfFile(filePath) {
       const hash = crypto.createHash("md5");
 
       createReadStream(filePath)
-        .on("error", (error) => reject(error))
+        .on("error", reject)
         .on("data", (chunk) => hash.update(chunk))
         .on("end", () => resolve(hash.digest("hex")));
     });
@@ -296,9 +296,9 @@ export async function zipFolder(iDirPath, oFilePath) {
       },
     });
 
-    output.on("close", () => resolve());
+    output.on("close", resolve);
 
-    archive.on("error", (error) => reject(error));
+    archive.on("error", reject);
 
     archive.pipe(output);
 

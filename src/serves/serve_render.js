@@ -29,18 +29,14 @@ function renderStyleJSONHandler() {
         throw new SyntaxError(error);
       }
 
-      console.log(req.body);
-
       /* Render style */
-      const result = await renderStyleJSON(req.body.input, req.body.output);
+      const image = await renderStyleJSON(req.body.input, req.body.output);
 
       res.set({
         "content-type": detectContentTypeFromFormat(req.body.format || "png"),
-        "resolution": JSON.stringify(result.resolution),
-        "access-control-expose-headers": "resolution",
       });
 
-      return res.status(StatusCodes.CREATED).send(result.image);
+      return res.status(StatusCodes.CREATED).send(image);
     } catch (error) {
       printLog("error", `Failed to render styleJSON: ${error}`);
 
@@ -77,11 +73,13 @@ function addFrameHandler() {
         req.body.overlays,
         req.body.frame,
         req.body.grid,
-        req.body.output,
+        req.body.output
       );
 
       res.set({
-        "content-type": detectContentTypeFromFormat(req.body.output.format || "png"),
+        "content-type": detectContentTypeFromFormat(
+          req.body.output.format || "png"
+        ),
       });
 
       return res.status(StatusCodes.CREATED).send(image);

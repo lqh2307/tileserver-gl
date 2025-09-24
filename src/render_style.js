@@ -26,11 +26,9 @@ import {
   addMBTilesOverviews,
   closePostgreSQLDB,
   updateXYZMetadata,
-  getFallbackSprite,
   cacheXYZTileFile,
   openPostgreSQLDB,
   addXYZOverviews,
-  getFallbackFont,
   closeMBTilesDB,
   getPMTilesTile,
   openMBTilesDB,
@@ -42,7 +40,6 @@ import {
   detectFormatAndHeaders,
   createFallbackTileData,
   handleTilesConcurrency,
-  calculateResolution,
   removeEmptyFolders,
   handleConcurrency,
   createImageOutput,
@@ -53,7 +50,6 @@ import {
   calculateSizes,
   getTileBounds,
   calculateMD5,
-  createBase64,
   unzipAsync,
   printLog,
 } from "./utils/index.js";
@@ -84,7 +80,10 @@ function createRenderer(mode, scale, styleJSON) {
           try {
             data = await getAndCacheDataSprite(parts[2], parts[3]);
           } catch (error) {
-            printLog("error", `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}`);
+            printLog(
+              "error",
+              `Failed to get sprite "${parts[2]}" - File "${parts[3]}": ${error}`
+            );
 
             err = error;
           }
@@ -101,14 +100,14 @@ function createRenderer(mode, scale, styleJSON) {
 
             const headers = detectFormatAndHeaders(data).headers;
 
-            if (
-              headers["content-type"] === "application/x-protobuf" &&
-              headers["content-encoding"]
-            ) {
+            if (headers["content-encoding"]) {
               data = await unzipAsync(data);
             }
           } catch (error) {
-            printLog("error", `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}`);
+            printLog(
+              "error",
+              `Failed to get font "${parts[2]}" - File "${parts[3]}": ${error}`
+            );
 
             err = error;
           }
@@ -123,7 +122,10 @@ function createRenderer(mode, scale, styleJSON) {
           try {
             data = await getAndCacheDataGeoJSON(parts[2], parts[3]);
           } catch (error) {
-            printLog("error", `Failed to get GeoJSON group "${parts[2]}" - Layer "${parts[3]}": ${error}.`);
+            printLog(
+              "error",
+              `Failed to get GeoJSON group "${parts[2]}" - Layer "${parts[3]}": ${error}.`
+            );
 
             err = error;
           }
@@ -138,16 +140,12 @@ function createRenderer(mode, scale, styleJSON) {
           const z = Number(parts[3]);
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-          const tileName = `${z}/${x}/${y}`;
           const item = config.datas[parts[2]];
 
           try {
             const dataTile = await getPMTilesTile(item.source, z, x, y);
 
-            if (
-              dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"]
-            ) {
+            if (dataTile.headers["content-encoding"]) {
               data = await unzipAsync(dataTile.data);
             } else {
               data = dataTile.data;
@@ -155,7 +153,7 @@ function createRenderer(mode, scale, styleJSON) {
           } catch (error) {
             printLog(
               "warn",
-              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+              `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`
             );
 
             data = createFallbackTileData(item.tileJSON.format);
@@ -171,7 +169,6 @@ function createRenderer(mode, scale, styleJSON) {
           const z = Number(parts[3]);
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-          const tileName = `${z}/${x}/${y}`;
           const item = config.datas[parts[2]];
 
           try {
@@ -182,10 +179,7 @@ function createRenderer(mode, scale, styleJSON) {
               y
             );
 
-            if (
-              dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"]
-            ) {
+            if (dataTile.headers["content-encoding"]) {
               data = await unzipAsync(dataTile.data);
             } else {
               data = dataTile.data;
@@ -193,7 +187,7 @@ function createRenderer(mode, scale, styleJSON) {
           } catch (error) {
             printLog(
               "warn",
-              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+              `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`
             );
 
             data = createFallbackTileData(item.tileJSON.format);
@@ -209,16 +203,12 @@ function createRenderer(mode, scale, styleJSON) {
           const z = Number(parts[3]);
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-          const tileName = `${z}/${x}/${y}`;
           const item = config.datas[parts[2]];
 
           try {
             const dataTile = await getAndCacheXYZDataTile(parts[2], z, x, y);
 
-            if (
-              dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"]
-            ) {
+            if (dataTile.headers["content-encoding"]) {
               data = await unzipAsync(dataTile.data);
             } else {
               data = dataTile.data;
@@ -226,7 +216,7 @@ function createRenderer(mode, scale, styleJSON) {
           } catch (error) {
             printLog(
               "warn",
-              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+              `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`
             );
 
             data = createFallbackTileData(item.tileJSON.format);
@@ -242,7 +232,6 @@ function createRenderer(mode, scale, styleJSON) {
           const z = Number(parts[3]);
           const x = Number(parts[4]);
           const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
-          const tileName = `${z}/${x}/${y}`;
           const item = config.datas[parts[2]];
 
           try {
@@ -253,10 +242,7 @@ function createRenderer(mode, scale, styleJSON) {
               y
             );
 
-            if (
-              dataTile.headers["content-type"] === "application/x-protobuf" &&
-              dataTile.headers["content-encoding"]
-            ) {
+            if (dataTile.headers["content-encoding"]) {
               data = await unzipAsync(dataTile.data);
             } else {
               data = dataTile.data;
@@ -264,7 +250,7 @@ function createRenderer(mode, scale, styleJSON) {
           } catch (error) {
             printLog(
               "warn",
-              `Failed to get data "${parts[2]}" - Tile "${tileName}": ${error}. Serving empty tile...`
+              `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`
             );
 
             data = createFallbackTileData(item.tileJSON.format);
@@ -288,10 +274,7 @@ function createRenderer(mode, scale, styleJSON) {
             /* Unzip pbf data */
             const headers = detectFormatAndHeaders(dataRemote.data).headers;
 
-            if (
-              headers["content-type"] === "application/x-protobuf" &&
-              headers["content-encoding"]
-            ) {
+            if (headers["content-encoding"]) {
               data = await unzipAsync(dataRemote.data);
             } else {
               data = dataRemote.data;
@@ -306,22 +289,11 @@ function createRenderer(mode, scale, styleJSON) {
               data = createFallbackTileData(
                 req.url.slice(req.url.lastIndexOf(".") + 1)
               );
-            } else if (req.kind === 4) {
-              printLog(
-                "warn",
-                `Failed to get font from "${req.url}": ${error}. Serving fallback font...`
-              );
-
-              return await getFallbackFont(req.url.slice(req.url.lastIndexOf("/") + 1));
-            } else if (req.kind === 5 || req.kind === 6) {
-              printLog(
-                "warn",
-                `Failed to get sprite from "${req.url}": ${error}. Serving fallback sprite...`
-              );
-
-              return await getFallbackSprite(req.url.slice(req.url.lastIndexOf("/") + 1));
             } else {
-              printLog("error", `Failed to get data from "${req.url}": ${error}`);
+              printLog(
+                "error",
+                `Failed to get data from "${req.url}": ${error}`
+              );
 
               err = error;
             }
@@ -341,10 +313,7 @@ function createRenderer(mode, scale, styleJSON) {
             /* Unzip pbf data */
             const headers = detectFormatAndHeaders(dataBase64).headers;
 
-            if (
-              headers["content-type"] === "application/x-protobuf" &&
-              headers["content-encoding"]
-            ) {
+            if (headers["content-encoding"]) {
               data = await unzipAsync(dataBase64);
             } else {
               data = dataBase64;
@@ -411,7 +380,7 @@ export async function renderImageTileData(
     ? await styleJSONOrPool.acquire()
     : createRenderer("tile", tileScale, styleJSONOrPool);
 
-  const data = await new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     renderer.render(
       {
         zoom: z > 0 && tileSize === 256 ? z - 1 : z,
@@ -426,28 +395,25 @@ export async function renderImageTileData(
           return reject(error);
         }
 
-        resolve(data);
+        const originTileSize = Math.floor(hackTileSize * tileScale);
+        const targetTileSize = isNeedHack
+          ? Math.floor(originTileSize / 2)
+          : undefined;
+
+        createImageOutput(data, {
+          rawOption: {
+            premultiplied: true,
+            width: originTileSize,
+            height: originTileSize,
+            channels: 4,
+          },
+          format: format,
+          width: targetTileSize,
+          height: targetTileSize,
+          filePath: filePath,
+        }).then(resolve).catch(reject);
       }
     );
-  });
-
-  const originTileSize = Math.floor(hackTileSize * tileScale);
-  const targetTileSize = isNeedHack
-    ? Math.floor(originTileSize / 2)
-    : undefined;
-
-  // Create image
-  return await createImageOutput(data, {
-    rawOption: {
-      premultiplied: true,
-      width: originTileSize,
-      height: originTileSize,
-      channels: 4,
-    },
-    format: format,
-    width: targetTileSize,
-    height: targetTileSize,
-    filePath: filePath,
   });
 }
 
@@ -458,15 +424,23 @@ export async function renderImageTileData(
  * @returns {Promise<Buffer|string>}
  */
 export async function renderImageStaticData(input, output) {
-  const sizes = calculateSizes(input.zoom, input.bbox, input.tileScale, input.tileSize);
+  const sizes = calculateSizes(
+    input.zoom,
+    input.bbox,
+    input.tileScale,
+    input.tileSize
+  );
 
   const renderer = createRenderer("static", input.tileScale, input.styleJSON);
 
-  const data = await new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     renderer.render(
       {
         zoom: input.zoom,
-        center: [(input.bbox[0] + input.bbox[2]) / 2, (input.bbox[1] + input.bbox[3]) / 2],
+        center: [
+          (input.bbox[0] + input.bbox[2]) / 2,
+          (input.bbox[1] + input.bbox[3]) / 2,
+        ],
         width: sizes.width,
         height: sizes.height,
       },
@@ -477,20 +451,17 @@ export async function renderImageStaticData(input, output) {
           return reject(error);
         }
 
-        resolve(data);
+        createImageOutput(data, {
+          rawOption: {
+            premultiplied: true,
+            width: sizes.width,
+            height: sizes.height,
+            channels: 4,
+          },
+          ...output,
+        }).then(resolve).catch(reject);
       }
     );
-  });
-
-  // Create image
-  return await createImageOutput(data, {
-    rawOption: {
-      premultiplied: true,
-      width: sizes.width,
-      height: sizes.height,
-      channels: 4,
-    },
-    ...output,
   });
 }
 
@@ -498,23 +469,18 @@ export async function renderImageStaticData(input, output) {
  * Render image static data
  * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number] }} input Input object
  * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number }} output Output object
- * @returns {Promise<{ image: Buffer|string, resolution: [number, number] }>} Response
+ * @returns {Promise<Buffer|string>} Response
  */
 export async function renderStyleJSON(input, output) {
   /* Render image */
-  const image = await renderImageStaticData(input, output);
-
-  /* Response */
-  return {
-    image: output.base64 ? createBase64(image, output.format) : image,
-    resolution: await calculateResolution(
-      {
-        image: image,
-        bbox: input.bbox,
-      },
-      "mm"
-    ),
-  };
+  return await renderImageStaticData(
+    {
+      ...input,
+      tileScale: input.tileScale || 1,
+      tileSize: input.tileSize || 512,
+    },
+    output
+  );
 }
 
 /**
@@ -527,10 +493,19 @@ export async function renderStyleJSON(input, output) {
  * @returns {Promise<Buffer|string>} Response
  */
 export async function addFrame(input, overlays, frame, grid, output) {
-  return await addFrameToImage({
-    image: Buffer.from(input.image.slice(input.image.indexOf(",") + 1), "base64"),
-    bbox: input.bbox,
-  }, overlays, frame, grid, output);
+  return await addFrameToImage(
+    {
+      image: Buffer.from(
+        input.image.slice(input.image.indexOf(",") + 1),
+        "base64"
+      ),
+      bbox: input.bbox,
+    },
+    overlays,
+    frame,
+    grid,
+    output
+  );
 }
 
 /**
@@ -546,7 +521,8 @@ export async function renderSVGToImage(overlays) {
 
     // Create image
     targetOverlays[idx] = await createImageOutput(
-      Buffer.from(overlay.image.slice(overlay.image.indexOf(",") + 1),
+      Buffer.from(
+        overlay.image.slice(overlay.image.indexOf(",") + 1),
         "base64"
       ),
       {
@@ -576,7 +552,10 @@ export async function renderHighQualityPDF(input, preview, output) {
     {
       images: input.images.map((item) => {
         return {
-          image: Buffer.from(item.image.slice(item.image.indexOf(",") + 1), "base64"),
+          image: Buffer.from(
+            item.image.slice(item.image.indexOf(",") + 1),
+            "base64"
+          ),
           res: item.resolution,
         };
       }),

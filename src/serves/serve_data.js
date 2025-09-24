@@ -187,7 +187,8 @@ function getDataHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
+            item.tileJSON.format
           }`,
         ],
       };
@@ -987,7 +988,7 @@ export const serve_data = {
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
                   }).targetCoverages,
-                  ...(item.tilejson ?? {})
+                  ...(item.tilejson ?? {}),
                 });
               } else {
                 /* Get MBTiles path */

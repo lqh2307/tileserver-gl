@@ -163,9 +163,7 @@ function serveConfigHandler() {
     try {
       res.header("content-type", "application/json");
 
-      return res
-        .status(StatusCodes.OK)
-        .send(readConfigFile(type, false));
+      return res.status(StatusCodes.OK).send(readConfigFile(type, false));
     } catch (error) {
       printLog("error", `Failed to get ${type}: ${error}`);
 

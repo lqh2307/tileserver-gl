@@ -407,7 +407,9 @@ export function convertLength(value, from, to) {
     mm: 0.001,
   };
 
-  return value * (factors[from] ?? factors["m"]) / (factors[to] ?? factors["m"]);
+  return (
+    (value * (factors[from] ?? factors["m"])) / (factors[to] ?? factors["m"])
+  );
 }
 
 /**

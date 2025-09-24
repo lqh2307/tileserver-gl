@@ -140,6 +140,27 @@
               "minimum": 0
             }
           }
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "horizontal": {
+              "type": "string",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "vertical": {
+              "type": "string",
+              "enum": [
+                "top",
+                "middle",
+                "bottom"
+              ]
+            }
+          }
         }
       },
       "required": [
