@@ -263,11 +263,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
         return await getFont(`${item.path}/${fileName}`);
       } catch (error) {
         try {
-          if (
-            item &&
-            item.sourceURL &&
-            error.message === "Font does not exist"
-          ) {
+          if (item?.sourceURL && error.message === "Font does not exist") {
             const targetURL = item.sourceURL.replace("{range}.pbf", fileName);
 
             printLog(

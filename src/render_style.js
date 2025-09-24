@@ -29,6 +29,7 @@ import {
   cacheXYZTileFile,
   openPostgreSQLDB,
   addXYZOverviews,
+  getFallbackFont,
   closeMBTilesDB,
   getPMTilesTile,
   openMBTilesDB,
@@ -75,10 +76,17 @@ function createRenderer(mode, scale, styleJSON) {
       switch (scheme) {
         /* Get sprite */
         case "sprites": {
-          const parts = decodeURIComponent(req.url).split("/");
+          const parts = decodeURI(req.url).split("/");
 
           try {
             data = await getAndCacheDataSprite(parts[2], parts[3]);
+
+            /* Unzip data */
+            const headers = detectFormatAndHeaders(data).headers;
+
+            if (headers["content-encoding"]) {
+              data = await unzipAsync(data);
+            }
           } catch (error) {
             printLog(
               "error",
@@ -93,11 +101,12 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get font */
         case "fonts": {
-          const parts = decodeURIComponent(req.url).split("/");
+          const parts = decodeURI(req.url).split("/");
 
           try {
             data = await getAndCacheDataFonts(parts[2], parts[3]);
 
+            /* Unzip data */
             const headers = detectFormatAndHeaders(data).headers;
 
             if (headers["content-encoding"]) {
@@ -117,10 +126,17 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get geojson */
         case "geojson": {
-          const parts = decodeURIComponent(req.url).split("/");
+          const parts = decodeURI(req.url).split("/");
 
           try {
             data = await getAndCacheDataGeoJSON(parts[2], parts[3]);
+
+            /* Unzip data */
+            const headers = detectFormatAndHeaders(data).headers;
+
+            if (headers["content-encoding"]) {
+              data = await unzipAsync(data);
+            }
           } catch (error) {
             printLog(
               "error",
@@ -135,7 +151,7 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get pmtiles tile */
         case "pmtiles": {
-          const parts = decodeURIComponent(req.url).split("/");
+          const parts = decodeURI(req.url).split("/");
 
           const z = Number(parts[3]);
           const x = Number(parts[4]);
@@ -143,13 +159,15 @@ function createRenderer(mode, scale, styleJSON) {
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getPMTilesTile(item.source, z, x, y);
+            const dataTile = await getPMTilesTile(
+              item.source,
+              z,
+              x,
+              y
+            );
 
-            if (dataTile.headers["content-encoding"]) {
-              data = await unzipAsync(dataTile.data);
-            } else {
-              data = dataTile.data;
-            }
+            /* Unzip data */
+            data = dataTile.headers["content-encoding"] ? await unzipAsync(dataTile.data) : dataTile.data;
           } catch (error) {
             printLog(
               "warn",
@@ -164,7 +182,7 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get mbtiles tile */
         case "mbtiles": {
-          const parts = decodeURIComponent(req.url).split("/");
+          const parts = decodeURI(req.url).split("/");
 
           const z = Number(parts[3]);
           const x = Number(parts[4]);
@@ -179,11 +197,8 @@ function createRenderer(mode, scale, styleJSON) {
               y
             );
 
-            if (dataTile.headers["content-encoding"]) {
-              data = await unzipAsync(dataTile.data);
-            } else {
-              data = dataTile.data;
-            }
+            /* Unzip data */
+            data = dataTile.headers["content-encoding"] ? await unzipAsync(dataTile.data) : dataTile.data;
           } catch (error) {
             printLog(
               "warn",
@@ -198,7 +213,7 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get xyz tile */
         case "xyz": {
-          const parts = decodeURIComponent(req.url).split("/");
+          const parts = decodeURI(req.url).split("/");
 
           const z = Number(parts[3]);
           const x = Number(parts[4]);
@@ -206,13 +221,15 @@ function createRenderer(mode, scale, styleJSON) {
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getAndCacheXYZDataTile(parts[2], z, x, y);
+            const dataTile = await getAndCacheXYZDataTile(
+              parts[2],
+              z,
+              x,
+              y
+            );
 
-            if (dataTile.headers["content-encoding"]) {
-              data = await unzipAsync(dataTile.data);
-            } else {
-              data = dataTile.data;
-            }
+            /* Unzip data */
+            data = dataTile.headers["content-encoding"] ? await unzipAsync(dataTile.data) : dataTile.data;
           } catch (error) {
             printLog(
               "warn",
@@ -227,7 +244,7 @@ function createRenderer(mode, scale, styleJSON) {
 
         /* Get pg tile */
         case "pg": {
-          const parts = decodeURIComponent(req.url).split("/");
+          const parts = decodeURI(req.url).split("/");
 
           const z = Number(parts[3]);
           const x = Number(parts[4]);
@@ -242,11 +259,8 @@ function createRenderer(mode, scale, styleJSON) {
               y
             );
 
-            if (dataTile.headers["content-encoding"]) {
-              data = await unzipAsync(dataTile.data);
-            } else {
-              data = dataTile.data;
-            }
+            /* Unzip data */
+            data = dataTile.headers["content-encoding"] ? await unzipAsync(dataTile.data) : dataTile.data;
           } catch (error) {
             printLog(
               "warn",
@@ -262,38 +276,59 @@ function createRenderer(mode, scale, styleJSON) {
         /* Get data from remote */
         case "http":
         case "https": {
-          try {
-            printLog("info", `Getting data from "${req.url}"...`);
+          const url = decodeURI(req.url);
 
+          try {
             const dataRemote = await getDataFromURL(
-              req.url,
+              url,
               30000, // 30 secs
               "arraybuffer"
             );
 
-            /* Unzip pbf data */
+            /* Unzip data */
             const headers = detectFormatAndHeaders(dataRemote.data).headers;
 
-            if (headers["content-encoding"]) {
-              data = await unzipAsync(dataRemote.data);
-            } else {
-              data = dataRemote.data;
-            }
+            data = headers["content-encoding"] ? await unzipAsync(dataRemote.data) : dataRemote.data;
           } catch (error) {
             if (req.kind === 3) {
-              printLog(
-                "warn",
-                `Failed to get tile from "${req.url}": ${error}. Serving empty tile...`
-              );
+              const result = url.match(/(gif|png|jpg|jpeg|webp|pbf)/g);
+              if (result) {
+                printLog(
+                  "warn",
+                  `Failed to get tile from "${url}": ${error}. Serving empty tile...`
+                );
 
-              data = createFallbackTileData(
-                req.url.slice(req.url.lastIndexOf(".") + 1)
-              );
+                data = createFallbackTileData(result[0]);
+              } else {
+                printLog("error", `Failed to detect tile from "${url}"`);
+
+                err = error;
+              }
+            } else if (req.kind === 4) {
+              const result = url.match(/([^/]+\/\d+-\d+\.pbf)/g);
+              if (result) {
+                printLog(
+                  "warn",
+                  `Failed to get font from "${url}": ${error}. Serving fallback font "Open Sans"...`
+                );
+
+                const parts = result[0].split("/");
+
+                data = await getFallbackFont(parts[0], parts[1]);
+
+                /* Unzip data */
+                const headers = detectFormatAndHeaders(data).headers;
+
+                if (headers["content-encoding"]) {
+                  data = await unzipAsync(data);
+                }
+              } else {
+                printLog("error", `Failed to detect font from "${url}"`);
+
+                err = error;
+              }
             } else {
-              printLog(
-                "error",
-                `Failed to get data from "${req.url}": ${error}`
-              );
+              printLog("error", `Failed to get data from "${url}": ${error}`);
 
               err = error;
             }
@@ -310,7 +345,7 @@ function createRenderer(mode, scale, styleJSON) {
               "base64"
             );
 
-            /* Unzip pbf data */
+            /* Unzip data */
             const headers = detectFormatAndHeaders(dataBase64).headers;
 
             if (headers["content-encoding"]) {

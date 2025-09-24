@@ -235,8 +235,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
   rows.forEach((row) => {
     if (row[extraInfoType] !== null) {
       result[
-        `${row.zoom_level}/${row.tile_column}/${
-          (1 << row.zoom_level) - 1 - row.tile_row
+        `${row.zoom_level}/${row.tile_column}/${(1 << row.zoom_level) - 1 - row.tile_row
         }`
       ] = row[extraInfoType];
     }
@@ -937,7 +936,7 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
   try {
     return getMBTilesTile(item.source, z, x, y);
   } catch (error) {
-    if (item.sourceURL && error.message === "Tile does not exist") {
+    if (item?.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -2067,7 +2066,7 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
   try {
     return await getPostgreSQLTile(item.source, z, x, y);
   } catch (error) {
-    if (item.sourceURL && error.message === "Tile does not exist") {
+    if (item?.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -3068,7 +3067,7 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
   try {
     return await getXYZTile(item.source, z, x, y, item.tileJSON.format);
   } catch (error) {
-    if (item.sourceURL && error.message === "Tile does not exist") {
+    if (item?.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL

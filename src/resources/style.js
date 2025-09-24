@@ -388,7 +388,7 @@ export async function getAndCacheDataStyleJSON(id) {
   try {
     return await getStyle(item.path);
   } catch (error) {
-    if (item.sourceURL && error.message === "JSON does not exist") {
+    if (item?.sourceURL && error.message === "JSON does not exist") {
       printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
 
       const styleJSON = await getDataFileFromURL(

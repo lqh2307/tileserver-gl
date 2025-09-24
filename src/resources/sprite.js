@@ -123,15 +123,6 @@ export async function getSprite(filePath) {
 }
 
 /**
- * Get fallback sprite
- * @param {string} fileName Sprite file name
- * @returns {Promise<Buffer>}
- */
-export async function getFallbackSprite(fileName) {
-  return await readFile(`public/resources/sprites/osm/${fileName}`);
-}
-
-/**
  * Get the size of Sprite folder path
  * @param {string} spriteDirPath Sprite dir path to get
  * @returns {Promise<number>}
@@ -208,48 +199,39 @@ export async function getAndCacheDataSprite(id, fileName) {
 
     return await getSprite(`${item.path}/${fileName}`);
   } catch (error) {
-    try {
-      if (item.sourceURL && error.message === "Sprite does not exist") {
-        const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
+    if (item?.sourceURL && error.message === "Sprite does not exist") {
+      const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
 
-        printLog(
-          "info",
-          `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
-        );
-
-        /* Get sprite */
-        const sprite = await getDataFileFromURL(
-          targetURL,
-          item.headers,
-          30000 // 30 secs
-        );
-
-        /* Cache */
-        if (item.storeCache) {
-          printLog(
-            "info",
-            `Caching sprite "${id}" - Filename "${fileName}"...`
-          );
-
-          cacheSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
-            printLog(
-              "error",
-              `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
-            )
-          );
-        }
-
-        return sprite;
-      } else {
-        throw error;
-      }
-    } catch (error) {
       printLog(
-        "warn",
-        `Failed to get sprite "${id}" - Filename "${fileName}": ${error}. Using fallback sprite "osm"...`
+        "info",
+        `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
       );
 
-      return await getFallbackSprite(fileName);
+      /* Get sprite */
+      const sprite = await getDataFileFromURL(
+        targetURL,
+        item.headers,
+        30000 // 30 secs
+      );
+
+      /* Cache */
+      if (item.storeCache) {
+        printLog(
+          "info",
+          `Caching sprite "${id}" - Filename "${fileName}"...`
+        );
+
+        cacheSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
+          printLog(
+            "error",
+            `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
+          )
+        );
+      }
+
+      return sprite;
+    } else {
+      throw error;
     }
   }
 }
