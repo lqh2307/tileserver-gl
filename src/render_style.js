@@ -26,9 +26,11 @@ import {
   addMBTilesOverviews,
   closePostgreSQLDB,
   updateXYZMetadata,
+  getFallbackSprite,
   cacheXYZTileFile,
   openPostgreSQLDB,
   addXYZOverviews,
+  getFallbackFont,
   closeMBTilesDB,
   getPMTilesTile,
   openMBTilesDB,
@@ -304,6 +306,20 @@ function createRenderer(mode, scale, styleJSON) {
               data = createFallbackTileData(
                 req.url.slice(req.url.lastIndexOf(".") + 1)
               );
+            } else if (req.kind === 4) {
+              printLog(
+                "warn",
+                `Failed to get font from "${req.url}": ${error}. Serving fallback font...`
+              );
+
+              return await getFallbackFont(req.url.slice(req.url.lastIndexOf("/") + 1));
+            } else if (req.kind === 5 || req.kind === 6) {
+              printLog(
+                "warn",
+                `Failed to get sprite from "${req.url}": ${error}. Serving fallback sprite...`
+              );
+
+              return await getFallbackSprite(req.url.slice(req.url.lastIndexOf("/") + 1));
             } else {
               printLog("error", `Failed to get data from "${req.url}": ${error}`);
 
@@ -404,9 +420,7 @@ export async function renderImageTileData(
         height: hackTileSize,
       },
       (error, data) => {
-        if (renderer) {
-          usePool ? styleJSONOrPool.release(renderer) : renderer.release();
-        }
+        usePool ? styleJSONOrPool.release(renderer) : renderer.release();
 
         if (error) {
           return reject(error);
@@ -457,9 +471,7 @@ export async function renderImageStaticData(input, output) {
         height: sizes.height,
       },
       (error, data) => {
-        if (renderer) {
-          renderer.release();
-        }
+        renderer.release();
 
         if (error) {
           return reject(error);
