@@ -216,10 +216,7 @@ export async function getAndCacheDataSprite(id, fileName) {
 
       /* Cache */
       if (item.storeCache) {
-        printLog(
-          "info",
-          `Caching sprite "${id}" - Filename "${fileName}"...`
-        );
+        printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
 
         cacheSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
           printLog(

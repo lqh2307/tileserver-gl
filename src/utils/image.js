@@ -1105,7 +1105,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
 /**
  * Merge tiles to image
- * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", scheme: "xyz" | "tms", tileSize: number, bbox: [number, number, number, number] }} input Input object
+ * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", scheme: "xyz" | "tms", tileSize: 256|512, bbox: [number, number, number, number] }} input Input object
  * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<void|Buffer|string>}
  */
@@ -1172,6 +1172,22 @@ export async function mergeTilesToImage(input, output) {
     extractOption: extractOption,
     ...output,
   });
+}
+
+/**
+ * Split image to tiles
+ * @param {{ image: string|Buffer, bbox: [number, number, number, number] }} input Input object
+ * @param {{ dirPath: string, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, base64: boolean, grayscale: boolean }} output Output object
+ * @returns {Promise<void|Buffer|string>}
+ */
+export async function splitImageToTiles(input, output) {
+  await sharp(input.image)
+    .tile({
+      size: output.tileSize,
+      layout: "dz",
+      depth: "one",
+    })
+    .toFile("a.dzi");
 }
 
 /**

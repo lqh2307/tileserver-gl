@@ -159,15 +159,12 @@ function createRenderer(mode, scale, styleJSON) {
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getPMTilesTile(
-              item.source,
-              z,
-              x,
-              y
-            );
+            const dataTile = await getPMTilesTile(item.source, z, x, y);
 
             /* Unzip data */
-            data = dataTile.headers["content-encoding"] ? await unzipAsync(dataTile.data) : dataTile.data;
+            data = dataTile.headers["content-encoding"]
+              ? await unzipAsync(dataTile.data)
+              : dataTile.data;
           } catch (error) {
             printLog(
               "warn",
@@ -198,7 +195,9 @@ function createRenderer(mode, scale, styleJSON) {
             );
 
             /* Unzip data */
-            data = dataTile.headers["content-encoding"] ? await unzipAsync(dataTile.data) : dataTile.data;
+            data = dataTile.headers["content-encoding"]
+              ? await unzipAsync(dataTile.data)
+              : dataTile.data;
           } catch (error) {
             printLog(
               "warn",
@@ -221,15 +220,12 @@ function createRenderer(mode, scale, styleJSON) {
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getAndCacheXYZDataTile(
-              parts[2],
-              z,
-              x,
-              y
-            );
+            const dataTile = await getAndCacheXYZDataTile(parts[2], z, x, y);
 
             /* Unzip data */
-            data = dataTile.headers["content-encoding"] ? await unzipAsync(dataTile.data) : dataTile.data;
+            data = dataTile.headers["content-encoding"]
+              ? await unzipAsync(dataTile.data)
+              : dataTile.data;
           } catch (error) {
             printLog(
               "warn",
@@ -260,7 +256,9 @@ function createRenderer(mode, scale, styleJSON) {
             );
 
             /* Unzip data */
-            data = dataTile.headers["content-encoding"] ? await unzipAsync(dataTile.data) : dataTile.data;
+            data = dataTile.headers["content-encoding"]
+              ? await unzipAsync(dataTile.data)
+              : dataTile.data;
           } catch (error) {
             printLog(
               "warn",
@@ -288,7 +286,9 @@ function createRenderer(mode, scale, styleJSON) {
             /* Unzip data */
             const headers = detectFormatAndHeaders(dataRemote.data).headers;
 
-            data = headers["content-encoding"] ? await unzipAsync(dataRemote.data) : dataRemote.data;
+            data = headers["content-encoding"]
+              ? await unzipAsync(dataRemote.data)
+              : dataRemote.data;
           } catch (error) {
             if (req.kind === 3) {
               const result = url.match(/(gif|png|jpg|jpeg|webp|pbf)/g);
@@ -446,7 +446,9 @@ export async function renderImageTileData(
           width: targetTileSize,
           height: targetTileSize,
           filePath: filePath,
-        }).then(resolve).catch(reject);
+        })
+          .then(resolve)
+          .catch(reject);
       }
     );
   });
@@ -494,7 +496,9 @@ export async function renderImageStaticData(input, output) {
             channels: 4,
           },
           ...output,
-        }).then(resolve).catch(reject);
+        })
+          .then(resolve)
+          .catch(reject);
       }
     );
   });
@@ -736,16 +740,16 @@ export async function renderMBTilesTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-          {
-            create: () =>
-              createRenderer("tile", tileScale, renderedStyleJSON),
-            destroy: (renderer) => renderer.release(),
-          },
-          {
-            min: 1,
-            max: maxRendererPoolSize,
-          }
-        )
+            {
+              create: () =>
+                createRenderer("tile", tileScale, renderedStyleJSON),
+              destroy: (renderer) => renderer.release(),
+            },
+            {
+              min: 1,
+              max: maxRendererPoolSize,
+            }
+          )
         : renderedStyleJSON;
 
     async function renderMBTilesTileData(z, x, y, tasks) {
@@ -834,13 +838,15 @@ export async function renderMBTilesTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -976,16 +982,16 @@ export async function renderXYZTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-          {
-            create: () =>
-              createRenderer("tile", tileScale, renderedStyleJSON),
-            destroy: (renderer) => renderer.release(),
-          },
-          {
-            min: 1,
-            max: maxRendererPoolSize,
-          }
-        )
+            {
+              create: () =>
+                createRenderer("tile", tileScale, renderedStyleJSON),
+              destroy: (renderer) => renderer.release(),
+            },
+            {
+              min: 1,
+              max: maxRendererPoolSize,
+            }
+          )
         : renderedStyleJSON;
 
     async function renderXYZTileData(z, x, y, tasks) {
@@ -1095,13 +1101,15 @@ export async function renderXYZTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to xyz after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to xyz after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1226,16 +1234,16 @@ export async function renderPostgreSQLTiles(
     styleJSONOrPool =
       maxRendererPoolSize > 0
         ? createPool(
-          {
-            create: () =>
-              createRenderer("tile", tileScale, renderedStyleJSON),
-            destroy: (renderer) => renderer.release(),
-          },
-          {
-            min: 1,
-            max: maxRendererPoolSize,
-          }
-        )
+            {
+              create: () =>
+                createRenderer("tile", tileScale, renderedStyleJSON),
+              destroy: (renderer) => renderer.release(),
+            },
+            {
+              min: 1,
+              max: maxRendererPoolSize,
+            }
+          )
         : renderedStyleJSON;
 
     async function renderPostgreSQLTileData(z, x, y, tasks) {
@@ -1338,13 +1346,15 @@ export async function renderPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {

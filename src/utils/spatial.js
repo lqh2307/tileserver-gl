@@ -534,6 +534,20 @@ export function getTilesFromBBox(bbox, z, scheme, tileSize) {
 }
 
 /**
+ * Get real bbox
+ * @param {[number, number, number, number]} bbox Bounding box [lonMin, latMin, lonMax, latMax] in EPSG:4326
+ * @param {number} z Zoom level
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @param {256|512} tileSize Tile size
+ * @returns {[number, number, number, number]} Bounding box [lonMin, latMin, lonMax, latMax] in EPSG:4326
+ */
+export function getRealBBox(bbox, z, scheme, tileSize) {
+  let [xMin, yMin, xMax, yMax] = getTilesFromBBox(bbox, z, scheme, tileSize);
+
+  return getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme, tileSize);
+}
+
+/**
  * Get bounding box from center and radius
  * @param {[number, number]} center [lon, lat] of center (EPSG:4326)
  * @param {number} radius Radius in metter (EPSG:3857)
@@ -649,4 +663,3 @@ export function scaleToZoom(scale, ppi = 96, tileSize = 256) {
     ppi * ((2 * Math.PI * 6378137.0) / tileSize / scale / 0.0254)
   );
 }
-
