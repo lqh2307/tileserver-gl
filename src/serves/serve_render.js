@@ -30,10 +30,10 @@ function renderStyleJSONHandler() {
       }
 
       /* Render style */
-      const image = await renderStyleJSON(req.body.input, req.body.output);
+      const image = await renderStyleJSON(req.body);
 
       res.set({
-        "content-type": detectContentTypeFromFormat(req.body.format || "png"),
+        "content-type": "application/json",
       });
 
       return res.status(StatusCodes.CREATED).send(image);

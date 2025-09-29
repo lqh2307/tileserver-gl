@@ -7,13 +7,11 @@
         "type": "string",
         "minLength": 1
       },
-      "width": {
-        "type": "integer",
-        "minimum": 1
+      "base64": {
+        "type": "boolean"
       },
-      "height": {
-        "type": "integer",
-        "minimum": 1
+      "grayscale": {
+        "type": "boolean"
       },
       "format": {
         "type": "string",
@@ -25,13 +23,18 @@
           "webp"
         ]
       },
-      "base64": {
-        "type": "boolean"
+      "width": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "height": {
+        "type": "integer",
+        "minimum": 1
       }
     },
-    "minItems": 1,
     "required": [
       "image"
     ]
-  }
+  },
+  "minItems": 1
 }

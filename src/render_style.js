@@ -408,14 +408,14 @@ export async function renderImageTileData(
   usePool,
   filePath
 ) {
-  const isNeedHack = z === 0 && tileSize === 256;
-  const hackTileSize = isNeedHack ? tileSize * 2 : tileSize;
-
   const renderer = usePool
     ? await styleJSONOrPool.acquire()
     : createRenderer("tile", tileScale, styleJSONOrPool);
 
   return await new Promise((resolve, reject) => {
+    const isNeedHack = z === 0 && tileSize === 256;
+    const hackTileSize = isNeedHack ? tileSize * 2 : tileSize;
+
     renderer.render(
       {
         zoom: z > 0 && tileSize === 256 ? z - 1 : z,
@@ -461,16 +461,16 @@ export async function renderImageTileData(
  * @returns {Promise<Buffer|string>}
  */
 export async function renderImageStaticData(input, output) {
-  const sizes = calculateSizes(
-    input.zoom,
-    input.bbox,
-    input.tileScale,
-    input.tileSize
-  );
-
   const renderer = createRenderer("static", input.tileScale, input.styleJSON);
 
   return await new Promise((resolve, reject) => {
+    const sizes = calculateSizes(
+      input.zoom,
+      input.bbox,
+      input.tileScale,
+      input.tileSize
+    );
+
     renderer.render(
       {
         zoom: input.zoom,
@@ -506,20 +506,42 @@ export async function renderImageStaticData(input, output) {
 
 /**
  * Render image static data
- * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number] }} input Input object
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number }} output Output object
- * @returns {Promise<Buffer|string>} Response
+ * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean }[]} overlays Input object
+ * @returns {Promise<Buffer[]|string[]>} Response
  */
-export async function renderStyleJSON(input, output) {
-  /* Render image */
-  return await renderImageStaticData(
-    {
-      ...input,
-      tileScale: input.tileScale || 1,
-      tileSize: input.tileSize || 512,
-    },
-    output
+export async function renderStyleJSON(overlays) {
+  const targetOverlays = Array(overlays.length);
+
+  async function renderStyleJSONToImageData(idx, overlays) {
+    const overlay = overlays[idx];
+
+    // Create image
+    targetOverlays[idx] = await renderImageStaticData(
+      {
+        styleJSON: overlay.styleJSON,
+        tileScale: overlay.tileScale || 1,
+        tileSize: overlay.tileSize || 512,
+        zoom: overlay.zoom,
+        bbox: overlay.bbox,
+      },
+      {
+        width: overlay.width,
+        height: overlay.height,
+        format: overlay.format,
+        base64: overlay.base64,
+        grayscale: overlay.grayscale,
+      }
+    );
+  }
+
+  // Batch run
+  await handleConcurrency(
+    os.cpus().length,
+    renderStyleJSONToImageData,
+    overlays
   );
+
+  return targetOverlays;
 }
 
 /**
@@ -549,8 +571,8 @@ export async function addFrame(input, overlays, frame, grid, output) {
 
 /**
  * Render SVG to Image
- * @param {{ image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean }[]} overlays SVG overlays
- * @returns {Promise<string[]>}
+ * @param {{ image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean }[]} overlays SVG overlays
+ * @returns {Promise<Buffer[]|string[]>}
  */
 export async function renderSVGToImage(overlays) {
   const targetOverlays = Array(overlays.length);
@@ -569,6 +591,7 @@ export async function renderSVGToImage(overlays) {
         width: overlay.width,
         height: overlay.height,
         base64: overlay.base64,
+        grayscale: overlay.grayscale,
       }
     );
   }
@@ -584,7 +607,7 @@ export async function renderSVGToImage(overlays) {
  * @param {object} input Input object
  * @param {object} preview Preview object
  * @param {object} output Output object
- * @returns {Promise<string[]>}
+ * @returns {Promise<Buffer[]|string[]>}
  */
 export async function renderHighQualityPDF(input, preview, output) {
   return await renderImageToHighQualityPDF(
@@ -609,7 +632,7 @@ export async function renderHighQualityPDF(input, preview, output) {
  * @param {object} input Input object
  * @param {object} preview Preview object
  * @param {object} output Output object
- * @returns {Promise<string[]>}
+ * @returns {Promise<Buffer|string[]>}
  */
 export async function renderPDF(input, preview, output) {
   return await renderImageToPDF(
