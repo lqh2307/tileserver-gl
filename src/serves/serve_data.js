@@ -104,7 +104,6 @@ function getDataTileHandler() {
     const z = Number(req.params.z);
     const x = Number(req.params.x);
     const y = Number(req.params.y);
-    const tileName = `${z}/${x}/${y}`;
 
     /* Get and cache tile data */
     try {
@@ -152,7 +151,7 @@ function getDataTileHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get data "${id}" - Tile "${tileName}": ${error}`
+        `Failed to get data "${id}" - Tile "${z}/${x}/${y}": ${error}`
       );
 
       if (error.message === "Tile does not exist") {
@@ -187,8 +186,7 @@ function getDataHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
-            item.tileJSON.format
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format
           }`,
         ],
       };

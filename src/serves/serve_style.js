@@ -291,30 +291,22 @@ function getRenderedTileHandler() {
       return res.status(StatusCodes.NOT_FOUND).send("Rendered does not exist");
     }
 
-    /* Get tile scale (Default: 1) */
-    const tileScale = Number(req.query.tileScale) || 1;
-
-    /* Get tile size (Default: 256) */
-    const tileSize = Number(req.query.tileSize) || 256;
-
+    /* Get tile name */
     const z = Number(req.params.z);
     const x = Number(req.params.x);
     const y = Number(req.params.y);
 
     /* Render tile */
     try {
-      const renderedStyleJSON = await getRenderedStyleJSON(item.path);
-
-      const image = await renderImageTileData(
-        renderedStyleJSON,
-        tileScale,
-        tileSize,
-        z,
-        x,
-        y,
-        req.params.format,
-        false
-      );
+      const image = await renderImageTileData({
+        styleJSON: await getRenderedStyleJSON(item.path),
+        tileScale: Number(req.query.tileScale) || 1,
+        tileSize: Number(req.query.tileSize) || 256,
+        z: z,
+        x: x,
+        y: y,
+        format: req.params.format,
+      });
 
       res.header(
         "content-type",
@@ -374,8 +366,7 @@ function getRenderedHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${
-            queryStrings.length ? `?${queryStrings.join("&")}` : ""
+          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${queryStrings.length ? `?${queryStrings.join("&")}` : ""
           }`,
         ],
       };

@@ -90,7 +90,7 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   let x = Math.floor((zc + lon * bc) / tileSize);
   let y = Math.floor(
     (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
-      tileSize
+    tileSize
   );
 
   if (scheme === "tms") {
@@ -597,16 +597,16 @@ export function getBBoxFromPoint(points) {
       bbox[0] = -180;
     }
 
-    if (bbox[1] > 180) {
-      bbox[1] = 180;
-    } else if (bbox[1] < -180) {
-      bbox[1] = -180;
+    if (bbox[2] > 180) {
+      bbox[2] = 180;
+    } else if (bbox[2] < -180) {
+      bbox[2] = -180;
     }
 
-    if (bbox[2] > 85.051129) {
-      bbox[2] = 85.051129;
-    } else if (bbox[2] < -85.051129) {
-      bbox[2] = -85.051129;
+    if (bbox[1] > 85.051129) {
+      bbox[1] = 85.051129;
+    } else if (bbox[1] < -85.051129) {
+      bbox[1] = -85.051129;
     }
 
     if (bbox[3] > 85.051129) {

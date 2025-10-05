@@ -235,8 +235,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
   rows.forEach((row) => {
     if (row[extraInfoType] !== null) {
       result[
-        `${row.zoom_level}/${row.tile_column}/${
-          (1 << row.zoom_level) - 1 - row.tile_row
+        `${row.zoom_level}/${row.tile_column}/${(1 << row.zoom_level) - 1 - row.tile_row
         }`
       ] = row[extraInfoType];
     }
@@ -838,7 +837,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
 
         compositesOption.push({
           limitInputPixels: false,
-          input: await createImageOutput(tile.tile_data),
+          input: await createImageOutput(tile.tile_data, {}),
           left: (tile.tile_column - minX) * width,
           top: (maxY - tile.tile_row) * height,
         });
@@ -1971,7 +1970,7 @@ export async function addPostgreSQLOverviews(
 
         compositesOption.push({
           limitInputPixels: false,
-          input: await createImageOutput(tile.tile_data),
+          input: await createImageOutput(tile.tile_data, {}),
           left: (tile.tile_column - minX) * width,
           top: (tile.tile_row - minY) * height,
         });
@@ -2960,7 +2959,7 @@ export async function addXYZOverviews(
 
           compositesOption.push({
             limitInputPixels: false,
-            input: await createImageOutput(tile),
+            input: await createImageOutput(tile, {}),
             left: (dx - minX) * width,
             top: (dy - minY) * height,
           });
