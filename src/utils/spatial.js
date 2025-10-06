@@ -1,6 +1,7 @@
 "use strict";
 
 import { calculateResolution } from "./image.js";
+import { limitValue } from "./number.js";
 import { deepClone } from "./util.js";
 
 /**
@@ -10,19 +11,8 @@ import { deepClone } from "./util.js";
  * @returns {[number, number]} Web Mercator x, y in meters
  */
 export function lonLat4326ToXY3857(lon, lat) {
-  // Limit longitude
-  if (lon > 180) {
-    lon = 180;
-  } else if (lon < -180) {
-    lon = -180;
-  }
-
-  // Limit latitude
-  if (lat > 85.051129) {
-    lat = 85.051129;
-  } else if (lat < -85.051129) {
-    lat = -85.051129;
-  }
+  lon = limitValue(lon, -180, 180);
+  lat = limitValue(lat, -85.051129, 85.051129);
 
   return [
     lon * (Math.PI / 180) * 6378137.0,
@@ -40,19 +30,8 @@ export function xy3857ToLonLat4326(x, y) {
   let lon = (x / 6378137.0) * (180 / Math.PI);
   let lat = Math.atan(Math.sinh(y / 6378137.0)) * (180 / Math.PI);
 
-  // Limit longitude
-  if (lon > 180) {
-    lon = 180;
-  } else if (lon < -180) {
-    lon = -180;
-  }
-
-  // Limit latitude
-  if (lat > 85.051129) {
-    lat = 85.051129;
-  } else if (lat < -85.051129) {
-    lat = -85.051129;
-  }
+  lon = limitValue(lon, -180, 180);
+  lat = limitValue(lat, -85.051129, 85.051129);
 
   return [lon, lat];
 }
@@ -73,43 +52,21 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   const zc = size / 2;
   const maxTileIndex = (1 << z) - 1;
 
-  // Limit longitude
-  if (lon > 180) {
-    lon = 180;
-  } else if (lon < -180) {
-    lon = -180;
-  }
-
-  // Limit latitude
-  if (lat > 85.051129) {
-    lat = 85.051129;
-  } else if (lat < -85.051129) {
-    lat = -85.051129;
-  }
+  lon = limitValue(lon, -180, 180);
+  lat = limitValue(lat, -85.051129, 85.051129);
 
   let x = Math.floor((zc + lon * bc) / tileSize);
   let y = Math.floor(
     (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
-    tileSize
+      tileSize
   );
 
   if (scheme === "tms") {
     y = maxTileIndex - y;
   }
 
-  // Limit x
-  if (x < 0) {
-    x = 0;
-  } else if (x > maxTileIndex) {
-    x = maxTileIndex;
-  }
-
-  // Limit y
-  if (y < 0) {
-    y = 0;
-  } else if (y > maxTileIndex) {
-    y = maxTileIndex;
-  }
+  x = limitValue(x, 0, maxTileIndex);
+  y = limitValue(y, 0, maxTileIndex);
 
   return [x, y, z];
 }
@@ -168,12 +125,11 @@ export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
 
   const res = xRes <= yRes ? xRes : yRes;
 
-  let maxZoom = Math.round(
-    Math.log2((2 * Math.PI * 6378137.0) / tileSize / res)
+  const maxZoom = limitValue(
+    Math.round(Math.log2((2 * Math.PI * 6378137.0) / tileSize / res)),
+    0,
+    25
   );
-  if (maxZoom > 25) {
-    maxZoom = 25;
-  }
 
   let minZoom = maxZoom;
 
@@ -245,14 +201,14 @@ export function calculateSizes(z, bbox, tileScale = 1, tileSize = 512) {
 }
 
 /**
- * Get grids for specific coverage with optional lat/lon steps (Keeps both head and tail residuals)
- * @param {{ zoom: number, bbox: [number, number, number, number] }} coverage
+ * Get grids for specific bbox with optional lat/lon steps (Keeps both head and tail residuals)
+ * @param {[number, number, number, number]} bbox [minLon, minLat, maxLon, maxLat]
  * @param {number} lonStep Step for longitude
  * @param {number} latStep Step for latitude
- * @returns {{ zoom: number, bbox: [number, number, number, number] }[]}
+ * @returns {[number, number, number, number][]}
  */
-export function getGridsFromCoverage(coverage, lonStep, latStep) {
-  const grids = [];
+export function splitBBox(bbox, lonStep, latStep) {
+  const result = [];
 
   function splitStep(start, end, step) {
     const ranges = [];
@@ -280,23 +236,36 @@ export function getGridsFromCoverage(coverage, lonStep, latStep) {
     return ranges;
   }
 
+  const [minLon, minLat, maxLon, maxLat] = bbox;
+
   const lonRanges = lonStep
-    ? splitStep(coverage.bbox[0], coverage.bbox[2], lonStep)
-    : [[coverage.bbox[0], coverage.bbox[2]]];
+    ? splitStep(minLon, maxLon, lonStep)
+    : [[minLon, maxLon]];
   const latRanges = latStep
-    ? splitStep(coverage.bbox[1], coverage.bbox[3], latStep)
-    : [[coverage.bbox[1], coverage.bbox[3]]];
+    ? splitStep(minLat, maxLat, latStep)
+    : [[minLat, maxLat]];
 
   for (const [lonStart, lonEnd] of lonRanges) {
     for (const [latStart, latEnd] of latRanges) {
-      grids.push({
-        bbox: [lonStart, latStart, lonEnd, latEnd],
-        zoom: coverage.zoom,
-      });
+      result.push([lonStart, latStart, lonEnd, latEnd]);
     }
   }
 
-  return grids;
+  return result;
+}
+
+/**
+ * Get grids for specific coverage with optional lat/lon steps (Keeps both head and tail residuals)
+ * @param {{ zoom: number, bbox: [number, number, number, number] }} coverage
+ * @param {number} lonStep Step for longitude
+ * @param {number} latStep Step for latitude
+ * @returns {{ zoom: number, bbox: [number, number, number, number] }[]}
+ */
+export function getGridsFromCoverage(coverage, lonStep, latStep) {
+  return splitBBox(coverage.bbox, lonStep, latStep).map((bbox) => ({
+    bbox: bbox,
+    zoom: coverage.zoom,
+  }));
 }
 
 /**
@@ -312,26 +281,12 @@ export function getTileBounds(options) {
 
   if (options.coverages) {
     tileBounds = options.coverages.map((coverage, idx) => {
-      const bbox = coverage.circle
+      let bbox = coverage.circle
         ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
         : deepClone(coverage.bbox);
 
       if (options.limitedBBox) {
-        if (bbox[0] < options.limitedBBox[0]) {
-          bbox[0] = options.limitedBBox[0];
-        }
-
-        if (bbox[1] < options.limitedBBox[1]) {
-          bbox[1] = options.limitedBBox[1];
-        }
-
-        if (bbox[2] > options.limitedBBox[2]) {
-          bbox[2] = options.limitedBBox[2];
-        }
-
-        if (bbox[3] > options.limitedBBox[3]) {
-          bbox[3] = options.limitedBBox[3];
-        }
+        bbox = getIntersectBBox(bbox, options.limitedBBox);
       }
 
       const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
@@ -354,18 +309,7 @@ export function getTileBounds(options) {
       if (idx === 0) {
         realBBox = _bbox;
       } else {
-        if (realBBox[0] < _bbox[0]) {
-          realBBox[0] = _bbox[0];
-        }
-        if (realBBox[1] < _bbox[1]) {
-          realBBox[1] = _bbox[1];
-        }
-        if (realBBox[2] > _bbox[2]) {
-          realBBox[2] = _bbox[2];
-        }
-        if (realBBox[3] > _bbox[3]) {
-          realBBox[3] = _bbox[3];
-        }
+        realBBox = getIntersectBBox(realBBox, _bbox);
       }
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
@@ -388,24 +332,10 @@ export function getTileBounds(options) {
     });
   } else {
     for (let zoom = options.minZoom; zoom <= options.maxZoom; zoom++) {
-      const bbox = deepClone(options.bbox);
+      let bbox = deepClone(options.bbox);
 
       if (options.limitedBBox) {
-        if (bbox[0] < options.limitedBBox[0]) {
-          bbox[0] = options.limitedBBox[0];
-        }
-
-        if (bbox[1] < options.limitedBBox[1]) {
-          bbox[1] = options.limitedBBox[1];
-        }
-
-        if (bbox[2] > options.limitedBBox[2]) {
-          bbox[2] = options.limitedBBox[2];
-        }
-
-        if (bbox[3] > options.limitedBBox[3]) {
-          bbox[3] = options.limitedBBox[3];
-        }
+        bbox = getIntersectBBox(bbox, options.limitedBBox);
       }
 
       const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
@@ -428,18 +358,7 @@ export function getTileBounds(options) {
       if (zoom === options.minZoom) {
         realBBox = _bbox;
       } else {
-        if (realBBox[0] < _bbox[0]) {
-          realBBox[0] = _bbox[0];
-        }
-        if (realBBox[1] < _bbox[1]) {
-          realBBox[1] = _bbox[1];
-        }
-        if (realBBox[2] > _bbox[2]) {
-          realBBox[2] = _bbox[2];
-        }
-        if (realBBox[3] > _bbox[3]) {
-          realBBox[3] = _bbox[3];
-        }
+        realBBox = getIntersectBBox(realBBox, _bbox);
       }
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
@@ -591,29 +510,10 @@ export function getBBoxFromPoint(points) {
       }
     }
 
-    if (bbox[0] > 180) {
-      bbox[0] = 180;
-    } else if (bbox[0] < -180) {
-      bbox[0] = -180;
-    }
-
-    if (bbox[2] > 180) {
-      bbox[2] = 180;
-    } else if (bbox[2] < -180) {
-      bbox[2] = -180;
-    }
-
-    if (bbox[1] > 85.051129) {
-      bbox[1] = 85.051129;
-    } else if (bbox[1] < -85.051129) {
-      bbox[1] = -85.051129;
-    }
-
-    if (bbox[3] > 85.051129) {
-      bbox[3] = 85.051129;
-    } else if (bbox[3] < -85.051129) {
-      bbox[3] = -85.051129;
-    }
+    bbox[0] = limitValue(bbox[0], -180, 180);
+    bbox[2] = limitValue(bbox[2], -180, 180);
+    bbox[1] = limitValue(bbox[1], -85.051129, 85.051129);
+    bbox[3] = limitValue(bbox[3], -85.051129, 85.051129);
   }
 
   return bbox;

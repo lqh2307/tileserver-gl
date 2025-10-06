@@ -2,6 +2,7 @@
 
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
+import { limitValue } from "../utils/number.js";
 import { PMTiles, FetchSource } from "pmtiles";
 import { openSync, readSync } from "node:fs";
 import { config } from "../configs/index.js";
@@ -143,29 +144,10 @@ function getMBTilesBBoxFromTiles(source) {
       }
     }
 
-    if (bbox[0] > 180) {
-      bbox[0] = 180;
-    } else if (bbox[0] < -180) {
-      bbox[0] = -180;
-    }
-
-    if (bbox[1] > 180) {
-      bbox[1] = 180;
-    } else if (bbox[1] < -180) {
-      bbox[1] = -180;
-    }
-
-    if (bbox[2] > 85.051129) {
-      bbox[2] = 85.051129;
-    } else if (bbox[2] < -85.051129) {
-      bbox[2] = -85.051129;
-    }
-
-    if (bbox[3] > 85.051129) {
-      bbox[3] = 85.051129;
-    } else if (bbox[3] < -85.051129) {
-      bbox[3] = -85.051129;
-    }
+    bbox[0] = limitValue(bbox[0], -180, 180);
+    bbox[2] = limitValue(bbox[2], -180, 180);
+    bbox[1] = limitValue(bbox[1], -85.051129, 85.051129);
+    bbox[3] = limitValue(bbox[3], -85.051129, 85.051129);
   }
 
   return bbox;
@@ -235,7 +217,8 @@ export function getMBTilesTileExtraInfoFromCoverages(
   rows.forEach((row) => {
     if (row[extraInfoType] !== null) {
       result[
-        `${row.zoom_level}/${row.tile_column}/${(1 << row.zoom_level) - 1 - row.tile_row
+        `${row.zoom_level}/${row.tile_column}/${
+          (1 << row.zoom_level) - 1 - row.tile_row
         }`
       ] = row[extraInfoType];
     }
@@ -1300,29 +1283,10 @@ async function getPostgreSQLBBoxFromTiles(source) {
       }
     }
 
-    if (bbox[0] > 180) {
-      bbox[0] = 180;
-    } else if (bbox[0] < -180) {
-      bbox[0] = -180;
-    }
-
-    if (bbox[1] > 180) {
-      bbox[1] = 180;
-    } else if (bbox[1] < -180) {
-      bbox[1] = -180;
-    }
-
-    if (bbox[2] > 85.051129) {
-      bbox[2] = 85.051129;
-    } else if (bbox[2] < -85.051129) {
-      bbox[2] = -85.051129;
-    }
-
-    if (bbox[3] > 85.051129) {
-      bbox[3] = 85.051129;
-    } else if (bbox[3] < -85.051129) {
-      bbox[3] = -85.051129;
-    }
+    bbox[0] = limitValue(bbox[0], -180, 180);
+    bbox[2] = limitValue(bbox[2], -180, 180);
+    bbox[1] = limitValue(bbox[1], -85.051129, 85.051129);
+    bbox[3] = limitValue(bbox[3], -85.051129, 85.051129);
   }
 
   return bbox;
