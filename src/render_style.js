@@ -415,7 +415,9 @@ export async function renderImageTileData(option) {
 
         const tileSize = hackTileSize * option.tileScale;
         const originTileSize = Math.floor(tileSize);
-        const targetTileSize = isNeedHack ? Math.floor(tileSize / 2) : undefined;
+        const targetTileSize = isNeedHack
+          ? Math.floor(tileSize / 2)
+          : undefined;
 
         createImageOutput(data, {
           rawOption: {
@@ -444,52 +446,147 @@ export async function renderImageTileData(option) {
  * @returns {Promise<Buffer|string|void>}
  */
 export async function renderImageStaticData(option) {
+  const MAX_TILE_PX = 4096;
+
+  const sizes = calculateSizes(
+    option.zoom,
+    option.bbox,
+    option.tileScale,
+    option.tileSize
+  );
+
+  if (sizes.width <= MAX_TILE_PX && sizes.height <= MAX_TILE_PX) {
+    const renderer = createRenderer(
+      "static",
+      option.tileScale,
+      option.styleJSON
+    );
+
+    return await new Promise((resolve, reject) => {
+      renderer.render(
+        {
+          zoom: option.zoom,
+          center: [
+            (option.bbox[0] + option.bbox[2]) / 2,
+            (option.bbox[1] + option.bbox[3]) / 2,
+          ],
+          width: sizes.width,
+          height: sizes.height,
+        },
+        (error, data) => {
+          renderer.release();
+
+          if (error) {
+            return reject(error);
+          }
+
+          createImageOutput(data, {
+            rawOption: {
+              premultiplied: true,
+              width: sizes.width,
+              height: sizes.height,
+              channels: 4,
+            },
+            format: option.format,
+            base64: option.base64,
+            grayscale: option.grayscale,
+            width: option.width,
+            height: option.height,
+            filePath: option.filePath,
+          })
+            .then(resolve)
+            .catch(reject);
+        }
+      );
+    });
+  } else {
+  }
+}
+
+export async function renderImageStaticData(option) {
+  const MAX_TILE_PX = 4096;
   const renderer = createRenderer("static", option.tileScale, option.styleJSON);
 
-  return await new Promise((resolve, reject) => {
-    const sizes = calculateSizes(
-      option.zoom,
-      option.bbox,
-      option.tileScale,
-      option.tileSize
-    );
+  const sizes = calculateSizes(
+    option.zoom,
+    option.bbox,
+    option.tileScale,
+    option.tileSize
+  );
 
-    renderer.render(
-      {
-        zoom: option.zoom,
-        center: [
-          (option.bbox[0] + option.bbox[2]) / 2,
-          (option.bbox[1] + option.bbox[3]) / 2,
-        ],
-        width: sizes.width,
-        height: sizes.height,
-      },
-      (error, data) => {
-        renderer.release();
+  // Tính số lượng mảnh chia đều
+  const xSplits = Math.ceil(sizes.width / MAX_TILE_PX);
+  const ySplits = Math.ceil(sizes.height / MAX_TILE_PX);
 
-        if (error) {
-          return reject(error);
-        }
+  const [minLon, minLat, maxLon, maxLat] = option.bbox;
+  const lonStep = (maxLon - minLon) / xSplits;
+  const latStep = (maxLat - minLat) / ySplits;
 
-        createImageOutput(data, {
-          rawOption: {
-            premultiplied: true,
-            width: sizes.width,
-            height: sizes.height,
-            channels: 4,
-          },
-          format: option.format,
-          base64: option.base64,
-          grayscale: option.grayscale,
-          width: option.width,
-          height: option.height,
-          filePath: option.filePath,
-        })
-          .then(resolve)
-          .catch(reject);
-      }
-    );
-  });
+  const parts = [];
+  for (let xi = 0; xi < xSplits; xi++) {
+    for (let yi = 0; yi < ySplits; yi++) {
+      const subBBox = [
+        minLon + xi * lonStep,
+        minLat + yi * latStep,
+        minLon + (xi + 1) * lonStep,
+        minLat + (yi + 1) * latStep,
+      ];
+
+      const subOption = {
+        ...option,
+        bbox: subBBox,
+      };
+
+      const subSizes = calculateSizes(
+        option.zoom,
+        subBBox,
+        option.tileScale,
+        option.tileSize
+      );
+
+      const buffer = await renderSingleBBox(renderer, subOption, subSizes);
+
+      parts.push({
+        buffer,
+        x: xi * subSizes.width,
+        // Lưu ý: đảo trục Y vì render tính từ dưới lên
+        y: (ySplits - yi - 1) * subSizes.height,
+      });
+    }
+  }
+
+  renderer.release();
+
+  // Ghép tất cả các mảnh lại bằng sharp
+  const totalWidth = sizes.width;
+  const totalHeight = sizes.height;
+
+  const final = sharp({
+    create: {
+      width: totalWidth,
+      height: totalHeight,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    },
+  }).composite(
+    parts.map((p) => ({
+      input: p.buffer,
+      left: p.x,
+      top: p.y,
+    }))
+  );
+
+  const output = await final.toFormat(option.format).toBuffer();
+
+  if (option.filePath) {
+    await sharp(output).toFile(option.filePath);
+  }
+
+  if (option.base64) {
+    return output.toString("base64");
+  }
+
+  return output;
 }
 
 /**
@@ -504,20 +601,18 @@ export async function renderStyleJSON(overlays) {
     const overlay = overlays[idx];
 
     // Create image
-    targetOverlays[idx] = await renderImageStaticData(
-      {
-        styleJSON: overlay.styleJSON,
-        tileScale: overlay.tileScale || 1,
-        tileSize: overlay.tileSize || 512,
-        zoom: overlay.zoom,
-        bbox: overlay.bbox,
-        width: overlay.width,
-        height: overlay.height,
-        format: overlay.format,
-        base64: overlay.base64,
-        grayscale: overlay.grayscale,
-      }
-    );
+    targetOverlays[idx] = await renderImageStaticData({
+      styleJSON: overlay.styleJSON,
+      tileScale: overlay.tileScale || 1,
+      tileSize: overlay.tileSize || 512,
+      zoom: overlay.zoom,
+      bbox: overlay.bbox,
+      width: overlay.width,
+      height: overlay.height,
+      format: overlay.format,
+      base64: overlay.base64,
+      grayscale: overlay.grayscale,
+    });
   }
 
   // Batch run
@@ -749,8 +844,7 @@ export async function renderMBTilesTiles(
     if (maxRendererPoolSize) {
       pool = createPool(
         {
-          create: () =>
-            createRenderer("tile", tileScale, styleJSON),
+          create: () => createRenderer("tile", tileScale, styleJSON),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -800,7 +894,6 @@ export async function renderMBTilesTiles(
             `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
           );
 
-
           // Rendered data
           const data = await renderImageTileData({
             pool: pool,
@@ -847,13 +940,15 @@ export async function renderMBTilesTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -988,8 +1083,7 @@ export async function renderXYZTiles(
     if (maxRendererPoolSize) {
       pool = createPool(
         {
-          create: () =>
-            createRenderer("tile", tileScale, styleJSON),
+          create: () => createRenderer("tile", tileScale, styleJSON),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -997,7 +1091,7 @@ export async function renderXYZTiles(
           max: maxRendererPoolSize,
         }
       );
-    };
+    }
 
     async function renderXYZTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
@@ -1106,13 +1200,15 @@ export async function renderXYZTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to xyz after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to xyz after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1237,8 +1333,7 @@ export async function renderPostgreSQLTiles(
     if (maxRendererPoolSize) {
       pool = createPool(
         {
-          create: () =>
-            createRenderer("tile", tileScale, styleJSON),
+          create: () => createRenderer("tile", tileScale, styleJSON),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -1348,13 +1443,15 @@ export async function renderPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
