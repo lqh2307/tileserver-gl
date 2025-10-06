@@ -446,7 +446,7 @@ export async function renderImageTileData(option) {
  * @returns {Promise<Buffer|string|void>}
  */
 export async function renderImageStaticData(option) {
-  const MAX_TILE_PX = 4096;
+  const MAX_TILE_PX = 8192;
 
   const sizes = calculateSizes(
     option.zoom,
@@ -455,138 +455,131 @@ export async function renderImageStaticData(option) {
     option.tileSize
   );
 
-  if (sizes.width <= MAX_TILE_PX && sizes.height <= MAX_TILE_PX) {
-    const renderer = createRenderer(
-      "static",
-      option.tileScale,
-      option.styleJSON
-    );
-
-    return await new Promise((resolve, reject) => {
-      renderer.render(
-        {
-          zoom: option.zoom,
-          center: [
-            (option.bbox[0] + option.bbox[2]) / 2,
-            (option.bbox[1] + option.bbox[3]) / 2,
-          ],
-          width: sizes.width,
-          height: sizes.height,
-        },
-        (error, data) => {
-          renderer.release();
-
-          if (error) {
-            return reject(error);
-          }
-
-          createImageOutput(data, {
-            rawOption: {
-              premultiplied: true,
-              width: sizes.width,
-              height: sizes.height,
-              channels: 4,
-            },
-            format: option.format,
-            base64: option.base64,
-            grayscale: option.grayscale,
-            width: option.width,
-            height: option.height,
-            filePath: option.filePath,
-          })
-            .then(resolve)
-            .catch(reject);
-        }
-      );
-    });
-  } else {
-  }
-}
-
-export async function renderImageStaticData(option) {
-  const MAX_TILE_PX = 4096;
   const renderer = createRenderer("static", option.tileScale, option.styleJSON);
 
-  const sizes = calculateSizes(
-    option.zoom,
-    option.bbox,
-    option.tileScale,
-    option.tileSize
-  );
+  try {
+    if (sizes.width <= MAX_TILE_PX && sizes.height <= MAX_TILE_PX) {
+      return await new Promise((resolve, reject) => {
+        renderer.render(
+          {
+            zoom: option.zoom,
+            center: [
+              (option.bbox[0] + option.bbox[2]) / 2,
+              (option.bbox[1] + option.bbox[3]) / 2,
+            ],
+            width: sizes.width,
+            height: sizes.height,
+          },
+          (error, data) => {
+            if (error) {
+              return reject(error);
+            }
 
-  // Tính số lượng mảnh chia đều
-  const xSplits = Math.ceil(sizes.width / MAX_TILE_PX);
-  const ySplits = Math.ceil(sizes.height / MAX_TILE_PX);
+            createImageOutput(data, {
+              rawOption: {
+                premultiplied: true,
+                width: sizes.width,
+                height: sizes.height,
+                channels: 4,
+              },
+              format: option.format,
+              base64: option.base64,
+              grayscale: option.grayscale,
+              width: option.width,
+              height: option.height,
+              filePath: option.filePath,
+            })
+              .then(resolve)
+              .catch(reject);
+          }
+        );
+      });
+    } else {
+      const xSplits = Math.ceil(sizes.width / MAX_TILE_PX);
+      const ySplits = Math.ceil(sizes.height / MAX_TILE_PX);
+      const lonStep = (option.bbox[2] - option.bbox[0]) / xSplits;
+      const latStep = (option.bbox[3] - option.bbox[1]) / ySplits;
 
-  const [minLon, minLat, maxLon, maxLat] = option.bbox;
-  const lonStep = (maxLon - minLon) / xSplits;
-  const latStep = (maxLat - minLat) / ySplits;
+      const compositesOption = [];
 
-  const parts = [];
-  for (let xi = 0; xi < xSplits; xi++) {
-    for (let yi = 0; yi < ySplits; yi++) {
-      const subBBox = [
-        minLon + xi * lonStep,
-        minLat + yi * latStep,
-        minLon + (xi + 1) * lonStep,
-        minLat + (yi + 1) * latStep,
-      ];
+      for (let xi = 0; xi < xSplits; xi++) {
+        for (let yi = 0; yi < ySplits; yi++) {
+          const subBBox = [
+            option.bbox[0] + xi * lonStep,
+            option.bbox[1] + yi * latStep,
+            option.bbox[0] + (xi + 1) * lonStep,
+            option.bbox[1] + (yi + 1) * latStep,
+          ];
 
-      const subOption = {
-        ...option,
-        bbox: subBBox,
-      };
+          const subSizes = calculateSizes(
+            option.zoom,
+            subBBox,
+            option.tileScale,
+            option.tileSize
+          );
 
-      const subSizes = calculateSizes(
-        option.zoom,
-        subBBox,
-        option.tileScale,
-        option.tileSize
-      );
+          const data = await new Promise((resolve, reject) => {
+            renderer.render(
+              {
+                zoom: option.zoom,
+                center: [
+                  (subBBox[0] + subBBox[2]) / 2,
+                  (subBBox[1] + subBBox[3]) / 2,
+                ],
+                width: subSizes.width,
+                height: subSizes.height,
+              },
+              (error, data) => {
+                if (error) {
+                  return reject(error);
+                }
 
-      const buffer = await renderSingleBBox(renderer, subOption, subSizes);
+                createImageOutput(data, {
+                  rawOption: {
+                    premultiplied: true,
+                    width: subSizes.width,
+                    height: subSizes.height,
+                    channels: 4,
+                  },
+                  format: option.format,
+                })
+                  .then(resolve)
+                  .catch(reject);
+              }
+            );
+          });
 
-      parts.push({
-        buffer,
-        x: xi * subSizes.width,
-        // Lưu ý: đảo trục Y vì render tính từ dưới lên
-        y: (ySplits - yi - 1) * subSizes.height,
+          compositesOption.push({
+            limitInputPixels: false,
+            input: data,
+            left: xi * subSizes.width,
+            top: (ySplits - yi - 1) * subSizes.height,
+          });
+        }
+      }
+
+      return await createImageOutput(undefined, {
+        createOption: {
+          width: sizes.width,
+          height: sizes.height,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        },
+        compositesOption: compositesOption,
+        format: option.format,
+        width: option.width,
+        height: option.height,
+        base64: option.base64,
+        grayscale: option.grayscale,
       });
     }
+  } catch (error) {
+    throw error;
+  } finally {
+    if (renderer) {
+      renderer.release();
+    }
   }
-
-  renderer.release();
-
-  // Ghép tất cả các mảnh lại bằng sharp
-  const totalWidth = sizes.width;
-  const totalHeight = sizes.height;
-
-  const final = sharp({
-    create: {
-      width: totalWidth,
-      height: totalHeight,
-      channels: 4,
-      background: { r: 255, g: 255, b: 255, alpha: 0 },
-    },
-  }).composite(
-    parts.map((p) => ({
-      input: p.buffer,
-      left: p.x,
-      top: p.y,
-    }))
-  );
-
-  const output = await final.toFormat(option.format).toBuffer();
-
-  if (option.filePath) {
-    await sharp(output).toFile(option.filePath);
-  }
-
-  if (option.base64) {
-    return output.toString("base64");
-  }
-
-  return output;
 }
 
 /**
@@ -940,15 +933,13 @@ export async function renderMBTilesTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to mbtiles after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1200,15 +1191,13 @@ export async function renderXYZTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to xyz after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to xyz after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1443,15 +1432,13 @@ export async function renderPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to postgresql after ${
-        (Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {

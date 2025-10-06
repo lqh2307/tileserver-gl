@@ -21,6 +21,7 @@ import {
   runSQLWithTimeout,
   getImageMetadata,
   getBBoxFromTiles,
+  getIntersectBBox,
   closePostgreSQL,
   getDataFromURL,
   openPostgreSQL,
@@ -118,30 +119,14 @@ function getMBTilesBBoxFromTiles(source) {
     );
 
     for (let index = 1; index < rows.length; index++) {
-      const _bbox = getBBoxFromTiles(
+      bbox = getIntersectBBox(bbox, getBBoxFromTiles(
         rows[index].xMin,
         rows[index].yMin,
         rows[index].xMax,
         rows[index].yMax,
         rows[index].zoom_level,
         "tms"
-      );
-
-      if (_bbox[0] < bbox[0]) {
-        bbox[0] = _bbox[0];
-      }
-
-      if (_bbox[1] < bbox[1]) {
-        bbox[1] = _bbox[1];
-      }
-
-      if (_bbox[2] > bbox[2]) {
-        bbox[2] = _bbox[2];
-      }
-
-      if (_bbox[3] > bbox[3]) {
-        bbox[3] = _bbox[3];
-      }
+      ));
     }
 
     bbox[0] = limitValue(bbox[0], -180, 180);
@@ -176,7 +161,7 @@ function getMBTilesZoomLevelFromTiles(source, zoomType) {
  * @param {Database} source SQLite database instance
  * @returns {string}
  */
-function getMBTilesFormatFromTiles(source) {
+export function getMBTilesFormatFromTiles(source) {
   const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
 
   if (data?.tile_data) {
@@ -196,7 +181,10 @@ export function getMBTilesTileExtraInfoFromCoverages(
   coverages,
   isCreated
 ) {
-  const { tileBounds } = getTileBounds({ coverages: coverages, scheme: "tms" });
+  const { tileBounds } = getTileBounds({
+    coverages: coverages,
+    scheme: "tms",
+  });
 
   let query = "";
   const extraInfoType = isCreated ? "created" : "hash";
@@ -216,9 +204,9 @@ export function getMBTilesTileExtraInfoFromCoverages(
 
   rows.forEach((row) => {
     if (row[extraInfoType] !== null) {
+      // TMS -> XYZ
       result[
-        `${row.zoom_level}/${row.tile_column}/${
-          (1 << row.zoom_level) - 1 - row.tile_row
+        `${row.zoom_level}/${row.tile_column}/${(1 << row.zoom_level) - 1 - row.tile_row
         }`
       ] = row[extraInfoType];
     }
@@ -1257,30 +1245,14 @@ async function getPostgreSQLBBoxFromTiles(source) {
     );
 
     for (let index = 1; index < data.rows.length; index++) {
-      const _bbox = getBBoxFromTiles(
+      bbox = getIntersectBBox(bbox, getBBoxFromTiles(
         data.rows[index].xMin,
         data.rows[index].yMin,
         data.rows[index].xMax,
         data.rows[index].yMax,
         data.rows[index].zoom_level,
         "xyz"
-      );
-
-      if (_bbox[0] < bbox[0]) {
-        bbox[0] = _bbox[0];
-      }
-
-      if (_bbox[1] < bbox[1]) {
-        bbox[1] = _bbox[1];
-      }
-
-      if (_bbox[2] > bbox[2]) {
-        bbox[2] = _bbox[2];
-      }
-
-      if (_bbox[3] > bbox[3]) {
-        bbox[3] = _bbox[3];
-      }
+      ));
     }
 
     bbox[0] = limitValue(bbox[0], -180, 180);
@@ -1315,7 +1287,7 @@ async function getPostgreSQLZoomLevelFromTiles(source, zoomType) {
  * @param {pg.Client} source PostgreSQL database instance
  * @returns {Promise<string>}
  */
-async function getPostgreSQLFormatFromTiles(source) {
+export async function getPostgreSQLFormatFromTiles(source) {
   const data = await source.query("SELECT tile_data FROM tiles LIMIT 1;");
 
   if (data.rows.length !== 0) {
@@ -2193,7 +2165,7 @@ async function getXYZZoomLevelFromTiles(sourcePath, zoomType) {
  * @param {string} sourcePath XYZ folder path
  * @returns {Promise<string>}
  */
-async function getXYZFormatFromTiles(sourcePath) {
+export async function getXYZFormatFromTiles(sourcePath) {
   const zFolders = await findFiles(sourcePath, /^\d+$/, false, false, true);
 
   for (const zFolder of zFolders) {
