@@ -2,7 +2,6 @@
 
 import { calculateResolution } from "./image.js";
 import { limitValue } from "./number.js";
-import { deepClone } from "./util.js";
 
 /**
  * Convert coordinates from EPSG:4326 (lon, lat) to EPSG:3857 (x, y in meters)
@@ -236,14 +235,12 @@ export function splitBBox(bbox, lonStep, latStep) {
     return ranges;
   }
 
-  const [minLon, minLat, maxLon, maxLat] = bbox;
-
   const lonRanges = lonStep
-    ? splitStep(minLon, maxLon, lonStep)
-    : [[minLon, maxLon]];
+    ? splitStep(bbox.minLon, bbox.maxLon, lonStep)
+    : [[bbox.minLon, bbox.maxLon]];
   const latRanges = latStep
-    ? splitStep(minLat, maxLat, latStep)
-    : [[minLat, maxLat]];
+    ? splitStep(bbox.minLat, bbox.maxLat, latStep)
+    : [[bbox.minLat, bbox.maxLat]];
 
   for (const [lonStart, lonEnd] of lonRanges) {
     for (const [latStart, latEnd] of latRanges) {
@@ -281,25 +278,14 @@ export function getTileBounds(options) {
 
   if (options.coverages) {
     tileBounds = options.coverages.map((coverage, idx) => {
-      const bbox = coverage.circle
+      let bbox = coverage.circle
         ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
-        : deepClone(coverage.bbox);
+        : coverage.bbox;
 
       if (options.limitedBBox) {
-        if (bbox[0] < options.limitedBBox[0]) {
-          bbox[0] = options.limitedBBox[0];
-        }
-
-        if (bbox[1] < options.limitedBBox[1]) {
-          bbox[1] = options.limitedBBox[1];
-        }
-
-        if (bbox[2] > options.limitedBBox[2]) {
-          bbox[2] = options.limitedBBox[2];
-        }
-
-        if (bbox[3] > options.limitedBBox[3]) {
-          bbox[3] = options.limitedBBox[3];
+        const intersecBBox = getIntersectBBox(bbox, options.limitedBBox);
+        if (intersecBBox) {
+          bbox = intersecBBox;
         }
       }
 
@@ -320,22 +306,7 @@ export function getTileBounds(options) {
         options.tileSize
       );
 
-      if (idx === 0) {
-        realBBox = _bbox;
-      } else {
-        if (realBBox[0] < _bbox[0]) {
-          realBBox[0] = _bbox[0];
-        }
-        if (realBBox[1] < _bbox[1]) {
-          realBBox[1] = _bbox[1];
-        }
-        if (realBBox[2] > _bbox[2]) {
-          realBBox[2] = _bbox[2];
-        }
-        if (realBBox[3] > _bbox[3]) {
-          realBBox[3] = _bbox[3];
-        }
-      }
+      realBBox = idx === 0 ? _bbox : getCoverBBox(realBBox, _bbox);
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
 
@@ -357,23 +328,12 @@ export function getTileBounds(options) {
     });
   } else {
     for (let zoom = options.minZoom; zoom <= options.maxZoom; zoom++) {
-      const bbox = deepClone(options.bbox);
+      let bbox = options.bbox;
 
       if (options.limitedBBox) {
-        if (bbox[0] < options.limitedBBox[0]) {
-          bbox[0] = options.limitedBBox[0];
-        }
-
-        if (bbox[1] < options.limitedBBox[1]) {
-          bbox[1] = options.limitedBBox[1];
-        }
-
-        if (bbox[2] > options.limitedBBox[2]) {
-          bbox[2] = options.limitedBBox[2];
-        }
-
-        if (bbox[3] > options.limitedBBox[3]) {
-          bbox[3] = options.limitedBBox[3];
+        const intersecBBox = getIntersectBBox(bbox, options.limitedBBox);
+        if (intersecBBox) {
+          bbox = intersecBBox;
         }
       }
 
@@ -394,22 +354,7 @@ export function getTileBounds(options) {
         options.tileSize
       );
 
-      if (zoom === options.minZoom) {
-        realBBox = _bbox;
-      } else {
-        if (realBBox[0] < _bbox[0]) {
-          realBBox[0] = _bbox[0];
-        }
-        if (realBBox[1] < _bbox[1]) {
-          realBBox[1] = _bbox[1];
-        }
-        if (realBBox[2] > _bbox[2]) {
-          realBBox[2] = _bbox[2];
-        }
-        if (realBBox[3] > _bbox[3]) {
-          realBBox[3] = _bbox[3];
-        }
-      }
+      realBBox = zoom === options.minZoom ? _bbox : getCoverBBox(realBBox, _bbox);
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
 
@@ -537,7 +482,7 @@ export function getBBoxFromCircle(center, radius) {
  * @returns {[number, number, number, number]} Bounding box in the format [minLon, minLat, maxLon, maxLat]
  */
 export function getBBoxFromPoint(points) {
-  let bbox = [-180, -85.051129, 180, 85.051129];
+  let bbox;
 
   if (points.length) {
     bbox = [points[0][0], points[0][1], points[0][0], points[0][1]];
@@ -576,14 +521,29 @@ export function getBBoxFromPoint(points) {
  * @returns {[number, number, number, number]} Intersect bounding box in the format [minLon, minLat, maxLon, maxLat]
  */
 export function getIntersectBBox(bbox1, bbox2) {
-  const minLon = bbox1[0] >= bbox2[0] ? bbox1[0] : bbox2[0];
-  const minLat = bbox1[1] >= bbox2[1] ? bbox1[1] : bbox2[1];
-  const maxLon = bbox1[2] <= bbox2[2] ? bbox1[2] : bbox2[2];
-  const maxLat = bbox1[3] <= bbox2[3] ? bbox1[3] : bbox2[3];
+  const minLon = bbox1[0] > bbox2[0] ? bbox1[0] : bbox2[0];
+  const minLat = bbox1[1] > bbox2[1] ? bbox1[1] : bbox2[1];
+  const maxLon = bbox1[2] < bbox2[2] ? bbox1[2] : bbox2[2];
+  const maxLat = bbox1[3] < bbox2[3] ? bbox1[3] : bbox2[3];
 
   if (minLon >= maxLon || minLat >= maxLat) {
     return;
   }
+
+  return [minLon, minLat, maxLon, maxLat];
+}
+
+/**
+ * Get bounding box cover
+ * @param {[number, number, number, number]} bbox1 Bounding box 1 in the format [minLon, minLat, maxLon, maxLat]
+ * @param {[number, number, number, number]} bbox2 Bounding box 2 in the format [minLon, minLat, maxLon, maxLat]
+ * @returns {[number, number, number, number]} Cover bounding box in the format [minLon, minLat, maxLon, maxLat]
+ */
+export function getCoverBBox(bbox1, bbox2) {
+  const minLon = bbox1[0] < bbox2[0] ? bbox1[0] : bbox2[0];
+  const minLat = bbox1[1] < bbox2[1] ? bbox1[1] : bbox2[1];
+  const maxLon = bbox1[2] > bbox2[2] ? bbox1[2] : bbox2[2];
+  const maxLat = bbox1[3] > bbox2[3] ? bbox1[3] : bbox2[3];
 
   return [minLon, minLat, maxLon, maxLat];
 }

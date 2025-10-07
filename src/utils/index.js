@@ -8,6 +8,7 @@ export * from "./request.js";
 export * from "./spatial.js";
 export * from "./logger.js";
 export * from "./sqlite.js";
+export * from "./number.js";
 export * from "./image.js";
 export * from "./util.js";
 export * from "./file.js";

@@ -21,12 +21,12 @@ import {
   runSQLWithTimeout,
   getImageMetadata,
   getBBoxFromTiles,
-  getIntersectBBox,
   closePostgreSQL,
   getDataFromURL,
   openPostgreSQL,
   getTileBounds,
   calculateMD5,
+  getCoverBBox,
   closeSQLite,
   findFiles,
   deepClone,
@@ -106,7 +106,7 @@ function getMBTilesBBoxFromTiles(source) {
     )
     .all();
 
-  let bbox = [-180, -85.051129, 180, 85.051129];
+  let bbox;
 
   if (rows.length) {
     bbox = getBBoxFromTiles(
@@ -119,7 +119,7 @@ function getMBTilesBBoxFromTiles(source) {
     );
 
     for (let index = 1; index < rows.length; index++) {
-      bbox = getIntersectBBox(bbox, getBBoxFromTiles(
+      bbox = getCoverBBox(bbox, getBBoxFromTiles(
         rows[index].xMin,
         rows[index].yMin,
         rows[index].xMax,
@@ -133,6 +133,8 @@ function getMBTilesBBoxFromTiles(source) {
     bbox[2] = limitValue(bbox[2], -180, 180);
     bbox[1] = limitValue(bbox[1], -85.051129, 85.051129);
     bbox[3] = limitValue(bbox[3], -85.051129, 85.051129);
+  } else {
+    throw new Error("No row found");
   }
 
   return bbox;
@@ -1232,7 +1234,7 @@ async function getPostgreSQLBBoxFromTiles(source) {
     `
   );
 
-  let bbox = [-180, -85.051129, 180, 85.051129];
+  let bbox;
 
   if (data.rows.length) {
     bbox = getBBoxFromTiles(
@@ -1245,7 +1247,7 @@ async function getPostgreSQLBBoxFromTiles(source) {
     );
 
     for (let index = 1; index < data.rows.length; index++) {
-      bbox = getIntersectBBox(bbox, getBBoxFromTiles(
+      bbox = getCoverBBox(bbox, getBBoxFromTiles(
         data.rows[index].xMin,
         data.rows[index].yMin,
         data.rows[index].xMax,
@@ -1259,6 +1261,8 @@ async function getPostgreSQLBBoxFromTiles(source) {
     bbox[2] = limitValue(bbox[2], -180, 180);
     bbox[1] = limitValue(bbox[1], -85.051129, 85.051129);
     bbox[3] = limitValue(bbox[3], -85.051129, 85.051129);
+  } else {
+    throw new Error("No row found");
   }
 
   return bbox;

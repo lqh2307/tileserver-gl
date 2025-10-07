@@ -78,6 +78,22 @@ export async function createFolders(dirPaths) {
 }
 
 /**
+ * Remove files or folders
+ * @param {string[]} dirPaths File or folder paths
+ * @returns {Promise<void>}
+ */
+export async function removeFolders(dirPaths) {
+  await Promise.all(
+    dirPaths.map((dirPath) =>
+      rm(dirPath, {
+        force: true,
+        recursive: true,
+      })
+    )
+  );
+}
+
+/**
  * Recursively removes empty folders in a directory
  * @param {string} folderPath The root directory to check for empty folders
  * @param {RegExp} regex The regex to match files
@@ -120,19 +136,6 @@ export async function removeEmptyFolders(folderPath, regex) {
  * @returns {Promise<void>}
  */
 export async function removeOldLocks() {
-  // const fileNames = await findFiles(
-  //   `${process.env.DATA_DIR}/caches`,
-  //   /^.*\.lock$/,
-  //   true,
-  //   true
-  // );
-
-  // fileNames.push(
-  //   `${process.env.DATA_DIR}/config.json.lock`,
-  //   `${process.env.DATA_DIR}/seed.json.lock`,
-  //   `${process.env.DATA_DIR}/cleanup.json.lock`
-  // );
-
   const fileNames = await findFiles(
     `${process.env.DATA_DIR}`,
     /^.*\.lock$/,
@@ -140,13 +143,7 @@ export async function removeOldLocks() {
     true
   );
 
-  await Promise.all(
-    fileNames.map((fileName) =>
-      rm(fileName, {
-        force: true,
-      })
-    )
-  );
+  await removeFolders(fileNames);
 }
 
 /**
@@ -199,58 +196,34 @@ export async function findFiles(
       if (isDirectory && regex.test(entry.name)) {
         results.push(includeDirPath ? fullPath : entry.name);
       }
-
-      if (isDirectory && recurse) {
-        const subEntries = await findFiles(
-          fullPath,
-          regex,
-          recurse,
-          includeDirPath,
-          isDir
-        );
-        subEntries.forEach((sub) =>
-          results.push(includeDirPath ? `${sub}` : `${entry.name}/${sub}`)
-        );
-      }
     } else {
       if (!isDirectory && regex.test(entry.name)) {
         results.push(includeDirPath ? fullPath : entry.name);
       }
+    }
 
-      if (isDirectory && recurse) {
-        const subEntries = await findFiles(
-          fullPath,
-          regex,
-          recurse,
-          includeDirPath,
-          isDir
-        );
+    if (isDirectory && recurse) {
+      const subEntries = await findFiles(
+        fullPath,
+        regex,
+        recurse,
+        includeDirPath,
+        isDir
+      );
+
+      if (includeDirPath) {
         subEntries.forEach((sub) =>
-          results.push(
-            includeDirPath ? `${fullPath}/${sub}` : `${entry.name}/${sub}`
-          )
+          results.push(`${fullPath}/${sub}`)
+        );
+      } else {
+        subEntries.forEach((sub) =>
+          results.push(`${entry.name}/${sub}`)
         );
       }
     }
   }
 
   return results;
-}
-
-/**
- * Remove files or folders
- * @param {string[]} fileOrDirPath File or folder paths
- * @returns {Promise<void>}
- */
-export async function removeFiles(fileOrDirPath) {
-  await Promise.all(
-    fileOrDirPath.map((fileOrFolder) =>
-      rm(fileOrFolder, {
-        force: true,
-        recursive: true,
-      })
-    )
-  );
 }
 
 /**

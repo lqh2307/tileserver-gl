@@ -79,6 +79,7 @@ SERVICE_NAME: service name (default: tile-server)
 RESTART_AFTER_CONFIG_CHANGE: restart server after config file changed, true/false (default: true)
 NUM_OF_THREAD: number of threads, will overwrite config.json file (default: num of cpus)
 NUM_OF_PROCESS: number of process, will overwrite config.json file (default: 1)
+LOG_LEVEL: log level (default: info)
 ```
 
 ### Run with docker

@@ -243,10 +243,10 @@ export async function handleConcurrency(
 }
 
 /**
- * Return either a format as an extension: png, pbf, jpg, webp, gif, ttf, otf, woff, woff2 and
+ * Return either a format as an extension: png, pbf, jpeg, webp, gif, ttf, otf, woff, woff2 and
  * headers - Content-Type and Content-Encoding - for a response containing this kind of binary data
  * @param {Buffer} buffer Input data
- * @returns {object}
+ * @returns {{ format: "jpeg"|"png"|"webp"|"gif"|"pbf"|"ttf"|"otf"|"woff"|"woff2", headers: object }}
  */
 export function detectFormatAndHeaders(buffer) {
   let format;

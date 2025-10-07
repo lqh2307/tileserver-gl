@@ -23,6 +23,7 @@ async function startClusterServer() {
     process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
     process.env.RESTART_AFTER_CONFIG_CHANGE =
       process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
+    process.env.LOG_LEVEL = process.env.LOG_LEVEL || "info"; // Log level
 
     let log = `Starting ${process.env.SERVICE_NAME} server with:`;
     log += `\n\tData dir: ${process.env.DATA_DIR}`;

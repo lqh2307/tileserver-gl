@@ -8,7 +8,7 @@ let logger;
 if (!logger) {
   logger = pino(
     {
-      level: "info",
+      level: process.env.LOG_LEVEL || "info",
       base: {
         pid: process.pid,
       },
