@@ -442,10 +442,66 @@ export async function renderImageTileData(option) {
 
 /**
  * Render image static data
- * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number, filePath: string }} option Option object
+ * @param {{ pool: object, styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number, filePath: string }} option Option object
  * @returns {Promise<Buffer|string|void>}
  */
 export async function renderImageStaticData(option) {
+  const renderer = option.pool
+    ? await option.pool.acquire()
+    : createRenderer("static", option.tileScale, option.styleJSON);
+
+  return await new Promise((resolve, reject) => {
+    const sizes = calculateSizes(
+      option.zoom,
+      option.bbox,
+      option.tileScale,
+      option.tileSize
+    );
+
+    renderer.render(
+      {
+        zoom: option.zoom,
+        center: [
+          (option.bbox[0] + option.bbox[2]) / 2,
+          (option.bbox[1] + option.bbox[3]) / 2,
+        ],
+        width: sizes.width,
+        height: sizes.height,
+      },
+      (error, data) => {
+        option.pool ? option.pool.release(renderer) : renderer.release();
+
+        if (error) {
+          return reject(error);
+        }
+
+        createImageOutput(data, {
+          rawOption: {
+            premultiplied: true,
+            width: sizes.width,
+            height: sizes.height,
+            channels: 4,
+          },
+          format: option.format,
+          base64: option.base64,
+          grayscale: option.grayscale,
+          width: option.width,
+          height: option.height,
+          filePath: option.filePath,
+        })
+          .then(resolve)
+          .catch(reject);
+      }
+    );
+  });
+}
+
+/**
+ * Render StyleJSON
+ * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number, filePath: string }} option Option object
+ * @returns {Promise<Buffer|string|void>}
+ */
+async function renderStyleJSON(option) {
   const MAX_TILE_PX = 8192;
 
   const sizes = calculateSizes(
@@ -455,108 +511,74 @@ export async function renderImageStaticData(option) {
     option.tileSize
   );
 
-  const renderer = createRenderer("static", option.tileScale, option.styleJSON);
+  if (sizes.width <= MAX_TILE_PX && sizes.height <= MAX_TILE_PX) {
+    return await renderImageStaticData(option);
+  } else {
+    let pool;
 
-  try {
-    if (sizes.width <= MAX_TILE_PX && sizes.height <= MAX_TILE_PX) {
-      return await new Promise((resolve, reject) => {
-        renderer.render(
-          {
-            zoom: option.zoom,
-            center: [
-              (option.bbox[0] + option.bbox[2]) / 2,
-              (option.bbox[1] + option.bbox[3]) / 2,
-            ],
-            width: sizes.width,
-            height: sizes.height,
-          },
-          (error, data) => {
-            if (error) {
-              return reject(error);
-            }
+    try {
+      pool = createPool(
+        {
+          create: () => createRenderer("static", option.tileScale, option.styleJSON),
+          destroy: (renderer) => renderer.release(),
+        },
+        {
+          min: 1,
+          max: os.cpus().length,
+        }
+      );
 
-            createImageOutput(data, {
-              rawOption: {
-                premultiplied: true,
-                width: sizes.width,
-                height: sizes.height,
-                channels: 4,
-              },
-              format: option.format,
-              base64: option.base64,
-              grayscale: option.grayscale,
-              width: option.width,
-              height: option.height,
-              filePath: option.filePath,
-            })
-              .then(resolve)
-              .catch(reject);
-          }
-        );
-      });
-    } else {
       const xSplits = Math.ceil(sizes.width / MAX_TILE_PX);
       const ySplits = Math.ceil(sizes.height / MAX_TILE_PX);
+      const totalTile = xSplits * ySplits;
       const lonStep = (option.bbox[2] - option.bbox[0]) / xSplits;
       const latStep = (option.bbox[3] - option.bbox[1]) / ySplits;
 
-      const compositesOption = [];
+      const compositesOption = Array(totalTile);
 
-      for (let xi = 0; xi < xSplits; xi++) {
-        for (let yi = 0; yi < ySplits; yi++) {
-          const subBBox = [
-            option.bbox[0] + xi * lonStep,
-            option.bbox[1] + yi * latStep,
-            option.bbox[0] + (xi + 1) * lonStep,
-            option.bbox[1] + (yi + 1) * latStep,
-          ];
+      async function renderTileData(idx, value) {
+        const { xi, yi } = value;
 
-          const subSizes = calculateSizes(
-            option.zoom,
-            subBBox,
-            option.tileScale,
-            option.tileSize
-          );
+        const subBBox = [
+          option.bbox[0] + xi * lonStep,
+          option.bbox[1] + yi * latStep,
+          option.bbox[0] + (xi + 1) * lonStep,
+          option.bbox[1] + (yi + 1) * latStep,
+        ];
 
-          const data = await new Promise((resolve, reject) => {
-            renderer.render(
-              {
-                zoom: option.zoom,
-                center: [
-                  (subBBox[0] + subBBox[2]) / 2,
-                  (subBBox[1] + subBBox[3]) / 2,
-                ],
-                width: subSizes.width,
-                height: subSizes.height,
-              },
-              (error, data) => {
-                if (error) {
-                  return reject(error);
-                }
+        const subSizes = calculateSizes(
+          option.zoom,
+          subBBox,
+          option.tileScale,
+          option.tileSize
+        );
 
-                createImageOutput(data, {
-                  rawOption: {
-                    premultiplied: true,
-                    width: subSizes.width,
-                    height: subSizes.height,
-                    channels: 4,
-                  },
-                  format: option.format,
-                })
-                  .then(resolve)
-                  .catch(reject);
-              }
-            );
-          });
+        const data = await renderImageStaticData({
+          pool: pool,
+          tileScale: option.tileScale,
+          tileSize: option.tileSize,
+          format: option.format,
+          bbox: subBBox,
+          zoom: option.zoom,
+        });
 
-          compositesOption.push({
-            limitInputPixels: false,
-            input: data,
-            left: xi * subSizes.width,
-            top: (ySplits - yi - 1) * subSizes.height,
-          });
-        }
+        compositesOption[idx] = ({
+          limitInputPixels: false,
+          input: data,
+          left: xi * subSizes.width,
+          top: (ySplits - yi - 1) * subSizes.height,
+        });
       }
+
+      // Batch run
+      await handleConcurrency(
+        os.cpus().length,
+        renderTileData,
+        Array.from({ length: totalTile }, (_, i) => ({
+          xi: Math.floor(i / xSplits),
+          yi: i % ySplits,
+        }))
+      );
 
       return await createImageOutput(undefined, {
         createOption: {
@@ -572,46 +594,33 @@ export async function renderImageStaticData(option) {
         base64: option.base64,
         grayscale: option.grayscale,
       });
-    }
-  } catch (error) {
-    throw error;
-  } finally {
-    if (renderer) {
-      renderer.release();
+    } catch (error) {
+      throw error;
+    } finally {
+      /* Destroy renderer pool */
+      if (pool) {
+        pool.drain().then(() => pool.clear());
+      }
     }
   }
 }
 
 /**
- * Render image static data
+ * Render StyleJSONs
  * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean }[]} overlays StyleJSON overlays
  * @returns {Promise<Buffer[]|string[]>} Response
  */
-export async function renderStyleJSON(overlays) {
+export async function renderStyleJSONs(overlays) {
   const targetOverlays = Array(overlays.length);
 
-  async function renderStyleJSONToImageData(idx, overlays) {
-    const overlay = overlays[idx];
-
-    // Create image
-    targetOverlays[idx] = await renderImageStaticData({
-      styleJSON: overlay.styleJSON,
-      tileScale: overlay.tileScale || 1,
-      tileSize: overlay.tileSize || 512,
-      zoom: overlay.zoom,
-      bbox: overlay.bbox,
-      width: overlay.width,
-      height: overlay.height,
-      format: overlay.format,
-      base64: overlay.base64,
-      grayscale: overlay.grayscale,
-    });
+  async function renderImageData(idx) {
+    targetOverlays[idx] = await renderStyleJSON(overlays[idx]);
   }
 
   // Batch run
   await handleConcurrency(
     os.cpus().length,
-    renderStyleJSONToImageData,
+    renderImageData,
     overlays
   );
 
@@ -644,14 +653,14 @@ export async function addFrame(input, overlays, frame, grid, output) {
 }
 
 /**
- * Render SVG to Image
+ * Render SVGs
  * @param {{ image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean }[]} overlays SVG overlays
  * @returns {Promise<Buffer[]|string[]>}
  */
-export async function renderSVGToImage(overlays) {
+export async function renderSVGs(overlays) {
   const targetOverlays = Array(overlays.length);
 
-  async function renderSVGToImageData(idx, overlays) {
+  async function renderImageData(idx) {
     const overlay = overlays[idx];
 
     // Create image
@@ -671,7 +680,7 @@ export async function renderSVGToImage(overlays) {
   }
 
   // Batch run
-  await handleConcurrency(os.cpus().length, renderSVGToImageData, overlays);
+  await handleConcurrency(os.cpus().length, renderImageData, overlays);
 
   return targetOverlays;
 }
@@ -847,7 +856,7 @@ export async function renderMBTilesTiles(
       );
     }
 
-    async function renderMBTilesTileData(z, x, y, tasks) {
+    async function renderTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
       const completeTasks = tasks.completeTasks;
@@ -915,7 +924,7 @@ export async function renderMBTilesTiles(
 
     await handleTilesConcurrency(
       concurrency,
-      renderMBTilesTileData,
+      renderTileData,
       tileBounds,
       item
     );
@@ -1084,7 +1093,7 @@ export async function renderXYZTiles(
       );
     }
 
-    async function renderXYZTileData(z, x, y, tasks) {
+    async function renderTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
       const completeTasks = tasks.completeTasks;
@@ -1170,7 +1179,7 @@ export async function renderXYZTiles(
 
     await handleTilesConcurrency(
       concurrency,
-      renderXYZTileData,
+      renderTileData,
       tileBounds,
       item
     );
@@ -1332,7 +1341,7 @@ export async function renderPostgreSQLTiles(
       );
     }
 
-    async function renderPostgreSQLTileData(z, x, y, tasks) {
+    async function renderTileData(z, x, y, tasks) {
       const tileName = `${z}/${x}/${y}`;
 
       const completeTasks = tasks.completeTasks;
@@ -1414,7 +1423,7 @@ export async function renderPostgreSQLTiles(
 
     await handleTilesConcurrency(
       concurrency,
-      renderPostgreSQLTileData,
+      renderTileData,
       tileBounds,
       item
     );
