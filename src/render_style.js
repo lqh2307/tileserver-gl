@@ -514,94 +514,62 @@ async function renderStyleJSON(option) {
   if (sizes.width <= MAX_TILE_PX && sizes.height <= MAX_TILE_PX) {
     return await renderImageStaticData(option);
   } else {
-    let pool;
+    const xSplits = Math.ceil(sizes.width / MAX_TILE_PX);
+    const ySplits = Math.ceil(sizes.height / MAX_TILE_PX);
+    const lonStep = (option.bbox[2] - option.bbox[0]) / xSplits;
+    const latStep = (option.bbox[3] - option.bbox[1]) / ySplits;
 
-    try {
-      pool = createPool(
-        {
-          create: () => createRenderer("static", option.tileScale, option.styleJSON),
-          destroy: (renderer) => renderer.release(),
-        },
-        {
-          min: 1,
-          max: os.cpus().length,
-        }
+    const compositesOption = await Promise.all(Array.from({ length: xSplits * ySplits }, async (_, i) => {
+      const xi = Math.floor(i / xSplits);
+      const yi = i % ySplits;
+
+      console.log(xi, yi);
+
+      const subBBox = [
+        option.bbox[0] + xi * lonStep,
+        option.bbox[1] + yi * latStep,
+        option.bbox[0] + (xi + 1) * lonStep,
+        option.bbox[1] + (yi + 1) * latStep,
+      ];
+
+      const subSizes = calculateSizes(
+        option.zoom,
+        subBBox,
+        option.tileScale,
+        option.tileSize
       );
 
-      const xSplits = Math.ceil(sizes.width / MAX_TILE_PX);
-      const ySplits = Math.ceil(sizes.height / MAX_TILE_PX);
-      const totalTile = xSplits * ySplits;
-      const lonStep = (option.bbox[2] - option.bbox[0]) / xSplits;
-      const latStep = (option.bbox[3] - option.bbox[1]) / ySplits;
-
-      const compositesOption = Array(totalTile);
-
-      async function renderTileData(idx, value) {
-        const { xi, yi } = value;
-
-        const subBBox = [
-          option.bbox[0] + xi * lonStep,
-          option.bbox[1] + yi * latStep,
-          option.bbox[0] + (xi + 1) * lonStep,
-          option.bbox[1] + (yi + 1) * latStep,
-        ];
-
-        const subSizes = calculateSizes(
-          option.zoom,
-          subBBox,
-          option.tileScale,
-          option.tileSize
-        );
-
-        const data = await renderImageStaticData({
-          pool: pool,
-          tileScale: option.tileScale,
-          tileSize: option.tileSize,
-          format: option.format,
-          bbox: subBBox,
-          zoom: option.zoom,
-        });
-
-        compositesOption[idx] = ({
-          limitInputPixels: false,
-          input: data,
-          left: xi * subSizes.width,
-          top: (ySplits - yi - 1) * subSizes.height,
-        });
-      }
-
-      // Batch run
-      await handleConcurrency(
-        os.cpus().length,
-        renderTileData,
-        Array.from({ length: totalTile }, (_, i) => ({
-          xi: Math.floor(i / xSplits),
-          yi: i % ySplits,
-        }))
-      );
-
-      return await createImageOutput(undefined, {
-        createOption: {
-          width: sizes.width,
-          height: sizes.height,
-          channels: 4,
-          background: { r: 255, g: 255, b: 255, alpha: 0 },
-        },
-        compositesOption: compositesOption,
+      const data = await renderImageStaticData({
+        styleJSON: option.styleJSON,
+        tileScale: option.tileScale,
+        tileSize: option.tileSize,
         format: option.format,
-        width: option.width,
-        height: option.height,
-        base64: option.base64,
-        grayscale: option.grayscale,
+        bbox: subBBox,
+        zoom: option.zoom,
       });
-    } catch (error) {
-      throw error;
-    } finally {
-      /* Destroy renderer pool */
-      if (pool) {
-        pool.drain().then(() => pool.clear());
-      }
-    }
+
+      return {
+        limitInputPixels: false,
+        input: data,
+        left: xi * subSizes.width,
+        top: (ySplits - yi - 1) * subSizes.height,
+      };
+    }));
+
+    return await createImageOutput(undefined, {
+      createOption: {
+        width: sizes.width,
+        height: sizes.height,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
+      },
+      compositesOption: compositesOption,
+      format: option.format,
+      width: option.width,
+      height: option.height,
+      base64: option.base64,
+      grayscale: option.grayscale,
+    });
   }
 }
 
