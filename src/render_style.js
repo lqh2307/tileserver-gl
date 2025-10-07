@@ -42,6 +42,8 @@ import {
   createFallbackTileData,
   handleTilesConcurrency,
   removeEmptyFolders,
+  lonLat4326ToXY3857,
+  xy3857ToLonLat4326,
   handleConcurrency,
   createImageOutput,
   getLonLatFromXYZ,
@@ -514,22 +516,27 @@ async function renderStyleJSON(option) {
   if (sizes.width <= MAX_TILE_PX && sizes.height <= MAX_TILE_PX) {
     return await renderImageStaticData(option);
   } else {
+    const [minX, minY] = lonLat4326ToXY3857(option.bbox[0], option.bbox[1]);
+    const [maxX, maxY] = lonLat4326ToXY3857(option.bbox[2], option.bbox[3]);
+
     const xSplits = Math.ceil(sizes.width / MAX_TILE_PX);
     const ySplits = Math.ceil(sizes.height / MAX_TILE_PX);
-    const lonStep = (option.bbox[2] - option.bbox[0]) / xSplits;
-    const latStep = (option.bbox[3] - option.bbox[1]) / ySplits;
+
+    const xStep = (maxX - minX) / xSplits;
+    const yStep = (maxY - minY) / ySplits;
 
     const compositesOption = await Promise.all(Array.from({ length: xSplits * ySplits }, async (_, i) => {
-      const xi = Math.floor(i / xSplits);
+      const xi = Math.floor(i / ySplits);
       const yi = i % ySplits;
 
-      console.log(xi, yi);
+      const subMinX = minX + xi * xStep;
+      const subMinY = minY + yi * yStep;
+      const subMaxX = subMinX + xStep;
+      const subMaxY = subMinY + yStep;
 
       const subBBox = [
-        option.bbox[0] + xi * lonStep,
-        option.bbox[1] + yi * latStep,
-        option.bbox[0] + (xi + 1) * lonStep,
-        option.bbox[1] + (yi + 1) * latStep,
+        ...xy3857ToLonLat4326(subMinX, subMinY),
+        ...xy3857ToLonLat4326(subMaxX, subMaxY),
       ];
 
       const subSizes = calculateSizes(
@@ -539,20 +546,18 @@ async function renderStyleJSON(option) {
         option.tileSize
       );
 
-      const data = await renderImageStaticData({
-        styleJSON: option.styleJSON,
-        tileScale: option.tileScale,
-        tileSize: option.tileSize,
-        format: option.format,
-        bbox: subBBox,
-        zoom: option.zoom,
-      });
-
       return {
         limitInputPixels: false,
-        input: data,
+        input: await renderImageStaticData({
+          styleJSON: option.styleJSON,
+          tileScale: option.tileScale,
+          tileSize: option.tileSize,
+          format: option.format,
+          bbox: subBBox,
+          zoom: option.zoom,
+        }),
         left: xi * subSizes.width,
-        top: (ySplits - yi - 1) * subSizes.height,
+        top: sizes.height - (yi + 1) * subSizes.height,
       };
     }));
 
