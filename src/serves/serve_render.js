@@ -9,8 +9,8 @@ import {
 } from "../utils/index.js";
 import {
   renderHighQualityPDF,
-  renderSVGToImage,
-  renderStyleJSON,
+  renderStyleJSONs,
+  renderSVGs,
   renderPDF,
   addFrame,
 } from "../render_style.js";
@@ -30,7 +30,7 @@ function renderStyleJSONHandler() {
       }
 
       /* Render style */
-      const image = await renderStyleJSON(req.body);
+      const image = await renderStyleJSONs(req.body);
 
       res.set({
         "content-type": "application/json",
@@ -113,7 +113,7 @@ function renderSVGHandler() {
         throw new SyntaxError(error);
       }
 
-      const result = await renderSVGToImage(req.body);
+      const result = await renderSVGs(req.body);
 
       res.set({
         "content-type": "application/json",

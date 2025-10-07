@@ -8,7 +8,7 @@ import { openSync, readSync } from "node:fs";
 import { config } from "../configs/index.js";
 import protobuf from "protocol-buffers";
 import {
-  isFullTransparentPNGImage,
+  isFullTransparentImage,
   detectFormatAndHeaders,
   handleTilesConcurrency,
   openSQLiteWithTimeout,
@@ -695,7 +695,7 @@ export async function cacheMBtilesTileData(
   data,
   storeTransparent
 ) {
-  if (storeTransparent === false && (await isFullTransparentPNGImage(data))) {
+  if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
   } else {
     await runSQLWithTimeout(
@@ -1790,7 +1790,7 @@ export async function cachePostgreSQLTileData(
   data,
   storeTransparent
 ) {
-  if (storeTransparent === false && (await isFullTransparentPNGImage(data))) {
+  if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
   } else {
     await source.query(
@@ -2736,7 +2736,7 @@ export async function cacheXYZTileFile(
   data,
   storeTransparent
 ) {
-  if (storeTransparent === false && (await isFullTransparentPNGImage(data))) {
+  if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
   } else {
     await Promise.all([
