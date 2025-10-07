@@ -1505,9 +1505,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
   printLog("info", "Downloading sprites...");
 
   await Promise.all(
-    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-      (fileName) => seedSpriteData(fileName)
-    )
+    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(seedSpriteData)
   );
 
   /* Remove parent folders if empty */
@@ -2270,9 +2268,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
   printLog("info", "Removing sprites...");
 
   await Promise.all(
-    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-      (fileName) => cleanUpSpriteData(fileName)
-    )
+    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(cleanUpSpriteData)
   );
 
   /* Remove parent folders if empty */

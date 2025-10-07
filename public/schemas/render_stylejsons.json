@@ -62,6 +62,12 @@
           "webp"
         ]
       },
+      "pitch": {
+        "type": "number"
+      },
+      "bearing": {
+        "type": "number"
+      },
       "width": {
         "type": "integer",
         "minimum": 1

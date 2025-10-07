@@ -1,8 +1,8 @@
 "use strict";
 
+import { limitValue, maxValue, minValue } from "../utils/number.js";
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import { limitValue } from "../utils/number.js";
 import { PMTiles, FetchSource } from "pmtiles";
 import { openSync, readSync } from "node:fs";
 import { config } from "../configs/index.js";
@@ -74,7 +74,7 @@ async function getMBTilesLayersFromTiles(source) {
       vectorTileProto.tile
         .decode(row.tile_data)
         .layers.map((layer) => layer.name)
-        .forEach((layer) => layerNames.add(layer))
+        .forEach(layerNames.add)
     );
 
     offset += batchSize;
@@ -451,7 +451,7 @@ export async function getMBTilesMetadata(source) {
       }
 
       case "center": {
-        metadata.center = row.value.split(",").map((elm) => Number(elm));
+        metadata.center = row.value.split(",").map(Number);
 
         break;
       }
@@ -463,7 +463,7 @@ export async function getMBTilesMetadata(source) {
       }
 
       case "bounds": {
-        metadata.bounds = row.value.split(",").map((elm) => Number(elm));
+        metadata.bounds = row.value.split(",").map(Number);
 
         break;
       }
@@ -550,11 +550,9 @@ export async function getMBTilesMetadata(source) {
     try {
       const layers = await getMBTilesLayersFromTiles(source);
 
-      metadata.vector_layers = layers.map((layer) => {
-        return {
-          id: layer,
-        };
-      });
+      metadata.vector_layers = layers.map((layer) => ({
+        id: layer,
+      }));
     } catch (error) {
       metadata.vector_layers = [];
     }
@@ -1204,7 +1202,7 @@ async function getPostgreSQLLayersFromTiles(source) {
       vectorTileProto.tile
         .decode(row.tile_data)
         .layers.map((layer) => layer.name)
-        .forEach((layer) => layerNames.add(layer))
+        .forEach(layerNames.add)
     );
 
     offset += batchSize;
@@ -1552,7 +1550,7 @@ export async function getPostgreSQLMetadata(source) {
       }
 
       case "center": {
-        metadata.center = row.value.split(",").map((elm) => Number(elm));
+        metadata.center = row.value.split(",").map(Number);
 
         break;
       }
@@ -1564,7 +1562,7 @@ export async function getPostgreSQLMetadata(source) {
       }
 
       case "bounds": {
-        metadata.bounds = row.value.split(",").map((elm) => Number(elm));
+        metadata.bounds = row.value.split(",").map(Number);
 
         break;
       }
@@ -1657,11 +1655,9 @@ export async function getPostgreSQLMetadata(source) {
     try {
       const layers = await getPostgreSQLLayersFromTiles(source);
 
-      metadata.vector_layers = layers.map((layer) => {
-        return {
-          id: layer,
-        };
-      });
+      metadata.vector_layers = layers.map((layer) => ({
+        id: layer,
+      }));
     } catch (error) {
       metadata.vector_layers = [];
     }
@@ -2072,7 +2068,7 @@ async function getXYZLayersFromTiles(sourcePath) {
     vectorTileProto.tile
       .decode(await readFile(pbfFilePaths[idx]))
       .layers.map((layer) => layer.name)
-      .forEach((layer) => layerNames.add(layer));
+      .forEach(layerNames.add);
   }
 
   // Batch run
@@ -2100,8 +2096,8 @@ async function getXYZBBoxFromTiles(sourcePath) {
     );
 
     if (xFolders.length) {
-      const xMin = Math.min(...xFolders.map((folder) => Number(folder)));
-      const xMax = Math.max(...xFolders.map((folder) => Number(folder)));
+      const xMin = minValue(xFolders.map(Number));
+      const xMax = maxValue(xFolders.map(Number));
 
       for (const xFolder of xFolders) {
         let yFiles = await findFiles(
@@ -2114,8 +2110,8 @@ async function getXYZBBoxFromTiles(sourcePath) {
         if (yFiles.length) {
           yFiles = yFiles.map((yFile) => yFile.split(".")[0]);
 
-          const yMin = Math.min(...yFiles.map((file) => Number(file)));
-          const yMax = Math.max(...yFiles.map((file) => Number(file)));
+          const yMin = minValue(yFiles.map(Number));
+          const yMax = maxValue(yFiles.map(Number));
 
           boundsArr.push(
             getBBoxFromTiles(xMin, yMin, xMax, yMax, zFolder, "xyz")
@@ -2127,10 +2123,10 @@ async function getXYZBBoxFromTiles(sourcePath) {
 
   if (boundsArr.length) {
     return [
-      Math.min(...boundsArr.map((bbox) => bbox[0])),
-      Math.min(...boundsArr.map((bbox) => bbox[1])),
-      Math.max(...boundsArr.map((bbox) => bbox[2])),
-      Math.max(...boundsArr.map((bbox) => bbox[3])),
+      minValue(boundsArr.map((bbox) => bbox[0])),
+      minValue(boundsArr.map((bbox) => bbox[1])),
+      maxValue(boundsArr.map((bbox) => bbox[2])),
+      maxValue(boundsArr.map((bbox) => bbox[3])),
     ];
   }
 }
@@ -2144,7 +2140,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
 async function getXYZZoomLevelFromTiles(sourcePath, zoomType) {
   const folders = await findFiles(sourcePath, /^\d+$/, false, false, true);
 
-  const zooms = folders.map((folder) => Number(folder));
+  const zooms = folders.map(Number);
   if (zooms.length) {
     let zoom = zooms[0];
 
@@ -2482,7 +2478,7 @@ export async function getXYZMetadata(sourcePath, source) {
       }
 
       case "center": {
-        metadata.center = row.value.split(",").map((elm) => Number(elm));
+        metadata.center = row.value.split(",").map(Number);
 
         break;
       }
@@ -2494,7 +2490,7 @@ export async function getXYZMetadata(sourcePath, source) {
       }
 
       case "bounds": {
-        metadata.bounds = row.value.split(",").map((elm) => Number(elm));
+        metadata.bounds = row.value.split(",").map(Number);
 
         break;
       }
@@ -2581,11 +2577,9 @@ export async function getXYZMetadata(sourcePath, source) {
     try {
       const layers = await getXYZLayersFromTiles(sourcePath);
 
-      metadata.vector_layers = layers.map((layer) => {
-        return {
-          id: layer,
-        };
-      });
+      metadata.vector_layers = layers.map((layer) => ({
+        id: layer,
+      }));
     } catch (error) {
       metadata.vector_layers = [];
     }

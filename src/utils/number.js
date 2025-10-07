@@ -18,3 +18,41 @@ export function limitValue(value, min, max) {
 
   return value;
 }
+
+/**
+ * Max value
+ * @param {number[]} values Values
+ * @returns {number}
+ */
+export function maxValue(values) {
+  if (values?.length) {
+    let value = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (value < values[i]) {
+        value = values[i];
+      }
+    }
+
+    return value;
+  }
+}
+
+/**
+ * Min value
+ * @param {number[]} values Values
+ * @returns {number}
+ */
+export function minValue(values) {
+  if (values?.length) {
+    let value = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (value > values[i]) {
+        value = values[i];
+      }
+    }
+
+    return value;
+  }
+}

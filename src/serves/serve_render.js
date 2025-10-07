@@ -16,15 +16,15 @@ import {
 } from "../render_style.js";
 
 /**
- * Render styleJSON handler
+ * Render styleJSONs handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
-function renderStyleJSONHandler() {
+function renderStyleJSONsHandler() {
   return async (req, res) => {
     try {
       /* Validate options */
       try {
-        validateJSON(await getJSONSchema("render_stylejson"), req.body);
+        validateJSON(await getJSONSchema("render_stylejsons"), req.body);
       } catch (error) {
         throw new SyntaxError(error);
       }
@@ -38,7 +38,7 @@ function renderStyleJSONHandler() {
 
       return res.status(StatusCodes.CREATED).send(image);
     } catch (error) {
-      printLog("error", `Failed to render styleJSON: ${error}`);
+      printLog("error", `Failed to render styleJSONs: ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -100,15 +100,15 @@ function addFrameHandler() {
 }
 
 /**
- * Render SVG handler
+ * Render SVGs handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
-function renderSVGHandler() {
+function renderSVGsHandler() {
   return async (req, res) => {
     try {
       /* Validate options */
       try {
-        validateJSON(await getJSONSchema("render_svg"), req.body);
+        validateJSON(await getJSONSchema("render_svgs"), req.body);
       } catch (error) {
         throw new SyntaxError(error);
       }
@@ -121,7 +121,7 @@ function renderSVGHandler() {
 
       return res.status(StatusCodes.CREATED).send(result);
     } catch (error) {
-      printLog("error", `Failed to render SVG: ${error}`);
+      printLog("error", `Failed to render SVGs: ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -269,11 +269,11 @@ export const serve_render = {
      * tags:
      *   - name: Render
      *     description: Render related endpoints
-     * /renders/stylejson:
+     * /renders/stylejsons:
      *   post:
      *     tags:
      *       - Render
-     *     summary: Render styleJSON
+     *     summary: Render styleJSONs
      *     requestBody:
      *       required: true
      *       content:
@@ -284,7 +284,7 @@ export const serve_render = {
      *       description: Render styleJSON options
      *     responses:
      *       201:
-     *         description: Style JSON rendered
+     *         description: StyleJSONs rendered
      *         content:
      *           application/json:
      *             schema:
@@ -301,18 +301,18 @@ export const serve_render = {
      *       500:
      *         description: Internal server error
      */
-    app.post("/renders/stylejson", renderStyleJSONHandler());
+    app.post("/renders/stylejsons", renderStyleJSONsHandler());
 
     /**
      * @swagger
      * tags:
      *   - name: Render
      *     description: Render related endpoints
-     * /renders/svg:
+     * /renders/svgs:
      *   post:
      *     tags:
      *       - Render
-     *     summary: Render SVG
+     *     summary: Render SVGs
      *     requestBody:
      *       required: true
      *       content:
@@ -337,7 +337,7 @@ export const serve_render = {
      *       description: Render SVG options
      *     responses:
      *       201:
-     *         description: SVG rendered
+     *         description: SVGs rendered
      *         content:
      *           application/json:
      *             schema:
@@ -354,7 +354,7 @@ export const serve_render = {
      *       500:
      *         description: Internal server error
      */
-    app.post("/renders/svg", renderSVGHandler());
+    app.post("/renders/svgs", renderSVGsHandler());
 
     /**
      * @swagger

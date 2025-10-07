@@ -27,7 +27,7 @@ export function validateJSON(schema, jsonData) {
 
 /**
  * Get JSON schema
- * @param {"delete"|"cleanup"|"config"|"seed"|"style_render"|"data_export"|"coverages"|"sprite"} schema
+ * @param {"delete"|"cleanup"|"config"|"seed"|"style_render"|"render_svgs"|"render_pdf"|"render_stylejsons"|"data_export"|"export_all"|"render_high_quality_pdf"|"coverages"|"sprite"|"add_frame"} schema
  * @returns {Promise<object>}
  */
 export async function getJSONSchema(schema) {
