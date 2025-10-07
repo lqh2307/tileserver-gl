@@ -58,7 +58,7 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   let x = Math.floor((zc + lon * bc) / tileSize);
   let y = Math.floor(
     (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
-      tileSize
+    tileSize
   );
 
   if (scheme === "tms") {
@@ -281,12 +281,26 @@ export function getTileBounds(options) {
 
   if (options.coverages) {
     tileBounds = options.coverages.map((coverage, idx) => {
-      let bbox = coverage.circle
+      const bbox = coverage.circle
         ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
         : deepClone(coverage.bbox);
 
       if (options.limitedBBox) {
-        bbox = getIntersectBBox(bbox, options.limitedBBox);
+        if (bbox[0] < options.limitedBBox[0]) {
+          bbox[0] = options.limitedBBox[0];
+        }
+
+        if (bbox[1] < options.limitedBBox[1]) {
+          bbox[1] = options.limitedBBox[1];
+        }
+
+        if (bbox[2] > options.limitedBBox[2]) {
+          bbox[2] = options.limitedBBox[2];
+        }
+
+        if (bbox[3] > options.limitedBBox[3]) {
+          bbox[3] = options.limitedBBox[3];
+        }
       }
 
       const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
@@ -309,7 +323,18 @@ export function getTileBounds(options) {
       if (idx === 0) {
         realBBox = _bbox;
       } else {
-        realBBox = getIntersectBBox(realBBox, _bbox);
+        if (realBBox[0] < _bbox[0]) {
+          realBBox[0] = _bbox[0];
+        }
+        if (realBBox[1] < _bbox[1]) {
+          realBBox[1] = _bbox[1];
+        }
+        if (realBBox[2] > _bbox[2]) {
+          realBBox[2] = _bbox[2];
+        }
+        if (realBBox[3] > _bbox[3]) {
+          realBBox[3] = _bbox[3];
+        }
       }
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
@@ -332,10 +357,24 @@ export function getTileBounds(options) {
     });
   } else {
     for (let zoom = options.minZoom; zoom <= options.maxZoom; zoom++) {
-      let bbox = deepClone(options.bbox);
+      const bbox = deepClone(options.bbox);
 
       if (options.limitedBBox) {
-        bbox = getIntersectBBox(bbox, options.limitedBBox);
+        if (bbox[0] < options.limitedBBox[0]) {
+          bbox[0] = options.limitedBBox[0];
+        }
+
+        if (bbox[1] < options.limitedBBox[1]) {
+          bbox[1] = options.limitedBBox[1];
+        }
+
+        if (bbox[2] > options.limitedBBox[2]) {
+          bbox[2] = options.limitedBBox[2];
+        }
+
+        if (bbox[3] > options.limitedBBox[3]) {
+          bbox[3] = options.limitedBBox[3];
+        }
       }
 
       const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
@@ -358,7 +397,18 @@ export function getTileBounds(options) {
       if (zoom === options.minZoom) {
         realBBox = _bbox;
       } else {
-        realBBox = getIntersectBBox(realBBox, _bbox);
+        if (realBBox[0] < _bbox[0]) {
+          realBBox[0] = _bbox[0];
+        }
+        if (realBBox[1] < _bbox[1]) {
+          realBBox[1] = _bbox[1];
+        }
+        if (realBBox[2] > _bbox[2]) {
+          realBBox[2] = _bbox[2];
+        }
+        if (realBBox[3] > _bbox[3]) {
+          realBBox[3] = _bbox[3];
+        }
       }
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);

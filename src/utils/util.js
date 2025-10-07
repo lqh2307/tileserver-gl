@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { printLog } from "./logger.js";
 import { spawn } from "child_process";
 import { Mutex } from "async-mutex";
+import mime from "mime";
 
 /**
  * Delay function to wait for a specified time
@@ -348,45 +349,7 @@ export function detectFormatAndHeaders(buffer) {
  * @returns {string}
  */
 export function detectContentTypeFromFormat(format) {
-  switch (format) {
-    case "png": {
-      return "image/png";
-    }
-
-    case "jpg":
-    case "jpeg": {
-      return "image/jpeg";
-    }
-
-    case "gif": {
-      return "image/gif";
-    }
-
-    case "webp": {
-      return "image/webp";
-    }
-
-    case "pbf": {
-      return "application/x-protobuf";
-    }
-
-    case "xml": {
-      return "text/xml";
-    }
-
-    case "json":
-    case "geojson": {
-      return "application/json";
-    }
-
-    case "pdf": {
-      return "application/pdf";
-    }
-
-    default: {
-      return "application/octet-stream";
-    }
-  }
+  return mime.getType(format);
 }
 
 /**
