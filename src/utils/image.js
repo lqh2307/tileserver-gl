@@ -395,10 +395,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
         return {
           limitInputPixels: false,
           input: await createImageOutput(
-            Buffer.from(
-              overlay.image.slice(overlay.image.indexOf(",") + 1),
-              "base64"
-            ),
+            base64ToBuffer(overlay.image),
             {
               width: Math.round((overlayMaxX - overlayMinX) * xRes),
               height: Math.round((overlayMaxY - overlayMinY) * yRes),
@@ -1633,4 +1630,13 @@ export async function isFullTransparentImage(buffer) {
   } catch (error) {
     return false;
   }
+}
+
+/**
+ * Convert base64 string to buffer
+ * @param {string} base64
+ * @returns {Buffer}
+ */
+export function base64ToBuffer(base64) {
+  return Buffer.from(base64.slice(base64.indexOf(",") + 1), "base64");
 }

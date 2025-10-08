@@ -51,6 +51,7 @@ import {
   addFrameToImage,
   getDataFromURL,
   calculateSizes,
+  base64ToBuffer,
   getTileBounds,
   calculateMD5,
   unzipAsync,
@@ -340,10 +341,7 @@ function createRenderer(option) {
         /* Get base64 data */
         case "data": {
           try {
-            const dataBase64 = Buffer.from(
-              req.url.slice(req.url.indexOf(",") + 1),
-              "base64"
-            );
+            const dataBase64 = base64ToBuffer(req.url);
 
             /* Unzip data */
             const headers = detectFormatAndHeaders(dataBase64).headers;
@@ -586,7 +584,6 @@ async function renderStyleJSON(option) {
       height: option.height,
       base64: option.base64,
       grayscale: option.grayscale,
-      filePath: "a.png"
     });
   }
 }
@@ -620,10 +617,7 @@ export async function renderStyleJSONs(overlays) {
  */
 async function renderSVG(option) {
   return await createImageOutput(
-    Buffer.from(
-      option.image.slice(option.image.indexOf(",") + 1),
-      "base64"
-    ),
+    base64ToBuffer(option.image),
     {
       format: option.format,
       width: option.width,
@@ -669,10 +663,7 @@ export async function renderSVGs(overlays) {
 export async function addFrame(input, overlays, frame, grid, output) {
   return await addFrameToImage(
     {
-      image: Buffer.from(
-        input.image.slice(input.image.indexOf(",") + 1),
-        "base64"
-      ),
+      image: base64ToBuffer(input.image),
       bbox: input.bbox,
     },
     overlays,
@@ -692,15 +683,10 @@ export async function addFrame(input, overlays, frame, grid, output) {
 export async function renderHighQualityPDF(input, preview, output) {
   return await renderImageToHighQualityPDF(
     {
-      images: input.images.map((item) => {
-        return {
-          image: Buffer.from(
-            item.image.slice(item.image.indexOf(",") + 1),
-            "base64"
-          ),
-          res: item.resolution,
-        };
-      }),
+      images: input.images.map((item) => ({
+        image: base64ToBuffer(item.image),
+        res: item.resolution,
+      })),
     },
     preview,
     output
@@ -717,9 +703,7 @@ export async function renderHighQualityPDF(input, preview, output) {
 export async function renderPDF(input, preview, output) {
   return await renderImageToPDF(
     {
-      images: input.images.map((item) =>
-        Buffer.from(item.slice(item.indexOf(",") + 1), "base64")
-      ),
+      images: input.images.map(base64ToBuffer),
     },
     preview,
     output
