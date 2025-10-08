@@ -66,7 +66,7 @@ import {
 function createRenderer(option) {
   const renderer = new mlgl.Map({
     mode: option.mode,
-    ratio: option.ratio,
+    ratio: option.ratio ?? 1,
     request: async (req, callback) => {
       const scheme = req.url.slice(0, req.url.indexOf(":"));
 
@@ -418,9 +418,9 @@ export async function renderImageTileData(option) {
         }
 
         const tileSize = hackTileSize * option.tileScale;
-        const originTileSize = Math.floor(tileSize);
+        const originTileSize = Math.round(tileSize);
         const targetTileSize = isNeedHack
-          ? Math.floor(tileSize / 2)
+          ? Math.round(tileSize / 2)
           : undefined;
 
         createImageOutput(data, {
@@ -459,12 +459,7 @@ export async function renderImageStaticData(option) {
       });
 
   return await new Promise((resolve, reject) => {
-    const sizes = calculateSizes(
-      option.zoom,
-      option.bbox,
-      option.tileScale,
-      option.tileSize
-    );
+    const sizes = calculateSizes(option.zoom, option.bbox, option.tileSize);
 
     renderer.render(
       {
@@ -488,8 +483,8 @@ export async function renderImageStaticData(option) {
         createImageOutput(data, {
           rawOption: {
             premultiplied: true,
-            width: sizes.width,
-            height: sizes.height,
+            width: Math.round(option.tileScale * sizes.width),
+            height: Math.round(option.tileScale * sizes.height),
             channels: 4,
           },
           format: option.format,
@@ -514,21 +509,18 @@ export async function renderImageStaticData(option) {
 async function renderStyleJSON(option) {
   const MAX_TILE_PX = 8192;
 
-  const sizes = calculateSizes(
-    option.zoom,
-    option.bbox,
-    option.tileScale,
-    option.tileSize
-  );
+  const sizes = calculateSizes(option.zoom, option.bbox, option.tileSize);
+  const totalWidth = Math.round(option.tileScale * sizes.width);
+  const totalHeight = Math.round(option.tileScale * sizes.height);
 
-  if (sizes.width <= MAX_TILE_PX && sizes.height <= MAX_TILE_PX) {
+  if (totalWidth <= MAX_TILE_PX && totalHeight <= MAX_TILE_PX) {
     return await renderImageStaticData(option);
   } else {
     const [minX, minY] = lonLat4326ToXY3857(option.bbox[0], option.bbox[1]);
     const [maxX, maxY] = lonLat4326ToXY3857(option.bbox[2], option.bbox[3]);
 
-    const xSplits = Math.ceil(sizes.width / MAX_TILE_PX);
-    const ySplits = Math.ceil(sizes.height / MAX_TILE_PX);
+    const xSplits = Math.ceil(totalWidth / MAX_TILE_PX);
+    const ySplits = Math.ceil(totalHeight / MAX_TILE_PX);
 
     const xStep = (maxX - minX) / xSplits;
     const yStep = (maxY - minY) / ySplits;
@@ -548,12 +540,7 @@ async function renderStyleJSON(option) {
           ...xy3857ToLonLat4326(subMaxX, subMaxY),
         ];
 
-        const subSizes = calculateSizes(
-          option.zoom,
-          subBBox,
-          option.tileScale,
-          option.tileSize
-        );
+        const subSizes = calculateSizes(option.zoom, subBBox, option.tileSize);
 
         return {
           limitInputPixels: false,
@@ -567,16 +554,18 @@ async function renderStyleJSON(option) {
             bbox: subBBox,
             zoom: option.zoom,
           }),
-          left: xi * subSizes.width,
-          top: sizes.height - (yi + 1) * subSizes.height,
+          left: xi * Math.round(option.tileScale * subSizes.width),
+          top:
+            totalHeight -
+            (yi + 1) * Math.round(option.tileScale * subSizes.height),
         };
       })
     );
 
     return await createImageOutput(undefined, {
       createOption: {
-        width: sizes.width,
-        height: sizes.height,
+        width: totalWidth,
+        height: totalHeight,
         channels: 4,
         background: { r: 255, g: 255, b: 255, alpha: 0 },
       },
