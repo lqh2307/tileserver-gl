@@ -183,7 +183,6 @@ export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
  * Calculate sizes
  * @param {number} z Zoom level
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
- * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @returns {{width: number, height: number}} Sizes
  */
