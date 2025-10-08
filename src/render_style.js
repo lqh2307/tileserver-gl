@@ -392,10 +392,10 @@ export async function renderImageTileData(option) {
   const renderer = option.pool
     ? await option.pool.acquire()
     : createRenderer({
-      mode: "tile",
-      ratio: option.tileScale,
-      styleJSON: option.styleJSON,
-    });
+        mode: "tile",
+        ratio: option.tileScale,
+        styleJSON: option.styleJSON,
+      });
 
   return await new Promise((resolve, reject) => {
     const isNeedHack = option.z === 0 && option.tileSize === 256;
@@ -453,10 +453,10 @@ export async function renderImageStaticData(option) {
   const renderer = option.pool
     ? await option.pool.acquire()
     : createRenderer({
-      mode: "static",
-      ratio: option.tileScale,
-      styleJSON: option.styleJSON,
-    });
+        mode: "static",
+        ratio: option.tileScale,
+        styleJSON: option.styleJSON,
+      });
 
   return await new Promise((resolve, reject) => {
     const sizes = calculateSizes(
@@ -533,43 +533,45 @@ async function renderStyleJSON(option) {
     const xStep = (maxX - minX) / xSplits;
     const yStep = (maxY - minY) / ySplits;
 
-    const compositesOption = await Promise.all(Array.from({ length: xSplits * ySplits }, async (_, i) => {
-      const xi = Math.floor(i / ySplits);
-      const yi = i % ySplits;
+    const compositesOption = await Promise.all(
+      Array.from({ length: xSplits * ySplits }, async (_, i) => {
+        const xi = Math.floor(i / ySplits);
+        const yi = i % ySplits;
 
-      const subMinX = minX + xi * xStep;
-      const subMinY = minY + yi * yStep;
-      const subMaxX = subMinX + xStep;
-      const subMaxY = subMinY + yStep;
+        const subMinX = minX + xi * xStep;
+        const subMinY = minY + yi * yStep;
+        const subMaxX = subMinX + xStep;
+        const subMaxY = subMinY + yStep;
 
-      const subBBox = [
-        ...xy3857ToLonLat4326(subMinX, subMinY),
-        ...xy3857ToLonLat4326(subMaxX, subMaxY),
-      ];
+        const subBBox = [
+          ...xy3857ToLonLat4326(subMinX, subMinY),
+          ...xy3857ToLonLat4326(subMaxX, subMaxY),
+        ];
 
-      const subSizes = calculateSizes(
-        option.zoom,
-        subBBox,
-        option.tileScale,
-        option.tileSize
-      );
+        const subSizes = calculateSizes(
+          option.zoom,
+          subBBox,
+          option.tileScale,
+          option.tileSize
+        );
 
-      return {
-        limitInputPixels: false,
-        input: await renderImageStaticData({
-          styleJSON: option.styleJSON,
-          tileScale: option.tileScale,
-          tileSize: option.tileSize,
-          format: option.format,
-          pitch: option.pitch,
-          bearing: option.bearing,
-          bbox: subBBox,
-          zoom: option.zoom,
-        }),
-        left: xi * subSizes.width,
-        top: sizes.height - (yi + 1) * subSizes.height,
-      };
-    }));
+        return {
+          limitInputPixels: false,
+          input: await renderImageStaticData({
+            styleJSON: option.styleJSON,
+            tileScale: option.tileScale,
+            tileSize: option.tileSize,
+            format: option.format,
+            pitch: option.pitch,
+            bearing: option.bearing,
+            bbox: subBBox,
+            zoom: option.zoom,
+          }),
+          left: xi * subSizes.width,
+          top: sizes.height - (yi + 1) * subSizes.height,
+        };
+      })
+    );
 
     return await createImageOutput(undefined, {
       createOption: {
@@ -601,11 +603,7 @@ export async function renderStyleJSONs(overlays) {
   }
 
   // Batch run
-  await handleConcurrency(
-    os.cpus().length,
-    renderImageData,
-    overlays
-  );
+  await handleConcurrency(os.cpus().length, renderImageData, overlays);
 
   return targetOverlays;
 }
@@ -616,17 +614,14 @@ export async function renderStyleJSONs(overlays) {
  * @returns {Promise<Buffer|string|void>}
  */
 async function renderSVG(option) {
-  return await createImageOutput(
-    base64ToBuffer(option.image),
-    {
-      format: option.format,
-      width: option.width,
-      height: option.height,
-      base64: option.base64,
-      grayscale: option.grayscale,
-      filePath: option.filePath,
-    }
-  );
+  return await createImageOutput(base64ToBuffer(option.image), {
+    format: option.format,
+    width: option.width,
+    height: option.height,
+    base64: option.base64,
+    grayscale: option.grayscale,
+    filePath: option.filePath,
+  });
 }
 
 /**
@@ -642,11 +637,7 @@ export async function renderSVGs(overlays) {
   }
 
   // Batch run
-  await handleConcurrency(
-    os.cpus().length,
-    renderImageData,
-    overlays
-  );
+  await handleConcurrency(os.cpus().length, renderImageData, overlays);
 
   return targetOverlays;
 }
@@ -827,11 +818,12 @@ export async function renderMBTilesTiles(
     if (maxRendererPoolSize) {
       pool = createPool(
         {
-          create: () => createRenderer({
-            mode: "tile",
-            ratio: tileScale,
-            styleJSON: styleJSON,
-          }),
+          create: () =>
+            createRenderer({
+              mode: "tile",
+              ratio: tileScale,
+              styleJSON: styleJSON,
+            }),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -907,12 +899,7 @@ export async function renderMBTilesTiles(
     // Render tiles with concurrency
     printLog("info", "Rendering tiles to MBTiles...");
 
-    await handleTilesConcurrency(
-      concurrency,
-      renderTileData,
-      tileBounds,
-      item
-    );
+    await handleTilesConcurrency(concurrency, renderTileData, tileBounds, item);
 
     /* Create overviews */
     if (createOverview) {
@@ -927,13 +914,15 @@ export async function renderMBTilesTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to mbtiles after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to mbtiles after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1068,11 +1057,12 @@ export async function renderXYZTiles(
     if (maxRendererPoolSize) {
       pool = createPool(
         {
-          create: () => createRenderer({
-            mode: "tile",
-            ratio: tileScale,
-            styleJSON: styleJSON,
-          }),
+          create: () =>
+            createRenderer({
+              mode: "tile",
+              ratio: tileScale,
+              styleJSON: styleJSON,
+            }),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -1166,12 +1156,7 @@ export async function renderXYZTiles(
     // Render tiles with concurrency
     printLog("info", "Rendering tiles to XYZ...");
 
-    await handleTilesConcurrency(
-      concurrency,
-      renderTileData,
-      tileBounds,
-      item
-    );
+    await handleTilesConcurrency(concurrency, renderTileData, tileBounds, item);
 
     /* Remove parent folders if empty */
     await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp)$/);
@@ -1189,13 +1174,15 @@ export async function renderXYZTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to xyz after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to xyz after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to xyz after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {
@@ -1320,11 +1307,12 @@ export async function renderPostgreSQLTiles(
     if (maxRendererPoolSize) {
       pool = createPool(
         {
-          create: () => createRenderer({
-            mode: "tile",
-            ratio: tileScale,
-            styleJSON: styleJSON,
-          }),
+          create: () =>
+            createRenderer({
+              mode: "tile",
+              ratio: tileScale,
+              styleJSON: styleJSON,
+            }),
           destroy: (renderer) => renderer.release(),
         },
         {
@@ -1414,12 +1402,7 @@ export async function renderPostgreSQLTiles(
     // Render tiles with concurrency
     printLog("info", "Rendering tiles to PostgreSQL...");
 
-    await handleTilesConcurrency(
-      concurrency,
-      renderTileData,
-      tileBounds,
-      item
-    );
+    await handleTilesConcurrency(concurrency, renderTileData, tileBounds, item);
 
     /* Create overviews */
     if (createOverview) {
@@ -1434,13 +1417,15 @@ export async function renderPostgreSQLTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
+      `Completed render ${total} tiles of style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to postgresql after ${(Date.now() - startTime) / 1000
+      `Failed to render style "${id}" to postgresql after ${
+        (Date.now() - startTime) / 1000
       }s: ${error}`
     );
   } finally {

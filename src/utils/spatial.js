@@ -57,7 +57,7 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   let x = Math.floor((zc + lon * bc) / tileSize);
   let y = Math.floor(
     (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
-    tileSize
+      tileSize
   );
 
   if (scheme === "tms") {
@@ -354,7 +354,8 @@ export function getTileBounds(options) {
         options.tileSize
       );
 
-      realBBox = zoom === options.minZoom ? _bbox : getCoverBBox(realBBox, _bbox);
+      realBBox =
+        zoom === options.minZoom ? _bbox : getCoverBBox(realBBox, _bbox);
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
 

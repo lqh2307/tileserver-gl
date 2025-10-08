@@ -119,14 +119,17 @@ function getMBTilesBBoxFromTiles(source) {
     );
 
     for (let index = 1; index < rows.length; index++) {
-      bbox = getCoverBBox(bbox, getBBoxFromTiles(
-        rows[index].xMin,
-        rows[index].yMin,
-        rows[index].xMax,
-        rows[index].yMax,
-        rows[index].zoom_level,
-        "tms"
-      ));
+      bbox = getCoverBBox(
+        bbox,
+        getBBoxFromTiles(
+          rows[index].xMin,
+          rows[index].yMin,
+          rows[index].xMax,
+          rows[index].yMax,
+          rows[index].zoom_level,
+          "tms"
+        )
+      );
     }
 
     bbox[0] = limitValue(bbox[0], -180, 180);
@@ -208,7 +211,8 @@ export function getMBTilesTileExtraInfoFromCoverages(
     if (row[extraInfoType] !== null) {
       // TMS -> XYZ
       result[
-        `${row.zoom_level}/${row.tile_column}/${(1 << row.zoom_level) - 1 - row.tile_row
+        `${row.zoom_level}/${row.tile_column}/${
+          (1 << row.zoom_level) - 1 - row.tile_row
         }`
       ] = row[extraInfoType];
     }
@@ -1245,14 +1249,17 @@ async function getPostgreSQLBBoxFromTiles(source) {
     );
 
     for (let index = 1; index < data.rows.length; index++) {
-      bbox = getCoverBBox(bbox, getBBoxFromTiles(
-        data.rows[index].xMin,
-        data.rows[index].yMin,
-        data.rows[index].xMax,
-        data.rows[index].yMax,
-        data.rows[index].zoom_level,
-        "xyz"
-      ));
+      bbox = getCoverBBox(
+        bbox,
+        getBBoxFromTiles(
+          data.rows[index].xMin,
+          data.rows[index].yMin,
+          data.rows[index].xMax,
+          data.rows[index].yMax,
+          data.rows[index].zoom_level,
+          "xyz"
+        )
+      );
     }
 
     bbox[0] = limitValue(bbox[0], -180, 180);

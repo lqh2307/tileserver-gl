@@ -212,13 +212,9 @@ export async function findFiles(
       );
 
       if (includeDirPath) {
-        subEntries.forEach((sub) =>
-          results.push(`${fullPath}/${sub}`)
-        );
+        subEntries.forEach((sub) => results.push(`${fullPath}/${sub}`));
       } else {
-        subEntries.forEach((sub) =>
-          results.push(`${entry.name}/${sub}`)
-        );
+        subEntries.forEach((sub) => results.push(`${entry.name}/${sub}`));
       }
     }
   }
