@@ -57,7 +57,7 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   let x = Math.floor((zc + lon * bc) / tileSize);
   let y = Math.floor(
     (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
-      tileSize
+    tileSize
   );
 
   if (scheme === "tms") {
@@ -235,11 +235,11 @@ export function splitBBox(bbox, lonStep, latStep) {
   }
 
   const lonRanges = lonStep
-    ? splitStep(bbox.minLon, bbox.maxLon, lonStep)
-    : [[bbox.minLon, bbox.maxLon]];
+    ? splitStep(bbox[0], bbox[2], lonStep)
+    : [[bbox[0], bbox[2]]];
   const latRanges = latStep
-    ? splitStep(bbox.minLat, bbox.maxLat, latStep)
-    : [[bbox.minLat, bbox.maxLat]];
+    ? splitStep(bbox[1], bbox[3], latStep)
+    : [[bbox[1], bbox[3]]];
 
   for (const [lonStart, lonEnd] of lonRanges) {
     for (const [latStart, latEnd] of latRanges) {
