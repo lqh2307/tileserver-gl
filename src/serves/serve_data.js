@@ -186,7 +186,8 @@ function getDataHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
+            item.tileJSON.format
           }`,
         ],
       };

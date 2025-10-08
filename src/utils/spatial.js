@@ -57,7 +57,7 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme, tileSize = 256) {
   let x = Math.floor((zc + lon * bc) / tileSize);
   let y = Math.floor(
     (zc - cc * Math.log(Math.tan(Math.PI / 4 + lat * (Math.PI / 360)))) /
-    tileSize
+      tileSize
   );
 
   if (scheme === "tms") {
@@ -183,19 +183,18 @@ export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
  * Calculate sizes
  * @param {number} z Zoom level
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
- * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @returns {{width: number, height: number}} Sizes
  */
-export function calculateSizes(z, bbox, tileScale = 1, tileSize = 512) {
+export function calculateSizes(z, bbox, tileSize = 512) {
   const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
   const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
 
   const resolution = (2 * Math.PI * 6378137.0) / (tileSize * Math.pow(2, z));
 
   return {
-    width: Math.round(tileScale * ((maxX - minX) / resolution)),
-    height: Math.round(tileScale * ((maxY - minY) / resolution)),
+    width: Math.round((maxX - minX) / resolution),
+    height: Math.round((maxY - minY) / resolution),
   };
 }
 
@@ -354,7 +353,8 @@ export function getTileBounds(options) {
         options.tileSize
       );
 
-      realBBox = zoom === options.minZoom ? _bbox : getCoverBBox(realBBox, _bbox);
+      realBBox =
+        zoom === options.minZoom ? _bbox : getCoverBBox(realBBox, _bbox);
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
 

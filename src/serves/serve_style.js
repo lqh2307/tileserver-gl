@@ -366,7 +366,8 @@ function getRenderedHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${queryStrings.length ? `?${queryStrings.join("&")}` : ""
+          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${
+            queryStrings.length ? `?${queryStrings.join("&")}` : ""
           }`,
         ],
       };
