@@ -77,7 +77,7 @@ function createRenderer(option) {
       switch (scheme) {
         /* Get sprite */
         case "sprites": {
-          const parts = decodeURI(req.url).split("/");
+          const parts = decodeURIComponent(req.url).split("/");
 
           try {
             data = await getAndCacheDataSprite(parts[2], parts[3]);
@@ -102,7 +102,7 @@ function createRenderer(option) {
 
         /* Get font */
         case "fonts": {
-          const parts = decodeURI(req.url).split("/");
+          const parts = decodeURIComponent(req.url).split("/");
 
           try {
             data = await getAndCacheDataFonts(parts[2], parts[3]);
@@ -127,7 +127,7 @@ function createRenderer(option) {
 
         /* Get geojson */
         case "geojson": {
-          const parts = decodeURI(req.url).split("/");
+          const parts = decodeURIComponent(req.url).split("/");
 
           try {
             data = await getAndCacheDataGeoJSON(parts[2], parts[3]);
@@ -152,7 +152,7 @@ function createRenderer(option) {
 
         /* Get pmtiles tile */
         case "pmtiles": {
-          const parts = decodeURI(req.url).split("/");
+          const parts = decodeURIComponent(req.url).split("/");
 
           const z = Number(parts[3]);
           const x = Number(parts[4]);
@@ -180,7 +180,7 @@ function createRenderer(option) {
 
         /* Get mbtiles tile */
         case "mbtiles": {
-          const parts = decodeURI(req.url).split("/");
+          const parts = decodeURIComponent(req.url).split("/");
 
           const z = Number(parts[3]);
           const x = Number(parts[4]);
@@ -213,7 +213,7 @@ function createRenderer(option) {
 
         /* Get xyz tile */
         case "xyz": {
-          const parts = decodeURI(req.url).split("/");
+          const parts = decodeURIComponent(req.url).split("/");
 
           const z = Number(parts[3]);
           const x = Number(parts[4]);
@@ -241,7 +241,7 @@ function createRenderer(option) {
 
         /* Get pg tile */
         case "pg": {
-          const parts = decodeURI(req.url).split("/");
+          const parts = decodeURIComponent(req.url).split("/");
 
           const z = Number(parts[3]);
           const x = Number(parts[4]);
@@ -275,11 +275,9 @@ function createRenderer(option) {
         /* Get data from remote */
         case "http":
         case "https": {
-          const url = decodeURI(req.url);
-
           try {
             const dataRemote = await getDataFromURL(
-              url,
+              req.url,
               30000, // 30 secs
               "arraybuffer"
             );
@@ -292,25 +290,25 @@ function createRenderer(option) {
               : dataRemote.data;
           } catch (error) {
             if (req.kind === 3) {
-              const result = url.match(/(gif|png|jpg|jpeg|webp|pbf)/g);
+              const result = req.url.match(/(gif|png|jpg|jpeg|webp|pbf)/g);
               if (result) {
                 printLog(
                   "warn",
-                  `Failed to get tile from "${url}": ${error}. Serving empty tile...`
+                  `Failed to get tile from "${req.url}": ${error}. Serving empty tile...`
                 );
 
                 data = createFallbackTileData(result[0]);
               } else {
-                printLog("error", `Failed to detect tile from "${url}"`);
+                printLog("error", `Failed to detect tile from "${req.url}"`);
 
                 err = error;
               }
             } else if (req.kind === 4) {
-              const result = url.match(/([^/]+\/\d+-\d+\.pbf)/g);
+              const result = req.url.match(/([^/]+\/\d+-\d+\.pbf)/g);
               if (result) {
                 printLog(
                   "warn",
-                  `Failed to get font from "${url}": ${error}. Serving fallback font "Open Sans"...`
+                  `Failed to get font from "${req.url}": ${error}. Serving fallback font "Open Sans"...`
                 );
 
                 const parts = result[0].split("/");
@@ -324,12 +322,12 @@ function createRenderer(option) {
                   data = await unzipAsync(data);
                 }
               } else {
-                printLog("error", `Failed to detect font from "${url}"`);
+                printLog("error", `Failed to detect font from "${req.url}"`);
 
                 err = error;
               }
             } else {
-              printLog("error", `Failed to get data from "${url}": ${error}`);
+              printLog("error", `Failed to get data from "${req.url}": ${error}`);
 
               err = error;
             }
