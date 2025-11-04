@@ -2468,3 +2468,4 @@ async function cleanUpStyle(id, cleanUpBefore) {
     `Completed cleanup style "${id}" after ${(Date.now() - startTime) / 1000}s!`
   );
 }
+

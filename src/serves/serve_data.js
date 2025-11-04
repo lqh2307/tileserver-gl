@@ -100,36 +100,51 @@ function getDataTileHandler() {
         .send("Data tile format is not support");
     }
 
-    /* Get tile name */
-    const z = Number(req.params.z);
-    const x = Number(req.params.x);
-    const y = Number(req.params.y);
-
     /* Get and cache tile data */
     try {
       let dataTile;
 
       switch (item.sourceType) {
         case "mbtiles": {
-          dataTile = await getAndCacheMBTilesDataTile(id, z, x, y);
+          dataTile = await getAndCacheMBTilesDataTile(
+            id,
+            +req.params.z,
+            +req.params.x,
+            +req.params.y
+          );
 
           break;
         }
 
         case "pmtiles": {
-          dataTile = await getPMTilesTile(item.source, z, x, y);
+          dataTile = await getPMTilesTile(
+            item.source,
+            +req.params.z,
+            +req.params.x,
+            +req.params.y
+          );
 
           break;
         }
 
         case "xyz": {
-          dataTile = await getAndCacheXYZDataTile(id, z, x, y);
+          dataTile = await getAndCacheXYZDataTile(
+            id,
+            +req.params.z,
+            +req.params.x,
+            +req.params.y
+          );
 
           break;
         }
 
         case "pg": {
-          dataTile = await getAndCachePostgreSQLDataTile(id, z, x, y);
+          dataTile = await getAndCachePostgreSQLDataTile(
+            id,
+            +req.params.z,
+            +req.params.x,
+            +req.params.y
+          );
 
           break;
         }
@@ -151,7 +166,7 @@ function getDataTileHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get data "${id}" - Tile "${z}/${x}/${y}": ${error}`
+        `Failed to get data "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}": ${error}`
       );
 
       if (error.message === "Tile does not exist") {

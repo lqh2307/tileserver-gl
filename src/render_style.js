@@ -154,13 +154,13 @@ function createRenderer(option) {
         case "pmtiles": {
           const parts = decodeURIComponent(req.url).split("/");
 
-          const z = Number(parts[3]);
-          const x = Number(parts[4]);
-          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+          const z = parts[3];
+          const x = parts[4];
+          const y = parts[5].slice(0, parts[5].indexOf("."));
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getPMTilesTile(item.source, z, x, y);
+            const dataTile = await getPMTilesTile(item.source, +z, +x, +y);
 
             /* Unzip data */
             data = dataTile.headers["content-encoding"]
@@ -182,17 +182,17 @@ function createRenderer(option) {
         case "mbtiles": {
           const parts = decodeURIComponent(req.url).split("/");
 
-          const z = Number(parts[3]);
-          const x = Number(parts[4]);
-          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+          const z = parts[3];
+          const x = parts[4];
+          const y = parts[5].slice(0, parts[5].indexOf("."));
           const item = config.datas[parts[2]];
 
           try {
             const dataTile = await getAndCacheMBTilesDataTile(
               parts[2],
-              z,
-              x,
-              y
+              +z,
+              +x,
+              +y
             );
 
             /* Unzip data */
@@ -215,13 +215,13 @@ function createRenderer(option) {
         case "xyz": {
           const parts = decodeURIComponent(req.url).split("/");
 
-          const z = Number(parts[3]);
-          const x = Number(parts[4]);
-          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+          const z = parts[3];
+          const x = parts[4];
+          const y = parts[5].slice(0, parts[5].indexOf("."));
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getAndCacheXYZDataTile(parts[2], z, x, y);
+            const dataTile = await getAndCacheXYZDataTile(parts[2], +z, +x, +y);
 
             /* Unzip data */
             data = dataTile.headers["content-encoding"]
@@ -243,17 +243,17 @@ function createRenderer(option) {
         case "pg": {
           const parts = decodeURIComponent(req.url).split("/");
 
-          const z = Number(parts[3]);
-          const x = Number(parts[4]);
-          const y = Number(parts[5].slice(0, parts[5].indexOf(".")));
+          const z = parts[3];
+          const x = parts[4];
+          const y = parts[5].slice(0, parts[5].indexOf("."));
           const item = config.datas[parts[2]];
 
           try {
             const dataTile = await getAndCachePostgreSQLDataTile(
               parts[2],
-              z,
-              x,
-              y
+              +z,
+              +x,
+              +y
             );
 
             /* Unzip data */
@@ -327,7 +327,10 @@ function createRenderer(option) {
                 err = error;
               }
             } else {
-              printLog("error", `Failed to get data from "${req.url}": ${error}`);
+              printLog(
+                "error",
+                `Failed to get data from "${req.url}": ${error}`
+              );
 
               err = error;
             }

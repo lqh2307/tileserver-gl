@@ -291,20 +291,15 @@ function getRenderedTileHandler() {
       return res.status(StatusCodes.NOT_FOUND).send("Rendered does not exist");
     }
 
-    /* Get tile name */
-    const z = Number(req.params.z);
-    const x = Number(req.params.x);
-    const y = Number(req.params.y);
-
     /* Render tile */
     try {
       const image = await renderImageTileData({
         styleJSON: await getRenderedStyleJSON(item.path),
-        tileScale: Number(req.query.tileScale) || 1,
-        tileSize: Number(req.query.tileSize) || 256,
-        z: z,
-        x: x,
-        y: y,
+        tileScale: +req.query.tileScale || 1,
+        tileSize: +req.query.tileSize || 256,
+        z: +req.params.z,
+        x: +req.params.x,
+        y: +req.params.y,
         format: req.params.format,
       });
 
@@ -317,7 +312,7 @@ function getRenderedTileHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get rendered "${id}" - Tile "${z}/${x}/${y}: ${error}`
+        `Failed to get rendered "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}: ${error}`
       );
 
       return res

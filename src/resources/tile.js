@@ -443,13 +443,13 @@ export async function getMBTilesMetadata(source) {
       }
 
       case "minzoom": {
-        metadata.minzoom = Number(row.value);
+        metadata.minzoom = +row.value;
 
         break;
       }
 
       case "maxzoom": {
-        metadata.maxzoom = Number(row.value);
+        metadata.maxzoom = +row.value;
 
         break;
       }
@@ -1545,13 +1545,13 @@ export async function getPostgreSQLMetadata(source) {
       }
 
       case "minzoom": {
-        metadata.minzoom = Number(row.value);
+        metadata.minzoom = +row.value;
 
         break;
       }
 
       case "maxzoom": {
-        metadata.maxzoom = Number(row.value);
+        metadata.maxzoom = +row.value;
 
         break;
       }
@@ -1827,7 +1827,7 @@ export async function getPostgreSQLSize(source, dbName) {
   ]);
 
   if (data.rows.length !== 0) {
-    return Number(data.rows[0].size);
+    return +data.rows[0].size;
   }
 }
 
@@ -1844,7 +1844,7 @@ export async function countPostgreSQLTiles(uri) {
   closePostgreSQLDB(source);
 
   if (data.rows.length !== 0) {
-    return Number(data.rows[0].count);
+    return +data.rows[0].count;
   }
 }
 
@@ -2473,13 +2473,13 @@ export async function getXYZMetadata(sourcePath, source) {
       }
 
       case "minzoom": {
-        metadata.minzoom = Number(row.value);
+        metadata.minzoom = +row.value;
 
         break;
       }
 
       case "maxzoom": {
-        metadata.maxzoom = Number(row.value);
+        metadata.maxzoom = +row.value;
 
         break;
       }

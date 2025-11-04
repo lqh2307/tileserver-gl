@@ -141,7 +141,7 @@ async function startClusterServer() {
     /* Fork servers */
     printLog("info", "Creating workers...");
 
-    for (let i = 0; i < Number(process.env.NUM_OF_PROCESS); i++) {
+    for (let i = 0; i < +process.env.NUM_OF_PROCESS; i++) {
       cluster.fork();
     }
 

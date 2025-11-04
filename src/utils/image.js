@@ -6,7 +6,7 @@ import { convertLength, toPixel } from "./util.js";
 import { jsPDF } from "jspdf";
 import sharp from "sharp";
 
-// sharp.cache(false);
+sharp.cache(false);
 // sharp.timeout({
 //   seconds: 300,
 // });
@@ -19,7 +19,7 @@ import sharp from "sharp";
  * @returns {string}
  */
 function formatDegree(deg, isLat, format) {
-  const rounded = Number(deg.toFixed(9));
+  const rounded = +deg.toFixed(9);
 
   if (format === "DMS" || format === "DMSD") {
     const abs = Math.abs(rounded);
@@ -1099,7 +1099,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
 /**
  * Merge tiles to image
- * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", scheme: "xyz" | "tms", tileSize: 256|512, bbox: [number, number, number, number] }} input Input object
+ * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", scheme: "xyz" | "tms", bbox: [number, number, number, number] }} input Input object
  * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
  * @returns {Promise<void|Buffer|string>}
  */
@@ -1139,8 +1139,7 @@ export async function mergeTilesToImage(input, output) {
           input.xMax,
           input.yMax,
           input.z,
-          input.scheme,
-          input.tileSize
+          input.scheme
         );
 
     const xRes = targetWidth / (originBBox[2] - originBBox[0]);
@@ -1754,3 +1753,4 @@ export async function isFullTransparentImage(buffer) {
 export function base64ToBuffer(base64) {
   return Buffer.from(base64.slice(base64.indexOf(",") + 1), "base64");
 }
+

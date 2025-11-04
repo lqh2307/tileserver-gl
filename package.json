@@ -17,9 +17,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-style-spec": "24.3.0",
+    "@maplibre/maplibre-gl-style-spec": "24.3.1",
     "@maplibre/maplibre-gl-native": "6.2.0",
-    "@socket.io/cluster-adapter": "0.2.2",
+    "@socket.io/cluster-adapter": "0.3.0",
     "swagger-ui-express": "5.0.1",
     "@socket.io/sticky": "1.0.4",
     "http-status-codes": "2.3.0",
@@ -38,7 +38,7 @@
     "express": "5.1.0",
     "pmtiles": "4.3.0",
     "sharp": "0.34.4",
-    "axios": "1.12.2",
+    "axios": "1.13.1",
     "jspdf": "3.0.3",
     "pino": "10.1.0",
     "mime": "4.1.0",
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "prettier": "3.6.2",
-    "eslint": "9.38.0"
+    "eslint": "9.39.1"
   },
   "engines": {
     "node": ">=22 <23"

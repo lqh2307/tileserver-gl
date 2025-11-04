@@ -33,3 +33,4 @@ export function validateJSON(schema, jsonData) {
 export async function getJSONSchema(schema) {
   return JSON.parse(await readFile(`public/schemas/${schema}.json`, "utf8"));
 }
+

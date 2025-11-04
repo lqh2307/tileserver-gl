@@ -125,7 +125,7 @@ export async function startServer() {
       setupPrimary();
 
       server
-        .listen(Number(process.env.LISTEN_PORT), () => {
+        .listen(+process.env.LISTEN_PORT, () => {
           printLog(
             "info",
             `HTTP/WS server is listening on port "${process.env.LISTEN_PORT}"...`
