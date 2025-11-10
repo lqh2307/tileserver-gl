@@ -14,7 +14,8 @@
   },
   "scripts": {
     "server": "./entrypoint.sh",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{js}\""
   },
   "dependencies": {
     "@maplibre/maplibre-gl-style-spec": "24.3.1",

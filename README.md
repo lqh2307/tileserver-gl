@@ -116,9 +116,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "thread": 128
   },
   "styles": {
-    "osm": {
-      "style": "osm/style.json"
-    },
     "dark": {
       "style": "dark/style.json"
     },
@@ -139,9 +136,6 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     },
     "toner": {
       "style": "toner/style.json"
-    },
-    "topo": {
-      "style": "topo/style.json"
     }
   },
   "geojsons": {
@@ -826,10 +820,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "name": "osm_style",
     "description": "osm_style",
     "format": "png",
-    "bounds": [
-      104.55758541249514, 20.40418806657307, 106.68188322743384,
-      22.266067290668104
-    ],
+    "bounds": [104.55758541249514, 20.40418806657307, 106.68188322743384, 22.266067290668104],
     "center": [108, 5, 10],
     "minzoom": 14,
     "maxzoom": 14
@@ -1002,10 +993,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 [
   {
     "zoom": 8.45,
-    "bbox": [
-      104.55758541249514, 20.40418806657307, 106.68188322743384,
-      22.266067290668104
-    ],
+    "bbox": [104.55758541249514, 20.40418806657307, 106.68188322743384, 22.266067290668104],
     "tileScale": 1,
     "tileSize": 512,
     "styleJSON": {
@@ -1210,11 +1198,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "waterway",
-          "filter": [
-            "all",
-            ["==", "class", "river"],
-            ["!=", "brunnel", "tunnel"]
-          ],
+          "filter": ["all", ["==", "class", "river"], ["!=", "brunnel", "tunnel"]],
           "layout": {
             "line-cap": "round"
           },
@@ -1234,11 +1218,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "waterway",
-          "filter": [
-            "all",
-            ["!=", "class", "river"],
-            ["!=", "brunnel", "tunnel"]
-          ],
+          "filter": ["all", ["!=", "class", "river"], ["!=", "brunnel", "tunnel"]],
           "layout": {
             "line-cap": "round"
           },
@@ -1291,11 +1271,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "aeroway",
           "minzoom": 11,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["==", "class", "runway"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "runway"]],
           "paint": {
             "line-color": "#f0ede9",
             "line-width": {
@@ -1313,11 +1289,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "aeroway",
           "minzoom": 11,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["==", "class", "taxiway"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "taxiway"]],
           "paint": {
             "line-color": "#f0ede9",
             "line-width": {
@@ -1334,12 +1306,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "motorway"],
-            ["==", "ramp", 1],
-            ["==", "brunnel", "tunnel"]
-          ],
+          "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "tunnel"]],
           "layout": {
             "line-join": "round"
           },
@@ -1362,11 +1329,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "service", "track"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "service", "track"]],
           "layout": {
             "line-join": "round"
           },
@@ -1410,11 +1373,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "street", "street_limited"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "street", "street_limited"]],
           "layout": {
             "line-join": "round"
           },
@@ -1442,11 +1401,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "secondary", "tertiary"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "secondary", "tertiary"]],
           "layout": {
             "line-join": "round"
           },
@@ -1466,11 +1421,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "primary", "trunk"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "primary", "trunk"]],
           "layout": {
             "line-join": "round"
           },
@@ -1492,12 +1443,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "motorway"],
-            ["!=", "ramp", 1],
-            ["==", "brunnel", "tunnel"]
-          ],
+          "filter": ["all", ["==", "class", "motorway"], ["!=", "ramp", 1], ["==", "brunnel", "tunnel"]],
           "layout": {
             "line-join": "round"
           },
@@ -1520,12 +1466,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "path", "pedestrian"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "tunnel"], ["in", "class", "path", "pedestrian"]],
           "paint": {
             "line-color": "hsl(0, 0%, 100%)",
             "line-dasharray": [1, 0.75],
@@ -1543,12 +1484,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "motorway"],
-            ["==", "ramp", 1],
-            ["==", "brunnel", "tunnel"]
-          ],
+          "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "tunnel"]],
           "layout": {
             "line-join": "round"
           },
@@ -1570,11 +1506,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "service", "track"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "service", "track"]],
           "layout": {
             "line-join": "round"
           },
@@ -1617,11 +1549,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "minor"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "minor"]],
           "layout": {
             "line-join": "round"
           },
@@ -1642,11 +1570,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "secondary", "tertiary"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "secondary", "tertiary"]],
           "layout": {
             "line-join": "round"
           },
@@ -1667,11 +1591,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "primary", "trunk"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "primary", "trunk"]],
           "layout": {
             "line-join": "round"
           },
@@ -1692,12 +1612,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "motorway"],
-            ["!=", "ramp", 1],
-            ["==", "brunnel", "tunnel"]
-          ],
+          "filter": ["all", ["==", "class", "motorway"], ["!=", "ramp", 1], ["==", "brunnel", "tunnel"]],
           "layout": {
             "line-join": "round"
           },
@@ -1718,11 +1633,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "rail"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "rail"]],
           "paint": {
             "line-color": "#bbb",
             "line-width": {
@@ -1740,11 +1651,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["==", "class", "rail"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["==", "class", "rail"]],
           "paint": {
             "line-color": "#bbb",
             "line-dasharray": [0.2, 8],
@@ -1763,11 +1670,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["in", "class", "transit"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "transit"]],
           "paint": {
             "line-color": "#bbb",
             "line-width": {
@@ -1785,11 +1688,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "tunnel"],
-            ["==", "class", "transit"]
-          ],
+          "filter": ["all", ["==", "brunnel", "tunnel"], ["==", "class", "transit"]],
           "paint": {
             "line-color": "#bbb",
             "line-dasharray": [0.2, 8],
@@ -1819,12 +1718,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 12,
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "class", "motorway"],
-            ["==", "ramp", 1]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["==", "ramp", 1]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -1847,11 +1741,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "service", "track"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "service", "track"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -1874,20 +1764,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 13,
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            [
-              "!in",
-              "class",
-              "pedestrian",
-              "path",
-              "track",
-              "service",
-              "motorway"
-            ],
-            ["==", "ramp", 1]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!in", "class", "pedestrian", "path", "track", "service", "motorway"], ["==", "ramp", 1]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -1910,13 +1787,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "minor"],
-            ["!=", "ramp", 1]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "minor"], ["!=", "ramp", 1]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -1945,12 +1816,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "secondary", "tertiary"],
-            ["!=", "ramp", 1]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary", "tertiary"], ["!=", "ramp", 1]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -1971,11 +1837,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "primary", "trunk"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "primary", "trunk"]],
           "layout": {
             "line-join": "round"
           },
@@ -1998,12 +1860,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 5,
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "class", "motorway"],
-            ["!=", "ramp", 1]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["!=", "ramp", 1]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -2027,12 +1884,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 14,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "path", "pedestrian"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path", "pedestrian"]],
           "layout": {
             "line-join": "round"
           },
@@ -2054,12 +1906,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 12,
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "class", "motorway"],
-            ["==", "ramp", 1]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["==", "ramp", 1]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -2082,11 +1929,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "service", "track"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "service", "track"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -2109,20 +1952,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 13,
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "ramp", 1],
-            [
-              "!in",
-              "class",
-              "pedestrian",
-              "path",
-              "track",
-              "service",
-              "motorway"
-            ]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "ramp", 1], ["!in", "class", "pedestrian", "path", "track", "service", "motorway"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -2145,12 +1975,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "minor"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "minor"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -2172,11 +1997,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "secondary", "tertiary"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary", "tertiary"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -2198,11 +2019,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["in", "class", "primary", "trunk"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "primary", "trunk"]],
           "layout": {
             "line-join": "round"
           },
@@ -2224,12 +2041,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 5,
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "class", "motorway"],
-            ["!=", "ramp", 1]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["!=", "ramp", 1]],
           "layout": {
             "line-cap": "round",
             "line-join": "round"
@@ -2257,11 +2069,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "class", "rail"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "rail"]],
           "paint": {
             "line-color": "#bbb",
             "line-width": {
@@ -2279,11 +2087,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "class", "rail"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "rail"]],
           "paint": {
             "line-color": "#bbb",
             "line-dasharray": [0.2, 8],
@@ -2302,11 +2106,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "class", "transit"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "transit"]],
           "paint": {
             "line-color": "#bbb",
             "line-width": {
@@ -2324,11 +2124,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["!in", "brunnel", "bridge", "tunnel"],
-            ["==", "class", "transit"]
-          ],
+          "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "transit"]],
           "paint": {
             "line-color": "#bbb",
             "line-dasharray": [0.2, 8],
@@ -2372,12 +2168,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "motorway"],
-            ["==", "ramp", 1],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "bridge"]],
           "layout": {
             "line-join": "round"
           },
@@ -2399,11 +2190,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "service", "track"]
-          ],
+          "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "service", "track"]],
           "layout": {
             "line-join": "round"
           },
@@ -2424,11 +2211,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "link"],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "link"], ["==", "brunnel", "bridge"]],
           "layout": {
             "line-join": "round"
           },
@@ -2450,11 +2233,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "street", "street_limited"]
-          ],
+          "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "street", "street_limited"]],
           "layout": {
             "line-join": "round"
           },
@@ -2482,12 +2261,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "path", "pedestrian"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path", "pedestrian"]],
           "paint": {
             "line-color": "hsl(35, 6%, 80%)",
             "line-dasharray": [1, 0],
@@ -2505,11 +2279,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "secondary", "tertiary"]
-          ],
+          "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary", "tertiary"]],
           "layout": {
             "line-join": "round"
           },
@@ -2529,11 +2299,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "primary", "trunk"]
-          ],
+          "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "primary", "trunk"]],
           "layout": {
             "line-join": "round"
           },
@@ -2555,12 +2321,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "motorway"],
-            ["!=", "ramp", 1],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "motorway"], ["!=", "ramp", 1], ["==", "brunnel", "bridge"]],
           "layout": {
             "line-join": "round"
           },
@@ -2582,12 +2343,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "path", "pedestrian"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path", "pedestrian"]],
           "paint": {
             "line-color": "hsl(0, 0%, 100%)",
             "line-dasharray": [1, 0.3],
@@ -2605,12 +2361,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "motorway"],
-            ["==", "ramp", 1],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "bridge"]],
           "layout": {
             "line-join": "round"
           },
@@ -2632,11 +2383,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "service", "track"]
-          ],
+          "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "service", "track"]],
           "layout": {
             "line-join": "round"
           },
@@ -2657,11 +2404,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "link"],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "link"], ["==", "brunnel", "bridge"]],
           "layout": {
             "line-join": "round"
           },
@@ -2683,11 +2426,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "minor"]
-          ],
+          "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "minor"]],
           "layout": {
             "line-join": "round"
           },
@@ -2708,11 +2447,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "secondary", "tertiary"]
-          ],
+          "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary", "tertiary"]],
           "layout": {
             "line-join": "round"
           },
@@ -2733,11 +2468,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "brunnel", "bridge"],
-            ["in", "class", "primary", "trunk"]
-          ],
+          "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "primary", "trunk"]],
           "layout": {
             "line-join": "round"
           },
@@ -2758,12 +2489,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "motorway"],
-            ["!=", "ramp", 1],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "motorway"], ["!=", "ramp", 1], ["==", "brunnel", "bridge"]],
           "layout": {
             "line-join": "round"
           },
@@ -2784,11 +2510,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "rail"],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "rail"], ["==", "brunnel", "bridge"]],
           "paint": {
             "line-color": "#bbb",
             "line-width": {
@@ -2806,11 +2528,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "rail"],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "rail"], ["==", "brunnel", "bridge"]],
           "paint": {
             "line-color": "#bbb",
             "line-dasharray": [0.2, 8],
@@ -2829,11 +2547,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "transit"],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "transit"], ["==", "brunnel", "bridge"]],
           "paint": {
             "line-color": "#bbb",
             "line-width": {
@@ -2851,11 +2565,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "class", "transit"],
-            ["==", "brunnel", "bridge"]
-          ],
+          "filter": ["all", ["==", "class", "transit"], ["==", "brunnel", "bridge"]],
           "paint": {
             "line-color": "#bbb",
             "line-dasharray": [0.2, 8],
@@ -3034,13 +2744,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "minzoom": 16,
           "filter": ["all", ["==", "$type", "Point"], [">=", "rank", 20]],
           "layout": {
-            "icon-image": [
-              "match",
-              ["get", "subclass"],
-              ["florist", "furniture", "soccer", "tennis"],
-              ["get", "subclass"],
-              ["get", "class"]
-            ],
+            "icon-image": ["match", ["get", "subclass"], ["florist", "furniture", "soccer", "tennis"], ["get", "subclass"], ["get", "class"]],
             "text-anchor": "top",
             "text-field": "{name}",
             "text-font": ["Roboto Condensed Italic"],
@@ -3061,20 +2765,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "poi",
           "minzoom": 15,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            [">=", "rank", 7],
-            ["<", "rank", 20]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], [">=", "rank", 7], ["<", "rank", 20]],
           "layout": {
-            "icon-image": [
-              "match",
-              ["get", "subclass"],
-              ["florist", "furniture", "soccer", "tennis"],
-              ["get", "subclass"],
-              ["get", "class"]
-            ],
+            "icon-image": ["match", ["get", "subclass"], ["florist", "furniture", "soccer", "tennis"], ["get", "subclass"], ["get", "class"]],
             "text-anchor": "top",
             "text-field": "{name}",
             "text-font": ["Roboto Condensed Italic"],
@@ -3095,20 +2788,9 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "poi",
           "minzoom": 14,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            [">=", "rank", 1],
-            ["<", "rank", 7]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], [">=", "rank", 1], ["<", "rank", 7]],
           "layout": {
-            "icon-image": [
-              "match",
-              ["get", "subclass"],
-              ["florist", "furniture", "soccer", "tennis"],
-              ["get", "subclass"],
-              ["get", "class"]
-            ],
+            "icon-image": ["match", ["get", "subclass"], ["florist", "furniture", "soccer", "tennis"], ["get", "subclass"], ["get", "class"]],
             "text-anchor": "top",
             "text-field": "{name}",
             "text-font": ["Roboto Condensed Italic"],
@@ -3202,19 +2884,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "symbol",
           "source": "source",
           "source-layer": "place",
-          "filter": [
-            "all",
-            [
-              "in",
-              "class",
-              "hamlet",
-              "island",
-              "islet",
-              "neighbourhood",
-              "suburb",
-              "quarter"
-            ]
-          ],
+          "filter": ["all", ["in", "class", "hamlet", "island", "islet", "neighbourhood", "suburb", "quarter"]],
           "layout": {
             "text-field": "{name_en}",
             "text-font": ["Roboto Condensed Italic"],
@@ -3497,11 +3167,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "landcover",
           "maxzoom": 8,
-          "filter": [
-            "all",
-            ["==", "$type", "Polygon"],
-            ["==", "subclass", "ice_shelf"]
-          ],
+          "filter": ["all", ["==", "$type", "Polygon"], ["==", "subclass", "ice_shelf"]],
           "layout": { "visibility": "visible" },
           "paint": { "fill-color": "hsl(232, 33%, 34%)", "fill-opacity": 0.4 }
         },
@@ -3511,11 +3177,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "landuse",
           "maxzoom": 16,
-          "filter": [
-            "all",
-            ["==", "$type", "Polygon"],
-            ["==", "subclass", "residential"]
-          ],
+          "filter": ["all", ["==", "$type", "Polygon"], ["==", "subclass", "residential"]],
           "layout": { "visibility": "visible" },
           "paint": {
             "fill-color": "rgb(234, 234, 230)",
@@ -3534,11 +3196,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "landcover",
           "minzoom": 10,
-          "filter": [
-            "all",
-            ["==", "$type", "Polygon"],
-            ["==", "class", "wood"]
-          ],
+          "filter": ["all", ["==", "$type", "Polygon"], ["==", "class", "wood"]],
           "layout": { "visibility": "visible" },
           "paint": {
             "fill-color": "hsla(232, 18%, 30%, 0.57)",
@@ -3600,11 +3258,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 6,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["all", ["==", "brunnel", "tunnel"], ["==", "class", "motorway"]]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "brunnel", "tunnel"], ["==", "class", "motorway"]]],
           "layout": {
             "line-cap": "butt",
             "line-join": "miter",
@@ -3629,11 +3283,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 6,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["all", ["==", "brunnel", "tunnel"], ["==", "class", "motorway"]]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "brunnel", "tunnel"], ["==", "class", "motorway"]]],
           "layout": {
             "line-cap": "round",
             "line-join": "round",
@@ -3705,11 +3355,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "aeroway",
           "minzoom": 4,
-          "filter": [
-            "all",
-            ["==", "$type", "Polygon"],
-            ["in", "class", "runway", "taxiway"]
-          ],
+          "filter": ["all", ["==", "$type", "Polygon"], ["in", "class", "runway", "taxiway"]],
           "layout": { "visibility": "visible" },
           "paint": { "fill-color": "hsl(224, 20%, 29%)", "fill-opacity": 1 }
         },
@@ -3720,11 +3366,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source-layer": "aeroway",
           "minzoom": 11,
           "maxzoom": 24,
-          "filter": [
-            "all",
-            ["in", "class", "runway"],
-            ["==", "$type", "LineString"]
-          ],
+          "filter": ["all", ["in", "class", "runway"], ["==", "$type", "LineString"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round",
@@ -3747,11 +3389,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "fill",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "$type", "Polygon"],
-            ["==", "class", "pier"]
-          ],
+          "filter": ["all", ["==", "$type", "Polygon"], ["==", "class", "pier"]],
           "layout": { "visibility": "visible" },
           "paint": { "fill-antialias": true, "fill-color": "#45516E" }
         },
@@ -3760,11 +3398,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["in", "class", "pier"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "pier"]],
           "layout": { "line-cap": "round", "line-join": "round" },
           "paint": {
             "line-color": "#45516E",
@@ -3782,11 +3416,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "line",
           "source": "source",
           "source-layer": "transportation",
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["==", "class", "path"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "path"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round",
@@ -3811,11 +3441,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 8,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["in", "class", "minor", "service", "track"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "minor", "service", "track"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round",
@@ -3839,11 +3465,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 11,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["in", "class", "primary", "secondary", "tertiary", "trunk"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "primary", "secondary", "tertiary", "trunk"]],
           "layout": {
             "line-cap": "butt",
             "line-join": "miter",
@@ -3867,11 +3489,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 11,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["in", "class", "primary", "secondary", "tertiary", "trunk"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "primary", "secondary", "tertiary", "trunk"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round",
@@ -3894,11 +3512,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "maxzoom": 11,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["in", "class", "primary", "secondary", "tertiary", "trunk"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "primary", "secondary", "tertiary", "trunk"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round",
@@ -3916,15 +3530,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 6,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            [
-              "all",
-              ["!in", "brunnel", "bridge", "tunnel"],
-              ["==", "class", "motorway"]
-            ]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"]]],
           "layout": {
             "line-cap": "butt",
             "line-join": "miter",
@@ -3950,15 +3556,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 6,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            [
-              "all",
-              ["!in", "brunnel", "bridge", "tunnel"],
-              ["==", "class", "motorway"]
-            ]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"]]],
           "layout": {
             "line-cap": "round",
             "line-join": "round",
@@ -3988,11 +3586,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "maxzoom": 6,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["==", "class", "motorway"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "motorway"]],
           "layout": {
             "line-cap": "round",
             "line-join": "round",
@@ -4015,11 +3609,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 16,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["all", ["==", "class", "transit"], ["!in", "brunnel", "tunnel"]]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "class", "transit"], ["!in", "brunnel", "tunnel"]]],
           "layout": { "line-join": "round", "visibility": "visible" },
           "paint": { "line-color": "hsl(200, 65%, 11%)", "line-width": 3 }
         },
@@ -4029,11 +3619,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 16,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["all", ["==", "class", "transit"], ["!in", "brunnel", "tunnel"]]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "class", "transit"], ["!in", "brunnel", "tunnel"]]],
           "layout": { "line-join": "round", "visibility": "visible" },
           "paint": {
             "line-color": "hsl(193, 63%, 26%)",
@@ -4047,11 +3633,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 16,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["all", ["==", "class", "rail"], ["has", "service"]]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "class", "rail"], ["has", "service"]]],
           "layout": { "line-join": "round", "visibility": "visible" },
           "paint": { "line-color": "hsl(200, 65%, 11%)", "line-width": 3 }
         },
@@ -4061,11 +3643,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 16,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["all", ["==", "class", "rail"], ["has", "service"]]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "class", "rail"], ["has", "service"]]],
           "layout": { "line-join": "round", "visibility": "visible" },
           "paint": {
             "line-color": "hsl(193, 63%, 26%)",
@@ -4079,11 +3657,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 13,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["all", ["!has", "service"], ["==", "class", "rail"]]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["!has", "service"], ["==", "class", "rail"]]],
           "layout": { "line-join": "round", "visibility": "visible" },
           "paint": {
             "line-color": "hsl(200, 10%, 18%)",
@@ -4102,11 +3676,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "transportation",
           "minzoom": 13,
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["all", ["!has", "service"], ["==", "class", "rail"]]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["all", ["!has", "service"], ["==", "class", "rail"]]],
           "layout": { "line-join": "round", "visibility": "visible" },
           "paint": {
             "line-color": "hsl(224, 20%, 41%)",
@@ -4147,11 +3717,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "symbol",
           "source": "source",
           "source-layer": "transportation_name",
-          "filter": [
-            "all",
-            ["!=", "class", "motorway"],
-            ["==", "$type", "LineString"]
-          ],
+          "filter": ["all", ["!=", "class", "motorway"], ["==", "$type", "LineString"]],
           "layout": {
             "symbol-placement": "line",
             "symbol-spacing": 350,
@@ -4178,11 +3744,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "type": "symbol",
           "source": "source",
           "source-layer": "transportation_name",
-          "filter": [
-            "all",
-            ["==", "$type", "LineString"],
-            ["==", "class", "motorway"]
-          ],
+          "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "motorway"]],
           "layout": {
             "symbol-placement": "line",
             "symbol-spacing": 350,
@@ -4287,11 +3849,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 14,
-          "filter": [
-            "all",
-            ["in", "class", "hamlet", "neighbourhood", "isolated_dwelling"],
-            ["==", "$type", "Point"]
-          ],
+          "filter": ["all", ["in", "class", "hamlet", "neighbourhood", "isolated_dwelling"], ["==", "$type", "Point"]],
           "layout": {
             "text-anchor": "center",
             "text-field": "{name:latin}",
@@ -4316,11 +3874,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 15,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            ["==", "class", "suburb"]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], ["==", "class", "suburb"]],
           "layout": {
             "text-anchor": "center",
             "text-field": "{name:latin}",
@@ -4344,11 +3898,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 14,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            ["==", "class", "village"]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], ["==", "class", "village"]],
           "layout": {
             "icon-size": 0.4,
             "text-anchor": "left",
@@ -4413,11 +3963,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 14,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            ["all", ["==", "class", "city"], [">", "rank", 3]]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], ["all", ["==", "class", "city"], [">", "rank", 3]]],
           "layout": {
             "icon-size": 0.4,
             "text-anchor": {
@@ -4449,11 +3995,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 12,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            ["all", ["<=", "rank", 3], ["==", "class", "city"]]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], ["all", ["<=", "rank", 3], ["==", "class", "city"]]],
           "layout": {
             "icon-size": 0.4,
             "text-anchor": {
@@ -4506,12 +4048,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 8,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            ["==", "class", "country"],
-            ["!has", "iso_a2"]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], ["==", "class", "country"], ["!has", "iso_a2"]],
           "layout": {
             "text-field": "{name:latin}",
             "text-font": ["Metropolis Light Italic", "Noto Sans Italic"],
@@ -4544,13 +4081,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 8,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            ["==", "class", "country"],
-            [">=", "rank", 2],
-            ["has", "iso_a2"]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], ["==", "class", "country"], [">=", "rank", 2], ["has", "iso_a2"]],
           "layout": {
             "text-field": "{name:latin}",
             "text-font": ["Metropolis Regular", "Noto Sans Regular"],
@@ -4583,13 +4114,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 6,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            ["<=", "rank", 1],
-            ["==", "class", "country"],
-            ["has", "iso_a2"]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], ["<=", "rank", 1], ["==", "class", "country"], ["has", "iso_a2"]],
           "layout": {
             "text-anchor": "center",
             "text-field": "{name:latin}",
@@ -4624,11 +4149,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "source": "source",
           "source-layer": "place",
           "maxzoom": 6,
-          "filter": [
-            "all",
-            ["==", "$type", "Point"],
-            ["==", "class", "continent"]
-          ],
+          "filter": ["all", ["==", "$type", "Point"], ["==", "class", "continent"]],
           "layout": {
             "text-anchor": "center",
             "text-field": "{name:latin}",
