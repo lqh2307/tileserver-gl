@@ -607,6 +607,7 @@ async function seedDataTiles(
   const startTime = Date.now();
 
   let source;
+  let downloadDataTileFunc;
 
   try {
     /* Calculate summary */
@@ -736,8 +737,8 @@ async function seedDataTiles(
           30000 // 30 secs
         );
 
-        /* Download tiles */
-        async function seedMBTilesTileData(z, x, y, tasks) {
+        /* Download data tile function */
+        downloadDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
 
           if (
@@ -780,11 +781,7 @@ async function seedDataTiles(
               `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
             );
           }
-        }
-
-        printLog("info", "Downloading datas...");
-
-        await handleTilesConcurrency(concurrency, seedMBTilesTileData, tileBounds);
+        };
 
         break;
       }
@@ -884,8 +881,8 @@ async function seedDataTiles(
           30000 // 30 secs
         );
 
-        /* Download tile files */
-        async function seedXYZTileData(z, x, y, tasks) {
+        /* Download data tile function */
+        downloadDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
 
           if (
@@ -930,14 +927,7 @@ async function seedDataTiles(
               `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
             );
           }
-        }
-
-        printLog("info", "Downloading datas...");
-
-        await handleTilesConcurrency(concurrency, seedXYZTileData, tileBounds);
-
-        /* Remove parent folders if empty */
-        await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
+        };
 
         break;
       }
@@ -1028,8 +1018,8 @@ async function seedDataTiles(
 
         await updatePostgreSQLMetadata(source, metadata);
 
-        /* Download tiles */
-        async function seedPostgreSQLTileData(z, x, y, tasks) {
+        /* Download data tile function */
+        downloadDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
 
           if (
@@ -1072,19 +1062,15 @@ async function seedDataTiles(
               `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
             );
           }
-        }
-
-        printLog("info", "Downloading datas...");
-
-        await handleTilesConcurrency(
-          concurrency,
-          seedPostgreSQLTileData,
-          tileBounds
-        );
+        };
 
         break;
       }
     }
+
+    printLog("info", "Downloading data tiles...");
+
+    await handleTilesConcurrency(concurrency, downloadDataTileFunc, tileBounds);
 
     printLog(
       "info",
