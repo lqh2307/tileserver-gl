@@ -3,7 +3,8 @@
     "listenPort": 8080,
     "serveFrontPage": true,
     "serveSwagger": true,
-    "taskSchedule": "0 0 0 * * *",
+    "restartSchedule": "00 00 00 * * *",
+    "taskSchedule": "00 00 00 * * *",
     "postgreSQLBaseURI": "postgresql://localhost:5432",
     "process": 1,
     "thead": 8

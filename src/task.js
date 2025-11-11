@@ -108,8 +108,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} sprites after: ${
-                (Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} sprites after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -154,8 +153,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} fonts after: ${
-                (Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} fonts after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -200,8 +198,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} styles after: ${
-                (Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} styles after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -246,8 +243,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} geojsons after: ${
-                (Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} geojsons after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -279,40 +275,13 @@ export async function runTasks(opts) {
               }
 
               try {
-                switch (seedDataItem.storeType) {
-                  case "xyz": {
-                    await cleanUpXYZTiles(
-                      id,
-                      cleanUpDataItem.coverages,
-                      cleanUpDataItem.cleanUpBefore?.time ||
-                        cleanUpDataItem.cleanUpBefore?.day
-                    );
-
-                    break;
-                  }
-
-                  case "mbtiles": {
-                    await cleanUpMBTilesTiles(
-                      id,
-                      cleanUpDataItem.coverages,
-                      cleanUpDataItem.cleanUpBefore?.time ||
-                        cleanUpDataItem.cleanUpBefore?.day
-                    );
-
-                    break;
-                  }
-
-                  case "pg": {
-                    await cleanUpPostgreSQLTiles(
-                      id,
-                      cleanUpDataItem.coverages,
-                      cleanUpDataItem.cleanUpBefore?.time ||
-                        cleanUpDataItem.cleanUpBefore?.day
-                    );
-
-                    break;
-                  }
-                }
+                await cleanUpDataTiles(
+                  seedDataItem.storeType,
+                  id,
+                  cleanUpDataItem.coverages,
+                  cleanUpDataItem.cleanUpBefore?.time ||
+                  cleanUpDataItem.cleanUpBefore?.day
+                );
               } catch (error) {
                 printLog(
                   "error",
@@ -323,8 +292,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} datas after: ${
-                (Date.now() - startTime) / 1000
+              `Completed cleanup ${ids.length} datas after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -361,8 +329,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
-                    item.refreshBefore?.md5,
+                  item.refreshBefore?.day ||
+                  item.refreshBefore?.md5,
                   item.headers
                 );
               } catch (error) {
@@ -375,8 +343,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} sprites after: ${
-                (Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} sprites after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -414,8 +381,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
-                    item.refreshBefore?.md5,
+                  item.refreshBefore?.day ||
+                  item.refreshBefore?.md5,
                   item.headers
                 );
               } catch (error) {
@@ -428,8 +395,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} fonts after: ${
-                (Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} fonts after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -466,8 +432,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
-                    item.refreshBefore?.md5,
+                  item.refreshBefore?.day ||
+                  item.refreshBefore?.md5,
                   item.headers
                 );
               } catch (error) {
@@ -480,8 +446,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} styles after: ${
-                (Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} styles after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -518,8 +483,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
-                    item.refreshBefore?.md5,
+                  item.refreshBefore?.day ||
+                  item.refreshBefore?.md5,
                   item.headers
                 );
               } catch (error) {
@@ -532,8 +497,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} geojsons after: ${
-                (Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} geojsons after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -564,67 +528,22 @@ export async function runTasks(opts) {
               }
 
               try {
-                switch (item.storeType) {
-                  case "xyz": {
-                    await seedXYZTiles(
-                      id,
-                      item.metadata,
-                      item.url,
-                      item.scheme,
-                      item.coverages,
-                      item.concurrency || os.cpus().length,
-                      item.maxTry || 5,
-                      item.timeout ?? 60000,
-                      item.storeTransparent ?? true,
-                      item.refreshBefore?.time ||
-                        item.refreshBefore?.day ||
-                        item.refreshBefore?.md5,
-                      item.headers
-                    );
-
-                    break;
-                  }
-
-                  case "mbtiles": {
-                    await seedMBTilesTiles(
-                      id,
-                      item.metadata,
-                      item.url,
-                      item.scheme,
-                      item.coverages,
-                      item.concurrency || os.cpus().length,
-                      item.maxTry || 5,
-                      item.timeout ?? 60000,
-                      item.storeTransparent ?? true,
-                      item.refreshBefore?.time ||
-                        item.refreshBefore?.day ||
-                        item.refreshBefore?.md5,
-                      item.headers
-                    );
-
-                    break;
-                  }
-
-                  case "pg": {
-                    await seedPostgreSQLTiles(
-                      id,
-                      item.metadata,
-                      item.url,
-                      item.scheme,
-                      item.coverages,
-                      item.concurrency || os.cpus().length,
-                      item.maxTry || 5,
-                      item.timeout ?? 60000,
-                      item.storeTransparent ?? true,
-                      item.refreshBefore?.time ||
-                        item.refreshBefore?.day ||
-                        item.refreshBefore?.md5,
-                      item.headers
-                    );
-
-                    break;
-                  }
-                }
+                await seedDataTiles(
+                  item.storeType,
+                  id,
+                  item.metadata,
+                  item.url,
+                  item.scheme,
+                  item.coverages,
+                  item.concurrency || os.cpus().length,
+                  item.maxTry || 5,
+                  item.timeout ?? 60000,
+                  item.storeTransparent ?? true,
+                  item.refreshBefore?.time ||
+                  item.refreshBefore?.day ||
+                  item.refreshBefore?.md5,
+                  item.headers
+                );
               } catch (error) {
                 printLog(
                   "error",
@@ -635,8 +554,7 @@ export async function runTasks(opts) {
 
             printLog(
               "info",
-              `Completed seed ${ids.length} datas after: ${
-                (Date.now() - startTime) / 1000
+              `Completed seed ${ids.length} datas after: ${(Date.now() - startTime) / 1000
               }s!`
             );
           }
@@ -657,8 +575,9 @@ export async function runTasks(opts) {
 /*********************************** Seed *************************************/
 
 /**
- * Seed MBTiles tiles
- * @param {string} id Cache MBTiles ID
+ * Seed data tiles
+ * @param {"mbtiles"|"xyz"|"postgresql"} storeType Store type
+ * @param {string} id Cache data ID
  * @param {object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
@@ -671,7 +590,8 @@ export async function runTasks(opts) {
  * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-async function seedMBTilesTiles(
+async function seedDataTiles(
+  storeType,
   id,
   metadata,
   url,
@@ -694,7 +614,7 @@ async function seedMBTilesTiles(
       coverages: coverages,
     });
 
-    let log = `Seeding ${total} tiles of mbtiles "${id}" with:`;
+    let log = `Seeding ${total} tiles of ${storeType} "${id}" with:`;
     log += `\n\tURL: ${url} - Header: ${JSON.stringify(
       headers
     )} - Scheme: ${scheme}`;
@@ -721,611 +641,478 @@ async function seedMBTilesTiles(
 
     printLog("info", log);
 
-    /* Open MBTiles SQLite database */
-    const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
+    switch (storeType) {
+      case "mbtiles": {
+        /* Open MBTiles SQLite database */
+        const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
 
-    source = await openMBTilesDB(
-      filePath,
-      true,
-      30000 // 30 secs
-    );
-
-    /* Get tile extra info */
-    let targetTileExtraInfo;
-    let tileExtraInfo;
-
-    if (refreshTimestamp === true) {
-      const hashURL = `${url.slice(
-        0,
-        url.indexOf("/{z}/{x}/{y}")
-      )}/extra-info?compression=true`;
-
-      try {
-        printLog(
-          "info",
-          `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
+        source = await openMBTilesDB(
+          filePath,
+          true,
+          30000 // 30 secs
         );
 
-        const res = await postDataToURL(
-          hashURL,
-          3600000, // 1 hours
-          coverages,
-          "arraybuffer",
-          false,
-          {
-            "Content-Type": "application/json",
+        /* Get tile extra info */
+        let targetTileExtraInfo;
+        let tileExtraInfo;
+
+        if (refreshTimestamp === true) {
+          const hashURL = `${url.slice(
+            0,
+            url.indexOf("/{z}/{x}/{y}")
+          )}/extra-info?compression=true`;
+
+          try {
+            printLog(
+              "info",
+              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
+            );
+
+            const res = await postDataToURL(
+              hashURL,
+              3600000, // 1 hours
+              coverages,
+              "arraybuffer",
+              false,
+              {
+                "Content-Type": "application/json",
+              }
+            );
+
+            if (res.headers["content-encoding"] === "gzip") {
+              targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
+            } else {
+              targetTileExtraInfo = JSON.parse(res.data);
+            }
+
+            tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              false
+            );
+          } catch (error) {
+            if (error.statusCode >= 500) {
+              printLog(
+                "error",
+                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed mbtiles "${id}"...`
+              );
+
+              return;
+            }
+
+            printLog(
+              "error",
+              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
+            );
+
+            targetTileExtraInfo = {};
+            tileExtraInfo = {};
           }
-        );
+        } else if (refreshTimestamp) {
+          try {
+            printLog("info", `Get tile extra info from "${filePath}"...`);
 
-        if (res.headers["content-encoding"] === "gzip") {
-          targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
-        } else {
-          targetTileExtraInfo = JSON.parse(res.data);
+            tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              true
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to get tile extra info from "${filePath}": ${error}`
+            );
+
+            tileExtraInfo = {};
+          }
         }
 
-        tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+        /* Update MBTiles metadata */
+        printLog("info", "Updating MBTiles metadata...");
+
+        await updateMBTilesMetadata(
           source,
-          coverages,
-          false
+          metadata,
+          30000 // 30 secs
         );
-      } catch (error) {
-        if (error.statusCode >= 500) {
+
+        /* Download tiles */
+        async function seedMBTilesTileData(z, x, y, tasks) {
+          const tileName = `${z}/${x}/${y}`;
+
+          if (
+            (refreshTimestamp === true &&
+              tileExtraInfo[tileName] &&
+              tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+            (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
+          ) {
+            return;
+          }
+
+          const completeTasks = tasks.completeTasks;
+          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
+
+          const targetURL = url
+            .replace("{z}", `${z}`)
+            .replace("{x}", `${x}`)
+            .replace("{y}", `${tmpY}`);
+
           printLog(
-            "error",
-            `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed mbtiles "${id}"...`
+            "info",
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
           );
 
-          return;
+          try {
+            await downloadMBTilesTile(
+              targetURL,
+              source,
+              z,
+              x,
+              tmpY,
+              maxTry,
+              timeout,
+              storeTransparent,
+              headers
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
         }
 
-        printLog(
-          "error",
-          `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
-        );
+        printLog("info", "Downloading datas...");
 
-        targetTileExtraInfo = {};
-        tileExtraInfo = {};
+        await handleTilesConcurrency(concurrency, seedMBTilesTileData, tileBounds);
+
+        break;
       }
-    } else if (refreshTimestamp) {
-      try {
-        printLog("info", `Get tile extra info from "${filePath}"...`);
 
-        tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+      case "xyz": {
+        /* Open MD5 SQLite database */
+        const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
+        const filePath = `${sourcePath}/${id}.sqlite`;
+
+        source = await openXYZMD5DB(
+          filePath,
+          true,
+          30000 // 30 secs
+        );
+
+        /* Get tile extra info */
+        let targetTileExtraInfo;
+        let tileExtraInfo;
+
+        if (refreshTimestamp === true) {
+          const hashURL = `${url.slice(
+            0,
+            url.indexOf("/{z}/{x}/{y}")
+          )}/extra-info?compression=true`;
+
+          try {
+            printLog(
+              "info",
+              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
+            );
+
+            const res = await postDataToURL(
+              hashURL,
+              3600000, // 1 hours
+              coverages,
+              "arraybuffer",
+              false,
+              {
+                "Content-Type": "application/json",
+              }
+            );
+
+            if (res.headers["content-encoding"] === "gzip") {
+              targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
+            } else {
+              targetTileExtraInfo = JSON.parse(res.data);
+            }
+
+            tileExtraInfo = getXYZTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              false
+            );
+          } catch (error) {
+            if (error.statusCode >= 500) {
+              printLog(
+                "error",
+                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed xyz "${id}"...`
+              );
+
+              return;
+            }
+
+            printLog(
+              "error",
+              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
+            );
+
+            targetTileExtraInfo = {};
+            tileExtraInfo = {};
+          }
+        } else if (refreshTimestamp) {
+          try {
+            printLog("info", `Get tile extra info from "${filePath}"...`);
+
+            tileExtraInfo = getXYZTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              true
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to get tile extra info from "${filePath}": ${error}`
+            );
+
+            tileExtraInfo = {};
+          }
+        }
+
+        /* Update XYZ metadata */
+        printLog("info", "Updating XYZ metadata...");
+
+        await updateXYZMetadata(
           source,
-          coverages,
-          true
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to get tile extra info from "${filePath}": ${error}`
+          metadata,
+          30000 // 30 secs
         );
 
-        tileExtraInfo = {};
+        /* Download tile files */
+        async function seedXYZTileData(z, x, y, tasks) {
+          const tileName = `${z}/${x}/${y}`;
+
+          if (
+            (refreshTimestamp === true &&
+              tileExtraInfo[tileName] &&
+              tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+            (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
+          ) {
+            return;
+          }
+
+          const completeTasks = tasks.completeTasks;
+          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
+
+          const targetURL = url
+            .replace("{z}", `${z}`)
+            .replace("{x}", `${x}`)
+            .replace("{y}", `${tmpY}`);
+
+          printLog(
+            "info",
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            await downloadXYZTile(
+              targetURL,
+              sourcePath,
+              source,
+              z,
+              x,
+              tmpY,
+              metadata.format,
+              maxTry,
+              timeout,
+              storeTransparent,
+              headers
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+
+        printLog("info", "Downloading datas...");
+
+        await handleTilesConcurrency(concurrency, seedXYZTileData, tileBounds);
+
+        /* Remove parent folders if empty */
+        await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
+
+        break;
+      }
+
+      case "postgresql": {
+        /* Open PostgreSQL database */
+        const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+        source = await openPostgreSQLDB(filePath, true);
+
+        /* Get tile extra info */
+        let targetTileExtraInfo;
+        let tileExtraInfo;
+
+        if (refreshTimestamp === true) {
+          const hashURL = `${url.slice(
+            0,
+            url.indexOf("/{z}/{x}/{y}")
+          )}/extra-info?compression=true`;
+
+          try {
+            printLog(
+              "info",
+              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
+            );
+
+            const res = await postDataToURL(
+              hashURL,
+              3600000, // 1 hours
+              coverages,
+              "arraybuffer",
+              false,
+              {
+                "Content-Type": "application/json",
+              }
+            );
+
+            if (res.headers["content-encoding"] === "gzip") {
+              targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
+            } else {
+              targetTileExtraInfo = JSON.parse(res.data);
+            }
+
+            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              false
+            );
+          } catch (error) {
+            if (error.statusCode >= 500) {
+              printLog(
+                "error",
+                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed postgresql "${id}"...`
+              );
+
+              return;
+            }
+
+            printLog(
+              "error",
+              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
+            );
+
+            targetTileExtraInfo = {};
+            tileExtraInfo = {};
+          }
+        } else if (refreshTimestamp) {
+          try {
+            printLog("info", `Get tile extra info from "${filePath}"...`);
+
+            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              true
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to get tile extra info from "${filePath}": ${error}`
+            );
+
+            tileExtraInfo = {};
+          }
+        }
+
+        /* Update PostgreSQL metadata */
+        printLog("info", "Updating PostgreSQL metadata...");
+
+        await updatePostgreSQLMetadata(source, metadata);
+
+        /* Download tiles */
+        async function seedPostgreSQLTileData(z, x, y, tasks) {
+          const tileName = `${z}/${x}/${y}`;
+
+          if (
+            (refreshTimestamp === true &&
+              tileExtraInfo[tileName] &&
+              tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+            (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
+          ) {
+            return;
+          }
+
+          const completeTasks = tasks.completeTasks;
+          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
+
+          const targetURL = url
+            .replace("{z}", `${z}`)
+            .replace("{x}", `${x}`)
+            .replace("{y}", `${tmpY}`);
+
+          printLog(
+            "info",
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            await downloadPostgreSQLTile(
+              targetURL,
+              source,
+              z,
+              x,
+              tmpY,
+              maxTry,
+              timeout,
+              storeTransparent,
+              headers
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+
+        printLog("info", "Downloading datas...");
+
+        await handleTilesConcurrency(
+          concurrency,
+          seedPostgreSQLTileData,
+          tileBounds
+        );
+
+        break;
       }
     }
-
-    /* Update MBTiles metadata */
-    printLog("info", "Updating MBTiles metadata...");
-
-    await updateMBTilesMetadata(
-      source,
-      metadata,
-      30000 // 30 secs
-    );
-
-    /* Download tiles */
-    async function seedMBTilesTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (
-        (refreshTimestamp === true &&
-          tileExtraInfo[tileName] &&
-          tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-        (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
-      ) {
-        return;
-      }
-
-      const completeTasks = tasks.completeTasks;
-      const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-      const targetURL = url
-        .replace("{z}", `${z}`)
-        .replace("{x}", `${x}`)
-        .replace("{y}", `${tmpY}`);
-
-      printLog(
-        "info",
-        `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-      );
-
-      try {
-        await downloadMBTilesTile(
-          targetURL,
-          source,
-          z,
-          x,
-          tmpY,
-          maxTry,
-          timeout,
-          storeTransparent,
-          headers
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
-        );
-      }
-    }
-
-    printLog("info", "Downloading datas...");
-
-    await handleTilesConcurrency(concurrency, seedMBTilesTileData, tileBounds);
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of mbtiles "${id}" after ${
-        (Date.now() - startTime) / 1000
+      `Completed seed ${total} tiles of ${storeType} "${id}" after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     throw error;
   } finally {
-    // Close MBTiles SQLite database
+    // Close database
     if (source) {
-      closeMBTilesDB(source);
-    }
-  }
-}
+      switch (storeType) {
+        case "mbtiles": {
+          closeMBTilesDB(source);
 
-/**
- * Seed PostgreSQL tiles
- * @param {string} id Cache PostgreSQL ID
- * @param {object} metadata Metadata object
- * @param {string} url Tile URL to download
- * @param {"tms"|"xyz"} scheme Tile scheme
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeTransparent Is store transparent tile?
- * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
- * @param {object} headers Headers
- * @returns {Promise<void>}
- */
-async function seedPostgreSQLTiles(
-  id,
-  metadata,
-  url,
-  scheme,
-  coverages,
-  concurrency,
-  maxTry,
-  timeout,
-  storeTransparent,
-  refreshBefore,
-  headers
-) {
-  const startTime = Date.now();
-
-  let source;
-
-  try {
-    /* Calculate summary */
-    const { total, tileBounds } = getTileBounds({
-      coverages: coverages,
-    });
-
-    let log = `Seeding ${total} tiles of postgresql "${id}" with:`;
-    log += `\n\tURL: ${url} - Header: ${JSON.stringify(
-      headers
-    )} - Scheme: ${scheme}`;
-    log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-
-    let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
-      refreshTimestamp = new Date(refreshBefore).getTime();
-
-      log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
-      const now = new Date();
-
-      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-      log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshBefore === true) {
-      refreshTimestamp = true;
-
-      log += `\n\tRefresh before: Check MD5`;
-    }
-
-    printLog("info", log);
-
-    /* Open PostgreSQL database */
-    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
-
-    source = await openPostgreSQLDB(filePath, true);
-
-    /* Get tile extra info */
-    let targetTileExtraInfo;
-    let tileExtraInfo;
-
-    if (refreshTimestamp === true) {
-      const hashURL = `${url.slice(
-        0,
-        url.indexOf("/{z}/{x}/{y}")
-      )}/extra-info?compression=true`;
-
-      try {
-        printLog(
-          "info",
-          `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
-        );
-
-        const res = await postDataToURL(
-          hashURL,
-          3600000, // 1 hours
-          coverages,
-          "arraybuffer",
-          false,
-          {
-            "Content-Type": "application/json",
-          }
-        );
-
-        if (res.headers["content-encoding"] === "gzip") {
-          targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
-        } else {
-          targetTileExtraInfo = JSON.parse(res.data);
+          break;
         }
 
-        tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-          source,
-          coverages,
-          false
-        );
-      } catch (error) {
-        if (error.statusCode >= 500) {
-          printLog(
-            "error",
-            `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed postgresql "${id}"...`
-          );
-
-          return;
+        case "xyz": {
+          closeXYZMD5DB(source);
         }
 
-        printLog(
-          "error",
-          `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
-        );
+        case "postgresql": {
+          closePostgreSQLDB(source);
 
-        targetTileExtraInfo = {};
-        tileExtraInfo = {};
-      }
-    } else if (refreshTimestamp) {
-      try {
-        printLog("info", `Get tile extra info from "${filePath}"...`);
-
-        tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-          source,
-          coverages,
-          true
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to get tile extra info from "${filePath}": ${error}`
-        );
-
-        tileExtraInfo = {};
-      }
-    }
-
-    /* Update PostgreSQL metadata */
-    printLog("info", "Updating PostgreSQL metadata...");
-
-    await updatePostgreSQLMetadata(source, metadata);
-
-    /* Download tiles */
-    async function seedPostgreSQLTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (
-        (refreshTimestamp === true &&
-          tileExtraInfo[tileName] &&
-          tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-        (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
-      ) {
-        return;
-      }
-
-      const completeTasks = tasks.completeTasks;
-      const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-      const targetURL = url
-        .replace("{z}", `${z}`)
-        .replace("{x}", `${x}`)
-        .replace("{y}", `${tmpY}`);
-
-      printLog(
-        "info",
-        `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-      );
-
-      try {
-        await downloadPostgreSQLTile(
-          targetURL,
-          source,
-          z,
-          x,
-          tmpY,
-          maxTry,
-          timeout,
-          storeTransparent,
-          headers
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
-        );
-      }
-    }
-
-    printLog("info", "Downloading datas...");
-
-    await handleTilesConcurrency(
-      concurrency,
-      seedPostgreSQLTileData,
-      tileBounds
-    );
-
-    printLog(
-      "info",
-      `Completed seed ${total} tiles of postgresql "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    throw error;
-  } finally {
-    /* Close PostgreSQL database */
-    if (source) {
-      closePostgreSQLDB(source);
-    }
-  }
-}
-
-/**
- * Seed XYZ tiles
- * @param {string} id Cache XYZ ID
- * @param {object} metadata Metadata object
- * @param {string} url Tile URL
- * @param {"tms"|"xyz"} scheme Tile scheme
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeTransparent Is store transparent tile?
- * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
- * @param {object} headers Headers
- * @returns {Promise<void>}
- */
-async function seedXYZTiles(
-  id,
-  metadata,
-  url,
-  scheme,
-  coverages,
-  concurrency,
-  maxTry,
-  timeout,
-  storeTransparent,
-  refreshBefore,
-  headers
-) {
-  const startTime = Date.now();
-
-  let source;
-
-  try {
-    /* Calculate summary */
-    const { total, tileBounds } = getTileBounds({
-      coverages: coverages,
-    });
-
-    let log = `Seeding ${total} tiles of xyz "${id}" with:`;
-    log += `\n\tURL: ${url} - Header: ${JSON.stringify(
-      headers
-    )} - Scheme: ${scheme}`;
-    log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-
-    let refreshTimestamp;
-    if (typeof refreshBefore === "string") {
-      refreshTimestamp = new Date(refreshBefore).getTime();
-
-      log += `\n\tRefresh before: ${refreshBefore}`;
-    } else if (typeof refreshBefore === "number") {
-      const now = new Date();
-
-      refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
-
-      log += `\n\tOld than: ${refreshBefore} days`;
-    } else if (refreshBefore === true) {
-      refreshTimestamp = true;
-
-      log += `\n\tRefresh before: Check MD5`;
-    }
-
-    printLog("info", log);
-
-    /* Open MD5 SQLite database */
-    const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
-    const filePath = `${sourcePath}/${id}.sqlite`;
-
-    source = await openXYZMD5DB(
-      filePath,
-      true,
-      30000 // 30 secs
-    );
-
-    /* Get tile extra info */
-    let targetTileExtraInfo;
-    let tileExtraInfo;
-
-    if (refreshTimestamp === true) {
-      const hashURL = `${url.slice(
-        0,
-        url.indexOf("/{z}/{x}/{y}")
-      )}/extra-info?compression=true`;
-
-      try {
-        printLog(
-          "info",
-          `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
-        );
-
-        const res = await postDataToURL(
-          hashURL,
-          3600000, // 1 hours
-          coverages,
-          "arraybuffer",
-          false,
-          {
-            "Content-Type": "application/json",
-          }
-        );
-
-        if (res.headers["content-encoding"] === "gzip") {
-          targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
-        } else {
-          targetTileExtraInfo = JSON.parse(res.data);
+          break;
         }
-
-        tileExtraInfo = getXYZTileExtraInfoFromCoverages(
-          source,
-          coverages,
-          false
-        );
-      } catch (error) {
-        if (error.statusCode >= 500) {
-          printLog(
-            "error",
-            `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed xyz "${id}"...`
-          );
-
-          return;
-        }
-
-        printLog(
-          "error",
-          `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
-        );
-
-        targetTileExtraInfo = {};
-        tileExtraInfo = {};
       }
-    } else if (refreshTimestamp) {
-      try {
-        printLog("info", `Get tile extra info from "${filePath}"...`);
-
-        tileExtraInfo = getXYZTileExtraInfoFromCoverages(
-          source,
-          coverages,
-          true
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to get tile extra info from "${filePath}": ${error}`
-        );
-
-        tileExtraInfo = {};
-      }
-    }
-
-    /* Update XYZ metadata */
-    printLog("info", "Updating XYZ metadata...");
-
-    await updateXYZMetadata(
-      source,
-      metadata,
-      30000 // 30 secs
-    );
-
-    /* Download tile files */
-    async function seedXYZTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (
-        (refreshTimestamp === true &&
-          tileExtraInfo[tileName] &&
-          tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-        (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
-      ) {
-        return;
-      }
-
-      const completeTasks = tasks.completeTasks;
-      const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-      const targetURL = url
-        .replace("{z}", `${z}`)
-        .replace("{x}", `${x}`)
-        .replace("{y}", `${tmpY}`);
-
-      printLog(
-        "info",
-        `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
-      );
-
-      try {
-        await downloadXYZTile(
-          targetURL,
-          sourcePath,
-          source,
-          z,
-          x,
-          tmpY,
-          metadata.format,
-          maxTry,
-          timeout,
-          storeTransparent,
-          headers
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
-        );
-      }
-    }
-
-    printLog("info", "Downloading datas...");
-
-    await handleTilesConcurrency(concurrency, seedXYZTileData, tileBounds);
-
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
-
-    printLog(
-      "info",
-      `Completed seed ${total} tiles of xyz "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    throw error;
-  } finally {
-    /* Close MD5 SQLite database */
-    if (source) {
-      closeXYZMD5DB(source);
     }
   }
 }
@@ -1636,8 +1423,7 @@ async function seedFont(
 
   printLog(
     "info",
-    `Completed seed ${total} fonts of font "${id}" after ${
-      (Date.now() - startTime) / 1000
+    `Completed seed ${total} fonts of font "${id}" after ${(Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -1771,13 +1557,14 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 /*********************************** Clean up *************************************/
 
 /**
- * Cleanup MBTiles tiles
- * @param {string} id Cleanup MBTiles ID
+ * Cleanup data tiles
+ * @param {"mbtiles"|"xyz"|"postgresql"} storeType Store type
+ * @param {string} id Cleanup data ID
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
-async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
+async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
   const startTime = Date.now();
 
   let source;
@@ -1788,7 +1575,7 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     const { total, tileBounds } = getTileBounds({ coverages: coverages });
 
-    let log = `Cleaning up ${total} tiles of mbtiles "${id}" with:`;
+    let log = `Cleaning up ${total} tiles of ${storeType} "${id}" with:`;
     log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
@@ -1807,335 +1594,258 @@ async function cleanUpMBTilesTiles(id, coverages, cleanUpBefore) {
 
     printLog("info", log);
 
-    /* Open MBTiles SQLite database */
-    const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
+    switch (storeType) {
+      case "mbtiles": {
+        /* Open MBTiles SQLite database */
+        const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
 
-    source = await openMBTilesDB(
-      filePath,
-      true,
-      30000 // 30 secs
-    );
-
-    /* Get tile extra info */
-    let tileExtraInfo;
-
-    if (cleanUpTimestamp) {
-      try {
-        printLog("info", `Get tile extra info from "${filePath}"...`);
-
-        tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
-          source,
-          coverages,
-          true
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to get tile extra info from "${filePath}": ${error}`
-        );
-
-        tileExtraInfo = {};
-      }
-    }
-
-    /* Remove tiles */
-    async function cleanUpMBTilesTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
-        return;
-      }
-
-      const completeTasks = tasks.completeTasks;
-
-      printLog(
-        "info",
-        `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-      );
-
-      try {
-        await removeMBTilesTile(
-          source,
-          z,
-          x,
-          y,
+        source = await openMBTilesDB(
+          filePath,
+          true,
           30000 // 30 secs
         );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-        );
-      }
-    }
 
-    printLog("info", "Removing datas...");
+        /* Get tile extra info */
+        let tileExtraInfo;
 
-    await handleTilesConcurrency(
-      concurrency,
-      cleanUpMBTilesTileData,
-      tileBounds
-    );
+        if (cleanUpTimestamp) {
+          try {
+            printLog("info", `Get tile extra info from "${filePath}"...`);
 
-    /* Compact MBTiles (Block DB) */
-    // compactMBTiles(source);
+            tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              true
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to get tile extra info from "${filePath}": ${error}`
+            );
 
-    printLog(
-      "info",
-      `Completed cleanup ${total} tiles of mbtiles "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    throw error;
-  } finally {
-    /* Close MBTiles SQLite database */
-    if (source) {
-      closeMBTilesDB(source);
-    }
-  }
-}
+            tileExtraInfo = {};
+          }
+        }
 
-/**
- * Cleanup PostgreSQL tiles
- * @param {string} id Cleanup PostgreSQL ID
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
- * @returns {Promise<void>}
- */
-async function cleanUpPostgreSQLTiles(id, coverages, cleanUpBefore) {
-  const startTime = Date.now();
+        /* Remove tiles */
+        async function cleanUpMBTilesTileData(z, x, y, tasks) {
+          const tileName = `${z}/${x}/${y}`;
 
-  let source;
+          if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
+            return;
+          }
 
-  try {
-    /* Calculate summary */
-    const concurrency = 256;
+          const completeTasks = tasks.completeTasks;
 
-    const { total, tileBounds } = getTileBounds({ coverages: coverages });
+          printLog(
+            "info",
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
 
-    let log = `Cleaning up ${total} tiles of postgresql "${id}" with:`;
-    log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+          try {
+            await removeMBTilesTile(
+              source,
+              z,
+              x,
+              y,
+              30000 // 30 secs
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
 
-    let cleanUpTimestamp;
-    if (typeof cleanUpBefore === "string") {
-      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
+        printLog("info", "Removing datas...");
 
-      log += `\n\tCleanup before: ${cleanUpBefore}`;
-    } else if (typeof cleanUpBefore === "number") {
-      const now = new Date();
-
-      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
-
-      log += `\n\tOld than: ${cleanUpBefore} days`;
-    }
-
-    printLog("info", log);
-
-    /* Open PostgreSQL database */
-    const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
-
-    source = await openPostgreSQLDB(filePath, true);
-
-    /* Get tile extra info */
-    let tileExtraInfo;
-
-    if (cleanUpTimestamp) {
-      try {
-        printLog("info", `Get tile extra info from "${filePath}"...`);
-
-        tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-          source,
-          coverages,
-          true
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to get tile extra info from "${filePath}": ${error}`
+        await handleTilesConcurrency(
+          concurrency,
+          cleanUpMBTilesTileData,
+          tileBounds
         );
 
-        tileExtraInfo = {};
-      }
-    }
+        /* Compact MBTiles (Block DB) */
+        // compactMBTiles(source);
 
-    /* Remove tiles */
-    async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
-        return;
+        break;
       }
 
-      const completeTasks = tasks.completeTasks;
+      case "xyz": {
+        /* Open XYZ MD5 SQLite database */
+        const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
+        const filePath = `${sourcePath}/${id}.sqlite`;
 
-      printLog(
-        "info",
-        `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-      );
-
-      try {
-        await removePostgreSQLTile(source, z, x, y);
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
-        );
-      }
-    }
-
-    printLog("info", "Removing datas...");
-
-    await handleTilesConcurrency(
-      concurrency,
-      cleanUpPostgreSQLTileData,
-      tileBounds
-    );
-
-    printLog(
-      "info",
-      `Completed cleanup ${total} tiles of postgresql "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`
-    );
-  } catch (error) {
-    throw error;
-  } finally {
-    /* Close PostgreSQL database */
-    if (source) {
-      closePostgreSQLDB(source);
-    }
-  }
-}
-
-/**
- * Cleanup XYZ tiles
- * @param {string} id Cleanup XYZ ID
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
- * @returns {Promise<void>}
- */
-async function cleanUpXYZTiles(id, coverages, cleanUpBefore) {
-  const startTime = Date.now();
-
-  let source;
-
-  try {
-    /* Calculate summary */
-    const concurrency = 256;
-
-    const { total, tileBounds } = getTileBounds({ coverages: coverages });
-
-    let log = `Cleaning up ${total} tiles of xyz "${id}" with:`;
-    log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
-
-    let cleanUpTimestamp;
-    if (typeof cleanUpBefore === "string") {
-      cleanUpTimestamp = new Date(cleanUpBefore).getTime();
-
-      log += `\n\tCleanup before: ${cleanUpBefore}`;
-    } else if (typeof cleanUpBefore === "number") {
-      const now = new Date();
-
-      cleanUpTimestamp = now.setDate(now.getDate() - cleanUpBefore);
-
-      log += `\n\tOld than: ${cleanUpBefore} days`;
-    }
-
-    printLog("info", log);
-
-    /* Open XYZ MD5 SQLite database */
-    const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
-    const filePath = `${sourcePath}/${id}.sqlite`;
-
-    source = await openXYZMD5DB(
-      filePath,
-      true,
-      30000 // 30 secs
-    );
-
-    /* Get tile extra info */
-    let tileExtraInfo;
-
-    if (cleanUpTimestamp) {
-      try {
-        printLog("info", `Get tile extra info from "${filePath}"...`);
-
-        tileExtraInfo = getXYZTileExtraInfoFromCoverages(
-          source,
-          coverages,
-          true
-        );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to get tile extra info from "${filePath}": ${error}`
-        );
-
-        tileExtraInfo = {};
-      }
-    }
-
-    /* Detect format tile */
-    const format = await getXYZFormatFromTiles(sourcePath);
-
-    /* Remove tile files */
-    async function cleanUpXYZTileData(z, x, y, tasks) {
-      const tileName = `${z}/${x}/${y}`;
-
-      if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
-        return;
-      }
-
-      const completeTasks = tasks.completeTasks;
-
-      printLog(
-        "info",
-        `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
-      );
-
-      try {
-        await removeXYZTile(
-          sourcePath,
-          source,
-          z,
-          x,
-          y,
-          format,
+        source = await openXYZMD5DB(
+          filePath,
+          true,
           30000 // 30 secs
         );
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+
+        /* Get tile extra info */
+        let tileExtraInfo;
+
+        if (cleanUpTimestamp) {
+          try {
+            printLog("info", `Get tile extra info from "${filePath}"...`);
+
+            tileExtraInfo = getXYZTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              true
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to get tile extra info from "${filePath}": ${error}`
+            );
+
+            tileExtraInfo = {};
+          }
+        }
+
+        /* Detect format tile */
+        const format = await getXYZFormatFromTiles(sourcePath);
+
+        /* Remove tile files */
+        async function cleanUpXYZTileData(z, x, y, tasks) {
+          const tileName = `${z}/${x}/${y}`;
+
+          if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
+            return;
+          }
+
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            await removeXYZTile(
+              sourcePath,
+              source,
+              z,
+              x,
+              y,
+              format,
+              30000 // 30 secs
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+
+        printLog("info", "Removing datas...");
+
+        await handleTilesConcurrency(concurrency, cleanUpXYZTileData, tileBounds);
+
+        /* Compact XYZ (Block DB) */
+        // compactXYZ(source);
+
+        /* Remove parent folders if empty */
+        await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
+
+        break;
+      }
+
+      case "postgresql": {
+        /* Open PostgreSQL database */
+        const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+        source = await openPostgreSQLDB(filePath, true);
+
+        /* Get tile extra info */
+        let tileExtraInfo;
+
+        if (cleanUpTimestamp) {
+          try {
+            printLog("info", `Get tile extra info from "${filePath}"...`);
+
+            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              true
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to get tile extra info from "${filePath}": ${error}`
+            );
+
+            tileExtraInfo = {};
+          }
+        }
+
+        /* Remove tiles */
+        async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
+          const tileName = `${z}/${x}/${y}`;
+
+          if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
+            return;
+          }
+
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+          );
+
+          try {
+            await removePostgreSQLTile(source, z, x, y);
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+            );
+          }
+        }
+
+        printLog("info", "Removing datas...");
+
+        await handleTilesConcurrency(
+          concurrency,
+          cleanUpPostgreSQLTileData,
+          tileBounds
         );
+
+        break;
       }
     }
 
-    printLog("info", "Removing datas...");
-
-    await handleTilesConcurrency(concurrency, cleanUpXYZTileData, tileBounds);
-
-    /* Compact XYZ (Block DB) */
-    // compactXYZ(source);
-
-    /* Remove parent folders if empty */
-    await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
-
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of xyz "${id}" after ${
-        (Date.now() - startTime) / 1000
+      `Completed cleanup ${total} tiles of ${storeType} "${id}" after ${(Date.now() - startTime) / 1000
       }s!`
     );
   } catch (error) {
     throw error;
   } finally {
-    /* Close XYZ MD5 SQLite database */
+    // Close database
     if (source) {
-      closeXYZMD5DB(source);
+      switch (storeType) {
+        case "mbtiles": {
+          closeMBTilesDB(source);
+
+          break;
+        }
+
+        case "xyz": {
+          closeXYZMD5DB(source);
+        }
+
+        case "postgresql": {
+          closePostgreSQLDB(source);
+
+          break;
+        }
+      }
     }
   }
 }
@@ -2210,8 +1920,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup geojson "${id}" after ${
-      (Date.now() - startTime) / 1000
+    `Completed cleanup geojson "${id}" after ${(Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -2298,8 +2007,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup sprite "${id}" after ${
-      (Date.now() - startTime) / 1000
+    `Completed cleanup sprite "${id}" after ${(Date.now() - startTime) / 1000
     }s!`
   );
 }
@@ -2389,8 +2097,7 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup ${total} fonts of font "${id}" after ${
-      (Date.now() - startTime) / 1000
+    `Completed cleanup ${total} fonts of font "${id}" after ${(Date.now() - startTime) / 1000
     }s!`
   );
 }

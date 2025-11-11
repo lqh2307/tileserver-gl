@@ -106,7 +106,7 @@ async function startClusterServer() {
         });
     }
 
-    /* Setup cron */
+    /* Setup task cron */
     if (config.options?.taskSchedule !== undefined) {
       printLog(
         "info",
@@ -132,6 +132,23 @@ async function startClusterServer() {
           seedGeoJSONs: true,
           seedDatas: true,
         });
+      });
+    }
+
+    /* Setup task cron */
+    if (config.options?.restartSchedule !== undefined) {
+      printLog(
+        "info",
+        `Schedule restart server at: "${config.options.restartSchedule}"`
+      );
+
+      cron.schedule(config.options.restartSchedule, () => {
+        printLog(
+          "info",
+          "Restart server triggered by schedule. Restarting server..."
+        );
+
+        process.exit(1);
       });
     }
 

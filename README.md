@@ -110,7 +110,8 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
     "listenPort": 8080,
     "serveFrontPage": true,
     "serveSwagger": true,
-    "taskSchedule": "0 00 18 * * *",
+    "restartSchedule": "00 00 00 * * *",
+    "taskSchedule": "00 00 00 * * *",
     "postgreSQLBaseURI": "postgresql://postgres:postgres@172.26.192.1:5432",
     "process": 2,
     "thread": 128
