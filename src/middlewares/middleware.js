@@ -25,7 +25,7 @@ export function loggerMiddleware() {
 
       printLog(
         "info",
-        `${method} ${protocol} ${path} ${statusCode} ${duration} ${contentLength} ${origin} ${ip} ${userAgent}`
+        `${method} ${protocol} ${path} ${statusCode} ${duration} ${contentLength} ${origin} ${ip} ${userAgent}`,
       );
 
       setMetrics(
@@ -37,7 +37,7 @@ export function loggerMiddleware() {
         ip,
         userID,
         userAgent,
-        duration
+        duration,
       );
     });
 

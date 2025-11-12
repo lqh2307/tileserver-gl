@@ -68,7 +68,7 @@ if (cleanUp === undefined) {
 function readConfigFile(type, isParse) {
   const data = readFileSync(
     `${process.env.DATA_DIR || "data"}/${type}.json`,
-    "utf8"
+    "utf8",
   );
 
   if (isParse) {
@@ -89,7 +89,7 @@ async function updateConfigFile(type, configObj, timeout) {
   await createFileWithLock(
     `${process.env.DATA_DIR || "data"}/${type}.json`,
     JSON.stringify(configObj, null, 2),
-    timeout
+    timeout,
   );
 }
 

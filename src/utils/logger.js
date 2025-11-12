@@ -19,7 +19,7 @@ if (!logger) {
       translateTime: "SYS:standard",
       ignore: "hostname",
       sync: true,
-    })
+    }),
   );
 }
 

@@ -96,20 +96,21 @@ export async function runTasks(opts) {
               try {
                 await cleanUpSprite(
                   id,
-                  item.cleanUpBefore?.time || item.cleanUpBefore?.day
+                  item.cleanUpBefore?.time || item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup sprite "${id}": ${error}. Skipping...`
+                  `Failed to cleanup sprite "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} sprites after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed cleanup ${ids.length} sprites after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -141,20 +142,21 @@ export async function runTasks(opts) {
               try {
                 await cleanUpFont(
                   id,
-                  item.cleanUpBefore?.time || item.cleanUpBefore?.day
+                  item.cleanUpBefore?.time || item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup font "${id}": ${error}. Skipping...`
+                  `Failed to cleanup font "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} fonts after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed cleanup ${ids.length} fonts after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -186,20 +188,21 @@ export async function runTasks(opts) {
               try {
                 await cleanUpStyle(
                   id,
-                  item.cleanUpBefore?.time || item.cleanUpBefore?.day
+                  item.cleanUpBefore?.time || item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup style "${id}": ${error}. Skipping...`
+                  `Failed to cleanup style "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} styles after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed cleanup ${ids.length} styles after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -231,20 +234,21 @@ export async function runTasks(opts) {
               try {
                 await cleanUpGeoJSON(
                   id,
-                  item.cleanUpBefore?.time || item.cleanUpBefore?.day
+                  item.cleanUpBefore?.time || item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup geojson "${id}": ${error}. Skipping...`
+                  `Failed to cleanup geojson "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} geojsons after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed cleanup ${ids.length} geojsons after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -280,20 +284,21 @@ export async function runTasks(opts) {
                   id,
                   cleanUpDataItem.coverages,
                   cleanUpDataItem.cleanUpBefore?.time ||
-                  cleanUpDataItem.cleanUpBefore?.day
+                    cleanUpDataItem.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup data "${id}": ${error}. Skipping...`
+                  `Failed to cleanup data "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} datas after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed cleanup ${ids.length} datas after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -329,22 +334,23 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
-                  item.headers
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
+                  item.headers,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed font "${id}": ${error}. Skipping...`
+                  `Failed to seed font "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} sprites after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed seed ${ids.length} sprites after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -381,22 +387,23 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
-                  item.headers
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
+                  item.headers,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed font "${id}": ${error}. Skipping...`
+                  `Failed to seed font "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} fonts after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed seed ${ids.length} fonts after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -432,22 +439,23 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
-                  item.headers
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
+                  item.headers,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed style "${id}": ${error}. Skipping...`
+                  `Failed to seed style "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} styles after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed seed ${ids.length} styles after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -483,22 +491,23 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
-                  item.headers
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
+                  item.headers,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed geojson "${id}": ${error}. Skipping...`
+                  `Failed to seed geojson "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} geojsons after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed seed ${ids.length} geojsons after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -529,8 +538,8 @@ export async function runTasks(opts) {
 
               try {
                 await seedDataTiles(
-                  item.storeType,
                   id,
+                  item.storeType,
                   item.metadata,
                   item.url,
                   item.scheme,
@@ -540,22 +549,23 @@ export async function runTasks(opts) {
                   item.timeout ?? 60000,
                   item.storeTransparent ?? true,
                   item.refreshBefore?.time ||
-                  item.refreshBefore?.day ||
-                  item.refreshBefore?.md5,
-                  item.headers
+                    item.refreshBefore?.day ||
+                    item.refreshBefore?.md5,
+                  item.headers,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed data "${id}": ${error}. Skipping...`
+                  `Failed to seed data "${id}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} datas after: ${(Date.now() - startTime) / 1000
-              }s!`
+              `Completed seed ${ids.length} datas after: ${
+                (Date.now() - startTime) / 1000
+              }s!`,
             );
           }
         } catch (error) {
@@ -576,8 +586,8 @@ export async function runTasks(opts) {
 
 /**
  * Seed data tiles
- * @param {"mbtiles"|"xyz"|"postgresql"} storeType Store type
  * @param {string} id Cache data ID
+ * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {object} metadata Metadata object
  * @param {string} url Tile URL to download
  * @param {"tms"|"xyz"} scheme Tile scheme
@@ -591,8 +601,8 @@ export async function runTasks(opts) {
  * @returns {Promise<void>}
  */
 async function seedDataTiles(
-  storeType,
   id,
+  storeType,
   metadata,
   url,
   scheme,
@@ -602,7 +612,7 @@ async function seedDataTiles(
   timeout,
   storeTransparent,
   refreshBefore,
-  headers
+  headers,
 ) {
   const startTime = Date.now();
 
@@ -617,7 +627,7 @@ async function seedDataTiles(
 
     let log = `Seeding ${total} tiles of ${storeType} "${id}" with:`;
     log += `\n\tURL: ${url} - Header: ${JSON.stringify(
-      headers
+      headers,
     )} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
@@ -650,7 +660,7 @@ async function seedDataTiles(
         source = await openMBTilesDB(
           filePath,
           true,
-          30000 // 30 secs
+          30000, // 30 secs
         );
 
         /* Get tile extra info */
@@ -660,13 +670,13 @@ async function seedDataTiles(
         if (refreshTimestamp === true) {
           const hashURL = `${url.slice(
             0,
-            url.indexOf("/{z}/{x}/{y}")
+            url.indexOf("/{z}/{x}/{y}"),
           )}/extra-info?compression=true`;
 
           try {
             printLog(
               "info",
-              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
+              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
             );
 
             const res = await postDataToURL(
@@ -677,7 +687,7 @@ async function seedDataTiles(
               false,
               {
                 "Content-Type": "application/json",
-              }
+              },
             );
 
             if (res.headers["content-encoding"] === "gzip") {
@@ -689,13 +699,13 @@ async function seedDataTiles(
             tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
               source,
               coverages,
-              false
+              false,
             );
           } catch (error) {
             if (error.statusCode >= 500) {
               printLog(
                 "error",
-                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed mbtiles "${id}"...`
+                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed mbtiles "${id}"...`,
               );
 
               return;
@@ -703,7 +713,7 @@ async function seedDataTiles(
 
             printLog(
               "error",
-              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
+              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`,
             );
 
             targetTileExtraInfo = {};
@@ -716,12 +726,12 @@ async function seedDataTiles(
             tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
               source,
               coverages,
-              true
+              true,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`
+              `Failed to get tile extra info from "${filePath}": ${error}`,
             );
 
             tileExtraInfo = {};
@@ -734,7 +744,7 @@ async function seedDataTiles(
         await updateMBTilesMetadata(
           source,
           metadata,
-          30000 // 30 secs
+          30000, // 30 secs
         );
 
         /* Download data tile function */
@@ -760,7 +770,7 @@ async function seedDataTiles(
 
           printLog(
             "info",
-            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
           );
 
           try {
@@ -773,12 +783,12 @@ async function seedDataTiles(
               maxTry,
               timeout,
               storeTransparent,
-              headers
+              headers,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
             );
           }
         };
@@ -789,12 +799,12 @@ async function seedDataTiles(
       case "xyz": {
         /* Open MD5 SQLite database */
         const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
-        const filePath = `${sourcePath}/${id}.sqlite`;
+        const filePath = `${sourcePath}/${id}.mbtiles`;
 
         source = await openXYZMD5DB(
           filePath,
           true,
-          30000 // 30 secs
+          30000, // 30 secs
         );
 
         /* Get tile extra info */
@@ -804,13 +814,13 @@ async function seedDataTiles(
         if (refreshTimestamp === true) {
           const hashURL = `${url.slice(
             0,
-            url.indexOf("/{z}/{x}/{y}")
+            url.indexOf("/{z}/{x}/{y}"),
           )}/extra-info?compression=true`;
 
           try {
             printLog(
               "info",
-              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
+              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
             );
 
             const res = await postDataToURL(
@@ -821,7 +831,7 @@ async function seedDataTiles(
               false,
               {
                 "Content-Type": "application/json",
-              }
+              },
             );
 
             if (res.headers["content-encoding"] === "gzip") {
@@ -833,13 +843,13 @@ async function seedDataTiles(
             tileExtraInfo = getXYZTileExtraInfoFromCoverages(
               source,
               coverages,
-              false
+              false,
             );
           } catch (error) {
             if (error.statusCode >= 500) {
               printLog(
                 "error",
-                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed xyz "${id}"...`
+                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed xyz "${id}"...`,
               );
 
               return;
@@ -847,7 +857,7 @@ async function seedDataTiles(
 
             printLog(
               "error",
-              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
+              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`,
             );
 
             targetTileExtraInfo = {};
@@ -860,12 +870,12 @@ async function seedDataTiles(
             tileExtraInfo = getXYZTileExtraInfoFromCoverages(
               source,
               coverages,
-              true
+              true,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`
+              `Failed to get tile extra info from "${filePath}": ${error}`,
             );
 
             tileExtraInfo = {};
@@ -878,7 +888,7 @@ async function seedDataTiles(
         await updateXYZMetadata(
           source,
           metadata,
-          30000 // 30 secs
+          30000, // 30 secs
         );
 
         /* Download data tile function */
@@ -904,7 +914,7 @@ async function seedDataTiles(
 
           printLog(
             "info",
-            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
           );
 
           try {
@@ -919,12 +929,12 @@ async function seedDataTiles(
               maxTry,
               timeout,
               storeTransparent,
-              headers
+              headers,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
             );
           }
         };
@@ -932,7 +942,7 @@ async function seedDataTiles(
         break;
       }
 
-      case "postgresql": {
+      case "pg": {
         /* Open PostgreSQL database */
         const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
 
@@ -945,13 +955,13 @@ async function seedDataTiles(
         if (refreshTimestamp === true) {
           const hashURL = `${url.slice(
             0,
-            url.indexOf("/{z}/{x}/{y}")
+            url.indexOf("/{z}/{x}/{y}"),
           )}/extra-info?compression=true`;
 
           try {
             printLog(
               "info",
-              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`
+              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
             );
 
             const res = await postDataToURL(
@@ -962,7 +972,7 @@ async function seedDataTiles(
               false,
               {
                 "Content-Type": "application/json",
-              }
+              },
             );
 
             if (res.headers["content-encoding"] === "gzip") {
@@ -974,13 +984,13 @@ async function seedDataTiles(
             tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
               source,
               coverages,
-              false
+              false,
             );
           } catch (error) {
             if (error.statusCode >= 500) {
               printLog(
                 "error",
-                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed postgresql "${id}"...`
+                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed postgresql "${id}"...`,
               );
 
               return;
@@ -988,7 +998,7 @@ async function seedDataTiles(
 
             printLog(
               "error",
-              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`
+              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`,
             );
 
             targetTileExtraInfo = {};
@@ -1001,12 +1011,12 @@ async function seedDataTiles(
             tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
               source,
               coverages,
-              true
+              true,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`
+              `Failed to get tile extra info from "${filePath}": ${error}`,
             );
 
             tileExtraInfo = {};
@@ -1041,7 +1051,7 @@ async function seedDataTiles(
 
           printLog(
             "info",
-            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
           );
 
           try {
@@ -1054,12 +1064,12 @@ async function seedDataTiles(
               maxTry,
               timeout,
               storeTransparent,
-              headers
+              headers,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`
+              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
             );
           }
         };
@@ -1074,8 +1084,9 @@ async function seedDataTiles(
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of ${storeType} "${id}" after ${(Date.now() - startTime) / 1000
-      }s!`
+      `Completed seed ${total} tiles of ${storeType} "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`,
     );
   } catch (error) {
     throw error;
@@ -1091,9 +1102,11 @@ async function seedDataTiles(
 
         case "xyz": {
           closeXYZMD5DB(source);
+
+          break;
         }
 
-        case "postgresql": {
+        case "pg": {
           closePostgreSQLDB(source);
 
           break;
@@ -1152,7 +1165,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
           getDataFromURL(
             `${url.slice(0, url.indexOf(`/${id}.geojson`))}/md5`,
             timeout,
-            "arraybuffer"
+            "arraybuffer",
           ),
           getGeoJSON(filePath),
         ]);
@@ -1193,7 +1206,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
     if (needDownload) {
       printLog(
         "info",
-        `Downloading geojson "${id}" - File "${filePath}" - From "${url}"...`
+        `Downloading geojson "${id}" - File "${filePath}" - From "${url}"...`,
       );
 
       await downloadGeoJSONFile(url, filePath, maxTry, timeout, headers);
@@ -1207,7 +1220,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
 
   printLog(
     "info",
-    `Completed seed geojson "${id}" after ${(Date.now() - startTime) / 1000}s!`
+    `Completed seed geojson "${id}" after ${(Date.now() - startTime) / 1000}s!`,
   );
 }
 
@@ -1275,7 +1288,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
 
         printLog(
           "info",
-          `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`
+          `Downloading sprite "${id}" - File "${fileName}" - From "${targetURL}"...`,
         );
 
         await downloadSpriteFile(targetURL, filePath, maxTry, timeout, headers);
@@ -1283,7 +1296,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
     } catch (error) {
       printLog(
         "error",
-        `Failed to seed sprite "${id}" - File "${fileName}": ${error}`
+        `Failed to seed sprite "${id}" - File "${fileName}": ${error}`,
       );
     }
   }
@@ -1292,8 +1305,8 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
 
   await Promise.all(
     ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-      seedSpriteData
-    )
+      seedSpriteData,
+    ),
   );
 
   /* Remove parent folders if empty */
@@ -1301,7 +1314,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
 
   printLog(
     "info",
-    `Completed seed sprite "${id}" after ${(Date.now() - startTime) / 1000}s!`
+    `Completed seed sprite "${id}" after ${(Date.now() - startTime) / 1000}s!`,
   );
 }
 
@@ -1323,7 +1336,7 @@ async function seedFont(
   maxTry,
   timeout,
   refreshBefore,
-  headers
+  headers,
 ) {
   const startTime = Date.now();
 
@@ -1382,7 +1395,7 @@ async function seedFont(
 
         printLog(
           "info",
-          `Downloading font "${id}" - Filename "${fileName}" - From "${targetURL}" - ${completeTasks}/${total}...`
+          `Downloading font "${id}" - Filename "${fileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
         );
 
         await downloadFontFile(targetURL, filePath, maxTry, timeout, headers);
@@ -1390,7 +1403,7 @@ async function seedFont(
     } catch (error) {
       printLog(
         "error",
-        `Failed to seed font "${id}" - Filename "${fileName}" - ${completeTasks}/${total}: ${error}`
+        `Failed to seed font "${id}" - Filename "${fileName}" - ${completeTasks}/${total}: ${error}`,
       );
     }
   }
@@ -1401,7 +1414,7 @@ async function seedFont(
   await handleConcurrency(
     concurrency,
     seedFontData,
-    Array.from({ length: 256 }, (_, idx) => `${idx * 256}-${idx * 256 + 255}`)
+    Array.from({ length: 256 }, (_, idx) => `${idx * 256}-${idx * 256 + 255}`),
   );
 
   /* Remove parent folders if empty */
@@ -1409,8 +1422,9 @@ async function seedFont(
 
   printLog(
     "info",
-    `Completed seed ${total} fonts of font "${id}" after ${(Date.now() - startTime) / 1000
-    }s!`
+    `Completed seed ${total} fonts of font "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`,
   );
 }
 
@@ -1463,7 +1477,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
           getDataFromURL(
             `${url.slice(0, url.indexOf(`/${id}/style.json?raw=true`))}/md5`,
             timeout,
-            "arraybuffer"
+            "arraybuffer",
           ),
           getStyle(filePath),
         ]);
@@ -1522,7 +1536,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
     if (needDownload) {
       printLog(
         "info",
-        `Downloading style "${id}" - File "${filePath}" - From "${url}"...`
+        `Downloading style "${id}" - File "${filePath}" - From "${url}"...`,
       );
 
       await downloadStyleFile(url, filePath, maxTry, timeout, headers);
@@ -1536,7 +1550,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 
   printLog(
     "info",
-    `Completed seed style "${id}" after ${(Date.now() - startTime) / 1000}s!`
+    `Completed seed style "${id}" after ${(Date.now() - startTime) / 1000}s!`,
   );
 }
 
@@ -1544,7 +1558,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 
 /**
  * Cleanup data tiles
- * @param {"mbtiles"|"xyz"|"postgresql"} storeType Store type
+ * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {string} id Cleanup data ID
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
@@ -1582,13 +1596,13 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
     switch (storeType) {
       case "mbtiles": {
-        /* Open MBTiles SQLite database */
+        /* Open database */
         const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
 
         source = await openMBTilesDB(
           filePath,
           true,
-          30000 // 30 secs
+          30000, // 30 secs
         );
 
         /* Get tile extra info */
@@ -1601,12 +1615,12 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
             tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
               source,
               coverages,
-              true
+              true,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`
+              `Failed to get tile extra info from "${filePath}": ${error}`,
             );
 
             tileExtraInfo = {};
@@ -1625,7 +1639,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
           printLog(
             "info",
-            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
           );
 
           try {
@@ -1634,12 +1648,12 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
               z,
               x,
               y,
-              30000 // 30 secs
+              30000, // 30 secs
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
             );
           }
         }
@@ -1649,24 +1663,24 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         await handleTilesConcurrency(
           concurrency,
           cleanUpMBTilesTileData,
-          tileBounds
+          tileBounds,
         );
 
-        /* Compact MBTiles (Block DB) */
+        /* Compact database (Block DB) */
         // compactMBTiles(source);
 
         break;
       }
 
       case "xyz": {
-        /* Open XYZ MD5 SQLite database */
+        /* Open database */
         const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
-        const filePath = `${sourcePath}/${id}.sqlite`;
+        const filePath = `${sourcePath}/${id}.mbtiles`;
 
         source = await openXYZMD5DB(
           filePath,
           true,
-          30000 // 30 secs
+          30000, // 30 secs
         );
 
         /* Get tile extra info */
@@ -1679,12 +1693,12 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
             tileExtraInfo = getXYZTileExtraInfoFromCoverages(
               source,
               coverages,
-              true
+              true,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`
+              `Failed to get tile extra info from "${filePath}": ${error}`,
             );
 
             tileExtraInfo = {};
@@ -1706,7 +1720,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
           printLog(
             "info",
-            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
           );
 
           try {
@@ -1717,31 +1731,38 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
               x,
               y,
               format,
-              30000 // 30 secs
+              30000, // 30 secs
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
             );
           }
         }
 
         printLog("info", "Removing datas...");
 
-        await handleTilesConcurrency(concurrency, cleanUpXYZTileData, tileBounds);
+        await handleTilesConcurrency(
+          concurrency,
+          cleanUpXYZTileData,
+          tileBounds,
+        );
 
-        /* Compact XYZ (Block DB) */
+        /* Compact database (Block DB) */
         // compactXYZ(source);
 
         /* Remove parent folders if empty */
-        await removeEmptyFolders(sourcePath, /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/);
+        await removeEmptyFolders(
+          sourcePath,
+          /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/,
+        );
 
         break;
       }
 
-      case "postgresql": {
-        /* Open PostgreSQL database */
+      case "pg": {
+        /* Open database */
         const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
 
         source = await openPostgreSQLDB(filePath, true);
@@ -1756,12 +1777,12 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
             tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
               source,
               coverages,
-              true
+              true,
             );
           } catch (error) {
             printLog(
               "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`
+              `Failed to get tile extra info from "${filePath}": ${error}`,
             );
 
             tileExtraInfo = {};
@@ -1780,7 +1801,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
           printLog(
             "info",
-            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
           );
 
           try {
@@ -1788,7 +1809,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           } catch (error) {
             printLog(
               "error",
-              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`
+              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
             );
           }
         }
@@ -1798,7 +1819,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         await handleTilesConcurrency(
           concurrency,
           cleanUpPostgreSQLTileData,
-          tileBounds
+          tileBounds,
         );
 
         break;
@@ -1807,8 +1828,9 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of ${storeType} "${id}" after ${(Date.now() - startTime) / 1000
-      }s!`
+      `Completed cleanup ${total} tiles of ${storeType} "${id}" after ${
+        (Date.now() - startTime) / 1000
+      }s!`,
     );
   } catch (error) {
     throw error;
@@ -1824,9 +1846,11 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
         case "xyz": {
           closeXYZMD5DB(source);
+
+          break;
         }
 
-        case "postgresql": {
+        case "pg": {
           closePostgreSQLDB(source);
 
           break;
@@ -1894,7 +1918,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
       await removeGeoJSONFile(
         filePath,
-        30000 // 30 secs
+        30000, // 30 secs
       );
     }
   } catch (error) {
@@ -1906,8 +1930,9 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup geojson "${id}" after ${(Date.now() - startTime) / 1000
-    }s!`
+    `Completed cleanup geojson "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`,
   );
 }
 
@@ -1969,13 +1994,13 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
         await removeSpriteFile(
           filePath,
-          30000 // 30 secs
+          30000, // 30 secs
         );
       }
     } catch (error) {
       printLog(
         "error",
-        `Failed to cleanup sprite "${id}" - File "${fileName}": ${error}`
+        `Failed to cleanup sprite "${id}" - File "${fileName}": ${error}`,
       );
     }
   }
@@ -1984,8 +2009,8 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   await Promise.all(
     ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-      cleanUpSpriteData
-    )
+      cleanUpSpriteData,
+    ),
   );
 
   /* Remove parent folders if empty */
@@ -1993,8 +2018,9 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup sprite "${id}" after ${(Date.now() - startTime) / 1000
-    }s!`
+    `Completed cleanup sprite "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`,
   );
 }
 
@@ -2059,13 +2085,13 @@ async function cleanUpFont(id, cleanUpBefore) {
 
         await removeFontFile(
           filePath,
-          30000 // 30 secs
+          30000, // 30 secs
         );
       }
     } catch (error) {
       printLog(
         "error",
-        `Failed to cleanup font "${id}" -  Range "${range}": ${error}`
+        `Failed to cleanup font "${id}" -  Range "${range}": ${error}`,
       );
     }
   }
@@ -2074,8 +2100,8 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   await Promise.all(
     Array.from({ length: total }, (_, i) =>
-      cleanUpFontData(i * 256, i * 256 + 255)
-    )
+      cleanUpFontData(i * 256, i * 256 + 255),
+    ),
   );
 
   /* Remove parent folders if empty */
@@ -2083,8 +2109,9 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup ${total} fonts of font "${id}" after ${(Date.now() - startTime) / 1000
-    }s!`
+    `Completed cleanup ${total} fonts of font "${id}" after ${
+      (Date.now() - startTime) / 1000
+    }s!`,
   );
 }
 
@@ -2146,7 +2173,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
       await removeStyleFile(
         filePath,
-        30000 // 30 secs
+        30000, // 30 secs
       );
     }
   } catch (error) {
@@ -2158,7 +2185,6 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup style "${id}" after ${(Date.now() - startTime) / 1000}s!`
+    `Completed cleanup style "${id}" after ${(Date.now() - startTime) / 1000}s!`,
   );
 }
-

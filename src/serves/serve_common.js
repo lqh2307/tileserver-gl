@@ -45,7 +45,7 @@ function serveFrontPageHandler() {
             const [x, y, z] = getXYZFromLonLatZ(
               center[0],
               center[1],
-              center[2]
+              center[2],
             );
 
             styles[id] = {
@@ -86,7 +86,7 @@ function serveFrontPageHandler() {
             const [x, y, z] = getXYZFromLonLatZ(
               center[0],
               center[1],
-              center[2]
+              center[2],
             );
 
             datas[id] = {
@@ -261,7 +261,7 @@ function serveConfigUpdateHandler() {
             process.send({
               action: "restartServer",
             }),
-          0
+          0,
         );
       }
 
@@ -363,7 +363,7 @@ function serveConfigDeleteHandler() {
             process.send({
               action: "restartServer",
             }),
-          0
+          0,
         );
       }
 
@@ -451,7 +451,7 @@ function serveRestartKillHandler() {
             process.send({
               action: "killServer",
             }),
-          0
+          0,
         );
       } else {
         setTimeout(
@@ -459,7 +459,7 @@ function serveRestartKillHandler() {
             process.send({
               action: "restartServer",
             }),
-          0
+          0,
         );
       }
 

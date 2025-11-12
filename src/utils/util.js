@@ -33,7 +33,7 @@ export async function retry(fn, maxTry, after = 0) {
       if (remainingAttempts > 0) {
         printLog(
           "warn",
-          `${error}. ${remainingAttempts} try remaining - After ${after} ms...`
+          `${error}. ${remainingAttempts} try remaining - After ${after} ms...`,
         );
 
         await delay(after);
@@ -128,7 +128,7 @@ export async function handleTilesConcurrency(
   concurrency,
   renderFunc,
   tileBounds,
-  item
+  item,
 ) {
   const mutex = new Mutex();
 
@@ -160,7 +160,7 @@ export async function handleTilesConcurrency(
           /* Release mutex */
           mutex.runExclusive(() => {
             tasks.activeTasks--;
-          })
+          }),
         );
       }
     }
@@ -184,7 +184,7 @@ export async function handleConcurrency(
   concurrency,
   handleFunc,
   values,
-  callback
+  callback,
 ) {
   let intervalID;
 
@@ -220,7 +220,7 @@ export async function handleConcurrency(
         /* Release mutex */
         mutex.runExclusive(() => {
           tasks.activeTasks--;
-        })
+        }),
       );
     }
 

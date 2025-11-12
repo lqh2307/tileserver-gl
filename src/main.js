@@ -68,7 +68,7 @@ async function startClusterServer() {
     } catch (error) {
       printLog(
         "warn",
-        `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render!`
+        `Failed to import "@maplibre/maplibre-gl-native": ${error}. Disable backend render!`,
       );
 
       process.env.BACKEND_RENDER = "false";
@@ -81,7 +81,7 @@ async function startClusterServer() {
 
     printLog(
       "info",
-      `Starting server with ${process.env.NUM_OF_PROCESS} processes - ${process.env.UV_THREADPOOL_SIZE} threads...`
+      `Starting server with ${process.env.NUM_OF_PROCESS} processes - ${process.env.UV_THREADPOOL_SIZE} threads...`,
     );
 
     /* Setup watch config file change */
@@ -97,7 +97,7 @@ async function startClusterServer() {
             usePolling: true,
             awaitWriteFinish: true,
             interval: 500,
-          }
+          },
         )
         .on("change", () => {
           printLog("info", "Config file has changed. Restarting server...");
@@ -110,13 +110,13 @@ async function startClusterServer() {
     if (config.options?.taskSchedule !== undefined) {
       printLog(
         "info",
-        `Schedule run seed and cleanup tasks at: "${config.options.taskSchedule}"`
+        `Schedule run seed and cleanup tasks at: "${config.options.taskSchedule}"`,
       );
 
       cron.schedule(config.options.taskSchedule, () => {
         printLog(
           "info",
-          "Seed and cleanup tasks triggered by schedule. Starting task..."
+          "Seed and cleanup tasks triggered by schedule. Starting task...",
         );
 
         startTaskInWorker({
@@ -139,13 +139,13 @@ async function startClusterServer() {
     if (config.options?.restartSchedule !== undefined) {
       printLog(
         "info",
-        `Schedule restart server at: "${config.options.restartSchedule}"`
+        `Schedule restart server at: "${config.options.restartSchedule}"`,
       );
 
       cron.schedule(config.options.restartSchedule, () => {
         printLog(
           "info",
-          "Restart server triggered by schedule. Restarting server..."
+          "Restart server triggered by schedule. Restarting server...",
         );
 
         process.exit(1);
@@ -166,7 +166,7 @@ async function startClusterServer() {
       .on("exit", (worker, code, signal) => {
         printLog(
           "info",
-          `Worker with PID = ${worker.process.pid} is died - Code: ${code} - Signal: ${signal}. Creating new one...`
+          `Worker with PID = ${worker.process.pid} is died - Code: ${code} - Signal: ${signal}. Creating new one...`,
         );
 
         cluster.fork();
@@ -176,7 +176,7 @@ async function startClusterServer() {
           case "killServer": {
             printLog(
               "info",
-              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Killing server...`
+              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Killing server...`,
             );
 
             process.exit(0);
@@ -185,7 +185,7 @@ async function startClusterServer() {
           case "restartServer": {
             printLog(
               "info",
-              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Restarting server...`
+              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Restarting server...`,
             );
 
             process.exit(1);
@@ -194,7 +194,7 @@ async function startClusterServer() {
           case "startTask": {
             printLog(
               "info",
-              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Starting task...`
+              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Starting task...`,
             );
 
             startTaskInWorker(message);
@@ -205,7 +205,7 @@ async function startClusterServer() {
           case "cancelTask": {
             printLog(
               "info",
-              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Canceling task...`
+              `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Canceling task...`,
             );
 
             cancelTaskInWorker();

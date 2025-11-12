@@ -29,7 +29,7 @@ function serveSwagger() {
           },
         ],
         apis: ["src/*.js"],
-      })
+      }),
     )(req, res, next);
   };
 }

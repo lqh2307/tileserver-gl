@@ -62,7 +62,7 @@ function serveDataHandler() {
           id: id,
           name: item.tileJSON.name,
           base_url: getRequestHost(req),
-        }
+        },
       );
 
       return res.status(StatusCodes.OK).send(compiled);
@@ -110,7 +110,7 @@ function getDataTileHandler() {
             id,
             +req.params.z,
             +req.params.x,
-            +req.params.y
+            +req.params.y,
           );
 
           break;
@@ -121,7 +121,7 @@ function getDataTileHandler() {
             item.source,
             +req.params.z,
             +req.params.x,
-            +req.params.y
+            +req.params.y,
           );
 
           break;
@@ -132,7 +132,7 @@ function getDataTileHandler() {
             id,
             +req.params.z,
             +req.params.x,
-            +req.params.y
+            +req.params.y,
           );
 
           break;
@@ -143,7 +143,7 @@ function getDataTileHandler() {
             id,
             +req.params.z,
             +req.params.x,
-            +req.params.y
+            +req.params.y,
           );
 
           break;
@@ -166,7 +166,7 @@ function getDataTileHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get data "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}": ${error}`
+        `Failed to get data "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}": ${error}`,
       );
 
       if (error.message === "Tile does not exist") {
@@ -373,7 +373,7 @@ function getDataTileExtraInfoHandler() {
             item.source,
             req.body,
             isCreated,
-            item.tileJSON.bounds
+            item.tileJSON.bounds,
           );
 
           break;
@@ -392,7 +392,7 @@ function getDataTileExtraInfoHandler() {
             item.md5Source,
             req.body,
             isCreated,
-            item.tileJSON.bounds
+            item.tileJSON.bounds,
           );
 
           break;
@@ -403,7 +403,7 @@ function getDataTileExtraInfoHandler() {
             item.source,
             req.body,
             isCreated,
-            item.tileJSON.bounds
+            item.tileJSON.bounds,
           );
 
           break;
@@ -460,7 +460,7 @@ function calculateDataExtraInfoHandler() {
             .catch((error) => {
               printLog(
                 "error",
-                `Failed to calculate tile extra info "${id}": ${error}`
+                `Failed to calculate tile extra info "${id}": ${error}`,
               );
             });
 
@@ -481,7 +481,7 @@ function calculateDataExtraInfoHandler() {
             .catch((error) => {
               printLog(
                 "error",
-                `Failed to calculate tile extra info "${id}": ${error}`
+                `Failed to calculate tile extra info "${id}": ${error}`,
               );
             });
 
@@ -496,7 +496,7 @@ function calculateDataExtraInfoHandler() {
             .catch((error) => {
               printLog(
                 "error",
-                `Failed to calculate tile extra info "${id}": ${error}`
+                `Failed to calculate tile extra info "${id}": ${error}`,
               );
             });
 
@@ -508,7 +508,7 @@ function calculateDataExtraInfoHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to calculate tile extra info "${id}": ${error}`
+        `Failed to calculate tile extra info "${id}": ${error}`,
       );
 
       return res
@@ -534,7 +534,7 @@ function getDatasListHandler() {
             name: config.datas[id].tileJSON.name,
             url: `${requestHost}/datas/${id}.json`,
           };
-        })
+        }),
       );
 
       const headers = {
@@ -974,7 +974,7 @@ export const serve_data = {
 
                 if (!cacheSource || cacheSource.storeType !== "mbtiles") {
                   throw new Error(
-                    `Cache mbtiles data "${item.mbtiles}" is invalid`
+                    `Cache mbtiles data "${item.mbtiles}" is invalid`,
                   );
                 }
 
@@ -993,7 +993,7 @@ export const serve_data = {
                 dataInfo.source = await openMBTilesDB(
                   dataInfo.path,
                   true,
-                  30000 // 30 secs
+                  30000, // 30 secs
                 );
 
                 /* Get MBTiles metadata */
@@ -1012,7 +1012,7 @@ export const serve_data = {
                 dataInfo.source = await openMBTilesDB(
                   dataInfo.path,
                   true,
-                  30000 // 30 secs
+                  30000, // 30 secs
                 );
 
                 /* Get MBTiles metadata */
@@ -1026,7 +1026,7 @@ export const serve_data = {
 
               if (
                 ["https://", "http://"].some((scheme) =>
-                  item.pmtiles.startsWith(scheme)
+                  item.pmtiles.startsWith(scheme),
                 )
               ) {
                 /* Get PMTiles path */
@@ -1080,7 +1080,7 @@ export const serve_data = {
                 /* Open XYZ MD5 */
                 dataInfo.md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
-                  true
+                  true,
                 );
 
                 /* Get XYZ metadata */
@@ -1101,7 +1101,7 @@ export const serve_data = {
                 const md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
                   true,
-                  30000 // 30 secs
+                  30000, // 30 secs
                 );
 
                 /* Get XYZ metadata */
@@ -1166,10 +1166,10 @@ export const serve_data = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load data "${id}": ${error}. Skipping...`
+              `Failed to load data "${id}": ${error}. Skipping...`,
             );
           }
-        })
+        }),
       );
 
       config.datas = repos;

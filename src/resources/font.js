@@ -25,7 +25,7 @@ if (!cluster.isPrimary) {
     .catch((error) => {
       printLog(
         "error",
-        `Failed to load proto "public/protos/glyphs.proto": ${error}`
+        `Failed to load proto "public/protos/glyphs.proto": ${error}`,
       );
     });
 }
@@ -50,7 +50,7 @@ export async function cacheFontFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
-    30000 // 30 secs
+    30000, // 30 secs
   );
 }
 
@@ -68,7 +68,7 @@ export async function downloadFontFile(
   filePath,
   maxTry,
   timeout,
-  headers
+  headers,
 ) {
   await retry(async () => {
     try {
@@ -78,7 +78,7 @@ export async function downloadFontFile(
         timeout,
         "arraybuffer",
         false,
-        headers
+        headers,
       );
 
       // Store data to file
@@ -229,7 +229,7 @@ export async function getPBFFontSize(pbfDirPath) {
     pbfDirPath,
     /^\d{1,5}-\d{1,5}\.pbf$/,
     false,
-    true
+    true,
   );
 
   let size = 0;
@@ -268,28 +268,28 @@ export async function getAndCacheDataFonts(ids, fileName) {
 
             printLog(
               "info",
-              `Forwarding font "${id}" - Filename "${fileName}" - To "${targetURL}"...`
+              `Forwarding font "${id}" - Filename "${fileName}" - To "${targetURL}"...`,
             );
 
             /* Get font */
             const font = await getDataFileFromURL(
               targetURL,
               item.headers,
-              30000 // 30 secs
+              30000, // 30 secs
             );
 
             /* Cache */
             if (item.storeCache) {
               printLog(
                 "info",
-                `Caching font "${id}" - Filename "${fileName}"...`
+                `Caching font "${id}" - Filename "${fileName}"...`,
               );
 
               cacheFontFile(`${item.path}/${fileName}`, font).catch((error) =>
                 printLog(
                   "error",
-                  `Failed to cache font "${id}" - Filename "${fileName}": ${error}`
-                )
+                  `Failed to cache font "${id}" - Filename "${fileName}": ${error}`,
+                ),
               );
             }
 
@@ -300,13 +300,13 @@ export async function getAndCacheDataFonts(ids, fileName) {
         } catch (error) {
           printLog(
             "warn",
-            `Failed to get font "${id}": ${error}. Using fallback font "Open Sans"...`
+            `Failed to get font "${id}": ${error}. Using fallback font "Open Sans"...`,
           );
 
           return await getFallbackFont(id, fileName);
         }
       }
-    })
+    }),
   );
 
   /* Merge font datas */

@@ -36,7 +36,7 @@ export async function downloadGeoJSONFile(
   filePath,
   maxTry,
   timeout,
-  headers
+  headers,
 ) {
   await retry(async () => {
     try {
@@ -46,7 +46,7 @@ export async function downloadGeoJSONFile(
         timeout,
         "arraybuffer",
         false,
-        headers
+        headers,
       );
 
       // Store data to file
@@ -78,7 +78,7 @@ export async function cacheGeoJSONFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
-    300000 // 5 mins
+    300000, // 5 mins
   );
 }
 
@@ -362,13 +362,13 @@ export async function getAndCacheDataGeoJSON(id, layer) {
     if (item?.sourceURL && error.message === "JSON does not exist") {
       printLog(
         "info",
-        `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`
+        `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`,
       );
 
       const geoJSON = await getDataFileFromURL(
         item.sourceURL,
         item.headers,
-        30000 // 30 secs
+        30000, // 30 secs
       );
 
       if (item.storeCache) {
@@ -377,8 +377,8 @@ export async function getAndCacheDataGeoJSON(id, layer) {
         cacheGeoJSONFile(item.path, geoJSON).catch((error) =>
           printLog(
             "error",
-            `Failed to cache GeoJSON "${id}" - File "${item.path}": ${error}`
-          )
+            `Failed to cache GeoJSON "${id}" - File "${item.path}": ${error}`,
+          ),
         );
       }
 

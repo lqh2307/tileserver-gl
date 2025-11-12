@@ -27,7 +27,7 @@ function getFontHandler() {
       /* Get and cache Fonts */
       let data = await getAndCacheDataFonts(
         ids,
-        req.url.slice(req.url.lastIndexOf("/") + 1)
+        req.url.slice(req.url.lastIndexOf("/") + 1),
       );
 
       /* Gzip pbf font */
@@ -63,7 +63,7 @@ function getFontStaticHandler() {
     try {
       /* Get static Font */
       let data = await getFont(
-        `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`
+        `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`,
       );
 
       /* Add header */
@@ -96,7 +96,7 @@ function getFontsListHandler() {
             name: id,
             url: `${requestHost}/fonts/${id}/{range}.pbf`,
           };
-        })
+        }),
       );
 
       const headers = {
@@ -326,10 +326,10 @@ export const serve_font = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load font "${id}": ${error}. Skipping...`
+              `Failed to load font "${id}": ${error}. Skipping...`,
             );
           }
-        })
+        }),
       );
 
       config.fonts = repos;

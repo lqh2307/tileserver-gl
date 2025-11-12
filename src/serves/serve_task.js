@@ -26,7 +26,7 @@ function startTaskHandler() {
             seedDatas: req.query.seedDatas === "true",
             restart: req.query.restart === "true",
           }),
-        0
+        0,
       );
 
       return res.status(StatusCodes.OK).send("OK");
@@ -52,7 +52,7 @@ function cancelTaskHandler() {
           process.send({
             action: "cancelTask",
           }),
-        0
+        0,
       );
 
       return res.status(StatusCodes.OK).send("OK");

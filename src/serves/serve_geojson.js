@@ -84,7 +84,7 @@ function serveGeoJSONHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to serve GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
+        `Failed to serve GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`,
       );
 
       return res
@@ -175,7 +175,7 @@ function getGeoJSONInfoHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get GeoJSON group info "${id}" - Layer "${req.params.layer}": ${error}`
+        `Failed to get GeoJSON group info "${id}" - Layer "${req.params.layer}": ${error}`,
       );
 
       return res
@@ -231,7 +231,7 @@ function getGeoJSONHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
+        `Failed to get GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`,
       );
 
       if (error.message === "JSON does not exist") {
@@ -281,7 +281,7 @@ function getGeoJSONMD5Handler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get md5 of GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
+        `Failed to get md5 of GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`,
       );
 
       if (error.message === "File does not exist") {
@@ -345,7 +345,7 @@ function downloadGeoJSONHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`
+        `Failed to get GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`,
       );
 
       if (error.message === "File does not exist") {
@@ -375,7 +375,7 @@ function getGeoJSONGroupsListHandler() {
             name: id,
             url: `${requestHost}/geojsons/${id}.json`,
           };
-        })
+        }),
       );
 
       const headers = {
@@ -794,14 +794,14 @@ export const serve_geojson = {
             if (!config.geojsons[id]) {
               printLog(
                 "info",
-                `No geojson group in GeoJSON groups id "${id}". Skipping...`
+                `No geojson group in GeoJSON groups id "${id}". Skipping...`,
               );
             } else {
               const layers = Object.keys(config.geojsons[id]);
 
               printLog(
                 "info",
-                `Loading ${layers.length} GeoJSON in GeoJSON groups id "${id}"...`
+                `Loading ${layers.length} GeoJSON in GeoJSON groups id "${id}"...`,
               );
 
               const geojsonsInfo = {};
@@ -821,7 +821,7 @@ export const serve_geojson = {
 
                     if (!cacheSource) {
                       throw new Error(
-                        `Cache GeoJSON "${item.geojson}" is invalid`
+                        `Cache GeoJSON "${item.geojson}" is invalid`,
                       );
                     }
 
@@ -838,7 +838,7 @@ export const serve_geojson = {
                   try {
                     /* Open GeoJSON */
                     const geoJSON = JSON.parse(
-                      await getGeoJSON(geojsonInfo.path)
+                      await getGeoJSON(geojsonInfo.path),
                     );
 
                     /* Validate and Get GeoJSON info */
@@ -855,7 +855,7 @@ export const serve_geojson = {
                       throw error;
                     }
                   }
-                })
+                }),
               );
 
               /* Add to repo */
@@ -864,10 +864,10 @@ export const serve_geojson = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load GeoJSON group "${id}": ${error}. Skipping...`
+              `Failed to load GeoJSON group "${id}": ${error}. Skipping...`,
             );
           }
-        })
+        }),
       );
 
       config.geojsons = repos;

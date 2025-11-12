@@ -73,12 +73,12 @@ function addFrameHandler() {
         req.body.overlays,
         req.body.frame,
         req.body.grid,
-        req.body.output
+        req.body.output,
       );
 
       res.set({
         "content-type": detectContentTypeFromFormat(
-          req.body.output.format || "png"
+          req.body.output.format || "png",
         ),
       });
 
@@ -153,7 +153,7 @@ function renderPDFHandler() {
       const result = await renderPDF(
         req.body.input,
         req.body.preview,
-        req.body.output
+        req.body.output,
       );
 
       res.set({
@@ -194,7 +194,7 @@ function renderHighQualityPDFHandler() {
       const result = await renderHighQualityPDF(
         req.body.input,
         req.body.preview,
-        req.body.output
+        req.body.output,
       );
 
       res.set({

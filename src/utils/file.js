@@ -58,7 +58,7 @@ export async function calculateMD5OfFile(filePath) {
  */
 export function createBase64(buffer, format) {
   return `data:${detectContentTypeFromFormat(format)};base64,${buffer.toString(
-    "base64"
+    "base64",
   )}`;
 }
 
@@ -72,8 +72,8 @@ export async function createFolders(dirPaths) {
     dirPaths.map((dirPath) =>
       mkdir(dirPath, {
         recursive: true,
-      })
-    )
+      }),
+    ),
   );
 }
 
@@ -88,8 +88,8 @@ export async function removeFolders(dirPaths) {
       rm(dirPath, {
         force: true,
         recursive: true,
-      })
-    )
+      }),
+    ),
   );
 }
 
@@ -120,7 +120,7 @@ export async function removeEmptyFolders(folderPath, regex) {
           hasMatchingFile = true;
         }
       }
-    })
+    }),
   );
 
   if (!hasMatchingFile) {
@@ -140,7 +140,7 @@ export async function removeOldLocks() {
     `${process.env.DATA_DIR}`,
     /^.*\.lock$/,
     true,
-    true
+    true,
   );
 
   await removeFolders(fileNames);
@@ -180,7 +180,7 @@ export async function findFiles(
   regex,
   recurse,
   includeDirPath,
-  isDir
+  isDir,
 ) {
   const entries = await readdir(filePath, {
     withFileTypes: true,
@@ -208,7 +208,7 @@ export async function findFiles(
         regex,
         recurse,
         includeDirPath,
-        isDir
+        isDir,
       );
 
       if (includeDirPath) {

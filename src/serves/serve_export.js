@@ -1,20 +1,11 @@
 "use strict";
 
 import { getJSONSchema, validateJSON, printLog } from "../utils/index.js";
+import { exportDataTiles, exportAll } from "../export.js";
+import { renderDataTiles } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
 import os from "os";
-import {
-  exportPostgreSQLTiles,
-  exportMBTilesTiles,
-  exportXYZTiles,
-  exportAll,
-} from "../export.js";
-import {
-  renderPostgreSQLTiles,
-  renderMBTilesTiles,
-  renderXYZTiles,
-} from "../render_style.js";
 
 /**
  * Export all handler
@@ -78,7 +69,7 @@ function exportAllHandler() {
         req.body.exportData ?? true,
         req.body.refreshBefore?.time ||
           req.body.refreshBefore?.day ||
-          req.body.refreshBefore?.md5
+          req.body.refreshBefore?.md5,
       );
 
       return res.status(StatusCodes.CREATED).send("OK");
@@ -118,7 +109,7 @@ function exportDataHandler() {
         if (!item.export) {
           printLog(
             "warn",
-            "No export is currently running. Skipping cancel export..."
+            "No export is currently running. Skipping cancel export...",
           );
 
           return res.status(StatusCodes.NOT_FOUND).send("OK");
@@ -150,68 +141,44 @@ function exportDataHandler() {
             req.body.refreshBefore?.day ||
             req.body.refreshBefore?.md5;
 
+          let storePath;
+
           switch (req.body.storeType) {
             case "xyz": {
-              exportXYZTiles(
-                id,
-                `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}`,
-                `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}/${req.body.id}.sqlite`,
-                req.body.metadata,
-                req.body.coverages,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to export data "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = false;
-                });
+              storePath = `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}`;
 
               break;
             }
 
             case "mbtiles": {
-              exportMBTilesTiles(
-                id,
-                `${process.env.DATA_DIR}/exports/datas/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
-                req.body.metadata,
-                req.body.coverages,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to export data "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = false;
-                });
+              storePath = `${process.env.DATA_DIR}/exports/datas/mbtiles/${req.body.id}/${req.body.id}.mbtiles`;
 
               break;
             }
 
             case "pg": {
-              exportPostgreSQLTiles(
-                id,
-                `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
-                req.body.metadata,
-                req.body.coverages,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to export data "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = false;
-                });
+              storePath = `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`;
 
               break;
             }
           }
+
+          exportDataTiles(
+            id,
+            req.body.storeType,
+            storePath,
+            req.body.metadata,
+            req.body.coverages,
+            req.body.concurrency || os.cpus().length,
+            req.body.storeTransparent ?? true,
+            refreshBefore,
+          )
+            .catch((error) => {
+              printLog("error", `Failed to export data "${id}": ${error}`);
+            })
+            .finally(() => {
+              item.export = false;
+            });
 
           return res.status(StatusCodes.CREATED).send("OK");
         }
@@ -255,7 +222,7 @@ function renderStyleHandler() {
         if (!item.export) {
           printLog(
             "warn",
-            "No render is currently running. Skipping cancel render..."
+            "No render is currently running. Skipping cancel render...",
           );
 
           return res.status(StatusCodes.NOT_FOUND).send("OK");
@@ -287,77 +254,47 @@ function renderStyleHandler() {
             req.body.refreshBefore?.day ||
             req.body.refreshBefore?.md5;
 
+          let storePath;
+
           switch (req.body.storeType) {
             case "xyz": {
-              renderXYZTiles(
-                id,
-                `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}`,
-                `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}/${req.body.id}.sqlite`,
-                req.body.metadata,
-                req.body.maxRendererPoolSize,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                req.body.createOverview ?? false,
-                req.body.tileScale || 1,
-                req.body.tileSize || 256,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to render style "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = false;
-                });
+              storePath = `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}`;
 
               break;
             }
 
             case "mbtiles": {
-              renderMBTilesTiles(
-                id,
-                `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${req.body.id}/${req.body.id}.mbtiles`,
-                req.body.metadata,
-                req.body.maxRendererPoolSize,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                req.body.createOverview ?? false,
-                req.body.tileScale || 1,
-                req.body.tileSize || 256,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to render style "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = false;
-                });
+              storePath = `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${req.body.id}/${req.body.id}.mbtiles`;
 
               break;
             }
 
             case "pg": {
-              renderPostgreSQLTiles(
-                id,
-                `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`,
-                req.body.metadata,
-                req.body.maxRendererPoolSize,
-                req.body.concurrency || os.cpus().length,
-                req.body.storeTransparent ?? true,
-                req.body.createOverview ?? false,
-                req.body.tileScale || 1,
-                req.body.tileSize || 256,
-                refreshBefore
-              )
-                .catch((error) => {
-                  printLog("error", `Failed to render style "${id}": ${error}`);
-                })
-                .finally(() => {
-                  item.export = false;
-                });
+              storePath = `${process.env.POSTGRESQL_BASE_URI}/${req.body.id}`;
 
               break;
             }
           }
+
+          renderDataTiles(
+            id,
+            req.body.storeType,
+            storePath,
+            req.body.metadata,
+            req.body.maxRendererPoolSize,
+            req.body.concurrency || os.cpus().length,
+            req.body.storeTransparent ?? true,
+            req.body.createOverview ?? false,
+            req.body.tileScale || 1,
+            req.body.tileSize || 256,
+            refreshBefore,
+          )
+            .catch((error) => {
+              printLog("error", `Failed to render style "${id}": ${error}`);
+            })
+            .finally(() => {
+              item.export = false;
+            });
 
           return res.status(StatusCodes.CREATED).send("OK");
         }

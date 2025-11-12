@@ -128,7 +128,7 @@ export async function startServer() {
         .listen(+process.env.LISTEN_PORT, () => {
           printLog(
             "info",
-            `HTTP/WS server is listening on port "${process.env.LISTEN_PORT}"...`
+            `HTTP/WS server is listening on port "${process.env.LISTEN_PORT}"...`,
           );
         })
         .on("error", (error) => {
@@ -144,12 +144,12 @@ export async function startServer() {
         .use(
           cors({
             origin: "*",
-          })
+          }),
         )
         .use(
           express.json({
             limit: "1gb",
-          })
+          }),
         )
         .use(loggerMiddleware())
         .use(express.static("public/resources"));

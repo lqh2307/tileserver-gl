@@ -11,6 +11,6 @@ import handlebars from "handlebars";
  */
 export async function compileHandleBarsTemplate(template, data) {
   return handlebars.compile(
-    await readFile(`public/templates/${template}.tmpl`, "utf8")
+    await readFile(`public/templates/${template}.tmpl`, "utf8"),
   )(data);
 }

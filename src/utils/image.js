@@ -346,7 +346,7 @@ export async function createImageOutput(image, options) {
     await createFileWithLock(
       options.filePath,
       buffer,
-      300000 // 5 mins
+      300000, // 5 mins
     );
   } else if (options.base64) {
     return createBase64(buffer, options.format || "png");
@@ -385,11 +385,11 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
       overlays.map(async (overlay) => {
         const [overlayMinX, overlayMinY] = lonLat4326ToXY3857(
           overlay.bbox[0],
-          overlay.bbox[1]
+          overlay.bbox[1],
         );
         const [overlayMaxX, overlayMaxY] = lonLat4326ToXY3857(
           overlay.bbox[2],
-          overlay.bbox[3]
+          overlay.bbox[3],
         );
 
         return {
@@ -401,7 +401,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           left: Math.floor((overlayMinX - minX) * xRes),
           top: Math.floor((maxY - overlayMaxY) * yRes),
         };
-      })
+      }),
     );
 
     // Create composited image
@@ -537,7 +537,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           const label = formatDegree(
             bbox[0] + x * degPerPixelX,
             false,
-            tickLabelFormat
+            tickLabelFormat,
           );
 
           // Top label
@@ -600,7 +600,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           let label = formatDegree(
             bbox[0] + xStart * degPerPixelX,
             false,
-            tickLabelFormat
+            tickLabelFormat,
           );
 
           // Top start label end
@@ -632,7 +632,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           label = formatDegree(
             bbox[0] + xEnd * degPerPixelX,
             false,
-            tickLabelFormat
+            tickLabelFormat,
           );
 
           // Top end label end
@@ -698,7 +698,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           const label = formatDegree(
             bbox[3] - y * degPerPixelY,
             true,
-            tickLabelFormat
+            tickLabelFormat,
           );
 
           // Left label
@@ -765,7 +765,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           let label = formatDegree(
             bbox[3] - yStart * degPerPixelY,
             true,
-            tickLabelFormat
+            tickLabelFormat,
           );
 
           // Left start label end
@@ -797,7 +797,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           label = formatDegree(
             bbox[3] - yEnd * degPerPixelY,
             true,
-            tickLabelFormat
+            tickLabelFormat,
           );
 
           // Left end label end
@@ -866,7 +866,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           const label = formatDegree(
             bbox[0] + x * degPerPixelX,
             false,
-            tickLabelFormat
+            tickLabelFormat,
           );
 
           // Top label
@@ -929,7 +929,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
           const label = formatDegree(
             bbox[3] - y * degPerPixelY,
             true,
-            tickLabelFormat
+            tickLabelFormat,
           );
 
           // Left label
@@ -1106,7 +1106,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 export async function mergeTilesToImage(input, output) {
   // Detect origin tile size
   const { width, height } = await getImageMetadata(
-    `${input.dirPath}/${input.z}/${input.xMin}/${input.yMin}.${input.format}`
+    `${input.dirPath}/${input.z}/${input.xMin}/${input.yMin}.${input.format}`,
   );
 
   // Calculate target width, height
@@ -1139,7 +1139,7 @@ export async function mergeTilesToImage(input, output) {
           input.xMax,
           input.yMax,
           input.z,
-          input.scheme
+          input.scheme,
         );
 
     const xRes = targetWidth / (originBBox[2] - originBBox[0]);
@@ -1402,7 +1402,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       await createFileWithLock(
         output.filePath,
         arrayBuffer,
-        300000 // 5 mins
+        300000, // 5 mins
       );
     } else if (output.base64) {
       return createBase64(Buffer.from(arrayBuffer), "pdf");
@@ -1447,10 +1447,10 @@ export async function renderImageToPDF(input, preview, output) {
   const gapYPX = Math.round(toPixel(gapY, "mm"));
 
   const cellWidth = Math.floor(
-    (paperWidthPX - marginXPX * 2 - (column - 1) * gapXPX) / column
+    (paperWidthPX - marginXPX * 2 - (column - 1) * gapXPX) / column,
   );
   const cellHeight = Math.floor(
-    (paperHeightPX - marginYPX * 2 - (row - 1) * gapYPX) / row
+    (paperHeightPX - marginYPX * 2 - (row - 1) * gapYPX) / row,
   );
 
   // Process align
@@ -1501,7 +1501,7 @@ export async function renderImageToPDF(input, preview, output) {
           width: cellWidth,
           height: cellHeight,
         },
-        true
+        true,
       );
     }
 
@@ -1512,7 +1512,7 @@ export async function renderImageToPDF(input, preview, output) {
     for (let page = 0; page < pageNum; page++) {
       const items = input.images.slice(
         page * imageInPageNum,
-        (page + 1) * imageInPageNum
+        (page + 1) * imageInPageNum,
       );
 
       // Create composites option
@@ -1530,7 +1530,7 @@ export async function renderImageToPDF(input, preview, output) {
           }),
           left: marginXPX + (idx % column) * (cellWidth + gapXPX),
           top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
-        }))
+        })),
       );
 
       if (svg) {
@@ -1540,7 +1540,7 @@ export async function renderImageToPDF(input, preview, output) {
             input: svg,
             left: marginXPX + (idx % column) * (cellWidth + gapXPX),
             top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
-          })
+          }),
         );
       }
 
@@ -1576,7 +1576,7 @@ export async function renderImageToPDF(input, preview, output) {
               width: paperWidthPX,
               height: paperHeightPX,
             },
-            true
+            true,
           ),
           left: 0,
           top: 0,
@@ -1637,7 +1637,7 @@ export async function renderImageToPDF(input, preview, output) {
             }),
             left: marginXPX + (idx % column) * (cellWidth + gapXPX),
             top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
-          }))
+          })),
       );
 
       // Process pagination
@@ -1672,7 +1672,7 @@ export async function renderImageToPDF(input, preview, output) {
               width: paperWidthPX,
               height: paperHeightPX,
             },
-            true
+            true,
           ),
           left: 0,
           top: 0,
@@ -1704,7 +1704,7 @@ export async function renderImageToPDF(input, preview, output) {
       await createFileWithLock(
         output.filePath,
         arrayBuffer,
-        300000 // 5 mins
+        300000, // 5 mins
       );
     } else if (output.base64) {
       return createBase64(Buffer.from(arrayBuffer), "pdf");
@@ -1753,4 +1753,3 @@ export async function isFullTransparentImage(buffer) {
 export function base64ToBuffer(base64) {
   return Buffer.from(base64.slice(base64.indexOf(",") + 1), "base64");
 }
-

@@ -46,7 +46,7 @@ export function setMetrics(
   ip,
   userID,
   userAgent,
-  duration
+  duration,
 ) {
   httpRequestDuration
     .labels(method, protocol, path, statusCode, origin, ip, userID, userAgent)

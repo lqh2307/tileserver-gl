@@ -40,7 +40,7 @@ function serveSummaryHandler() {
             if (
               await isExistFile(
                 `${process.env.DATA_DIR}/caches/styles/${id}`,
-                true
+                true,
               )
             ) {
               result.styles[id] = {
@@ -58,7 +58,7 @@ function serveSummaryHandler() {
             if (
               await isExistFile(
                 `${process.env.DATA_DIR}/caches/geojsons/${id}`,
-                true
+                true,
               )
             ) {
               result.geojsons[id] = {
@@ -85,7 +85,7 @@ function serveSummaryHandler() {
                 try {
                   result.datas[id] = {
                     actual: await countMBTilesTiles(
-                      `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`
+                      `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`,
                     ),
                     expect: expect,
                   };
@@ -111,7 +111,7 @@ function serveSummaryHandler() {
                 try {
                   result.datas[id] = {
                     actual: await countXYZTiles(
-                      `${process.env.DATA_DIR}/caches/xyzs/${id}`
+                      `${process.env.DATA_DIR}/caches/xyzs/${id}`,
                     ),
                     expect: expect,
                   };
@@ -136,7 +136,7 @@ function serveSummaryHandler() {
 
                 result.datas[id] = {
                   actual: await countPostgreSQLTiles(
-                    `${process.env.POSTGRESQL_BASE_URI}/${id}`
+                    `${process.env.POSTGRESQL_BASE_URI}/${id}`,
                   ),
                   expect: expect,
                 };
@@ -149,7 +149,7 @@ function serveSummaryHandler() {
             if (
               await isExistFile(
                 `${process.env.DATA_DIR}/caches/sprites/${id}`,
-                true
+                true,
               )
             ) {
               result.sprites[id] = {
@@ -167,7 +167,7 @@ function serveSummaryHandler() {
             if (
               await isExistFile(
                 `${process.env.DATA_DIR}/caches/fonts/${id}`,
-                true
+                true,
               )
             ) {
               result.fonts[id] = {
@@ -253,7 +253,7 @@ function serveSummaryHandler() {
 
               try {
                 result.geojsonGroups.geojsons.size += await getGeoJSONSize(
-                  item.path
+                  item.path,
                 );
               } catch (error) {
                 if (!item.cache || error.code !== "ENOENT") {
@@ -287,7 +287,7 @@ function serveSummaryHandler() {
               case "pmtiles": {
                 if (
                   !["https://", "http://"].some((scheme) =>
-                    item.path.startsWith(scheme)
+                    item.path.startsWith(scheme),
                   )
                 ) {
                   result.datas.pmtiles.size += await getPMTilesSize(item.path);
@@ -315,7 +315,7 @@ function serveSummaryHandler() {
               case "pg": {
                 result.datas.pgs.size += await getPostgreSQLSize(
                   item.source,
-                  id
+                  id,
                 );
                 result.datas.pgs.count += 1;
 

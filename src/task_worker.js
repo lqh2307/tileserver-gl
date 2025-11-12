@@ -18,4 +18,3 @@ import { runTasks } from "./task.js";
       });
     });
 })();
-

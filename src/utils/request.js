@@ -23,7 +23,7 @@ export async function getDataFromURL(
   timeout,
   responseType,
   keepAlive,
-  headers
+  headers,
 ) {
   try {
     return await axios({
@@ -68,7 +68,7 @@ export async function postDataToURL(
   body,
   responseType,
   keepAlive,
-  headers
+  headers,
 ) {
   try {
     return await axios({
@@ -112,7 +112,7 @@ export async function getDataTileFromURL(url, headers, timeout) {
       timeout,
       "arraybuffer",
       false,
-      headers
+      headers,
     );
 
     return {
@@ -149,7 +149,7 @@ export async function getDataFileFromURL(url, headers, timeout) {
       timeout,
       "arraybuffer",
       false,
-      headers
+      headers,
     );
 
     return response.data;
@@ -214,12 +214,12 @@ export async function downloadFileWithStream(url, filePath, timeout) {
         throw new Error("File does not exist");
       } else {
         throw new Error(
-          `Failed to download file "${filePath}" - From "${url}": ${error}`
+          `Failed to download file "${filePath}" - From "${url}": ${error}`,
         );
       }
     } else {
       throw new Error(
-        `Failed to download file "${filePath}" - From "${url}": ${error}`
+        `Failed to download file "${filePath}" - From "${url}": ${error}`,
       );
     }
   }
@@ -236,7 +236,7 @@ export function isLocalURL(url) {
   }
 
   return ["mbtiles://", "pmtiles://", "xyz://", "pg://", "geojson://"].some(
-    (scheme) => url.startsWith(scheme)
+    (scheme) => url.startsWith(scheme),
   );
 }
 

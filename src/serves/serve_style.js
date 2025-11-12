@@ -114,7 +114,7 @@ function getStyleHandler() {
           if (styleJSON.sprite.startsWith("sprites://")) {
             styleJSON.sprite = styleJSON.sprite.replace(
               "sprites://",
-              `${requestHost}/sprites/`
+              `${requestHost}/sprites/`,
             );
           }
         }
@@ -124,7 +124,7 @@ function getStyleHandler() {
           if (styleJSON.glyphs.startsWith("fonts://")) {
             styleJSON.glyphs = styleJSON.glyphs.replace(
               "fonts://",
-              `${requestHost}/fonts/`
+              `${requestHost}/fonts/`,
             );
           }
         }
@@ -163,7 +163,7 @@ function getStyleHandler() {
                   }
 
                   return url;
-                })
+                }),
               );
 
               source.urls = Array.from(urls);
@@ -181,12 +181,12 @@ function getStyleHandler() {
                   }
 
                   return tile;
-                })
+                }),
               );
 
               source.tiles = Array.from(tiles);
             }
-          })
+          }),
         );
       }
 
@@ -196,7 +196,7 @@ function getStyleHandler() {
 
       if (req.query.compression === "true") {
         styleJSON = await gzipAsync(
-          req.query.raw !== "true" ? JSON.stringify(styleJSON) : styleJSON
+          req.query.raw !== "true" ? JSON.stringify(styleJSON) : styleJSON,
         );
 
         headers["content-encoding"] = "gzip";
@@ -235,7 +235,7 @@ function getStylesListHandler() {
             name: config.styles[id].name,
             url: `${requestHost}/styles/${id}/style.json`,
           };
-        })
+        }),
       );
 
       const headers = {
@@ -305,14 +305,14 @@ function getRenderedTileHandler() {
 
       res.header(
         "content-type",
-        detectContentTypeFromFormat(req.params.format)
+        detectContentTypeFromFormat(req.params.format),
       );
 
       return res.status(StatusCodes.OK).send(image);
     } catch (error) {
       printLog(
         "error",
-        `Failed to get rendered "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}: ${error}`
+        `Failed to get rendered "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}: ${error}`,
       );
 
       return res
@@ -955,7 +955,7 @@ export const serve_style = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load style "${id}": ${error}. Skipping...`
+              `Failed to load style "${id}": ${error}. Skipping...`,
             );
           }
 
@@ -985,11 +985,11 @@ export const serve_style = {
             } catch (error) {
               printLog(
                 "error",
-                `Failed to load rendered "${id}": ${error}. Skipping...`
+                `Failed to load rendered "${id}": ${error}. Skipping...`,
               );
             }
           }
-        })
+        }),
       );
 
       config.styles = repos;

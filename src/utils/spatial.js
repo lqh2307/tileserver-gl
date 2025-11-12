@@ -132,7 +132,7 @@ export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
   const maxZoom = limitValue(
     Math.round(Math.log2((2 * Math.PI * 6378137) / tileSize / res)),
     0,
-    25
+    25,
   );
 
   let minZoom = maxZoom;
@@ -296,7 +296,7 @@ export function getTileBounds(options) {
       const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
         bbox,
         coverage.zoom,
-        options.scheme
+        options.scheme,
       );
 
       const _bbox = getBBoxFromTiles(
@@ -305,7 +305,7 @@ export function getTileBounds(options) {
         xMax,
         yMax,
         coverage.zoom,
-        options.scheme
+        options.scheme,
       );
 
       realBBox = idx === 0 ? _bbox : getCoverBBox(realBBox, _bbox);
@@ -342,7 +342,7 @@ export function getTileBounds(options) {
       const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
         bbox,
         zoom,
-        options.scheme
+        options.scheme,
       );
 
       const _bbox = getBBoxFromTiles(
@@ -351,7 +351,7 @@ export function getTileBounds(options) {
         xMax,
         yMax,
         zoom,
-        options.scheme
+        options.scheme,
       );
 
       realBBox =

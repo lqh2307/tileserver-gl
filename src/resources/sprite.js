@@ -36,7 +36,7 @@ export async function cacheSpriteFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
-    30000 // 30 secs
+    30000, // 30 secs
   );
 }
 
@@ -54,7 +54,7 @@ export async function downloadSpriteFile(
   filePath,
   maxTry,
   timeout,
-  headers
+  headers,
 ) {
   await retry(async () => {
     try {
@@ -64,7 +64,7 @@ export async function downloadSpriteFile(
         timeout,
         "arraybuffer",
         false,
-        headers
+        headers,
       );
 
       // Store data to file
@@ -132,7 +132,7 @@ export async function getSpriteSize(spriteDirPath) {
     spriteDirPath,
     /^sprite(@\d+x)?\.(json|png)$/,
     false,
-    true
+    true,
   );
 
   let size = 0;
@@ -162,7 +162,7 @@ export async function validateSprite(spriteDirPath) {
   }
 
   const fileNameWoExts = jsonSpriteFileNames.map(
-    (jsonSpriteFileName) => jsonSpriteFileName.split(".")[0]
+    (jsonSpriteFileName) => jsonSpriteFileName.split(".")[0],
   );
 
   await Promise.all(
@@ -170,7 +170,7 @@ export async function validateSprite(spriteDirPath) {
       /* Validate JSON sprite */
       validateJSON(
         await getJSONSchema("sprite"),
-        JSON.parse(await readFile(`${fileNameWoExt}.json`, "utf8"))
+        JSON.parse(await readFile(`${fileNameWoExt}.json`, "utf8")),
       );
 
       /* Validate PNG sprite */
@@ -179,7 +179,7 @@ export async function validateSprite(spriteDirPath) {
       if (pngMetadata.format !== "png") {
         throw new Error("Invalid PNG file");
       }
-    })
+    }),
   );
 }
 
@@ -204,14 +204,14 @@ export async function getAndCacheDataSprite(id, fileName) {
 
       printLog(
         "info",
-        `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`
+        `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`,
       );
 
       /* Get sprite */
       const sprite = await getDataFileFromURL(
         targetURL,
         item.headers,
-        30000 // 30 secs
+        30000, // 30 secs
       );
 
       /* Cache */
@@ -221,8 +221,8 @@ export async function getAndCacheDataSprite(id, fileName) {
         cacheSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
           printLog(
             "error",
-            `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`
-          )
+            `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`,
+          ),
         );
       }
 

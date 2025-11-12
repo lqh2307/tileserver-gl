@@ -47,7 +47,7 @@ async function getMBTilesLayersFromTiles(source) {
   let offset = 0;
 
   const vectorTileProto = protobuf(
-    await readFile("public/protos/vector_tile.proto")
+    await readFile("public/protos/vector_tile.proto"),
   );
 
   const sql = source.prepare(
@@ -60,7 +60,7 @@ async function getMBTilesLayersFromTiles(source) {
       ?
     OFFSET
       ?;
-    `
+    `,
   );
 
   while (true) {
@@ -74,7 +74,7 @@ async function getMBTilesLayersFromTiles(source) {
       vectorTileProto.tile
         .decode(row.tile_data)
         .layers.map((layer) => layer.name)
-        .forEach(layerNames.add)
+        .forEach(layerNames.add),
     );
 
     offset += batchSize;
@@ -102,7 +102,7 @@ function getMBTilesBBoxFromTiles(source) {
         tiles
       GROUP BY
         zoom_level;
-      `
+      `,
     )
     .all();
 
@@ -115,7 +115,7 @@ function getMBTilesBBoxFromTiles(source) {
       rows[0].xMax,
       rows[0].yMax,
       rows[0].zoom_level,
-      "tms"
+      "tms",
     );
 
     for (let index = 1; index < rows.length; index++) {
@@ -127,8 +127,8 @@ function getMBTilesBBoxFromTiles(source) {
           rows[index].xMax,
           rows[index].yMax,
           rows[index].zoom_level,
-          "tms"
-        )
+          "tms",
+        ),
       );
     }
 
@@ -154,7 +154,7 @@ function getMBTilesZoomLevelFromTiles(source, zoomType) {
     .prepare(
       zoomType === "minzoom"
         ? "SELECT MIN(zoom_level) AS zoom FROM tiles;"
-        : "SELECT MAX(zoom_level) AS zoom FROM tiles;"
+        : "SELECT MAX(zoom_level) AS zoom FROM tiles;",
     )
     .get();
 
@@ -184,7 +184,7 @@ export function getMBTilesFormatFromTiles(source) {
 export function getMBTilesTileExtraInfoFromCoverages(
   source,
   coverages,
-  isCreated
+  isCreated,
 ) {
   const { tileBounds } = getTileBounds({
     coverages: coverages,
@@ -239,7 +239,7 @@ export async function calculateMBTilesTileExtraInfo(source) {
       hash IS NULL
     LIMIT
       ${batchSize};
-    `
+    `,
   );
 
   while (true) {
@@ -269,9 +269,9 @@ export async function calculateMBTilesTileExtraInfo(source) {
             row.tile_column,
             row.tile_row,
           ],
-          60000 // 1 mins
-        )
-      )
+          60000, // 1 mins
+        ),
+      ),
     );
   }
 }
@@ -295,7 +295,7 @@ export async function removeMBTilesTile(source, z, x, y, timeout) {
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
     [z, x, (1 << z) - 1 - y],
-    timeout
+    timeout,
   );
 }
 
@@ -320,7 +320,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           UNIQUE(name)
         );
       `,
-      30000 // 30 secs
+      30000, // 30 secs
     );
 
     await execSQLWithTimeout(
@@ -337,7 +337,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           UNIQUE(zoom_level, tile_column, tile_row)
         );
       `,
-      30000 // 30 secs
+      30000, // 30 secs
     );
 
     const tableInfos = source.prepare("PRAGMA table_info(tiles);").all();
@@ -351,12 +351,12 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           ADD COLUMN
             hash TEXT;
           `,
-          30000 // 30 secs
+          30000, // 30 secs
         );
       } catch (error) {
         printLog(
           "warn",
-          `Failed to create column "hash" for table "tiles" of MBTiles DB "${filePath}": ${error}`
+          `Failed to create column "hash" for table "tiles" of MBTiles DB "${filePath}": ${error}`,
         );
       }
     }
@@ -370,12 +370,12 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           ADD COLUMN
             created BIGINT;
           `,
-          30000 // 30 secs
+          30000, // 30 secs
         );
       } catch (error) {
         printLog(
           "warn",
-          `Failed to create column "created" for table "tiles" of MBTiles DB "${filePath}": ${error}`
+          `Failed to create column "created" for table "tiles" of MBTiles DB "${filePath}": ${error}`,
         );
       }
     }
@@ -402,7 +402,7 @@ export function getMBTilesTile(source, z, x, y) {
         tiles
       WHERE
         zoom_level = ? AND tile_column = ? AND tile_row = ?;
-      `
+      `,
     )
     .get([z, x, (1 << z) - 1 - y]);
 
@@ -612,9 +612,9 @@ export async function updateMBTilesMetadata(source, metadataAdds, timeout) {
             value = excluded.value;
         `,
         [name, typeof value === "object" ? JSON.stringify(value) : value],
-        timeout
-      )
-    )
+        timeout,
+      ),
+    ),
   );
 }
 
@@ -640,7 +640,7 @@ export async function downloadMBTilesTile(
   maxTry,
   timeout,
   storeTransparent,
-  headers
+  headers,
 ) {
   await retry(async () => {
     try {
@@ -650,7 +650,7 @@ export async function downloadMBTilesTile(
         timeout,
         "arraybuffer",
         false,
-        headers
+        headers,
       );
 
       // Store data
@@ -660,7 +660,7 @@ export async function downloadMBTilesTile(
         x,
         y,
         response.data,
-        storeTransparent
+        storeTransparent,
       );
     } catch (error) {
       if (error.statusCode) {
@@ -695,7 +695,7 @@ export async function cacheMBtilesTileData(
   x,
   y,
   data,
-  storeTransparent
+  storeTransparent,
 ) {
   if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
@@ -716,7 +716,7 @@ export async function cacheMBtilesTileData(
           created = excluded.created;
       `,
       [z, x, (1 << z) - 1 - y, data, calculateMD5(data), Date.now()],
-      30000 // 30 secs
+      30000, // 30 secs
     );
   }
 }
@@ -730,7 +730,7 @@ export async function countMBTilesTiles(filePath) {
   const source = await openSQLiteWithTimeout(
     filePath,
     false,
-    60000 // 1 mins
+    60000, // 1 mins
   );
 
   const data = source.prepare("SELECT COUNT(*) AS count FROM tiles;").get();
@@ -797,7 +797,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
           tiles
         WHERE
           zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
-        `
+        `,
       )
       .all([z + 1, minX, maxX, minY, maxY]);
 
@@ -849,7 +849,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
               created = excluded.created;
           `,
           [z, x, y, image, calculateMD5(image), Date.now()],
-          60000 // 1 mins
+          60000, // 1 mins
         );
       }
     }
@@ -891,7 +891,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
       DO UPDATE
         SET
           value = excluded.value;
-      `
+      `,
     )
     .run(["minzoom", metadata.maxzoom - deltaZ]);
 }
@@ -921,14 +921,14 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
 
       printLog(
         "info",
-        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
       );
 
       /* Get data */
       const dataTile = await getDataTileFromURL(
         targetURL,
         item.headers,
-        30000 // 30 secs
+        30000, // 30 secs
       );
 
       /* Cache */
@@ -941,12 +941,12 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
           x,
           tmpY,
           dataTile.data,
-          item.storeTransparent
+          item.storeTransparent,
         ).catch((error) =>
           printLog(
             "error",
-            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-          )
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`,
+          ),
         );
       }
 
@@ -979,7 +979,7 @@ class PMTilesFileSource {
     return {
       data: buffer.buffer.slice(
         buffer.byteOffset,
-        buffer.byteOffset + buffer.byteLength
+        buffer.byteOffset + buffer.byteLength,
       ),
     };
   }
@@ -1180,7 +1180,7 @@ async function getPostgreSQLLayersFromTiles(source) {
   let offset = 0;
 
   const vectorTileProto = protobuf(
-    await readFile("public/protos/vector_tile.proto")
+    await readFile("public/protos/vector_tile.proto"),
   );
 
   while (true) {
@@ -1195,7 +1195,7 @@ async function getPostgreSQLLayersFromTiles(source) {
       OFFSET
         $2;
       `,
-      [batchSize, offset]
+      [batchSize, offset],
     );
 
     if (!data.rows.length) {
@@ -1206,7 +1206,7 @@ async function getPostgreSQLLayersFromTiles(source) {
       vectorTileProto.tile
         .decode(row.tile_data)
         .layers.map((layer) => layer.name)
-        .forEach(layerNames.add)
+        .forEach(layerNames.add),
     );
 
     offset += batchSize;
@@ -1233,7 +1233,7 @@ async function getPostgreSQLBBoxFromTiles(source) {
       tiles
     GROUP BY
       zoom_level;
-    `
+    `,
   );
 
   let bbox;
@@ -1245,7 +1245,7 @@ async function getPostgreSQLBBoxFromTiles(source) {
       data.rows[0].xMax,
       data.rows[0].yMax,
       data.rows[0].zoom_level,
-      "xyz"
+      "xyz",
     );
 
     for (let index = 1; index < data.rows.length; index++) {
@@ -1257,8 +1257,8 @@ async function getPostgreSQLBBoxFromTiles(source) {
           data.rows[index].xMax,
           data.rows[index].yMax,
           data.rows[index].zoom_level,
-          "xyz"
-        )
+          "xyz",
+        ),
       );
     }
 
@@ -1283,7 +1283,7 @@ async function getPostgreSQLZoomLevelFromTiles(source, zoomType) {
   const data = await source.query(
     zoomType === "minzoom"
       ? "SELECT MIN(zoom_level) AS zoom FROM tiles;"
-      : "SELECT MAX(zoom_level) AS zoom FROM tiles;"
+      : "SELECT MAX(zoom_level) AS zoom FROM tiles;",
   );
 
   if (data.rows.length !== 0) {
@@ -1314,7 +1314,7 @@ export async function getPostgreSQLFormatFromTiles(source) {
 export async function getPostgreSQLTileExtraInfoFromCoverages(
   source,
   coverages,
-  isCreated
+  isCreated,
 ) {
   const { tileBounds } = getTileBounds({ coverages: coverages });
 
@@ -1363,7 +1363,7 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
         hash IS NULL
       LIMIT
         ${batchSize};
-      `
+      `,
     );
 
     if (!data.rows.length) {
@@ -1388,9 +1388,9 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
             row.zoom_level,
             row.tile_column,
             row.tile_row,
-          ]
-        )
-      )
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1411,7 +1411,7 @@ export async function removePostgreSQLTile(source, z, x, y) {
     WHERE
       zoom_level = $1 AND tile_column = $2 AND tile_row = $3;
     `,
-    [z, x, y]
+    [z, x, y],
   );
 }
 
@@ -1433,7 +1433,7 @@ export async function openPostgreSQLDB(uri, isCreate) {
           value TEXT NOT NULL,
           UNIQUE(name)
         );
-      `
+      `,
     );
 
     await source.query(
@@ -1448,7 +1448,7 @@ export async function openPostgreSQLDB(uri, isCreate) {
           created BIGINT,
           UNIQUE(zoom_level, tile_column, tile_row)
         );
-      `
+      `,
     );
 
     try {
@@ -1458,12 +1458,12 @@ export async function openPostgreSQLDB(uri, isCreate) {
           tiles
         ADD COLUMN IF NOT EXISTS
           hash TEXT;
-        `
+        `,
       );
     } catch (error) {
       printLog(
         "warn",
-        `Failed to create column "hash" for table "tiles" of PostgreSQL DB "${uri}": ${error}`
+        `Failed to create column "hash" for table "tiles" of PostgreSQL DB "${uri}": ${error}`,
       );
     }
 
@@ -1474,12 +1474,12 @@ export async function openPostgreSQLDB(uri, isCreate) {
           tiles
         ADD COLUMN IF NOT EXISTS
           created BIGINT;
-        `
+        `,
       );
     } catch (error) {
       printLog(
         "warn",
-        `Failed to create column "created" for table "tiles" of PostgreSQL DB "${uri}": ${error}`
+        `Failed to create column "created" for table "tiles" of PostgreSQL DB "${uri}": ${error}`,
       );
     }
   }
@@ -1505,7 +1505,7 @@ export async function getPostgreSQLTile(source, z, x, y) {
     WHERE
       zoom_level = $1 AND tile_column = $2 AND tile_row = $3;
     `,
-    [z, x, y]
+    [z, x, y],
   );
 
   if (!data.rows.length || !data.rows[0].tile_data) {
@@ -1611,7 +1611,7 @@ export async function getPostgreSQLMetadata(source) {
     try {
       metadata.minzoom = await getPostgreSQLZoomLevelFromTiles(
         source,
-        "minzoom"
+        "minzoom",
       );
     } catch (error) {
       metadata.minzoom = 0;
@@ -1623,7 +1623,7 @@ export async function getPostgreSQLMetadata(source) {
     try {
       metadata.maxzoom = await getPostgreSQLZoomLevelFromTiles(
         source,
-        "maxzoom"
+        "maxzoom",
       );
     } catch (error) {
       metadata.maxzoom = 22;
@@ -1708,9 +1708,9 @@ export async function updatePostgreSQLMetadata(source, metadataAdds) {
           SET
             value = excluded.value;
         `,
-        [name, typeof value === "object" ? JSON.stringify(value) : value]
-      )
-    )
+        [name, typeof value === "object" ? JSON.stringify(value) : value],
+      ),
+    ),
   );
 }
 
@@ -1736,7 +1736,7 @@ export async function downloadPostgreSQLTile(
   maxTry,
   timeout,
   storeTransparent,
-  headers
+  headers,
 ) {
   await retry(async () => {
     try {
@@ -1746,7 +1746,7 @@ export async function downloadPostgreSQLTile(
         timeout,
         "arraybuffer",
         false,
-        headers
+        headers,
       );
 
       // Store data
@@ -1756,7 +1756,7 @@ export async function downloadPostgreSQLTile(
         x,
         y,
         response.data,
-        storeTransparent
+        storeTransparent,
       );
     } catch (error) {
       if (error.statusCode) {
@@ -1791,7 +1791,7 @@ export async function cachePostgreSQLTileData(
   x,
   y,
   data,
-  storeTransparent
+  storeTransparent,
 ) {
   if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
@@ -1810,7 +1810,7 @@ export async function cachePostgreSQLTileData(
           hash = excluded.hash,
           created = excluded.created;
       `,
-      [z, x, y, data, calculateMD5(data), Date.now()]
+      [z, x, y, data, calculateMD5(data), Date.now()],
     );
   }
 }
@@ -1858,7 +1858,7 @@ export async function countPostgreSQLTiles(uri) {
 export async function addPostgreSQLOverviews(
   source,
   concurrency,
-  tileSize = 256
+  tileSize = 256,
 ) {
   /* Get tile width & height */
   const data = await source.query("SELECT tile_data FROM tiles LIMIT 1;");
@@ -1898,7 +1898,7 @@ export async function addPostgreSQLOverviews(
           tiles
         WHERE
           zoom_level = $1 AND tile_column BETWEEN $2 AND $3 AND tile_row BETWEEN $4 AND $5;
-        `
+        `,
       )
       .all([z + 1, minX, maxX, minY, maxY]);
 
@@ -1948,7 +1948,7 @@ export async function addPostgreSQLOverviews(
               hash = excluded.hash,
               created = excluded.created;
           `,
-          [z, x, y, image, calculateMD5(image), Date.now()]
+          [z, x, y, image, calculateMD5(image), Date.now()],
         );
       }
     }
@@ -1990,7 +1990,7 @@ export async function addPostgreSQLOverviews(
       SET
         value = excluded.value;
     `,
-    ["minzoom", metadata.maxzoom - deltaZ]
+    ["minzoom", metadata.maxzoom - deltaZ],
   );
 }
 
@@ -2019,14 +2019,14 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
 
       printLog(
         "info",
-        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
       );
 
       /* Get data */
       const dataTile = await getDataTileFromURL(
         targetURL,
         item.headers,
-        30000 // 30 secs
+        30000, // 30 secs
       );
 
       /* Cache */
@@ -2039,12 +2039,12 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
           x,
           tmpY,
           dataTile.data,
-          item.storeTransparent
+          item.storeTransparent,
         ).catch((error) =>
           printLog(
             "error",
-            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-          )
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`,
+          ),
         );
       }
 
@@ -2068,7 +2068,7 @@ async function getXYZLayersFromTiles(sourcePath) {
   const layerNames = new Set();
 
   const vectorTileProto = protobuf(
-    await readFile("public/protos/vector_tile.proto")
+    await readFile("public/protos/vector_tile.proto"),
   );
 
   async function getLayer(idx, pbfFilePaths) {
@@ -2099,7 +2099,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
       /^\d+$/,
       false,
       false,
-      true
+      true,
     );
 
     if (xFolders.length) {
@@ -2111,7 +2111,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
           `${sourcePath}/${zFolder}/${xFolder}`,
           /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
           false,
-          false
+          false,
         );
 
         if (yFiles.length) {
@@ -2121,7 +2121,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
           const yMax = maxValue(yFiles.map(Number));
 
           boundsArr.push(
-            getBBoxFromTiles(xMin, yMin, xMax, yMax, zFolder, "xyz")
+            getBBoxFromTiles(xMin, yMin, xMax, yMax, zFolder, "xyz"),
           );
         }
       }
@@ -2181,13 +2181,13 @@ export async function getXYZFormatFromTiles(sourcePath) {
       /^\d+$/,
       false,
       false,
-      true
+      true,
     );
 
     for (const xFolder of xFolders) {
       const yFiles = await findFiles(
         `${sourcePath}/${zFolder}/${xFolder}`,
-        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/
+        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
       );
 
       if (yFiles.length) {
@@ -2215,7 +2215,7 @@ export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
       query += " UNION ALL ";
     }
 
-    query += `SELECT zoom_level, tile_column, tile_row, ${extraInfoType} FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
+    query += `SELECT zoom_level, tile_column, tile_row, ${extraInfoType} FROM md5s WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
   });
 
   query += ";";
@@ -2254,7 +2254,7 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
       hash IS NULL
     LIMIT
       ${batchSize};
-    `
+    `,
   );
 
   while (true) {
@@ -2271,7 +2271,7 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
           row.zoom_level,
           row.tile_column,
           row.tile_row,
-          format
+          format,
         );
 
         await runSQLWithTimeout(
@@ -2292,9 +2292,9 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
             row.tile_column,
             row.tile_row,
           ],
-          30000 // 30 secs
+          30000, // 30 secs
         );
-      })
+      }),
     );
   }
 }
@@ -2317,7 +2317,7 @@ export async function removeXYZTile(
   x,
   y,
   format,
-  timeout
+  timeout,
 ) {
   await Promise.all([
     removeFileWithLock(`${sourcePath}/${z}/${x}/${y}.${format}`, timeout),
@@ -2330,7 +2330,7 @@ export async function removeXYZTile(
         zoom_level = ? AND tile_column = ? AND tile_row = ?;
       `,
       [z, x, y],
-      timeout
+      timeout,
     ),
   ]);
 }
@@ -2356,7 +2356,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
           UNIQUE(name)
         );
       `,
-      30000 // 30 secs
+      30000, // 30 secs
     );
 
     await execSQLWithTimeout(
@@ -2372,7 +2372,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
           UNIQUE(zoom_level, tile_column, tile_row)
         );
       `,
-      30000 // 30 secs
+      30000, // 30 secs
     );
 
     const tableInfos = source.prepare("PRAGMA table_info(md5s);").all();
@@ -2386,12 +2386,12 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
           ADD COLUMN
             hash TEXT;
           `,
-          30000 // 30 secs
+          30000, // 30 secs
         );
       } catch (error) {
         printLog(
           "warn",
-          `Failed to create column "hash" for table "md5s" of XYZ MD5 DB "${filePath}": ${error}`
+          `Failed to create column "hash" for table "md5s" of XYZ MD5 DB "${filePath}": ${error}`,
         );
       }
     }
@@ -2405,12 +2405,12 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
           ADD COLUMN
             created BIGINT;
           `,
-          30000 // 30 secs
+          30000, // 30 secs
         );
       } catch (error) {
         printLog(
           "warn",
-          `Failed to create column "created" for table "md5s" of XYZ MD5 DB "${filePath}": ${error}`
+          `Failed to create column "created" for table "md5s" of XYZ MD5 DB "${filePath}": ${error}`,
         );
       }
     }
@@ -2639,7 +2639,7 @@ export async function downloadXYZTile(
   maxTry,
   timeout,
   storeTransparent,
-  headers
+  headers,
 ) {
   await retry(async () => {
     try {
@@ -2649,7 +2649,7 @@ export async function downloadXYZTile(
         timeout,
         "arraybuffer",
         false,
-        headers
+        headers,
       );
 
       // Store data to file
@@ -2661,7 +2661,7 @@ export async function downloadXYZTile(
         y,
         format,
         response.data,
-        storeTransparent
+        storeTransparent,
       );
     } catch (error) {
       if (error.statusCode) {
@@ -2709,9 +2709,9 @@ export async function updateXYZMetadata(source, metadataAdds, timeout) {
             value = excluded.value;
         `,
         [name, typeof value === "object" ? JSON.stringify(value) : value],
-        timeout
-      )
-    )
+        timeout,
+      ),
+    ),
   );
 }
 
@@ -2735,7 +2735,7 @@ export async function cacheXYZTileFile(
   y,
   format,
   data,
-  storeTransparent
+  storeTransparent,
 ) {
   if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
@@ -2744,7 +2744,7 @@ export async function cacheXYZTileFile(
       createFileWithLock(
         `${sourcePath}/${z}/${x}/${y}.${format}`,
         data,
-        30000 // 30 secs
+        30000, // 30 secs
       ),
       runSQLWithTimeout(
         source,
@@ -2761,7 +2761,7 @@ export async function cacheXYZTileFile(
             created = excluded.created;
         `,
         [z, x, y, calculateMD5(data), Date.now()],
-        30000 // 30 secs
+        30000, // 30 secs
       ),
     ]);
   }
@@ -2777,7 +2777,7 @@ export async function countXYZTiles(sourcePath) {
     sourcePath,
     /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
     true,
-    false
+    false,
   );
 
   return fileNames.length;
@@ -2793,7 +2793,7 @@ export async function getXYZSize(sourcePath) {
     sourcePath,
     /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
     true,
-    true
+    true,
   );
 
   let size = 0;
@@ -2819,7 +2819,7 @@ export async function addXYZOverviews(
   sourcePath,
   source,
   concurrency,
-  tileSize = 256
+  tileSize = 256,
 ) {
   /* Get tile width & height */
   let data;
@@ -2833,18 +2833,18 @@ export async function addXYZOverviews(
       /^\d+$/,
       false,
       false,
-      true
+      true,
     );
 
     for (const xFolder of xFolders) {
       const yFiles = await findFiles(
         `${sourcePath}/${zFolder}/${xFolder}`,
-        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/
+        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
       );
 
       if (yFiles.length) {
         data = await readFile(
-          `${sourcePath}/${zFolder}/${xFolder}/${yFiles[0]}`
+          `${sourcePath}/${zFolder}/${xFolder}/${yFiles[0]}`,
         );
 
         if (!data) {
@@ -2891,7 +2891,7 @@ export async function addXYZOverviews(
       for (let dy = minY; dy <= maxY; dy++) {
         try {
           const tile = await readFile(
-            `${sourcePath}/${z + 1}/${dx}/${dy}.${metadata.format}`
+            `${sourcePath}/${z + 1}/${dx}/${dy}.${metadata.format}`,
           );
 
           if (!tile) {
@@ -2929,7 +2929,7 @@ export async function addXYZOverviews(
         createFileWithLock(
           `${sourcePath}/${z}/${x}/${y}.${metadata.format}`,
           image,
-          30000 // 30 secs
+          30000, // 30 secs
         ),
         runSQLWithTimeout(
           source,
@@ -2946,7 +2946,7 @@ export async function addXYZOverviews(
               created = excluded.created;
           `,
           [z, x, y, calculateMD5(image), Date.now()],
-          60000 // 1 mins
+          60000, // 1 mins
         ),
       ]);
     }
@@ -2988,7 +2988,7 @@ export async function addXYZOverviews(
       DO UPDATE
         SET
           value = excluded.value;
-      `
+      `,
     )
     .run(["minzoom", metadata.maxzoom - deltaZ]);
 }
@@ -3018,14 +3018,14 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
 
       printLog(
         "info",
-        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`
+        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
       );
 
       /* Get data */
       const dataTile = await getDataTileFromURL(
         targetURL,
         item.headers,
-        30000 // 30 secs
+        30000, // 30 secs
       );
 
       /* Cache */
@@ -3040,12 +3040,12 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
           tmpY,
           item.tileJSON.format,
           dataTile.data,
-          item.storeTransparent
+          item.storeTransparent,
         ).catch((error) =>
           printLog(
             "error",
-            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`
-          )
+            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`,
+          ),
         );
       }
 

@@ -38,7 +38,7 @@ export async function downloadStyleFile(
   filePath,
   maxTry,
   timeout,
-  headers
+  headers,
 ) {
   await retry(async () => {
     try {
@@ -48,7 +48,7 @@ export async function downloadStyleFile(
         timeout,
         "arraybuffer",
         false,
-        headers
+        headers,
       );
 
       // Store data to file
@@ -80,7 +80,7 @@ export async function cacheStyleFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
-    30000 // 30 secs
+    30000, // 30 secs
   );
 }
 
@@ -125,7 +125,7 @@ export async function getRenderedStyleJSON(filePath) {
               }
 
               return tile;
-            })
+            }),
           );
 
           source.tiles = Array.from(tiles);
@@ -199,7 +199,7 @@ export async function getRenderedStyleJSON(filePath) {
             }
           }
         }
-      })
+      }),
     );
 
     return styleJSON;
@@ -257,7 +257,7 @@ export async function validateStyle(data) {
     throw new Error(
       validationErrors
         .map((validationError) => `\n\t${validationError.message}`)
-        .join()
+        .join(),
     );
   }
 
@@ -265,7 +265,7 @@ export async function validateStyle(data) {
   if (styleJSON.glyphs !== undefined) {
     if (
       !["fonts://", "https://", "http://"].some((scheme) =>
-        styleJSON.glyphs.startsWith(scheme)
+        styleJSON.glyphs.startsWith(scheme),
       )
     ) {
       throw new Error(`Invalid font url "${styleJSON.glyphs}"`);
@@ -282,7 +282,7 @@ export async function validateStyle(data) {
       }
     } else if (
       !["https://", "http://"].some((scheme) =>
-        styleJSON.sprite.startsWith(scheme)
+        styleJSON.sprite.startsWith(scheme),
       )
     ) {
       throw new Error(`Invalid sprite url "${styleJSON.sprite}"`);
@@ -300,13 +300,13 @@ export async function validateStyle(data) {
 
           if (!config.geojsons[parts[2]]) {
             throw new Error(
-              `Source "${id}" is not found data source "${parts[2]}"`
+              `Source "${id}" is not found data source "${parts[2]}"`,
             );
           }
 
           if (!config.geojsons[parts[2]][parts[3]]) {
             throw new Error(
-              `Source "${id}" is not found data source "${parts[3]}"`
+              `Source "${id}" is not found data source "${parts[3]}"`,
             );
           }
         }
@@ -318,12 +318,12 @@ export async function validateStyle(data) {
 
           if (!config.datas[sourceID]) {
             throw new Error(
-              `Source "${id}" is not found data source "${sourceID}"`
+              `Source "${id}" is not found data source "${sourceID}"`,
             );
           }
         } else if (
           !["https://", "http://", "data:"].some((scheme) =>
-            source.url.startsWith(scheme)
+            source.url.startsWith(scheme),
           )
         ) {
           throw new Error(`Source "${id}" is invalid data url "${source.url}"`);
@@ -341,7 +341,7 @@ export async function validateStyle(data) {
 
             if (!config.datas[sourceID]) {
               throw new Error(
-                `Source "${id}" is not found data source "${sourceID}"`
+                `Source "${id}" is not found data source "${sourceID}"`,
               );
             }
           } else if (
@@ -363,7 +363,7 @@ export async function validateStyle(data) {
 
             if (!config.datas[sourceID]) {
               throw new Error(
-                `Source "${id}" is not found data source "${sourceID}"`
+                `Source "${id}" is not found data source "${sourceID}"`,
               );
             }
           } else if (
@@ -373,7 +373,7 @@ export async function validateStyle(data) {
           }
         });
       }
-    })
+    }),
   );
 }
 
@@ -394,7 +394,7 @@ export async function getAndCacheDataStyleJSON(id) {
       const styleJSON = await getDataFileFromURL(
         item.sourceURL,
         item.headers,
-        30000 // 30 secs
+        30000, // 30 secs
       );
 
       if (item.storeCache) {
@@ -403,8 +403,8 @@ export async function getAndCacheDataStyleJSON(id) {
         cacheStyleFile(item.path, styleJSON).catch((error) =>
           printLog(
             "error",
-            `Failed to cache style "${id}" - File "${item.path}": ${error}`
-          )
+            `Failed to cache style "${id}" - File "${item.path}": ${error}`,
+          ),
         );
       }
 

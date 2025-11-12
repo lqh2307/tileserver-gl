@@ -30,12 +30,12 @@ function getSpriteHandler() {
       /* Get and cache Sprite */
       const sprite = await getAndCacheDataSprite(
         id,
-        req.url.slice(req.url.lastIndexOf("/") + 1)
+        req.url.slice(req.url.lastIndexOf("/") + 1),
       );
 
       res.header(
         "content-type",
-        detectContentTypeFromFormat(req.params.format)
+        detectContentTypeFromFormat(req.params.format),
       );
 
       return res.status(StatusCodes.OK).send(sprite);
@@ -68,7 +68,7 @@ function getSpritesListHandler() {
               `${requestHost}/sprites/${id}/sprite.png`,
             ],
           };
-        })
+        }),
       );
 
       const headers = {
@@ -207,7 +207,7 @@ export const serve_sprite = {
      */
     app.get(
       ["/sprites/:id/sprite.:format", "/sprites/:id/sprite@2x.:format"],
-      getSpriteHandler()
+      getSpriteHandler(),
     );
   },
 
@@ -257,10 +257,10 @@ export const serve_sprite = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load sprite "${id}": ${error}. Skipping...`
+              `Failed to load sprite "${id}": ${error}. Skipping...`,
             );
           }
-        })
+        }),
       );
 
       config.sprites = repos;
