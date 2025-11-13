@@ -617,7 +617,7 @@ async function seedDataTiles(
   const startTime = Date.now();
 
   let source;
-  let downloadDataTileFunc;
+  let closeDatabaseFunc;
 
   try {
     /* Calculate summary */
@@ -652,14 +652,27 @@ async function seedDataTiles(
 
     printLog("info", log);
 
+    let downloadDataTileFunc;
+
     switch (storeType) {
       case "mbtiles": {
-        /* Open MBTiles SQLite database */
         const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
+
+        /* Open database */
+        printLog("info", "Creating database...");
 
         source = await openMBTilesDB(
           filePath,
           true,
+          30000, // 30 secs
+        );
+
+        /* Update metadata */
+        printLog("info", "Updating metadata...");
+
+        await updateMBTilesMetadata(
+          source,
+          metadata,
           30000, // 30 secs
         );
 
@@ -738,15 +751,6 @@ async function seedDataTiles(
           }
         }
 
-        /* Update MBTiles metadata */
-        printLog("info", "Updating MBTiles metadata...");
-
-        await updateMBTilesMetadata(
-          source,
-          metadata,
-          30000, // 30 secs
-        );
-
         /* Download data tile function */
         downloadDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
@@ -793,17 +797,171 @@ async function seedDataTiles(
           }
         };
 
+        /* Close database function */
+        closeDatabaseFunc = () => closeMBTilesDB(source);
+
+        break;
+      }
+
+      case "pg": {
+        const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+        /* Create database */
+        printLog("info", "Creating database...");
+
+        source = await openPostgreSQLDB(filePath, true);
+
+        /* Update metadata */
+        printLog("info", "Updating metadata...");
+
+        await updatePostgreSQLMetadata(source, metadata);
+
+        /* Get tile extra info */
+        let targetTileExtraInfo;
+        let tileExtraInfo;
+
+        if (refreshTimestamp === true) {
+          const hashURL = `${url.slice(
+            0,
+            url.indexOf("/{z}/{x}/{y}"),
+          )}/extra-info?compression=true`;
+
+          try {
+            printLog(
+              "info",
+              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
+            );
+
+            const res = await postDataToURL(
+              hashURL,
+              3600000, // 1 hours
+              coverages,
+              "arraybuffer",
+              false,
+              {
+                "Content-Type": "application/json",
+              },
+            );
+
+            if (res.headers["content-encoding"] === "gzip") {
+              targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
+            } else {
+              targetTileExtraInfo = JSON.parse(res.data);
+            }
+
+            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              false,
+            );
+          } catch (error) {
+            if (error.statusCode >= 500) {
+              printLog(
+                "error",
+                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed postgresql "${id}"...`,
+              );
+
+              return;
+            }
+
+            printLog(
+              "error",
+              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`,
+            );
+
+            targetTileExtraInfo = {};
+            tileExtraInfo = {};
+          }
+        } else if (refreshTimestamp) {
+          try {
+            printLog("info", `Get tile extra info from "${filePath}"...`);
+
+            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              true,
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to get tile extra info from "${filePath}": ${error}`,
+            );
+
+            tileExtraInfo = {};
+          }
+        }
+
+        /* Download data tile function */
+        downloadDataTileFunc = async (z, x, y, tasks) => {
+          const tileName = `${z}/${x}/${y}`;
+
+          if (
+            (refreshTimestamp === true &&
+              tileExtraInfo[tileName] &&
+              tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+            (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
+          ) {
+            return;
+          }
+
+          const completeTasks = tasks.completeTasks;
+          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
+
+          const targetURL = url
+            .replace("{z}", `${z}`)
+            .replace("{x}", `${x}`)
+            .replace("{y}", `${tmpY}`);
+
+          printLog(
+            "info",
+            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
+          );
+
+          try {
+            await downloadPostgreSQLTile(
+              targetURL,
+              source,
+              z,
+              x,
+              tmpY,
+              maxTry,
+              timeout,
+              storeTransparent,
+              headers,
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
+            );
+          }
+        };
+
+        /* Close database function */
+        closeDatabaseFunc = () => closePostgreSQLDB(source);
+
         break;
       }
 
       case "xyz": {
-        /* Open MD5 SQLite database */
         const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
         const filePath = `${sourcePath}/${id}.mbtiles`;
+
+        /* Create database */
+        printLog("info", "Creating database...");
 
         source = await openXYZMD5DB(
           filePath,
           true,
+          30000, // 30 secs
+        );
+
+        /* Update metadata */
+        printLog("info", "Updating metadata...");
+
+        await updateXYZMetadata(
+          source,
+          metadata,
           30000, // 30 secs
         );
 
@@ -882,15 +1040,6 @@ async function seedDataTiles(
           }
         }
 
-        /* Update XYZ metadata */
-        printLog("info", "Updating XYZ metadata...");
-
-        await updateXYZMetadata(
-          source,
-          metadata,
-          30000, // 30 secs
-        );
-
         /* Download data tile function */
         downloadDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
@@ -939,145 +1088,14 @@ async function seedDataTiles(
           }
         };
 
-        break;
-      }
-
-      case "pg": {
-        /* Open PostgreSQL database */
-        const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
-
-        source = await openPostgreSQLDB(filePath, true);
-
-        /* Get tile extra info */
-        let targetTileExtraInfo;
-        let tileExtraInfo;
-
-        if (refreshTimestamp === true) {
-          const hashURL = `${url.slice(
-            0,
-            url.indexOf("/{z}/{x}/{y}"),
-          )}/extra-info?compression=true`;
-
-          try {
-            printLog(
-              "info",
-              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
-            );
-
-            const res = await postDataToURL(
-              hashURL,
-              3600000, // 1 hours
-              coverages,
-              "arraybuffer",
-              false,
-              {
-                "Content-Type": "application/json",
-              },
-            );
-
-            if (res.headers["content-encoding"] === "gzip") {
-              targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
-            } else {
-              targetTileExtraInfo = JSON.parse(res.data);
-            }
-
-            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-              source,
-              coverages,
-              false,
-            );
-          } catch (error) {
-            if (error.statusCode >= 500) {
-              printLog(
-                "error",
-                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed postgresql "${id}"...`,
-              );
-
-              return;
-            }
-
-            printLog(
-              "error",
-              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`,
-            );
-
-            targetTileExtraInfo = {};
-            tileExtraInfo = {};
-          }
-        } else if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${filePath}"...`);
-
-            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-              source,
-              coverages,
-              true,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
-
-        /* Update PostgreSQL metadata */
-        printLog("info", "Updating PostgreSQL metadata...");
-
-        await updatePostgreSQLMetadata(source, metadata);
-
-        /* Download data tile function */
-        downloadDataTileFunc = async (z, x, y, tasks) => {
-          const tileName = `${z}/${x}/${y}`;
-
-          if (
-            (refreshTimestamp === true &&
-              tileExtraInfo[tileName] &&
-              tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-            (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
-          ) {
-            return;
-          }
-
-          const completeTasks = tasks.completeTasks;
-          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-          const targetURL = url
-            .replace("{z}", `${z}`)
-            .replace("{x}", `${x}`)
-            .replace("{y}", `${tmpY}`);
-
-          printLog(
-            "info",
-            `Downloading data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
-          );
-
-          try {
-            await downloadPostgreSQLTile(
-              targetURL,
-              source,
-              z,
-              x,
-              tmpY,
-              maxTry,
-              timeout,
-              storeTransparent,
-              headers,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to seed data "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
-            );
-          }
-        };
+        /* Close database function */
+        closeDatabaseFunc = () => closeXYZMD5DB(source);
 
         break;
       }
     }
 
+    /* Download data tiles */
     printLog("info", "Downloading data tiles...");
 
     await handleTilesConcurrency(concurrency, downloadDataTileFunc, tileBounds);
@@ -1091,27 +1109,9 @@ async function seedDataTiles(
   } catch (error) {
     throw error;
   } finally {
-    // Close database
-    if (source) {
-      switch (storeType) {
-        case "mbtiles": {
-          closeMBTilesDB(source);
-
-          break;
-        }
-
-        case "xyz": {
-          closeXYZMD5DB(source);
-
-          break;
-        }
-
-        case "pg": {
-          closePostgreSQLDB(source);
-
-          break;
-        }
-      }
+    /* Close database */
+    if (source && closeDatabaseFunc) {
+      closeDatabaseFunc();
     }
   }
 }
@@ -1568,6 +1568,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
   const startTime = Date.now();
 
   let source;
+  let closeDatabaseFunc;
 
   try {
     /* Calculate summary */
@@ -1594,10 +1595,15 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
     printLog("info", log);
 
+    let removeDataTileFunc;
+    let compactDatabase;
+
     switch (storeType) {
       case "mbtiles": {
-        /* Open database */
         const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
+
+        /* Open database */
+        printLog("info", "Opening database...");
 
         source = await openMBTilesDB(
           filePath,
@@ -1627,8 +1633,8 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           }
         }
 
-        /* Remove tiles */
-        async function cleanUpMBTilesTileData(z, x, y, tasks) {
+        /* Remove data tile function */
+        removeDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
 
           if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
@@ -1656,26 +1662,87 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
               `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
             );
           }
+        };
+
+        /* Compact database function */
+        compactDatabase = async () => compactMBTiles(source);
+
+        /* Close database function */
+        closeDatabaseFunc = () => closeMBTilesDB(source);
+
+        break;
+      }
+
+      case "pg": {
+        const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
+
+        /* Open database */
+        printLog("info", "Opening database...");
+
+        source = await openPostgreSQLDB(filePath, true);
+
+        /* Get tile extra info */
+        let tileExtraInfo;
+
+        if (cleanUpTimestamp) {
+          try {
+            printLog("info", `Get tile extra info from "${filePath}"...`);
+
+            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
+              source,
+              coverages,
+              true,
+            );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to get tile extra info from "${filePath}": ${error}`,
+            );
+
+            tileExtraInfo = {};
+          }
         }
 
-        printLog("info", "Removing datas...");
+        /* Remove data tile function */
+        removeDataTileFunc = async (z, x, y, tasks) => {
+          const tileName = `${z}/${x}/${y}`;
 
-        await handleTilesConcurrency(
-          concurrency,
-          cleanUpMBTilesTileData,
-          tileBounds,
-        );
+          if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
+            return;
+          }
 
-        /* Compact database (Block DB) */
-        // compactMBTiles(source);
+          const completeTasks = tasks.completeTasks;
+
+          printLog(
+            "info",
+            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+          );
+
+          try {
+            await removePostgreSQLTile(source, z, x, y);
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+            );
+          }
+        };
+
+        /* Compact database function */
+        compactDatabase = async () => {};
+
+        /* Close database function */
+        closeDatabaseFunc = () => closePostgreSQLDB(source);
 
         break;
       }
 
       case "xyz": {
-        /* Open database */
         const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
         const filePath = `${sourcePath}/${id}.mbtiles`;
+
+        /* Open database */
+        printLog("info", "Opening database...");
 
         source = await openXYZMD5DB(
           filePath,
@@ -1708,8 +1775,8 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         /* Detect format tile */
         const format = await getXYZFormatFromTiles(sourcePath);
 
-        /* Remove tile files */
-        async function cleanUpXYZTileData(z, x, y, tasks) {
+        /* Remove data tile function */
+        removeDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
 
           if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
@@ -1739,92 +1806,36 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
               `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
             );
           }
-        }
+        };
 
-        printLog("info", "Removing datas...");
+        /* Compact database function */
+        compactDatabase = async () => {
+          /* Compact database */
+          compactXYZ(source);
 
-        await handleTilesConcurrency(
-          concurrency,
-          cleanUpXYZTileData,
-          tileBounds,
-        );
-
-        /* Compact database (Block DB) */
-        // compactXYZ(source);
-
-        /* Remove parent folders if empty */
-        await removeEmptyFolders(
-          sourcePath,
-          /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/,
-        );
-
-        break;
-      }
-
-      case "pg": {
-        /* Open database */
-        const filePath = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
-
-        source = await openPostgreSQLDB(filePath, true);
-
-        /* Get tile extra info */
-        let tileExtraInfo;
-
-        if (cleanUpTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${filePath}"...`);
-
-            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-              source,
-              coverages,
-              true,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
-
-        /* Remove tiles */
-        async function cleanUpPostgreSQLTileData(z, x, y, tasks) {
-          const tileName = `${z}/${x}/${y}`;
-
-          if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
-            return;
-          }
-
-          const completeTasks = tasks.completeTasks;
-
-          printLog(
-            "info",
-            `Removing data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+          /* Remove parent folders if empty */
+          await removeEmptyFolders(
+            sourcePath,
+            /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/,
           );
+        };
 
-          try {
-            await removePostgreSQLTile(source, z, x, y);
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to cleanup data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
-            );
-          }
-        }
-
-        printLog("info", "Removing datas...");
-
-        await handleTilesConcurrency(
-          concurrency,
-          cleanUpPostgreSQLTileData,
-          tileBounds,
-        );
+        /* Close database function */
+        closeDatabaseFunc = () => closeXYZMD5DB(source);
 
         break;
       }
     }
+
+    /* Remove data tiles */
+    printLog("info", "Removing data tiles...");
+
+    await handleTilesConcurrency(concurrency, removeDataTileFunc, tileBounds);
+
+    /* Compact database */
+    printLog("info", "Compacting database...");
+
+    await compactDatabase();
 
     printLog(
       "info",
@@ -1835,27 +1846,9 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
   } catch (error) {
     throw error;
   } finally {
-    // Close database
-    if (source) {
-      switch (storeType) {
-        case "mbtiles": {
-          closeMBTilesDB(source);
-
-          break;
-        }
-
-        case "xyz": {
-          closeXYZMD5DB(source);
-
-          break;
-        }
-
-        case "pg": {
-          closePostgreSQLDB(source);
-
-          break;
-        }
-      }
+    /* Close database */
+    if (source && closeDatabaseFunc) {
+      closeDatabaseFunc();
     }
   }
 }

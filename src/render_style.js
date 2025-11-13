@@ -722,15 +722,8 @@ export async function renderDataTiles(
   const startTime = Date.now();
 
   let source;
-  let styleJSON;
   let pool;
-  let getDataTileFunc;
-  let storeDataTileFunc;
-  let tileExtraInfo;
-  const sqliteFilePath =
-    storeType === "xyz"
-      ? `${storePath}/${path.basename(storePath)}.sqlite`
-      : undefined;
+  let closeDatabaseFunc;
 
   try {
     /* Calculate summary */
@@ -767,10 +760,20 @@ export async function renderDataTiles(
 
     printLog("info", log);
 
-    /* Create renderer pool */
-    const item = config.styles[id];
-    styleJSON = await getRenderedStyleJSON(item.path);
+    let tileExtraInfo;
+    let getDataTileFunc;
+    let storeDataTileFunc;
+    let createOverviewsFunc;
+    let calculateTileExtraInfo;
 
+    const item = config.styles[id];
+    const styleJSON = await getRenderedStyleJSON(item.path);
+    const newMetadata = {
+      ...metadata,
+      bounds: realBBox,
+    };
+
+    /* Create renderer pool */
     if (maxRendererPoolSize) {
       pool = createPool(
         {
@@ -800,6 +803,15 @@ export async function renderDataTiles(
           30000, // 30 secs
         );
 
+        /* Update metadata */
+        printLog("info", "Updating metadata...");
+
+        await updateMBTilesMetadata(
+          source,
+          newMetadata,
+          30000, // 30 secs
+        );
+
         /* Get tile extra info */
         if (refreshTimestamp) {
           try {
@@ -820,18 +832,6 @@ export async function renderDataTiles(
           }
         }
 
-        /* Update metadata */
-        printLog("info", "Updating metadata...");
-
-        await updateMBTilesMetadata(
-          source,
-          {
-            ...metadata,
-            bounds: realBBox,
-          },
-          30000, // 30 secs
-        );
-
         /* Get data function */
         getDataTileFunc = (z, x, y) =>
           renderImageTileData({
@@ -849,6 +849,16 @@ export async function renderDataTiles(
         storeDataTileFunc = (z, x, y, data) =>
           cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
 
+        /* Add overviews function */
+        createOverviewsFunc = () =>
+          addMBTilesOverviews(source, concurrency, tileSize);
+
+        /* Calculate extra info */
+        calculateTileExtraInfo = () => calculateMBTilesTileExtraInfo(source);
+
+        /* Close database function */
+        closeDatabaseFunc = () => closeMBTilesDB(source);
+
         break;
       }
 
@@ -857,6 +867,11 @@ export async function renderDataTiles(
         printLog("info", "Creating database...");
 
         source = await openPostgreSQLDB(storePath, true);
+
+        /* Update metadata */
+        printLog("info", "Updating metadata...");
+
+        await updatePostgreSQLMetadata(source, newMetadata);
 
         /* Get tile extra info */
         if (refreshTimestamp) {
@@ -878,14 +893,6 @@ export async function renderDataTiles(
           }
         }
 
-        /* Update metadata */
-        printLog("info", "Updating metadata...");
-
-        await updatePostgreSQLMetadata(source, {
-          ...metadata,
-          bounds: realBBox,
-        });
-
         /* Get data function */
         getDataTileFunc = (z, x, y) =>
           renderImageTileData({
@@ -903,16 +910,37 @@ export async function renderDataTiles(
         storeDataTileFunc = (z, x, y, data) =>
           cachePostgreSQLTileData(source, z, x, y, data, storeTransparent);
 
+        /* Add overviews function */
+        createOverviewsFunc = () =>
+          addPostgreSQLOverviews(source, concurrency, tileSize);
+
+        /* Calculate extra info */
+        calculateTileExtraInfo = () => calculatePostgreSQLTileExtraInfo(source);
+
+        /* Close database function */
+        closeDatabaseFunc = () => closePostgreSQLDB(source);
+
         break;
       }
 
       case "xyz": {
+        const sqliteFilePath = `${storePath}/${path.basename(storePath)}.sqlite`;
+
         /* Create database */
         printLog("info", "Creating database...");
 
         source = await openXYZMD5DB(
           sqliteFilePath,
           true,
+          30000, // 30 secs
+        );
+
+        /* Update metadata */
+        printLog("info", "Updating metadata...");
+
+        await updateXYZMetadata(
+          source,
+          newMetadata,
           30000, // 30 secs
         );
 
@@ -935,18 +963,6 @@ export async function renderDataTiles(
             tileExtraInfo = {};
           }
         }
-
-        /* Update metadata */
-        printLog("info", "Updating metadata...");
-
-        await updateXYZMetadata(
-          source,
-          {
-            ...metadata,
-            bounds: realBBox,
-          },
-          30000, // 30 secs
-        );
 
         /* Get data function */
         getDataTileFunc = (z, x, y) =>
@@ -973,6 +989,17 @@ export async function renderDataTiles(
             data,
             storeTransparent,
           );
+
+        /* Add overviews function */
+        createOverviewsFunc = () =>
+          addXYZOverviews(storePath, source, concurrency, tileSize);
+
+        /* Calculate extra info */
+        calculateTileExtraInfo = () =>
+          calculateXYZTileExtraInfo(storePath, source);
+
+        /* Close database function */
+        closeDatabaseFunc = () => closeXYZMD5DB(source);
 
         break;
       }
@@ -1036,43 +1063,13 @@ export async function renderDataTiles(
 
     /* Create overviews and calculate tile extra info */
     if (createOverview) {
-      switch (storeType) {
-        case "mbtiles": {
-          printLog("info", `Creating overviews...`);
+      printLog("info", `Creating overviews...`);
 
-          await addMBTilesOverviews(source, concurrency, tileSize);
+      await createOverviewsFunc(source, concurrency, tileSize);
 
-          printLog("info", `Calculating tile extra info...`);
+      printLog("info", `Calculating tile extra info...`);
 
-          await calculateMBTilesTileExtraInfo(source);
-
-          break;
-        }
-
-        case "pg": {
-          printLog("info", `Creating overviews...`);
-
-          await addPostgreSQLOverviews(source, concurrency, tileSize);
-
-          printLog("info", `Calculating tile extra info...`);
-
-          await calculatePostgreSQLTileExtraInfo(source);
-
-          break;
-        }
-
-        case "xyz": {
-          printLog("info", `Creating overviews...`);
-
-          await addXYZOverviews(storePath, source, concurrency, tileSize);
-
-          printLog("info", `Calculating tile extra info...`);
-
-          await calculateXYZTileExtraInfo(storePath, source);
-
-          break;
-        }
-      }
+      await calculateTileExtraInfo(source);
     }
 
     printLog(
@@ -1095,26 +1092,8 @@ export async function renderDataTiles(
     }
 
     /* Close database */
-    if (source) {
-      switch (storeType) {
-        case "mbtiles": {
-          closeMBTilesDB(source);
-
-          break;
-        }
-
-        case "xyz": {
-          closeXYZMD5DB(source);
-
-          break;
-        }
-
-        case "pg": {
-          closePostgreSQLDB(source);
-
-          break;
-        }
-      }
+    if (source && closeDatabaseFunc) {
+      closeDatabaseFunc();
     }
   }
 }

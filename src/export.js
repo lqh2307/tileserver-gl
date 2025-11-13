@@ -771,14 +771,7 @@ export async function exportDataTiles(
   const startTime = Date.now();
 
   let source;
-  let getDataTileFunc;
-  let storeDataTileFunc;
-  let targetTileExtraInfo;
-  let tileExtraInfo;
-  const sqliteFilePath =
-    storeType === "xyz"
-      ? `${storePath}/${path.basename(storePath)}.sqlite`
-      : undefined;
+  let closeDatabaseFunc;
 
   try {
     /* Calculate summary */
@@ -811,8 +804,18 @@ export async function exportDataTiles(
 
     printLog("info", log);
 
-    const item = config.datas[id];
+    let targetTileExtraInfo;
+    let tileExtraInfo;
     let getTileExtraInfo;
+    let getDataTileFunc;
+    let storeDataTileFunc;
+    let sqliteFilePath;
+
+    const item = config.datas[id];
+    const newMetadata = {
+      ...metadata,
+      bounds: realBBox,
+    };
 
     switch (storeType) {
       case "mbtiles": {
@@ -830,10 +833,7 @@ export async function exportDataTiles(
 
         await updateMBTilesMetadata(
           source,
-          {
-            ...metadata,
-            bounds: realBBox,
-          },
+          newMetadata,
           30000, // 30 secs
         );
 
@@ -844,6 +844,9 @@ export async function exportDataTiles(
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
           cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
+
+        /* Close database function */
+        closeDatabaseFunc = () => closeMBTilesDB(source);
 
         break;
       }
@@ -857,10 +860,7 @@ export async function exportDataTiles(
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
-        await updatePostgreSQLMetadata(source, {
-          ...metadata,
-          bounds: realBBox,
-        });
+        await updatePostgreSQLMetadata(source, newMetadata);
 
         /* Get tile extra info function */
         getTileExtraInfo = () =>
@@ -870,10 +870,15 @@ export async function exportDataTiles(
         storeDataTileFunc = (z, x, y, data) =>
           cachePostgreSQLTileData(source, z, x, y, data, storeTransparent);
 
+        /* Close database function */
+        closeDatabaseFunc = () => closePostgreSQLDB(source);
+
         break;
       }
 
       case "xyz": {
+        sqliteFilePath = `${storePath}/${path.basename(storePath)}.sqlite`;
+
         /* Create database */
         printLog("info", "Creating database...");
 
@@ -888,10 +893,7 @@ export async function exportDataTiles(
 
         await updateXYZMetadata(
           source,
-          {
-            ...metadata,
-            bounds: realBBox,
-          },
+          newMetadata,
           30000, // 30 secs
         );
 
@@ -911,6 +913,9 @@ export async function exportDataTiles(
             data,
             storeTransparent,
           );
+
+        /* Close database function */
+        closeDatabaseFunc = () => closeXYZMD5DB(source);
 
         break;
       }
@@ -1116,26 +1121,8 @@ export async function exportDataTiles(
     );
   } finally {
     /* Close database */
-    if (source) {
-      switch (storeType) {
-        case "mbtiles": {
-          closeMBTilesDB(source);
-
-          break;
-        }
-
-        case "xyz": {
-          closeXYZMD5DB(source);
-
-          break;
-        }
-
-        case "pg": {
-          closePostgreSQLDB(source);
-
-          break;
-        }
-      }
+    if (source && closeDatabaseFunc) {
+      closeDatabaseFunc();
     }
   }
 }
