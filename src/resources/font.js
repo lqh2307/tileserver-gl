@@ -50,7 +50,7 @@ export async function cacheFontFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
-    30000, // 30 secs
+    30000, // 30 seconds
   );
 }
 
@@ -275,7 +275,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
             const font = await getDataFileFromURL(
               targetURL,
               item.headers,
-              30000, // 30 secs
+              30000, // 30 seconds
             );
 
             /* Cache */

@@ -80,7 +80,7 @@ export async function cacheStyleFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
-    30000, // 30 secs
+    30000, // 30 seconds
   );
 }
 
@@ -394,7 +394,7 @@ export async function getAndCacheDataStyleJSON(id) {
       const styleJSON = await getDataFileFromURL(
         item.sourceURL,
         item.headers,
-        30000, // 30 secs
+        30000, // 30 seconds
       );
 
       if (item.storeCache) {

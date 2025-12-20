@@ -11,14 +11,11 @@ import {
   isFullTransparentImage,
   detectFormatAndHeaders,
   handleTilesConcurrency,
-  openSQLiteWithTimeout,
-  execSQLWithTimeout,
   removeFileWithLock,
   createFileWithLock,
   getDataTileFromURL,
   handleConcurrency,
   createImageOutput,
-  runSQLWithTimeout,
   getImageMetadata,
   getBBoxFromTiles,
   closePostgreSQL,
@@ -28,6 +25,7 @@ import {
   calculateMD5,
   getCoverBBox,
   closeSQLite,
+  openSQLite,
   findFiles,
   deepClone,
   printLog,
@@ -249,10 +247,9 @@ export async function calculateMBTilesTileExtraInfo(source) {
       break;
     }
 
-    await Promise.all(
-      rows.map((row) =>
-        runSQLWithTimeout(
-          source,
+    rows.forEach((row) =>
+      source
+        .prepare(
           `
           UPDATE
             tiles
@@ -262,16 +259,14 @@ export async function calculateMBTilesTileExtraInfo(source) {
           WHERE
             zoom_level = ? AND tile_column = ? AND tile_row = ?;
           `,
-          [
-            calculateMD5(row.tile_data),
-            Date.now(),
-            row.zoom_level,
-            row.tile_column,
-            row.tile_row,
-          ],
-          60000, // 1 mins
+        )
+        .run(
+          calculateMD5(row.tile_data),
+          Date.now(),
+          row.zoom_level,
+          row.tile_column,
+          row.tile_row,
         ),
-      ),
     );
   }
 }
@@ -282,23 +277,19 @@ export async function calculateMBTilesTileExtraInfo(source) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function removeMBTilesTile(source, z, x, y, timeout) {
-  await runSQLWithTimeout(
-    source,
-    `
-    DELETE FROM
-      tiles
-    WHERE
-      zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `,
-    z,
-    x,
-    (1 << z) - 1 - y,
-    timeout,
-  );
+export function removeMBTilesTile(source, z, x, y) {
+  source
+    .prepare(
+      `
+      DELETE FROM
+        tiles
+      WHERE
+        zoom_level = ? AND tile_column = ? AND tile_row = ?;
+      `,
+    )
+    .run(z, x, (1 << z) - 1 - y);
 }
 
 /**
@@ -309,11 +300,10 @@ export async function removeMBTilesTile(source, z, x, y, timeout) {
  * @returns {Promise<object>}
  */
 export async function openMBTilesDB(filePath, isCreate, timeout) {
-  const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
+  const source = await openSQLite(filePath, isCreate, timeout);
 
   if (isCreate) {
-    await execSQLWithTimeout(
-      source,
+    source.exec(
       `
       CREATE TABLE IF NOT EXISTS
         metadata (
@@ -322,11 +312,9 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           UNIQUE(name)
         );
       `,
-      30000, // 30 secs
     );
 
-    await execSQLWithTimeout(
-      source,
+    source.exec(
       `
       CREATE TABLE IF NOT EXISTS
         tiles (
@@ -339,22 +327,19 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
           UNIQUE(zoom_level, tile_column, tile_row)
         );
       `,
-      30000, // 30 secs
     );
 
     const tableInfos = source.prepare("PRAGMA table_info(tiles);").all();
 
     if (!tableInfos.some((col) => col.name === "hash")) {
       try {
-        await execSQLWithTimeout(
-          source,
+        source.exec(
           `
           ALTER TABLE
             tiles
           ADD COLUMN
             hash TEXT;
           `,
-          30000, // 30 secs
         );
       } catch (error) {
         printLog(
@@ -366,15 +351,13 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
 
     if (!tableInfos.some((col) => col.name === "created")) {
       try {
-        await execSQLWithTimeout(
-          source,
+        source.exec(
           `
           ALTER TABLE
             tiles
           ADD COLUMN
             created BIGINT;
           `,
-          30000, // 30 secs
         );
       } catch (error) {
         printLog(
@@ -572,9 +555,9 @@ export async function getMBTilesMetadata(source) {
 /**
  * Compact MBTiles
  * @param {DatabaseSync} source SQLite database instance
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function compactMBTiles(source) {
+export async function compactMBTiles(source) {
   source.exec("VACUUM;");
 }
 
@@ -591,19 +574,17 @@ export function closeMBTilesDB(source) {
  * Update MBTiles metadata table
  * @param {DatabaseSync} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function updateMBTilesMetadata(source, metadataAdds, timeout) {
-  await Promise.all(
-    Object.entries({
-      ...metadataAdds,
-      center: metadataAdds.center.join(","),
-      bounds: metadataAdds.bounds.join(","),
-      scheme: "tms",
-    }).map(([name, value]) =>
-      runSQLWithTimeout(
-        source,
+export function updateMBTilesMetadata(source, metadataAdds) {
+  Object.entries({
+    ...metadataAdds,
+    center: metadataAdds.center.join(","),
+    bounds: metadataAdds.bounds.join(","),
+    scheme: "tms",
+  }).map(([name, value]) =>
+    source
+      .prepare(
         `
         INSERT INTO
           metadata (name, value)
@@ -615,10 +596,8 @@ export async function updateMBTilesMetadata(source, metadataAdds, timeout) {
           SET
             value = excluded.value;
         `,
-        [name, typeof value === "object" ? JSON.stringify(value) : value],
-        timeout,
-      ),
-    ),
+      )
+      .run(name, typeof value === "object" ? JSON.stringify(value) : value),
   );
 }
 
@@ -704,24 +683,23 @@ export async function cacheMBtilesTileData(
   if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
   } else {
-    await runSQLWithTimeout(
-      source,
-      `
-      INSERT INTO
-        tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-      VALUES
-        (?, ?, ?, ?, ?, ?)
-      ON CONFLICT
-        (zoom_level, tile_column, tile_row)
-      DO UPDATE
-        SET
-          tile_data = excluded.tile_data,
-          hash = excluded.hash,
-          created = excluded.created;
-      `,
-      [z, x, (1 << z) - 1 - y, data, calculateMD5(data), Date.now()],
-      30000, // 30 secs
-    );
+    source
+      .prepare(
+        `
+        INSERT INTO
+          tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
+        VALUES
+          (?, ?, ?, ?, ?, ?)
+        ON CONFLICT
+          (zoom_level, tile_column, tile_row)
+        DO UPDATE
+          SET
+            tile_data = excluded.tile_data,
+            hash = excluded.hash,
+            created = excluded.created;
+        `,
+      )
+      .run(z, x, (1 << z) - 1 - y, data, calculateMD5(data), Date.now());
   }
 }
 
@@ -731,7 +709,7 @@ export async function cacheMBtilesTileData(
  * @returns {Promise<number>}
  */
 export async function countMBTilesTiles(filePath) {
-  const source = await openSQLiteWithTimeout(
+  const source = await openSQLite(
     filePath,
     false,
     60000, // 1 mins
@@ -760,9 +738,15 @@ export async function getMBTilesSize(filePath) {
  * @param {DatabaseSync} source SQLite database instance
  * @param {number} concurrency Concurrency to generate overviews
  * @param {256|512} tileSize Tile size
+ * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
-export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
+export async function addMBTilesOverviews(
+  source,
+  concurrency,
+  tileSize,
+  storeTransparent,
+) {
   /* Get tile width & height */
   const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
 
@@ -837,24 +821,7 @@ export async function addMBTilesOverviews(source, concurrency, tileSize = 256) {
           height: height,
         });
 
-        await runSQLWithTimeout(
-          source,
-          `
-          INSERT INTO
-            tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-          VALUES
-            (?, ?, ?, ?, ?, ?)
-          ON CONFLICT
-            (zoom_level, tile_column, tile_row)
-          DO UPDATE
-            SET
-              tile_data = excluded.tile_data,
-              hash = excluded.hash,
-              created = excluded.created;
-          `,
-          [z, x, y, image, calculateMD5(image), Date.now()],
-          60000, // 1 mins
-        );
+        await cacheMBtilesTileData(source, z, x, y, image, storeTransparent);
       }
     }
   }
@@ -932,7 +899,7 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
       const dataTile = await getDataTileFromURL(
         targetURL,
         item.headers,
-        30000, // 30 secs
+        30000, // 30 seconds
       );
 
       /* Cache */
@@ -1423,10 +1390,11 @@ export async function removePostgreSQLTile(source, z, x, y) {
  * Open PostgreSQL database
  * @param {string} uri Database URI
  * @param {boolean} isCreate Is create database?
+ * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<object>}
  */
-export async function openPostgreSQLDB(uri, isCreate) {
-  const source = await openPostgreSQL(uri, isCreate);
+export async function openPostgreSQLDB(uri, isCreate, timeout) {
+  const source = await openPostgreSQL(uri, isCreate, timeout);
 
   if (isCreate) {
     await source.query(
@@ -1841,7 +1809,11 @@ export async function getPostgreSQLSize(source, dbName) {
  * @returns {Promise<number>}
  */
 export async function countPostgreSQLTiles(uri) {
-  const source = await openPostgreSQL(uri, false);
+  const source = await openPostgreSQL(
+    uri,
+    false,
+    60000, // 1 mins
+  );
 
   const data = await source.query("SELECT COUNT(*) AS count FROM tiles;");
 
@@ -1857,12 +1829,14 @@ export async function countPostgreSQLTiles(uri) {
  * @param {DatabaseSync} source SQLite database instance
  * @param {number} concurrency Concurrency to generate overviews
  * @param {256|512} tileSize Tile size
+ * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
 export async function addPostgreSQLOverviews(
   source,
   concurrency,
-  tileSize = 256,
+  tileSize,
+  storeTransparent,
 ) {
   /* Get tile width & height */
   const data = await source.query("SELECT tile_data FROM tiles LIMIT 1;");
@@ -1938,22 +1912,7 @@ export async function addPostgreSQLOverviews(
           height: height,
         });
 
-        await source.query(
-          `
-          INSERT INTO
-            tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-          VALUES
-            ($1, $2, $3, $4, $5, $6)
-          ON CONFLICT
-            (zoom_level, tile_column, tile_row)
-          DO UPDATE
-            SET
-              tile_data = excluded.tile_data,
-              hash = excluded.hash,
-              created = excluded.created;
-          `,
-          [z, x, y, image, calculateMD5(image), Date.now()],
-        );
+        await cachePostgreSQLTileData(source, z, x, y, image, storeTransparent);
       }
     }
   }
@@ -2030,7 +1989,7 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
       const dataTile = await getDataTileFromURL(
         targetURL,
         item.headers,
-        30000, // 30 secs
+        30000, // 30 seconds
       );
 
       /* Cache */
@@ -2278,26 +2237,25 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
           format,
         );
 
-        await runSQLWithTimeout(
-          source,
-          `
-          UPDATE
-            md5s
-          SET
-            hash = ?,
-            created = ?
-          WHERE
-            zoom_level = ? AND tile_column = ? AND tile_row = ?;
-          `,
-          [
+        source
+          .prepare(
+            `
+            UPDATE
+              md5s
+            SET
+              hash = ?,
+              created = ?
+            WHERE
+              zoom_level = ? AND tile_column = ? AND tile_row = ?;
+            `,
+          )
+          .run(
             calculateMD5(data),
             Date.now(),
             row.zoom_level,
             row.tile_column,
             row.tile_row,
-          ],
-          30000, // 30 secs
-        );
+          );
       }),
     );
   }
@@ -2323,20 +2281,18 @@ export async function removeXYZTile(
   format,
   timeout,
 ) {
-  await Promise.all([
-    removeFileWithLock(`${sourcePath}/${z}/${x}/${y}.${format}`, timeout),
-    runSQLWithTimeout(
-      source,
+  await removeFileWithLock(`${sourcePath}/${z}/${x}/${y}.${format}`, timeout);
+
+  source
+    .prepare(
       `
       DELETE FROM
         md5s
       WHERE
         zoom_level = ? AND tile_column = ? AND tile_row = ?;
       `,
-      [z, x, y],
-      timeout,
-    ),
-  ]);
+    )
+    .run(z, x, y);
 }
 
 /**
@@ -2347,11 +2303,10 @@ export async function removeXYZTile(
  * @returns {Promise<Database>}
  */
 export async function openXYZMD5DB(filePath, isCreate, timeout) {
-  const source = await openSQLiteWithTimeout(filePath, isCreate, timeout);
+  const source = await openSQLite(filePath, isCreate, timeout);
 
   if (isCreate) {
-    await execSQLWithTimeout(
-      source,
+    source.exec(
       `
       CREATE TABLE IF NOT EXISTS
         metadata (
@@ -2360,11 +2315,9 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
           UNIQUE(name)
         );
       `,
-      30000, // 30 secs
     );
 
-    await execSQLWithTimeout(
-      source,
+    source.exec(
       `
       CREATE TABLE IF NOT EXISTS
         md5s (
@@ -2376,22 +2329,19 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
           UNIQUE(zoom_level, tile_column, tile_row)
         );
       `,
-      30000, // 30 secs
     );
 
     const tableInfos = source.prepare("PRAGMA table_info(md5s);").all();
 
     if (!tableInfos.some((col) => col.name === "hash")) {
       try {
-        await execSQLWithTimeout(
-          source,
+        source.exec(
           `
           ALTER TABLE
             md5s
           ADD COLUMN
             hash TEXT;
           `,
-          30000, // 30 secs
         );
       } catch (error) {
         printLog(
@@ -2403,15 +2353,13 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
 
     if (!tableInfos.some((col) => col.name === "created")) {
       try {
-        await execSQLWithTimeout(
-          source,
+        source.exec(
           `
           ALTER TABLE
             md5s
           ADD COLUMN
             created BIGINT;
           `,
-          30000, // 30 secs
         );
       } catch (error) {
         printLog(
@@ -2604,9 +2552,9 @@ export async function getXYZMetadata(sourcePath, source) {
 /**
  * Compact XYZ
  * @param {DatabaseSync} source SQLite database instance
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function compactXYZ(source) {
+export async function compactXYZ(source) {
   source.exec("VACUUM;");
 }
 
@@ -2690,19 +2638,17 @@ export async function downloadXYZTile(
  * Update MBTiles metadata table
  * @param {DatabaseSync} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function updateXYZMetadata(source, metadataAdds, timeout) {
-  await Promise.all(
-    Object.entries({
-      ...metadataAdds,
-      center: metadataAdds.center.join(","),
-      bounds: metadataAdds.bounds.join(","),
-      scheme: "xyz",
-    }).map(([name, value]) =>
-      runSQLWithTimeout(
-        source,
+export function updateXYZMetadata(source, metadataAdds) {
+  Object.entries({
+    ...metadataAdds,
+    center: metadataAdds.center.join(","),
+    bounds: metadataAdds.bounds.join(","),
+    scheme: "xyz",
+  }).map(([name, value]) =>
+    source
+      .prepare(
         `
         INSERT INTO
           metadata (name, value)
@@ -2714,10 +2660,8 @@ export async function updateXYZMetadata(source, metadataAdds, timeout) {
           SET
             value = excluded.value;
         `,
-        [name, typeof value === "object" ? JSON.stringify(value) : value],
-        timeout,
-      ),
-    ),
+      )
+      .run(name, typeof value === "object" ? JSON.stringify(value) : value),
   );
 }
 
@@ -2746,14 +2690,14 @@ export async function cacheXYZTileFile(
   if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
   } else {
-    await Promise.all([
-      createFileWithLock(
-        `${sourcePath}/${z}/${x}/${y}.${format}`,
-        data,
-        30000, // 30 secs
-      ),
-      runSQLWithTimeout(
-        source,
+    await createFileWithLock(
+      `${sourcePath}/${z}/${x}/${y}.${format}`,
+      data,
+      30000, // 30 seconds
+    );
+
+    source
+      .prepare(
         `
         INSERT INTO
           md5s (zoom_level, tile_column, tile_row, hash, created)
@@ -2766,10 +2710,8 @@ export async function cacheXYZTileFile(
             hash = excluded.hash,
             created = excluded.created;
         `,
-        [z, x, y, calculateMD5(data), Date.now()],
-        30000, // 30 secs
-      ),
-    ]);
+      )
+      .run(z, x, y, calculateMD5(data), Date.now());
   }
 }
 
@@ -2819,13 +2761,15 @@ export async function getXYZSize(sourcePath) {
  * @param {DatabaseSync} source SQLite database instance
  * @param {number} concurrency Concurrency to generate overviews
  * @param {256|512} tileSize Tile size
+ * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
 export async function addXYZOverviews(
   sourcePath,
   source,
   concurrency,
-  tileSize = 256,
+  tileSize,
+  storeTransparent,
 ) {
   /* Get tile width & height */
   let data;
@@ -2931,30 +2875,16 @@ export async function addXYZOverviews(
         height: height,
       });
 
-      await Promise.all([
-        createFileWithLock(
-          `${sourcePath}/${z}/${x}/${y}.${metadata.format}`,
-          image,
-          30000, // 30 secs
-        ),
-        runSQLWithTimeout(
-          source,
-          `
-          INSERT INTO
-            md5s (zoom_level, tile_column, tile_row, hash, created)
-          VALUES
-            (?, ?, ?, ?, ?)
-          ON CONFLICT
-            (zoom_level, tile_column, tile_row)
-          DO UPDATE
-            SET
-              hash = excluded.hash,
-              created = excluded.created;
-          `,
-          [z, x, y, calculateMD5(image), Date.now()],
-          60000, // 1 mins
-        ),
-      ]);
+      await cacheXYZTileFile(
+        sourcePath,
+        source,
+        z,
+        x,
+        y,
+        metadata.format,
+        image,
+        storeTransparent,
+      );
     }
   }
 
@@ -3031,7 +2961,7 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
       const dataTile = await getDataTileFromURL(
         targetURL,
         item.headers,
-        30000, // 30 secs
+        30000, // 30 seconds
       );
 
       /* Cache */

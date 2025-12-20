@@ -55,6 +55,11 @@ export function startTaskInWorker(opts) {
         }
 
         if (message.action === "restartServer") {
+          printLog(
+            "info",
+            `Received "${message.action}" message from task worker. Restarting server...`,
+          );
+
           process.exit(1);
         }
 
@@ -98,7 +103,7 @@ async function loadData() {
     serve_data.add(),
     serve_geojson.add(),
   ])
-    .then(() => serve_style.add())
+    .then(serve_style.add)
     .then(() => {
       printLog("info", "Completed startup!");
 

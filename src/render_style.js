@@ -278,7 +278,7 @@ function createRenderer(option) {
           try {
             const dataRemote = await getDataFromURL(
               req.url,
-              30000, // 30 secs
+              30000, // 30 seconds
               "arraybuffer",
             );
 
@@ -800,17 +800,13 @@ export async function renderDataTiles(
         source = await openMBTilesDB(
           storePath,
           true,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
-        await updateMBTilesMetadata(
-          source,
-          newMetadata,
-          30000, // 30 secs
-        );
+        updateMBTilesMetadata(source, newMetadata);
 
         /* Get tile extra info */
         if (refreshTimestamp) {
@@ -851,13 +847,14 @@ export async function renderDataTiles(
 
         /* Add overviews function */
         createOverviewsFunc = () =>
-          addMBTilesOverviews(source, concurrency, tileSize);
+          addMBTilesOverviews(source, concurrency, tileSize, storeTransparent);
 
         /* Calculate extra info */
-        calculateTileExtraInfo = () => calculateMBTilesTileExtraInfo(source);
+        calculateTileExtraInfo = async () =>
+          await calculateMBTilesTileExtraInfo(source);
 
         /* Close database function */
-        closeDatabaseFunc = () => closeMBTilesDB(source);
+        closeDatabaseFunc = async () => closeMBTilesDB(source);
 
         break;
       }
@@ -866,7 +863,11 @@ export async function renderDataTiles(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openPostgreSQLDB(storePath, true);
+        source = await openPostgreSQLDB(
+          storePath,
+          true,
+          30000, // 30 seconds
+        );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
@@ -912,13 +913,19 @@ export async function renderDataTiles(
 
         /* Add overviews function */
         createOverviewsFunc = () =>
-          addPostgreSQLOverviews(source, concurrency, tileSize);
+          addPostgreSQLOverviews(
+            source,
+            concurrency,
+            tileSize,
+            storeTransparent,
+          );
 
         /* Calculate extra info */
-        calculateTileExtraInfo = () => calculatePostgreSQLTileExtraInfo(source);
+        calculateTileExtraInfo = async () =>
+          await calculatePostgreSQLTileExtraInfo(source);
 
         /* Close database function */
-        closeDatabaseFunc = () => closePostgreSQLDB(source);
+        closeDatabaseFunc = async () => await closePostgreSQLDB(source);
 
         break;
       }
@@ -932,17 +939,13 @@ export async function renderDataTiles(
         source = await openXYZMD5DB(
           sqliteFilePath,
           true,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
-        await updateXYZMetadata(
-          source,
-          newMetadata,
-          30000, // 30 secs
-        );
+        updateXYZMetadata(source, newMetadata);
 
         /* Get tile extra info */
         if (refreshTimestamp) {
@@ -992,14 +995,20 @@ export async function renderDataTiles(
 
         /* Add overviews function */
         createOverviewsFunc = () =>
-          addXYZOverviews(storePath, source, concurrency, tileSize);
+          addXYZOverviews(
+            storePath,
+            source,
+            concurrency,
+            tileSize,
+            storeTransparent,
+          );
 
         /* Calculate extra info */
-        calculateTileExtraInfo = () =>
-          calculateXYZTileExtraInfo(storePath, source);
+        calculateTileExtraInfo = async () =>
+          await calculateXYZTileExtraInfo(storePath, source);
 
         /* Close database function */
-        closeDatabaseFunc = () => closeXYZMD5DB(source);
+        closeDatabaseFunc = async () => closeXYZMD5DB(source);
 
         break;
       }
@@ -1088,12 +1097,12 @@ export async function renderDataTiles(
   } finally {
     /* Destroy renderer pool */
     if (pool) {
-      pool.drain().then(() => pool.clear());
+      pool.drain().then(pool.clear);
     }
 
     /* Close database */
     if (source && closeDatabaseFunc) {
-      closeDatabaseFunc();
+      await closeDatabaseFunc();
     }
   }
 }

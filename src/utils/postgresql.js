@@ -7,12 +7,15 @@ import pg from "pg";
  * Open PostgreSQL database
  * @param {string} uri Database URI
  * @param {boolean} isCreate Is create database?
+ * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<pg.Client>} PostgreSQL database instance
  */
-export async function openPostgreSQL(uri, isCreate) {
+export async function openPostgreSQL(uri, isCreate, timeout) {
   if (isCreate) {
     const client = new pg.Client({
       connectionString: path.dirname(uri),
+      statement_timeout: timeout,
+      query_timeout: timeout,
     });
 
     try {

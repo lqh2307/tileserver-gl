@@ -993,7 +993,7 @@ export const serve_data = {
                 dataInfo.source = await openMBTilesDB(
                   dataInfo.path,
                   true,
-                  30000, // 30 secs
+                  30000, // 30 seconds
                 );
 
                 /* Get MBTiles metadata */
@@ -1012,7 +1012,7 @@ export const serve_data = {
                 dataInfo.source = await openMBTilesDB(
                   dataInfo.path,
                   true,
-                  30000, // 30 secs
+                  30000, // 30 seconds
                 );
 
                 /* Get MBTiles metadata */
@@ -1101,7 +1101,7 @@ export const serve_data = {
                 const md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
                   true,
-                  30000, // 30 secs
+                  30000, // 30 seconds
                 );
 
                 /* Get XYZ metadata */
@@ -1133,7 +1133,11 @@ export const serve_data = {
                 dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
 
                 /* Open PostgreSQL */
-                dataInfo.source = await openPostgreSQLDB(dataInfo.path, true);
+                dataInfo.source = await openPostgreSQLDB(
+                  dataInfo.path,
+                  true,
+                  30000, // 30 seconds
+                );
 
                 /* Get PostgreSQL metadata */
                 dataInfo.tileJSON = createTileMetadata({
@@ -1148,7 +1152,11 @@ export const serve_data = {
                 dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
 
                 /* Open PostgreSQL */
-                dataInfo.source = await openPostgreSQLDB(dataInfo.path, false);
+                dataInfo.source = await openPostgreSQLDB(
+                  dataInfo.path,
+                  false,
+                  30000, // 30 seconds
+                );
 
                 /* Get PostgreSQL metadata */
                 dataInfo.tileJSON = {

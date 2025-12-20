@@ -36,7 +36,7 @@ export async function cacheSpriteFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
-    30000, // 30 secs
+    30000, // 30 seconds
   );
 }
 
@@ -211,7 +211,7 @@ export async function getAndCacheDataSprite(id, fileName) {
       const sprite = await getDataFileFromURL(
         targetURL,
         item.headers,
-        30000, // 30 secs
+        30000, // 30 seconds
       );
 
       /* Cache */

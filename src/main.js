@@ -46,17 +46,19 @@ async function startClusterServer() {
       process.exit(1);
     }
 
+    const configOptions = config.options || {};
+
     // Store ENVs
     process.env.NUM_OF_PROCESS =
-      process.env.NUM_OF_PROCESS || config.options?.process || 1; // Number of process
+      process.env.NUM_OF_PROCESS || configOptions.process || 1; // Number of process
     process.env.UV_THREADPOOL_SIZE =
-      process.env.NUM_OF_THREAD || config.options?.thread || os.cpus().length; // For libuv (Number of thread)
+      process.env.NUM_OF_THREAD || configOptions.thread || os.cpus().length; // For libuv (Number of thread)
     process.env.POSTGRESQL_BASE_URI =
-      config.options?.postgreSQLBaseURI || "postgresql://localhost:5432"; // PostgreSQL base URI
-    process.env.SERVE_FRONT_PAGE = config.options?.serveFrontPage || "true"; // Serve front page
-    process.env.SERVE_SWAGGER = config.options?.serveSwagger || "true"; // Serve swagger
+      configOptions.postgreSQLBaseURI || "postgresql://localhost:5432"; // PostgreSQL base URI
+    process.env.SERVE_FRONT_PAGE = configOptions.serveFrontPage || "true"; // Serve front page
+    process.env.SERVE_SWAGGER = configOptions.serveSwagger || "true"; // Serve swagger
     process.env.LISTEN_PORT =
-      process.env.LISTEN_PORT || config.options?.listenPort || 8080; // Server port
+      process.env.LISTEN_PORT || configOptions.listenPort || 8080; // Server port
 
     // Check MLGL
     try {
@@ -96,7 +98,7 @@ async function startClusterServer() {
           {
             usePolling: true,
             awaitWriteFinish: true,
-            interval: 500,
+            interval: 500, // 500 mliliseconds
           },
         )
         .on("change", () => {
@@ -107,13 +109,13 @@ async function startClusterServer() {
     }
 
     /* Setup task cron */
-    if (config.options?.taskSchedule !== undefined) {
+    if (configOptions.taskSchedule !== undefined) {
       printLog(
         "info",
-        `Schedule run seed and cleanup tasks at: "${config.options.taskSchedule}"`,
+        `Schedule run seed and cleanup tasks at: "${configOptions.taskSchedule}"`,
       );
 
-      cron.schedule(config.options.taskSchedule, () => {
+      cron.schedule(configOptions.taskSchedule, () => {
         printLog(
           "info",
           "Seed and cleanup tasks triggered by schedule. Starting task...",
@@ -136,13 +138,13 @@ async function startClusterServer() {
     }
 
     /* Setup task cron */
-    if (config.options?.restartSchedule !== undefined) {
+    if (configOptions.restartSchedule !== undefined) {
       printLog(
         "info",
-        `Schedule restart server at: "${config.options.restartSchedule}"`,
+        `Schedule restart server at: "${configOptions.restartSchedule}"`,
       );
 
-      cron.schedule(config.options.restartSchedule, () => {
+      cron.schedule(configOptions.restartSchedule, () => {
         printLog(
           "info",
           "Restart server triggered by schedule. Restarting server...",

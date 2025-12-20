@@ -664,17 +664,13 @@ async function seedDataTiles(
         source = await openMBTilesDB(
           filePath,
           true,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
-        await updateMBTilesMetadata(
-          source,
-          metadata,
-          30000, // 30 secs
-        );
+        updateMBTilesMetadata(source, metadata);
 
         /* Get tile extra info */
         let targetTileExtraInfo;
@@ -798,7 +794,7 @@ async function seedDataTiles(
         };
 
         /* Close database function */
-        closeDatabaseFunc = () => closeMBTilesDB(source);
+        closeDatabaseFunc = async () => closeMBTilesDB(source);
 
         break;
       }
@@ -809,7 +805,11 @@ async function seedDataTiles(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openPostgreSQLDB(filePath, true);
+        source = await openPostgreSQLDB(
+          filePath,
+          true,
+          30000, // 30 seconds
+        );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
@@ -938,7 +938,7 @@ async function seedDataTiles(
         };
 
         /* Close database function */
-        closeDatabaseFunc = () => closePostgreSQLDB(source);
+        closeDatabaseFunc = async () => await closePostgreSQLDB(source);
 
         break;
       }
@@ -953,17 +953,13 @@ async function seedDataTiles(
         source = await openXYZMD5DB(
           filePath,
           true,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
-        await updateXYZMetadata(
-          source,
-          metadata,
-          30000, // 30 secs
-        );
+        updateXYZMetadata(source, metadata);
 
         /* Get tile extra info */
         let targetTileExtraInfo;
@@ -1089,7 +1085,7 @@ async function seedDataTiles(
         };
 
         /* Close database function */
-        closeDatabaseFunc = () => closeXYZMD5DB(source);
+        closeDatabaseFunc = async () => closeXYZMD5DB(source);
 
         break;
       }
@@ -1111,7 +1107,7 @@ async function seedDataTiles(
   } finally {
     /* Close database */
     if (source && closeDatabaseFunc) {
-      closeDatabaseFunc();
+      await closeDatabaseFunc();
     }
   }
 }
@@ -1608,7 +1604,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         source = await openMBTilesDB(
           filePath,
           true,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
 
         /* Get tile extra info */
@@ -1649,13 +1645,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           );
 
           try {
-            await removeMBTilesTile(
-              source,
-              z,
-              x,
-              y,
-              30000, // 30 secs
-            );
+            removeMBTilesTile(source, z, x, y);
           } catch (error) {
             printLog(
               "error",
@@ -1665,10 +1655,10 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         };
 
         /* Compact database function */
-        compactDatabase = async () => compactMBTiles(source);
+        compactDatabase = async () => await compactMBTiles(source);
 
         /* Close database function */
-        closeDatabaseFunc = () => closeMBTilesDB(source);
+        closeDatabaseFunc = async () => closeMBTilesDB(source);
 
         break;
       }
@@ -1679,7 +1669,11 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         /* Open database */
         printLog("info", "Opening database...");
 
-        source = await openPostgreSQLDB(filePath, true);
+        source = await openPostgreSQLDB(
+          filePath,
+          true,
+          30000, // 30 seconds
+        );
 
         /* Get tile extra info */
         let tileExtraInfo;
@@ -1732,7 +1726,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         compactDatabase = async () => {};
 
         /* Close database function */
-        closeDatabaseFunc = () => closePostgreSQLDB(source);
+        closeDatabaseFunc = async () => await closePostgreSQLDB(source);
 
         break;
       }
@@ -1747,7 +1741,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         source = await openXYZMD5DB(
           filePath,
           true,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
 
         /* Get tile extra info */
@@ -1798,7 +1792,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
               x,
               y,
               format,
-              30000, // 30 secs
+              30000, // 30 seconds
             );
           } catch (error) {
             printLog(
@@ -1811,17 +1805,14 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         /* Compact database function */
         compactDatabase = async () => {
           /* Compact database */
-          compactXYZ(source);
+          await compactXYZ(source);
 
           /* Remove parent folders if empty */
-          await removeEmptyFolders(
-            sourcePath,
-            /^.*\.(gif|png|jpg|jpeg|webp|pbf)$/,
-          );
+          await removeEmptyFolders(sourcePath, new RegExp(`^.*\\.${format}$`));
         };
 
         /* Close database function */
-        closeDatabaseFunc = () => closeXYZMD5DB(source);
+        closeDatabaseFunc = async () => closeXYZMD5DB(source);
 
         break;
       }
@@ -1848,7 +1839,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
   } finally {
     /* Close database */
     if (source && closeDatabaseFunc) {
-      closeDatabaseFunc();
+      await closeDatabaseFunc();
     }
   }
 }
@@ -1911,7 +1902,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
       await removeGeoJSONFile(
         filePath,
-        30000, // 30 secs
+        30000, // 30 seconds
       );
     }
   } catch (error) {
@@ -1987,7 +1978,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
         await removeSpriteFile(
           filePath,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
       }
     } catch (error) {
@@ -2078,7 +2069,7 @@ async function cleanUpFont(id, cleanUpBefore) {
 
         await removeFontFile(
           filePath,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
       }
     } catch (error) {
@@ -2166,7 +2157,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
       await removeStyleFile(
         filePath,
-        30000, // 30 secs
+        30000, // 30 seconds
       );
     }
   } catch (error) {

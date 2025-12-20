@@ -818,6 +818,10 @@ export async function exportDataTiles(
     };
 
     switch (storeType) {
+      default: {
+        throw new Error(`Invalid store type "${storeType}"`);
+      }
+
       case "mbtiles": {
         /* Create database */
         printLog("info", "Creating database...");
@@ -825,17 +829,13 @@ export async function exportDataTiles(
         source = await openMBTilesDB(
           storePath,
           true,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
-        await updateMBTilesMetadata(
-          source,
-          newMetadata,
-          30000, // 30 secs
-        );
+        updateMBTilesMetadata(source, newMetadata);
 
         /* Get tile extra info function */
         getTileExtraInfo = () =>
@@ -846,7 +846,7 @@ export async function exportDataTiles(
           cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
 
         /* Close database function */
-        closeDatabaseFunc = () => closeMBTilesDB(source);
+        closeDatabaseFunc = async () => closeMBTilesDB(source);
 
         break;
       }
@@ -855,7 +855,11 @@ export async function exportDataTiles(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openPostgreSQLDB(storePath, true);
+        source = await openPostgreSQLDB(
+          storePath,
+          true,
+          30000, // 30 seconds
+        );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
@@ -871,7 +875,7 @@ export async function exportDataTiles(
           cachePostgreSQLTileData(source, z, x, y, data, storeTransparent);
 
         /* Close database function */
-        closeDatabaseFunc = () => closePostgreSQLDB(source);
+        closeDatabaseFunc = async () => await closePostgreSQLDB(source);
 
         break;
       }
@@ -885,17 +889,13 @@ export async function exportDataTiles(
         source = await openXYZMD5DB(
           sqliteFilePath,
           true,
-          30000, // 30 secs
+          30000, // 30 seconds
         );
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
-        await updateXYZMetadata(
-          source,
-          newMetadata,
-          30000, // 30 secs
-        );
+        updateXYZMetadata(source, newMetadata);
 
         /* Get tile extra info function */
         getTileExtraInfo = () =>
@@ -915,7 +915,7 @@ export async function exportDataTiles(
           );
 
         /* Close database function */
-        closeDatabaseFunc = () => closeXYZMD5DB(source);
+        closeDatabaseFunc = async () => closeXYZMD5DB(source);
 
         break;
       }
@@ -1122,7 +1122,7 @@ export async function exportDataTiles(
   } finally {
     /* Close database */
     if (source && closeDatabaseFunc) {
-      closeDatabaseFunc();
+      await closeDatabaseFunc();
     }
   }
 }

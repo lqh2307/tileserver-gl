@@ -368,7 +368,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
       const geoJSON = await getDataFileFromURL(
         item.sourceURL,
         item.headers,
-        30000, // 30 secs
+        30000, // 30 seconds
       );
 
       if (item.storeCache) {
