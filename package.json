@@ -18,29 +18,29 @@
     "format": "prettier --write \"src/**/*.{js,json}\""
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-style-spec": "24.3.1",
+    "@maplibre/maplibre-gl-style-spec": "24.4.1",
     "@maplibre/maplibre-gl-native": "6.2.0",
     "@socket.io/cluster-adapter": "0.3.0",
     "swagger-ui-express": "5.0.1",
     "@socket.io/sticky": "1.0.4",
     "http-status-codes": "2.3.0",
     "protocol-buffers": "5.0.0",
-    "better-sqlite3": "12.4.6",
+    "better-sqlite3": "12.5.0",
     "swagger-jsdoc": "6.2.8",
     "prom-client": "15.1.3",
     "generic-pool": "3.9.0",
-    "pino-pretty": "13.1.2",
+    "pino-pretty": "13.1.3",
     "async-mutex": "0.5.0",
     "handlebars": "4.7.8",
     "socket.io": "4.8.1",
     "node-cron": "4.2.1",
-    "chokidar": "4.0.3",
+    "chokidar": "5.0.0",
     "archiver": "7.0.1",
-    "express": "5.1.0",
+    "express": "5.2.1",
     "pmtiles": "4.3.0",
     "sharp": "0.34.5",
     "axios": "1.13.2",
-    "jspdf": "3.0.3",
+    "jspdf": "3.0.4",
     "pino": "10.1.0",
     "mime": "4.1.0",
     "cors": "2.8.5",
@@ -48,8 +48,8 @@
     "pg": "8.16.3"
   },
   "devDependencies": {
-    "prettier": "3.6.2",
-    "eslint": "9.39.1"
+    "prettier": "3.7.4",
+    "eslint": "9.39.2"
   },
   "engines": {
     "node": ">=22 <23"
