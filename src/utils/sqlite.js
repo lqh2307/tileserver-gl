@@ -30,9 +30,10 @@ export async function openSQLite(filePath, isCreate, timeout) {
         timeout: timeout,
       });
 
-      source.exec("PRAGMA synchronous = FULL;"); // Set synchronous mode
+      source.exec("PRAGMA synchronous = NORMAL;"); // Set synchronous mode
       source.exec("PRAGMA journal_mode = TRUNCATE;"); // Set truncate mode
       source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
+      source.exec("PRAGMA foreign_keys = OFF;"); // Disable foreign keys
 
       return source;
     } catch (error) {
