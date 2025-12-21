@@ -32,6 +32,19 @@ import {
   retry,
 } from "../utils/index.js";
 
+const BATCH_SIZE = 1000;
+
+const MBTILES_INSERT_TILE_QUERY = `INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;`;
+const MBTILES_SELECT_TILE_QUERY = `SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
+const MBTILES_DELETE_TILE_QUERY = `DELETE FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
+
+const XYZ_INSERT_MD5_QUERY = `INSERT INTO md5s (zoom_level, tile_column, tile_row, hash, created) VALUES (?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET hash = excluded.hash, created = excluded.created;`;
+const XYZ_DELETE_MD5_QUERY = `DELETE FROM md5s WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
+
+const POSTGRESQL_INSERT_TILE_QUERY = `INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;`;
+const POSTGRESQL_SELECT_TILE_QUERY = `SELECT tile_data FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3;`;
+const POSTGRESQL_DELETE_TILE_QUERY = `DELETE FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3;`;
+
 /*********************************** MBTiles *************************************/
 
 /**
@@ -41,7 +54,6 @@ import {
  */
 async function getMBTilesLayersFromTiles(source) {
   const layerNames = new Set();
-  const batchSize = 1000;
   let offset = 0;
 
   const vectorTileProto = protobuf(
@@ -62,7 +74,7 @@ async function getMBTilesLayersFromTiles(source) {
   );
 
   while (true) {
-    const rows = sql.all([batchSize, offset]);
+    const rows = sql.all([BATCH_SIZE, offset]);
 
     if (!rows.length) {
       break;
@@ -75,7 +87,7 @@ async function getMBTilesLayersFromTiles(source) {
         .forEach(layerNames.add),
     );
 
-    offset += batchSize;
+    offset += BATCH_SIZE;
   }
 
   return Array.from(layerNames);
@@ -225,8 +237,6 @@ export function getMBTilesTileExtraInfoFromCoverages(
  * @returns {void}
  */
 export function calculateMBTilesTileExtraInfo(source) {
-  const batchSize = 1000;
-
   const sql = source.prepare(
     `
     SELECT
@@ -236,7 +246,7 @@ export function calculateMBTilesTileExtraInfo(source) {
     WHERE
       hash IS NULL
     LIMIT
-      ${batchSize};
+      ${BATCH_SIZE};
     `,
   );
 
@@ -280,16 +290,7 @@ export function calculateMBTilesTileExtraInfo(source) {
  * @returns {void}
  */
 export function removeMBTilesTile(source, z, x, y) {
-  source
-    .prepare(
-      `
-      DELETE FROM
-        tiles
-      WHERE
-        zoom_level = ? AND tile_column = ? AND tile_row = ?;
-      `,
-    )
-    .run([z, x, (1 << z) - 1 - y]);
+  source.prepare(MBTILES_DELETE_TILE_QUERY).run([z, x, (1 << z) - 1 - y]);
 }
 
 /**
@@ -380,17 +381,8 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
  * @returns {object}
  */
 export function getMBTilesTile(source, z, x, y) {
-  let data = source
-    .prepare(
-      `
-      SELECT
-        tile_data
-      FROM
-        tiles
-      WHERE
-        zoom_level = ? AND tile_column = ? AND tile_row = ?;
-      `,
-    )
+  const data = source
+    .prepare(MBTILES_SELECT_TILE_QUERY)
     .get([z, x, (1 << z) - 1 - y]);
 
   if (!data?.tile_data) {
@@ -577,28 +569,32 @@ export function closeMBTilesDB(source) {
  * @returns {void}
  */
 export function updateMBTilesMetadata(source, metadataAdds) {
-  Object.entries({
-    ...metadataAdds,
-    center: metadataAdds.center.join(","),
-    bounds: metadataAdds.bounds.join(","),
-    scheme: "tms",
-  }).map(([name, value]) =>
-    source
-      .prepare(
-        `
-        INSERT INTO
-          metadata (name, value)
-        VALUES
-          (?, ?)
-        ON CONFLICT
-          (name)
-        DO UPDATE
-          SET
-            value = excluded.value;
-        `,
-      )
-      .run([name, typeof value === "object" ? JSON.stringify(value) : value]),
+  const sql = source.prepare(
+    `
+    INSERT INTO
+      metadata (name, value)
+    VALUES
+      (?, ?)
+    ON CONFLICT
+      (name)
+    DO UPDATE
+      SET
+        value = excluded.value;
+    `,
   );
+
+  Object.entries(metadataAdds).map(([name, value]) => {
+    if (name === "center" || name === "bounds") {
+      sql.run([name, value.join(",")]);
+    } else {
+      sql.run([
+        name,
+        typeof value === "object" ? JSON.stringify(value) : value,
+      ]);
+    }
+  });
+
+  sql.run(["scheme", "tms"]);
 }
 
 /**
@@ -684,21 +680,7 @@ export async function cacheMBtilesTileData(
     return;
   } else {
     source
-      .prepare(
-        `
-        INSERT INTO
-          tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-        VALUES
-          (?, ?, ?, ?, ?, ?)
-        ON CONFLICT
-          (zoom_level, tile_column, tile_row)
-        DO UPDATE
-          SET
-            tile_data = excluded.tile_data,
-            hash = excluded.hash,
-            created = excluded.created;
-        `,
-      )
+      .prepare(MBTILES_INSERT_TILE_QUERY)
       .run([z, x, (1 << z) - 1 - y, data, calculateMD5(data), Date.now()]);
   }
 }
@@ -769,6 +751,17 @@ export async function addMBTilesOverviews(
   let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
   let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
 
+  const sql = source.prepare(
+    `
+    SELECT
+      tile_column, tile_row, tile_data
+    FROM
+      tiles
+    WHERE
+      zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
+    `,
+  );
+
   /* Create tile data handler function */
   async function createTileData(z, x, y) {
     const minX = x * 2;
@@ -776,18 +769,7 @@ export async function addMBTilesOverviews(
     const minY = y * 2;
     const maxY = minY + 1;
 
-    const tiles = source
-      .prepare(
-        `
-        SELECT
-          tile_column, tile_row, tile_data
-        FROM
-          tiles
-        WHERE
-          zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
-        `,
-      )
-      .all([z + 1, minX, maxX, minY, maxY]);
+    const tiles = sql.all([z + 1, minX, maxX, minY, maxY]);
 
     if (tiles.length) {
       // Create composites option
@@ -1147,27 +1129,16 @@ export async function getPMTilesSize(filePath) {
  */
 async function getPostgreSQLLayersFromTiles(source) {
   const layerNames = new Set();
-  const batchSize = 1000;
   let offset = 0;
 
   const vectorTileProto = protobuf(
     await readFile("public/protos/vector_tile.proto"),
   );
 
+  const sql = `SELECT tile_data FROM tiles LIMIT $1 OFFSET $2;`;
+
   while (true) {
-    const data = await source.query(
-      `
-      SELECT
-        tile_data
-      FROM
-        tiles
-      LIMIT
-        $1
-      OFFSET
-        $2;
-      `,
-      [batchSize, offset],
-    );
+    const data = await source.query(sql, [BATCH_SIZE, offset]);
 
     if (!data.rows.length) {
       break;
@@ -1180,7 +1151,7 @@ async function getPostgreSQLLayersFromTiles(source) {
         .forEach(layerNames.add),
     );
 
-    offset += batchSize;
+    offset += BATCH_SIZE;
   }
 
   return Array.from(layerNames);
@@ -1321,46 +1292,26 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
  * @returns {Promise<void>}
  */
 export async function calculatePostgreSQLTileExtraInfo(source) {
-  const batchSize = 1000;
+  const selectSQL = `SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles WHERE hash IS NULL LIMIT $1;`;
 
   while (true) {
-    const data = await source.query(
-      `
-      SELECT
-        zoom_level, tile_column, tile_row, tile_data
-      FROM
-        tiles
-      WHERE
-        hash IS NULL
-      LIMIT
-        ${batchSize};
-      `,
-    );
+    const data = await source.query(selectSQL, [BATCH_SIZE]);
 
     if (!data.rows.length) {
       break;
     }
 
+    const updateSQL = `UPDATE tiles SET hash = $1, created = $2 WHERE zoom_level = $3 AND tile_column = $4 AND tile_row = $5;`;
+
     await Promise.all(
       data.rows.map((row) =>
-        source.query(
-          `
-          UPDATE
-            tiles
-          SET
-            hash = $1,
-            created = $2
-          WHERE
-            zoom_level = $3 AND tile_column = $4 AND tile_row = $5;
-          `,
-          [
-            calculateMD5(row.tile_data),
-            Date.now(),
-            row.zoom_level,
-            row.tile_column,
-            row.tile_row,
-          ],
-        ),
+        source.query(updateSQL, [
+          calculateMD5(row.tile_data),
+          Date.now(),
+          row.zoom_level,
+          row.tile_column,
+          row.tile_row,
+        ]),
       ),
     );
   }
@@ -1375,15 +1326,7 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
  * @returns {Promise<void>}
  */
 export async function removePostgreSQLTile(source, z, x, y) {
-  await source.query(
-    `
-    DELETE FROM
-      tiles
-    WHERE
-      zoom_level = $1 AND tile_column = $2 AND tile_row = $3;
-    `,
-    [z, x, y],
-  );
+  await source.query(POSTGRESQL_DELETE_TILE_QUERY, [z, x, y]);
 }
 
 /**
@@ -1468,17 +1411,7 @@ export async function openPostgreSQLDB(uri, isCreate, timeout) {
  * @returns {Promise<object>}
  */
 export async function getPostgreSQLTile(source, z, x, y) {
-  let data = await source.query(
-    `
-    SELECT
-      tile_data
-    FROM
-      tiles
-    WHERE
-      zoom_level = $1 AND tile_column = $2 AND tile_row = $3;
-    `,
-    [z, x, y],
-  );
+  let data = await source.query(POSTGRESQL_SELECT_TILE_QUERY, [z, x, y]);
 
   if (!data.rows.length || !data.rows[0].tile_data) {
     throw new Error("Tile does not exist");
@@ -1661,29 +1594,22 @@ export async function closePostgreSQLDB(source) {
  * @returns {Promise<void>}
  */
 export async function updatePostgreSQLMetadata(source, metadataAdds) {
+  const sql = `INSERT INTO metadata (name, value) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET value = excluded.value;`;
+
   await Promise.all(
-    Object.entries({
-      ...metadataAdds,
-      center: metadataAdds.center.join(","),
-      bounds: metadataAdds.bounds.join(","),
-      scheme: "xyz",
-    }).map(([name, value]) =>
-      source.query(
-        `
-        INSERT INTO
-          metadata (name, value)
-        VALUES
-          ($1, $2)
-        ON CONFLICT
-          (name)
-        DO UPDATE
-          SET
-            value = excluded.value;
-        `,
-        [name, typeof value === "object" ? JSON.stringify(value) : value],
-      ),
-    ),
+    Object.entries(metadataAdds).map(([name, value]) => {
+      if (name === "center" || name === "bounds") {
+        source.query(sql, [name, value.join(",")]);
+      } else {
+        source.query(sql, [
+          name,
+          typeof value === "object" ? JSON.stringify(value) : value,
+        ]);
+      }
+    }),
   );
+
+  await source.query(sql, ["scheme", "tms"]);
 }
 
 /**
@@ -1768,22 +1694,14 @@ export async function cachePostgreSQLTileData(
   if (storeTransparent === false && (await isFullTransparentImage(data))) {
     return;
   } else {
-    await source.query(
-      `
-      INSERT INTO
-        tiles (zoom_level, tile_column, tile_row, tile_data, hash, created)
-      VALUES
-        ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT
-        (zoom_level, tile_column, tile_row)
-      DO UPDATE
-        SET
-          tile_data = excluded.tile_data,
-          hash = excluded.hash,
-          created = excluded.created;
-      `,
-      [z, x, y, data, calculateMD5(data), Date.now()],
-    );
+    await source.query(POSTGRESQL_INSERT_TILE_QUERY, [
+      z,
+      x,
+      y,
+      data,
+      calculateMD5(data),
+      Date.now(),
+    ]);
   }
 }
 
@@ -1860,6 +1778,8 @@ export async function addPostgreSQLOverviews(
   let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
   let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
 
+  const sql = `SELECT tile_column, tile_row, tile_data FROM tiles WHERE zoom_level = $1 AND tile_column BETWEEN $2 AND $3 AND tile_row BETWEEN $4 AND $5;`;
+
   /* Create tile data handler function */
   async function createTileData(z, x, y) {
     const minX = x * 2;
@@ -1867,18 +1787,7 @@ export async function addPostgreSQLOverviews(
     const minY = y * 2;
     const maxY = minY + 1;
 
-    const tiles = await source
-      .query(
-        `
-        SELECT
-          tile_column, tile_row, tile_data
-        FROM
-          tiles
-        WHERE
-          zoom_level = $1 AND tile_column BETWEEN $2 AND $3 AND tile_row BETWEEN $4 AND $5;
-        `,
-      )
-      .all([z + 1, minX, maxX, minY, maxY]);
+    const tiles = await source.query(sql, [z + 1, minX, maxX, minY, maxY]);
 
     if (tiles.rows.length) {
       // Create composites option
@@ -2026,7 +1935,6 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
  * @returns {Promise<[string, string, string, string]>}
  */
 async function getXYZLayersFromTiles(sourcePath) {
-  const batchSize = 1000;
   const pbfFilePaths = await findFiles(sourcePath, /^\d+\.pbf$/, true, true);
   const layerNames = new Set();
 
@@ -2042,7 +1950,7 @@ async function getXYZLayersFromTiles(sourcePath) {
   }
 
   // Batch run
-  await handleConcurrency(batchSize, getLayer, pbfFilePaths);
+  await handleConcurrency(BATCH_SIZE, getLayer, pbfFilePaths);
 
   return Array.from(layerNames);
 }
@@ -2205,9 +2113,7 @@ export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
 export async function calculateXYZTileExtraInfo(sourcePath, source) {
   const format = await getXYZFormatFromTiles(sourcePath);
 
-  const batchSize = 1000;
-
-  const sql = source.prepare(
+  const selectSQL = source.prepare(
     `
     SELECT
       zoom_level, tile_column, tile_row
@@ -2216,16 +2122,28 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
     WHERE
       hash IS NULL
     LIMIT
-      ${batchSize};
+      ${BATCH_SIZE};
     `,
   );
 
   while (true) {
-    const rows = sql.all();
+    const rows = selectSQL.all();
 
     if (!rows.length) {
       break;
     }
+
+    const updateSQL = source.prepare(
+      `
+      UPDATE
+        md5s
+      SET
+        hash = ?,
+        created = ?
+      WHERE
+        zoom_level = ? AND tile_column = ? AND tile_row = ?;
+      `,
+    );
 
     await Promise.all(
       rows.map(async (row) => {
@@ -2237,25 +2155,13 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
           format,
         );
 
-        source
-          .prepare(
-            `
-            UPDATE
-              md5s
-            SET
-              hash = ?,
-              created = ?
-            WHERE
-              zoom_level = ? AND tile_column = ? AND tile_row = ?;
-            `,
-          )
-          .run([
-            calculateMD5(data),
-            Date.now(),
-            row.zoom_level,
-            row.tile_column,
-            row.tile_row,
-          ]);
+        updateSQL.run([
+          calculateMD5(data),
+          Date.now(),
+          row.zoom_level,
+          row.tile_column,
+          row.tile_row,
+        ]);
       }),
     );
   }
@@ -2283,16 +2189,7 @@ export async function removeXYZTile(
 ) {
   await removeFileWithLock(`${sourcePath}/${z}/${x}/${y}.${format}`, timeout);
 
-  source
-    .prepare(
-      `
-      DELETE FROM
-        md5s
-      WHERE
-        zoom_level = ? AND tile_column = ? AND tile_row = ?;
-      `,
-    )
-    .run([z, x, y]);
+  source.prepare(XYZ_DELETE_MD5_QUERY).run([z, x, y]);
 }
 
 /**
@@ -2641,28 +2538,32 @@ export async function downloadXYZTile(
  * @returns {void}
  */
 export function updateXYZMetadata(source, metadataAdds) {
-  Object.entries({
-    ...metadataAdds,
-    center: metadataAdds.center.join(","),
-    bounds: metadataAdds.bounds.join(","),
-    scheme: "xyz",
-  }).map(([name, value]) =>
-    source
-      .prepare(
-        `
-        INSERT INTO
-          metadata (name, value)
-        VALUES
-          (?, ?)
-        ON CONFLICT
-          (name)
-        DO UPDATE
-          SET
-            value = excluded.value;
-        `,
-      )
-      .run([name, typeof value === "object" ? JSON.stringify(value) : value]),
+  const sql = source.prepare(
+    `
+    INSERT INTO
+      metadata (name, value)
+    VALUES
+      (?, ?)
+    ON CONFLICT
+      (name)
+    DO UPDATE
+      SET
+        value = excluded.value;
+    `,
   );
+
+  Object.entries(metadataAdds).map(([name, value]) => {
+    if (name === "center" || name === "bounds") {
+      sql.run([name, value.join(",")]);
+    } else {
+      sql.run([
+        name,
+        typeof value === "object" ? JSON.stringify(value) : value,
+      ]);
+    }
+  });
+
+  sql.run(["scheme", "tms"]);
 }
 
 /**
@@ -2697,20 +2598,7 @@ export async function cacheXYZTileFile(
     );
 
     source
-      .prepare(
-        `
-        INSERT INTO
-          md5s (zoom_level, tile_column, tile_row, hash, created)
-        VALUES
-          (?, ?, ?, ?, ?)
-        ON CONFLICT
-          (zoom_level, tile_column, tile_row)
-        DO UPDATE
-          SET
-            hash = excluded.hash,
-            created = excluded.created;
-        `,
-      )
+      .prepare(XYZ_INSERT_MD5_QUERY)
       .run([z, x, y, calculateMD5(data), Date.now()]);
   }
 }
