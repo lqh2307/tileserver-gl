@@ -1655,7 +1655,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         };
 
         /* Compact database function */
-        compactDatabase = async () => await compactMBTiles(source);
+        compactDatabase = async () => compactMBTiles(source);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeMBTilesDB(source);
@@ -1805,7 +1805,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         /* Compact database function */
         compactDatabase = async () => {
           /* Compact database */
-          await compactXYZ(source);
+          compactXYZ(source);
 
           /* Remove parent folders if empty */
           await removeEmptyFolders(sourcePath, new RegExp(`^.*\\.${format}$`));

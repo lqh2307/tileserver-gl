@@ -37,6 +37,8 @@ export async function openPostgreSQL(uri, isCreate, timeout) {
 
   const source = new pg.Client({
     connectionString: uri,
+    statement_timeout: timeout,
+    query_timeout: timeout,
   });
 
   await source.connect();

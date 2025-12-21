@@ -1,7 +1,7 @@
 "use strict";
 
-import { DatabaseSync } from "node:sqlite";
 import { mkdir } from "node:fs/promises";
+import Database from "better-sqlite3";
 import { delay } from "./util.js";
 import path from "node:path";
 
@@ -10,7 +10,7 @@ import path from "node:path";
  * @param {string} filePath SQLite database file path
  * @param {boolean} isCreate Is create SQLite database?
  * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<DatabaseSync>} SQLite database instance
+ * @returns {Promise<Database>} SQLite database instance
  */
 export async function openSQLite(filePath, isCreate, timeout) {
   if (isCreate) {
@@ -25,8 +25,8 @@ export async function openSQLite(filePath, isCreate, timeout) {
 
   while (Date.now() - startTime <= timeout) {
     try {
-      source = new DatabaseSync(filePath, {
-        enableForeignKeyConstraints: false,
+      source = new Database(filePath, {
+        fileMustExist: !isCreate,
         timeout: timeout,
       });
 
@@ -53,7 +53,7 @@ export async function openSQLite(filePath, isCreate, timeout) {
 
 /**
  * Close SQLite database
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {void}
  */
 export function closeSQLite(source) {

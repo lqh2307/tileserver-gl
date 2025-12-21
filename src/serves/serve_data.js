@@ -451,58 +451,47 @@ function calculateDataExtraInfoHandler() {
     printLog("info", `Calculating tile extra info "${id}"...`);
 
     try {
+      let calculateTileExtraInfoFunc;
+
       switch (item.sourceType) {
         case "mbtiles": {
-          calculateMBTilesTileExtraInfo(item.source)
-            .then(() => {
-              printLog("info", `Done to calculate tile extra info "${id}"!`);
-            })
-            .catch((error) => {
-              printLog(
-                "error",
-                `Failed to calculate tile extra info "${id}": ${error}`,
-              );
-            });
+          calculateTileExtraInfoFunc = async () =>
+            calculateMBTilesTileExtraInfo(item.source);
 
           break;
         }
 
         case "pmtiles": {
-          // Do nothing
+          calculateTileExtraInfoFunc = async () => {};
 
           break;
         }
 
         case "xyz": {
-          calculateXYZTileExtraInfo(item.source, item.md5Source)
-            .then(() => {
-              printLog("info", `Done to calculate tile extra info "${id}"!`);
-            })
-            .catch((error) => {
-              printLog(
-                "error",
-                `Failed to calculate tile extra info "${id}": ${error}`,
-              );
-            });
+          calculateTileExtraInfoFunc = async () =>
+            await calculateXYZTileExtraInfo(item.source, item.md5Source);
 
           break;
         }
 
         case "pg": {
-          calculatePostgreSQLTileExtraInfo(item.source)
-            .then(() => {
-              printLog("info", `Done to calculate tile extra info "${id}"!`);
-            })
-            .catch((error) => {
-              printLog(
-                "error",
-                `Failed to calculate tile extra info "${id}": ${error}`,
-              );
-            });
+          calculateTileExtraInfoFunc = async () =>
+            await calculatePostgreSQLTileExtraInfo(item.source);
 
           break;
         }
       }
+
+      calculateTileExtraInfoFunc()
+        .then(() => {
+          printLog("info", `Done to calculate tile extra info "${id}"!`);
+        })
+        .catch((error) => {
+          printLog(
+            "error",
+            `Failed to calculate tile extra info "${id}": ${error}`,
+          );
+        });
 
       return res.status(StatusCodes.OK).send("OK");
     } catch (error) {

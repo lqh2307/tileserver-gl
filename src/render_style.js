@@ -851,7 +851,7 @@ export async function renderDataTiles(
 
         /* Calculate extra info */
         calculateTileExtraInfo = async () =>
-          await calculateMBTilesTileExtraInfo(source);
+          calculateMBTilesTileExtraInfo(source);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeMBTilesDB(source);

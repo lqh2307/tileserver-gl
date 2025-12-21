@@ -36,7 +36,7 @@ import {
 
 /**
  * Get MBTiles layers from tiles
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {Promise<[string, string, string, string]>}
  */
 async function getMBTilesLayersFromTiles(source) {
@@ -62,7 +62,7 @@ async function getMBTilesLayersFromTiles(source) {
   );
 
   while (true) {
-    const rows = sql.all(batchSize, offset);
+    const rows = sql.all([batchSize, offset]);
 
     if (!rows.length) {
       break;
@@ -83,7 +83,7 @@ async function getMBTilesLayersFromTiles(source) {
 
 /**
  * Get MBTiles bounding box from tiles
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {[number, number, number, number]} Bounding box in format [minLon, minLat, maxLon, maxLat]
  */
 function getMBTilesBBoxFromTiles(source) {
@@ -143,7 +143,7 @@ function getMBTilesBBoxFromTiles(source) {
 
 /**
  * Get MBTiles zoom level from tiles
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {"minzoom"|"maxzoom"} zoomType
  * @returns {number}
  */
@@ -161,7 +161,7 @@ function getMBTilesZoomLevelFromTiles(source, zoomType) {
 
 /**
  * Get MBTiles tile format from tiles
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {string}
  */
 export function getMBTilesFormatFromTiles(source) {
@@ -174,7 +174,7 @@ export function getMBTilesFormatFromTiles(source) {
 
 /**
  * Get MBTiles tile extra info from coverages
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {boolean} isCreated Tile created extra info
  * @returns {Object<string, string>} Extra info object
@@ -221,10 +221,10 @@ export function getMBTilesTileExtraInfoFromCoverages(
 
 /**
  * Calculate MBTiles tile extra info
- * @param {DatabaseSync} source SQLite database instance
- * @returns {Promise<void>}
+ * @param {Database} source SQLite database instance
+ * @returns {void}
  */
-export async function calculateMBTilesTileExtraInfo(source) {
+export function calculateMBTilesTileExtraInfo(source) {
   const batchSize = 1000;
 
   const sql = source.prepare(
@@ -260,20 +260,20 @@ export async function calculateMBTilesTileExtraInfo(source) {
             zoom_level = ? AND tile_column = ? AND tile_row = ?;
           `,
         )
-        .run(
+        .run([
           calculateMD5(row.tile_data),
           Date.now(),
           row.zoom_level,
           row.tile_column,
           row.tile_row,
-        ),
+        ]),
     );
   }
 }
 
 /**
  * Delete a tile from MBTiles tiles table
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -289,7 +289,7 @@ export function removeMBTilesTile(source, z, x, y) {
         zoom_level = ? AND tile_column = ? AND tile_row = ?;
       `,
     )
-    .run(z, x, (1 << z) - 1 - y);
+    .run([z, x, (1 << z) - 1 - y]);
 }
 
 /**
@@ -373,7 +373,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
 
 /**
  * Get MBTiles tile
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -391,7 +391,7 @@ export function getMBTilesTile(source, z, x, y) {
         zoom_level = ? AND tile_column = ? AND tile_row = ?;
       `,
     )
-    .get(z, x, (1 << z) - 1 - y);
+    .get([z, x, (1 << z) - 1 - y]);
 
   if (!data?.tile_data) {
     throw new Error("Tile does not exist");
@@ -405,7 +405,7 @@ export function getMBTilesTile(source, z, x, y) {
 
 /**
  * Get MBTiles metadata
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {Promise<Promise<object>>}
  */
 export async function getMBTilesMetadata(source) {
@@ -554,16 +554,16 @@ export async function getMBTilesMetadata(source) {
 
 /**
  * Compact MBTiles
- * @param {DatabaseSync} source SQLite database instance
- * @returns {Promise<void>}
+ * @param {Database} source SQLite database instance
+ * @returns {void}
  */
-export async function compactMBTiles(source) {
+export function compactMBTiles(source) {
   source.exec("VACUUM;");
 }
 
 /**
  * Close MBTiles
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {void}
  */
 export function closeMBTilesDB(source) {
@@ -572,7 +572,7 @@ export function closeMBTilesDB(source) {
 
 /**
  * Update MBTiles metadata table
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
  * @returns {void}
  */
@@ -597,14 +597,14 @@ export function updateMBTilesMetadata(source, metadataAdds) {
             value = excluded.value;
         `,
       )
-      .run(name, typeof value === "object" ? JSON.stringify(value) : value),
+      .run([name, typeof value === "object" ? JSON.stringify(value) : value]),
   );
 }
 
 /**
  * Download MBTiles tile data
  * @param {string} url The URL to download the file from
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -664,7 +664,7 @@ export async function downloadMBTilesTile(
 
 /**
  * Cache MBTiles tile data
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -699,7 +699,7 @@ export async function cacheMBtilesTileData(
             created = excluded.created;
         `,
       )
-      .run(z, x, (1 << z) - 1 - y, data, calculateMD5(data), Date.now());
+      .run([z, x, (1 << z) - 1 - y, data, calculateMD5(data), Date.now()]);
   }
 }
 
@@ -735,7 +735,7 @@ export async function getMBTilesSize(filePath) {
 
 /**
  * Add MBTiles overviews (downsample to lower zoom levels)
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} concurrency Concurrency to generate overviews
  * @param {256|512} tileSize Tile size
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -787,7 +787,7 @@ export async function addMBTilesOverviews(
           zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
         `,
       )
-      .all(z + 1, minX, maxX, minY, maxY);
+      .all([z + 1, minX, maxX, minY, maxY]);
 
     if (tiles.length) {
       // Create composites option
@@ -864,7 +864,7 @@ export async function addMBTilesOverviews(
           value = excluded.value;
       `,
     )
-    .run("minzoom", metadata.maxzoom - deltaZ);
+    .run(["minzoom", metadata.maxzoom - deltaZ]);
 }
 
 /**
@@ -1826,7 +1826,7 @@ export async function countPostgreSQLTiles(uri) {
 
 /**
  * Add PostgreSQL overviews (downsample to lower zoom levels)
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} concurrency Concurrency to generate overviews
  * @param {256|512} tileSize Tile size
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -2162,7 +2162,7 @@ export async function getXYZFormatFromTiles(sourcePath) {
 
 /**
  * Get XYZ tile extra info from coverages
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {boolean} isCreated Tile created extra info
  * @returns {Object<string, string>} Extra info object
@@ -2199,7 +2199,7 @@ export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
 /**
  * Calculate XYZ tile extra info
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {Promise<void>}
  */
 export async function calculateXYZTileExtraInfo(sourcePath, source) {
@@ -2249,13 +2249,13 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
               zoom_level = ? AND tile_column = ? AND tile_row = ?;
             `,
           )
-          .run(
+          .run([
             calculateMD5(data),
             Date.now(),
             row.zoom_level,
             row.tile_column,
             row.tile_row,
-          );
+          ]);
       }),
     );
   }
@@ -2264,7 +2264,7 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
 /**
  * Remove XYZ tile data file
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -2292,7 +2292,7 @@ export async function removeXYZTile(
         zoom_level = ? AND tile_column = ? AND tile_row = ?;
       `,
     )
-    .run(z, x, y);
+    .run([z, x, y]);
 }
 
 /**
@@ -2384,7 +2384,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
  */
 export async function getXYZTile(sourcePath, z, x, y, format) {
   try {
-    let data = await readFile(`${sourcePath}/${z}/${x}/${y}.${format}`);
+    const data = await readFile(`${sourcePath}/${z}/${x}/${y}.${format}`);
 
     return {
       data: data,
@@ -2402,7 +2402,7 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
 /**
  * Get XYZ metadata
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {Promise<object>}
  */
 export async function getXYZMetadata(sourcePath, source) {
@@ -2551,16 +2551,16 @@ export async function getXYZMetadata(sourcePath, source) {
 
 /**
  * Compact XYZ
- * @param {DatabaseSync} source SQLite database instance
- * @returns {Promise<void>}
+ * @param {Database} source SQLite database instance
+ * @returns {void}
  */
-export async function compactXYZ(source) {
+export function compactXYZ(source) {
   source.exec("VACUUM;");
 }
 
 /**
  * Close the XYZ MD5 SQLite database
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @returns {void}
  */
 export function closeXYZMD5DB(source) {
@@ -2571,7 +2571,7 @@ export function closeXYZMD5DB(source) {
  * Download XYZ tile data file
  * @param {string} url The URL to download the file from
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -2636,7 +2636,7 @@ export async function downloadXYZTile(
 
 /**
  * Update MBTiles metadata table
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {Object<string,string>} metadataAdds Metadata object
  * @returns {void}
  */
@@ -2661,14 +2661,14 @@ export function updateXYZMetadata(source, metadataAdds) {
             value = excluded.value;
         `,
       )
-      .run(name, typeof value === "object" ? JSON.stringify(value) : value),
+      .run([name, typeof value === "object" ? JSON.stringify(value) : value]),
   );
 }
 
 /**
  * Cache XYZ tile data file
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
@@ -2711,7 +2711,7 @@ export async function cacheXYZTileFile(
             created = excluded.created;
         `,
       )
-      .run(z, x, y, calculateMD5(data), Date.now());
+      .run([z, x, y, calculateMD5(data), Date.now()]);
   }
 }
 
@@ -2758,7 +2758,7 @@ export async function getXYZSize(sourcePath) {
 /**
  * Add XYZ overviews (downsample to lower zoom levels)
  * @param {string} sourcePath XYZ folder path
- * @param {DatabaseSync} source SQLite database instance
+ * @param {Database} source SQLite database instance
  * @param {number} concurrency Concurrency to generate overviews
  * @param {256|512} tileSize Tile size
  * @param {boolean} storeTransparent Is store transparent tile?
@@ -2926,7 +2926,7 @@ export async function addXYZOverviews(
           value = excluded.value;
       `,
     )
-    .run("minzoom", metadata.maxzoom - deltaZ);
+    .run(["minzoom", metadata.maxzoom - deltaZ]);
 }
 
 /**
