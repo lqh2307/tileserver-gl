@@ -424,11 +424,11 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "zoom": 12
         },
         {
-          "bbox": [102, 8, 110, 24],
+          "bbox": [100, 8, 110, 24],
           "zoom": 13
         },
         {
-          "bbox": [102, 8, 110, 24],
+          "bbox": [100, 8, 110, 24],
           "zoom": 14
         },
         {
@@ -643,11 +643,11 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "zoom": 12
         },
         {
-          "bbox": [102, 8, 110, 24],
+          "bbox": [100, 8, 110, 24],
           "zoom": 13
         },
         {
-          "bbox": [102, 8, 110, 24],
+          "bbox": [100, 8, 110, 24],
           "zoom": 14
         },
         {
@@ -862,11 +862,11 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "zoom": 12
         },
         {
-          "bbox": [102, 8, 110, 24],
+          "bbox": [100, 8, 110, 24],
           "zoom": 13
         },
         {
-          "bbox": [102, 8, 110, 24],
+          "bbox": [100, 8, 110, 24],
           "zoom": 14
         },
         {
