@@ -237,7 +237,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
  * @returns {void}
  */
 export function calculateMBTilesTileExtraInfo(source) {
-  const sql = source.prepare(
+  const selectSQL = source.prepare(
     `
     SELECT
       zoom_level, tile_column, tile_row, tile_data
@@ -250,33 +250,35 @@ export function calculateMBTilesTileExtraInfo(source) {
     `,
   );
 
+  const created = Date.now();
+
   while (true) {
-    const rows = sql.all();
+    const rows = selectSQL.all();
 
     if (!rows.length) {
       break;
     }
 
+    const updateSQL = source.prepare(
+      `
+      UPDATE
+        tiles
+      SET
+        hash = ?,
+        created = ?
+      WHERE
+        zoom_level = ? AND tile_column = ? AND tile_row = ?;
+      `,
+    );
+
     rows.forEach((row) =>
-      source
-        .prepare(
-          `
-          UPDATE
-            tiles
-          SET
-            hash = ?,
-            created = ?
-          WHERE
-            zoom_level = ? AND tile_column = ? AND tile_row = ?;
-          `,
-        )
-        .run([
-          calculateMD5(row.tile_data),
-          Date.now(),
-          row.zoom_level,
-          row.tile_column,
-          row.tile_row,
-        ]),
+      updateSQL.run([
+        calculateMD5(row.tile_data),
+        created,
+        row.zoom_level,
+        row.tile_column,
+        row.tile_row,
+      ]),
     );
   }
 }
@@ -1294,6 +1296,8 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
 export async function calculatePostgreSQLTileExtraInfo(source) {
   const selectSQL = `SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles WHERE hash IS NULL LIMIT $1;`;
 
+  const created = Date.now();
+
   while (true) {
     const data = await source.query(selectSQL, [BATCH_SIZE]);
 
@@ -1307,7 +1311,7 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
       data.rows.map((row) =>
         source.query(updateSQL, [
           calculateMD5(row.tile_data),
-          Date.now(),
+          created,
           row.zoom_level,
           row.tile_column,
           row.tile_row,
@@ -2126,6 +2130,8 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
     `,
   );
 
+  const created = Date.now();
+
   while (true) {
     const rows = selectSQL.all();
 
@@ -2157,7 +2163,7 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
 
         updateSQL.run([
           calculateMD5(data),
-          Date.now(),
+          created,
           row.zoom_level,
           row.tile_column,
           row.tile_row,
