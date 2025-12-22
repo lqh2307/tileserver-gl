@@ -6,23 +6,21 @@ import {
   getPostgreSQLTileExtraInfoFromCoverages,
   getMBTilesTileExtraInfoFromCoverages,
   getXYZTileExtraInfoFromCoverages,
-  downloadPostgreSQLTileBulk,
   MBTILES_INSERT_TILE_QUERY,
   MBTILES_DELETE_TILE_QUERY,
   updatePostgreSQLMetadata,
-  downloadMBTilesTileBulk,
-  removeMBTilesTileBulk,
+  downloadPostgreSQLTile,
   updateMBTilesMetadata,
   getXYZFormatFromTiles,
   removePostgreSQLTile,
   XYZ_DELETE_MD5_QUERY,
   XYZ_INSERT_MD5_QUERY,
-  downloadXYZTileBulk,
+  downloadMBTilesTile,
   downloadGeoJSONFile,
   downloadSpriteFile,
   updateXYZMetadata,
+  removeMBTilesTile,
   closePostgreSQLDB,
-  removeXYZTileBulk,
   downloadStyleFile,
   getGeoJSONCreated,
   removeGeoJSONFile,
@@ -30,12 +28,14 @@ import {
   downloadFontFile,
   getSpriteCreated,
   removeSpriteFile,
+  downloadXYZTile,
   getStyleCreated,
   removeStyleFile,
   getFontCreated,
   removeFontFile,
   closeMBTilesDB,
   compactMBTiles,
+  removeXYZTile,
   closeXYZMD5DB,
   openMBTilesDB,
   openXYZMD5DB,
@@ -781,18 +781,18 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadMBTilesTileBulk(
-              targetURL,
-              sql,
-              z,
-              x,
-              tmpY,
-              maxTry,
-              timeout,
-              created,
-              storeTransparent,
-              headers,
-            );
+            await downloadMBTilesTile({
+              url: targetURL,
+              statement: sql,
+              z: z,
+              x: x,
+              y: tmpY,
+              maxTry: maxTry,
+              timeout: timeout,
+              created: created,
+              storeTransparent: storeTransparent,
+              headers: headers,
+            });
           } catch (error) {
             printLog(
               "error",
@@ -928,18 +928,18 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadPostgreSQLTileBulk(
-              targetURL,
-              source,
-              z,
-              x,
-              tmpY,
-              maxTry,
-              timeout,
-              created,
-              storeTransparent,
-              headers,
-            );
+            await downloadPostgreSQLTile({
+              url: targetURL,
+              source: source,
+              z: z,
+              x: x,
+              y: tmpY,
+              maxTry: maxTry,
+              timeout: timeout,
+              created: created,
+              storeTransparent: storeTransparent,
+              headers: headers,
+            });
           } catch (error) {
             printLog(
               "error",
@@ -1077,20 +1077,20 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadXYZTileBulk(
-              targetURL,
-              sourcePath,
-              sql,
-              z,
-              x,
-              tmpY,
-              metadata.format,
-              maxTry,
-              timeout,
-              created,
-              storeTransparent,
-              headers,
-            );
+            await downloadXYZTile({
+              url: targetURL,
+              sourcePath: sourcePath,
+              statement: sql,
+              z: z,
+              x: x,
+              y: tmpY,
+              format: metadata.format,
+              maxTry: maxTry,
+              timeout: timeout,
+              created: created,
+              storeTransparent: storeTransparent,
+              headers: headers,
+            });
           } catch (error) {
             printLog(
               "error",
@@ -1662,7 +1662,12 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           );
 
           try {
-            removeMBTilesTileBulk(sql, z, x, y);
+            removeMBTilesTile({
+              statement: sql,
+              z: z,
+              x: x,
+              y: y,
+            });
           } catch (error) {
             printLog(
               "error",
@@ -1730,7 +1735,12 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           );
 
           try {
-            await removePostgreSQLTile(source, z, x, y);
+            await removePostgreSQLTile({
+              source: source,
+              z: z,
+              x: x,
+              y: y,
+            });
           } catch (error) {
             printLog(
               "error",
@@ -1804,15 +1814,14 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           );
 
           try {
-            await removeXYZTileBulk(
-              sourcePath,
-              sql,
-              z,
-              x,
-              y,
-              format,
-              30000, // 30 seconds
-            );
+            await removeXYZTile({
+              sourcePath: sourcePath,
+              statement: sql,
+              z: z,
+              x: x,
+              y: y,
+              format: format,
+            });
           } catch (error) {
             printLog(
               "error",

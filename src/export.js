@@ -843,7 +843,14 @@ export async function exportDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storeMBtilesTileData(source, z, x, y, data, storeTransparent);
+          storeMBtilesTileData({
+            source: source,
+            z: z,
+            x: x,
+            y: y,
+            data: data,
+            storeTransparent: storeTransparent,
+          });
 
         /* Close database function */
         closeDatabaseFunc = async () => closeMBTilesDB(source);
@@ -872,7 +879,14 @@ export async function exportDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storePostgreSQLTileData(source, z, x, y, data, storeTransparent);
+          storePostgreSQLTileData({
+            source: source,
+            z: z,
+            x: x,
+            y: y,
+            data: data,
+            storeTransparent: storeTransparent,
+          });
 
         /* Close database function */
         closeDatabaseFunc = async () => await closePostgreSQLDB(source);
@@ -903,16 +917,16 @@ export async function exportDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storeXYZTileFile(
-            storePath,
-            source,
-            z,
-            x,
-            y,
-            metadata.format,
-            data,
-            storeTransparent,
-          );
+          storeXYZTileFile({
+            sourcePath: storePath,
+            source: source,
+            z: z,
+            x: x,
+            y: y,
+            format: metadata.format,
+            data: data,
+            storeTransparent: storeTransparent,
+          });
 
         /* Close database function */
         closeDatabaseFunc = async () => closeXYZMD5DB(source);
