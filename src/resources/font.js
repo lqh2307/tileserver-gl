@@ -41,12 +41,12 @@ export async function removeFontFile(filePath, timeout) {
 }
 
 /**
- * Cache font file
+ * Store font file
  * @param {string} filePath Font file path to store
  * @param {Buffer} data Font buffer
  * @returns {Promise<void>}
  */
-export async function cacheFontFile(filePath, data) {
+export async function storeFontFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
@@ -82,7 +82,7 @@ export async function downloadFontFile(
       );
 
       // Store data to file
-      await cacheFontFile(filePath, response.data);
+      await storeFontFile(filePath, response.data);
     } catch (error) {
       if (error.statusCode) {
         if (
@@ -285,7 +285,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
                 `Caching font "${id}" - Filename "${fileName}"...`,
               );
 
-              cacheFontFile(`${item.path}/${fileName}`, font).catch((error) =>
+              storeFontFile(`${item.path}/${fileName}`, font).catch((error) =>
                 printLog(
                   "error",
                   `Failed to cache font "${id}" - Filename "${fileName}": ${error}`,

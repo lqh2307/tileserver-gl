@@ -1156,7 +1156,9 @@ export const serve_data = {
             }
 
             /* Validate tile metadata */
-            validateTileMetadata(dataInfo.tileJSON);
+            if (item.validate) {
+              validateTileMetadata(dataInfo.tileJSON);
+            }
 
             /* Add to repo */
             repos[id] = dataInfo;

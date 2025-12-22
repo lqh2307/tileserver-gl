@@ -249,7 +249,9 @@ export const serve_sprite = {
               spriteInfo.path = `${process.env.DATA_DIR}/sprites/${item.sprite}`;
 
               /* Validate sprite */
-              await validateSprite(spriteInfo.path);
+              if (item.validate) {
+                await validateSprite(spriteInfo.path);
+              }
             }
 
             /* Add to repo */

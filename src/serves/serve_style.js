@@ -925,7 +925,9 @@ export const serve_style = {
               styleJSON = JSON.parse(await getStyle(styleInfo.path));
 
               /* Validate style */
-              await validateStyle(styleJSON);
+              if (item.validate) {
+                await validateStyle(styleJSON);
+              }
 
               /* Store style info */
               styleInfo.name = styleJSON.name || "Unknown";

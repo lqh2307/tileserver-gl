@@ -27,12 +27,12 @@ export async function removeSpriteFile(filePath, timeout) {
 }
 
 /**
- * Cache sprite file
+ * Store sprite file
  * @param {string} filePath Sprite file path to store
  * @param {Buffer} data Sprite buffer
  * @returns {Promise<void>}
  */
-export async function cacheSpriteFile(filePath, data) {
+export async function storeSpriteFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
@@ -68,7 +68,7 @@ export async function downloadSpriteFile(
       );
 
       // Store data to file
-      await cacheSpriteFile(filePath, response.data);
+      await storeSpriteFile(filePath, response.data);
     } catch (error) {
       if (error.statusCode) {
         if (
@@ -218,7 +218,7 @@ export async function getAndCacheDataSprite(id, fileName) {
       if (item.storeCache) {
         printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
 
-        cacheSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
+        storeSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
           printLog(
             "error",
             `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`,

@@ -68,6 +68,9 @@
                 "type": "boolean"
               }
             }
+          },
+          "validate": {
+            "type": "boolean"
           }
         }
       }
@@ -93,6 +96,9 @@
                   "type": "boolean"
                 }
               }
+            },
+            "validate": {
+              "type": "boolean"
             }
           }
         }
@@ -243,6 +249,9 @@
                 }
               }
             }
+          },
+          "validate": {
+            "type": "boolean"
           }
         }
       }
@@ -263,6 +272,9 @@
                 "type": "boolean"
               },
               "store": {
+                "type": "boolean"
+              },
+              "validate": {
                 "type": "boolean"
               }
             }
@@ -286,6 +298,9 @@
                 "type": "boolean"
               },
               "store": {
+                "type": "boolean"
+              },
+              "validate": {
                 "type": "boolean"
               }
             }

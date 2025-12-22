@@ -50,7 +50,7 @@ export async function downloadGeoJSONFile(
       );
 
       // Store data to file
-      await cacheGeoJSONFile(filePath, response.data);
+      await storeGeoJSONFile(filePath, response.data);
     } catch (error) {
       if (error.statusCode) {
         if (
@@ -69,12 +69,12 @@ export async function downloadGeoJSONFile(
 }
 
 /**
- * Cache GeoJSON file
+ * Store GeoJSON file
  * @param {string} filePath GeoJSON file path to store
  * @param {Buffer} data Tile data buffer
  * @returns {Promise<void>}
  */
-export async function cacheGeoJSONFile(filePath, data) {
+export async function storeGeoJSONFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
@@ -374,7 +374,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
       if (item.storeCache) {
         printLog("info", `Caching GeoJSON "${id}" - File "${item.path}"...`);
 
-        cacheGeoJSONFile(item.path, geoJSON).catch((error) =>
+        storeGeoJSONFile(item.path, geoJSON).catch((error) =>
           printLog(
             "error",
             `Failed to cache GeoJSON "${id}" - File "${item.path}": ${error}`,

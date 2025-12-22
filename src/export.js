@@ -17,23 +17,23 @@ import {
   getAndCachePostgreSQLDataTile,
   getAndCacheMBTilesDataTile,
   updatePostgreSQLMetadata,
-  cachePostgreSQLTileData,
+  storePostgreSQLTileData,
   getAndCacheXYZDataTile,
   getAndCacheDataGeoJSON,
   updateMBTilesMetadata,
   getAndCacheDataSprite,
   getAndCacheDataFonts,
   getRenderedStyleJSON,
-  cacheMBtilesTileData,
+  storeMBtilesTileData,
   updateXYZMetadata,
   closePostgreSQLDB,
   openPostgreSQLDB,
-  cacheXYZTileFile,
-  cacheGeoJSONFile,
-  cacheSpriteFile,
-  cacheStyleFile,
-  cacheFontFile,
+  storeXYZTileFile,
+  storeGeoJSONFile,
+  storeSpriteFile,
+  storeStyleFile,
   closeMBTilesDB,
+  storeFontFile,
   openMBTilesDB,
   closeXYZMD5DB,
   openXYZMD5DB,
@@ -165,7 +165,7 @@ export async function exportAll(
         if (exportData) {
           const styleBuffer = await getStyle(style.path);
 
-          await cacheStyleFile(
+          await storeStyleFile(
             `${dirPath}/caches/styles/${styleFolder}/style.json`,
             styleBuffer,
           );
@@ -216,7 +216,7 @@ export async function exportAll(
                     fileName,
                   );
 
-                  await cacheFontFile(
+                  await storeFontFile(
                     `${dirPath}/caches/fonts/${fontFolder}/${fileName}`,
                     fontBuffer,
                   );
@@ -257,11 +257,11 @@ export async function exportAll(
             ]);
 
             await Promise.all([
-              cacheSpriteFile(
+              storeSpriteFile(
                 `${dirPath}/caches/sprites/${spriteFolder}/sprite.json`,
                 spriteJSONBuffer,
               ),
-              cacheSpriteFile(
+              storeSpriteFile(
                 `${dirPath}/caches/sprites/${spriteFolder}/sprite.png`,
                 spritePNGBuffer,
               ),
@@ -308,7 +308,7 @@ export async function exportAll(
                   parts[3],
                 );
 
-                await cacheGeoJSONFile(
+                await storeGeoJSONFile(
                   `${dirPath}/caches/geojsons/${geojsonFolder}/${geojsonFolder}.geojson`,
                   geoJSONBuffer,
                 );
@@ -616,7 +616,7 @@ export async function exportAll(
           if (exportData) {
             const geoJSONBuffer = await getAndCacheDataGeoJSON(group, layer);
 
-            await cacheGeoJSONFile(
+            await storeGeoJSONFile(
               `${dirPath}/caches/geojsons/${geojsonFolder}/${geojsonFolder}.geojson`,
               geoJSONBuffer,
             );
@@ -658,11 +658,11 @@ export async function exportAll(
           ]);
 
           await Promise.all([
-            cacheSpriteFile(
+            storeSpriteFile(
               `${dirPath}/caches/sprites/${spriteFolder}/sprite.json`,
               spriteJSONBuffer,
             ),
-            cacheSpriteFile(
+            storeSpriteFile(
               `${dirPath}/caches/sprites/${spriteFolder}/sprite.png`,
               spritePNGBuffer,
             ),
@@ -705,7 +705,7 @@ export async function exportAll(
 
               const fontBuffer = await getAndCacheDataFonts(fontID, fileName);
 
-              await cacheFontFile(
+              await storeFontFile(
                 `${dirPath}/caches/fonts/${fontFolder}/${fileName}`,
                 fontBuffer,
               );
@@ -843,7 +843,7 @@ export async function exportDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
+          storeMBtilesTileData(source, z, x, y, data, storeTransparent);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeMBTilesDB(source);
@@ -872,7 +872,7 @@ export async function exportDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          cachePostgreSQLTileData(source, z, x, y, data, storeTransparent);
+          storePostgreSQLTileData(source, z, x, y, data, storeTransparent);
 
         /* Close database function */
         closeDatabaseFunc = async () => await closePostgreSQLDB(source);
@@ -903,7 +903,7 @@ export async function exportDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          cacheXYZTileFile(
+          storeXYZTileFile(
             storePath,
             source,
             z,

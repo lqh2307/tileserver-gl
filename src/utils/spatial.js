@@ -3,6 +3,9 @@
 import { calculateResolution } from "./image.js";
 import { limitValue } from "./number.js";
 
+const SPHERICAL_RADIUS = 6378137.0;
+const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
+
 /**
  * Convert coordinates from EPSG:4326 (lon, lat) to EPSG:3857 (x, y in meters)
  * @param {number} lon Longitude in degrees
@@ -14,8 +17,8 @@ export function lonLat4326ToXY3857(lon, lat) {
   lat = limitValue(lat, -85.051129, 85.051129);
 
   return [
-    lon * (Math.PI / 180) * 6378137,
-    Math.log(Math.tan((Math.PI * (lat + 90)) / 360)) * 6378137,
+    lon * (Math.PI / 180) * SPHERICAL_RADIUS,
+    Math.log(Math.tan((Math.PI * (lat + 90)) / 360)) * SPHERICAL_RADIUS,
   ];
 }
 
@@ -26,8 +29,8 @@ export function lonLat4326ToXY3857(lon, lat) {
  * @returns {[number, number]} Longitude and latitude in degrees
  */
 export function xy3857ToLonLat4326(x, y) {
-  let lon = (x / 6378137) * (180 / Math.PI);
-  let lat = Math.atan(Math.sinh(y / 6378137)) * (180 / Math.PI);
+  let lon = (x / SPHERICAL_RADIUS) * (180 / Math.PI);
+  let lat = Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (180 / Math.PI);
 
   lon = limitValue(lon, -180, 180);
   lat = limitValue(lat, -85.051129, 85.051129);
@@ -130,7 +133,7 @@ export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
   const res = xRes <= yRes ? xRes : yRes;
 
   const maxZoom = limitValue(
-    Math.round(Math.log2((2 * Math.PI * 6378137) / tileSize / res)),
+    Math.round(Math.log2(MAX_GM / tileSize / res)),
     0,
     25,
   );
@@ -195,7 +198,7 @@ export function calculateSizes(z, bbox, tileSize = 512) {
   const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
   const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
 
-  const resolution = (2 * Math.PI * 6378137) / (tileSize * Math.pow(2, z));
+  const resolution = MAX_GM / (tileSize * Math.pow(2, z));
 
   return {
     width: Math.round((maxX - minX) / resolution),
@@ -540,9 +543,7 @@ export function getCoverBBox(bbox1, bbox2) {
  * @returns {number} Scale
  */
 export function zoomToScale(zoom, ppi = 96, tileSize = 256) {
-  return (
-    (ppi * ((2 * Math.PI * 6378137) / tileSize / Math.pow(2, zoom))) / 0.0254
-  );
+  return (ppi * (MAX_GM / tileSize / Math.pow(2, zoom))) / 0.0254;
 }
 
 /**
@@ -553,7 +554,7 @@ export function zoomToScale(zoom, ppi = 96, tileSize = 256) {
  * @returns {number} zoom
  */
 export function scaleToZoom(scale, ppi = 96, tileSize = 256) {
-  return Math.log2(ppi * ((2 * Math.PI * 6378137) / tileSize / scale / 0.0254));
+  return Math.log2(ppi * (MAX_GM / tileSize / scale / 0.0254));
 }
 
 /**
@@ -564,5 +565,5 @@ export function scaleToZoom(scale, ppi = 96, tileSize = 256) {
  * @returns {number} zoom
  */
 export function getTileFromPixelsZ(scale, ppi = 96, tileSize = 256) {
-  return Math.log2(ppi * ((2 * Math.PI * 6378137) / tileSize / scale / 0.0254));
+  return Math.log2(ppi * (MAX_GM / tileSize / scale / 0.0254));
 }

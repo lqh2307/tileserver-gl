@@ -318,7 +318,9 @@ export const serve_font = {
               fontInfo.path = `${process.env.DATA_DIR}/fonts/${item.font}`;
 
               /* Validate font */
-              await validatePBFFont(fontInfo.path);
+              if (item.validate) {
+                await validatePBFFont(fontInfo.path);
+              }
             }
 
             /* Add to repo */

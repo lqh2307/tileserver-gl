@@ -15,7 +15,7 @@ import {
   getAndCacheMBTilesDataTile,
   calculateXYZTileExtraInfo,
   updatePostgreSQLMetadata,
-  cachePostgreSQLTileData,
+  storePostgreSQLTileData,
   getAndCacheDataGeoJSON,
   getAndCacheXYZDataTile,
   addPostgreSQLOverviews,
@@ -23,11 +23,11 @@ import {
   updateMBTilesMetadata,
   getAndCacheDataFonts,
   getRenderedStyleJSON,
-  cacheMBtilesTileData,
+  storeMBtilesTileData,
   addMBTilesOverviews,
   closePostgreSQLDB,
   updateXYZMetadata,
-  cacheXYZTileFile,
+  storeXYZTileFile,
   openPostgreSQLDB,
   addXYZOverviews,
   getFallbackFont,
@@ -843,7 +843,7 @@ export async function renderDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          cacheMBtilesTileData(source, z, x, y, data, storeTransparent);
+          storeMBtilesTileData(source, z, x, y, data, storeTransparent);
 
         /* Add overviews function */
         createOverviewsFunc = () =>
@@ -909,7 +909,7 @@ export async function renderDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          cachePostgreSQLTileData(source, z, x, y, data, storeTransparent);
+          storePostgreSQLTileData(source, z, x, y, data, storeTransparent);
 
         /* Add overviews function */
         createOverviewsFunc = () =>
@@ -982,7 +982,7 @@ export async function renderDataTiles(
 
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          cacheXYZTileFile(
+          storeXYZTileFile(
             storePath,
             source,
             z,

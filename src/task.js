@@ -6,17 +6,23 @@ import {
   getPostgreSQLTileExtraInfoFromCoverages,
   getMBTilesTileExtraInfoFromCoverages,
   getXYZTileExtraInfoFromCoverages,
+  downloadPostgreSQLTileBulk,
+  MBTILES_INSERT_TILE_QUERY,
+  MBTILES_DELETE_TILE_QUERY,
   updatePostgreSQLMetadata,
-  downloadPostgreSQLTile,
+  downloadMBTilesTileBulk,
+  removeMBTilesTileBulk,
   updateMBTilesMetadata,
   getXYZFormatFromTiles,
   removePostgreSQLTile,
-  downloadMBTilesTile,
+  XYZ_DELETE_MD5_QUERY,
+  XYZ_INSERT_MD5_QUERY,
+  downloadXYZTileBulk,
   downloadGeoJSONFile,
   downloadSpriteFile,
   updateXYZMetadata,
-  removeMBTilesTile,
   closePostgreSQLDB,
+  removeXYZTileBulk,
   downloadStyleFile,
   getGeoJSONCreated,
   removeGeoJSONFile,
@@ -26,14 +32,12 @@ import {
   removeSpriteFile,
   getStyleCreated,
   removeStyleFile,
-  downloadXYZTile,
   getFontCreated,
   removeFontFile,
   closeMBTilesDB,
   compactMBTiles,
   closeXYZMD5DB,
   openMBTilesDB,
-  removeXYZTile,
   openXYZMD5DB,
   compactXYZ,
   getGeoJSON,
@@ -747,6 +751,9 @@ async function seedDataTiles(
           }
         }
 
+        const sql = source.prepare(MBTILES_INSERT_TILE_QUERY);
+        const created = Date.now();
+
         /* Download data tile function */
         downloadDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
@@ -774,14 +781,15 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadMBTilesTile(
+            await downloadMBTilesTileBulk(
               targetURL,
-              source,
+              sql,
               z,
               x,
               tmpY,
               maxTry,
               timeout,
+              created,
               storeTransparent,
               headers,
             );
@@ -891,6 +899,8 @@ async function seedDataTiles(
           }
         }
 
+        const created = Date.now();
+
         /* Download data tile function */
         downloadDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
@@ -918,7 +928,7 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadPostgreSQLTile(
+            await downloadPostgreSQLTileBulk(
               targetURL,
               source,
               z,
@@ -926,6 +936,7 @@ async function seedDataTiles(
               tmpY,
               maxTry,
               timeout,
+              created,
               storeTransparent,
               headers,
             );
@@ -1036,6 +1047,9 @@ async function seedDataTiles(
           }
         }
 
+        const sql = source.prepare(XYZ_INSERT_MD5_QUERY);
+        const created = Date.now();
+
         /* Download data tile function */
         downloadDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
@@ -1063,16 +1077,17 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadXYZTile(
+            await downloadXYZTileBulk(
               targetURL,
               sourcePath,
-              source,
+              sql,
               z,
               x,
               tmpY,
               metadata.format,
               maxTry,
               timeout,
+              created,
               storeTransparent,
               headers,
             );
@@ -1629,6 +1644,8 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           }
         }
 
+        const sql = source.prepare(MBTILES_DELETE_TILE_QUERY);
+
         /* Remove data tile function */
         removeDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
@@ -1645,7 +1662,7 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           );
 
           try {
-            removeMBTilesTile(source, z, x, y);
+            removeMBTilesTileBulk(sql, z, x, y);
           } catch (error) {
             printLog(
               "error",
@@ -1769,6 +1786,8 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         /* Detect format tile */
         const format = await getXYZFormatFromTiles(sourcePath);
 
+        const sql = source.prepare(XYZ_DELETE_MD5_QUERY);
+
         /* Remove data tile function */
         removeDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
@@ -1785,9 +1804,9 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           );
 
           try {
-            await removeXYZTile(
+            await removeXYZTileBulk(
               sourcePath,
-              source,
+              sql,
               z,
               x,
               y,

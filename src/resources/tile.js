@@ -34,16 +34,16 @@ import {
 
 const BATCH_SIZE = 1000;
 
-const MBTILES_INSERT_TILE_QUERY = `INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;`;
+export const MBTILES_INSERT_TILE_QUERY = `INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;`;
 const MBTILES_SELECT_TILE_QUERY = `SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
-const MBTILES_DELETE_TILE_QUERY = `DELETE FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
+export const MBTILES_DELETE_TILE_QUERY = `DELETE FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
 
-const XYZ_INSERT_MD5_QUERY = `INSERT INTO md5s (zoom_level, tile_column, tile_row, hash, created) VALUES (?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET hash = excluded.hash, created = excluded.created;`;
-const XYZ_DELETE_MD5_QUERY = `DELETE FROM md5s WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
+export const XYZ_INSERT_MD5_QUERY = `INSERT INTO md5s (zoom_level, tile_column, tile_row, hash, created) VALUES (?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET hash = excluded.hash, created = excluded.created;`;
+export const XYZ_DELETE_MD5_QUERY = `DELETE FROM md5s WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
 
-const POSTGRESQL_INSERT_TILE_QUERY = `INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;`;
+export const POSTGRESQL_INSERT_TILE_QUERY = `INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;`;
 const POSTGRESQL_SELECT_TILE_QUERY = `SELECT tile_data FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3;`;
-const POSTGRESQL_DELETE_TILE_QUERY = `DELETE FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3;`;
+export const POSTGRESQL_DELETE_TILE_QUERY = `DELETE FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3;`;
 
 /*********************************** MBTiles *************************************/
 
@@ -249,6 +249,17 @@ export function calculateMBTilesTileExtraInfo(source) {
       ${BATCH_SIZE};
     `,
   );
+  const updateSQL = source.prepare(
+    `
+    UPDATE
+      tiles
+    SET
+      hash = ?,
+      created = ?
+    WHERE
+      zoom_level = ? AND tile_column = ? AND tile_row = ?;
+    `,
+  );
 
   const created = Date.now();
 
@@ -258,18 +269,6 @@ export function calculateMBTilesTileExtraInfo(source) {
     if (!rows.length) {
       break;
     }
-
-    const updateSQL = source.prepare(
-      `
-      UPDATE
-        tiles
-      SET
-        hash = ?,
-        created = ?
-      WHERE
-        zoom_level = ? AND tile_column = ? AND tile_row = ?;
-      `,
-    );
 
     rows.forEach((row) =>
       updateSQL.run([
@@ -281,6 +280,18 @@ export function calculateMBTilesTileExtraInfo(source) {
       ]),
     );
   }
+}
+
+/**
+ * Delete a tile from MBTiles tiles table bulk
+ * @param {BetterSqlite3.Statement} statement SQLite statement
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @returns {void}
+ */
+export function removeMBTilesTileBulk(statement, z, x, y) {
+  statement.run([z, x, (1 << z) - 1 - y]);
 }
 
 /**
@@ -600,6 +611,70 @@ export function updateMBTilesMetadata(source, metadataAdds) {
 }
 
 /**
+ * Download MBTiles tile data bulk
+ * @param {string} url The URL to download the file from
+ * @param {BetterSqlite3.Statement} statement SQLite statement
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {number} maxTry Number of retry attempts on failure
+ * @param {number} timeout Timeout in milliseconds
+ * @param {number} created Created
+ * @param {boolean} storeTransparent Is store transparent tile?
+ * @param {object} headers Headers
+ * @returns {Promise<void>}
+ */
+export async function downloadMBTilesTileBulk(
+  url,
+  statement,
+  z,
+  x,
+  y,
+  maxTry,
+  timeout,
+  created,
+  storeTransparent,
+  headers,
+) {
+  await retry(async () => {
+    try {
+      // Get data from URL
+      const response = await getDataFromURL(
+        url,
+        timeout,
+        "arraybuffer",
+        false,
+        headers,
+      );
+
+      // Store data
+      await storeMBtilesTileDataBulk(
+        statement,
+        z,
+        x,
+        y,
+        response.data,
+        created,
+        storeTransparent,
+      );
+    } catch (error) {
+      if (error.statusCode) {
+        if (
+          error.statusCode === StatusCodes.NO_CONTENT ||
+          error.statusCode === StatusCodes.NOT_FOUND
+        ) {
+          return;
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
+  }, maxTry);
+}
+
+/**
  * Download MBTiles tile data
  * @param {string} url The URL to download the file from
  * @param {Database} source SQLite database instance
@@ -635,7 +710,7 @@ export async function downloadMBTilesTile(
       );
 
       // Store data
-      await cacheMBtilesTileData(
+      await storeMBtilesTileData(
         source,
         z,
         x,
@@ -661,7 +736,34 @@ export async function downloadMBTilesTile(
 }
 
 /**
- * Cache MBTiles tile data
+ * Store MBTiles tile data bulk
+ * @param {BetterSqlite3.Statement} statement SQLite statement
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {Buffer} data Tile data buffer
+ * @param {number} created Created
+ * @param {boolean} storeTransparent Is store transparent tile?
+ * @returns {Promise<void>}
+ */
+export async function storeMBtilesTileDataBulk(
+  statement,
+  z,
+  x,
+  y,
+  data,
+  created,
+  storeTransparent,
+) {
+  if (storeTransparent === false && (await isFullTransparentImage(data))) {
+    return;
+  } else {
+    statement.run([z, x, (1 << z) - 1 - y, data, calculateMD5(data), created]);
+  }
+}
+
+/**
+ * Store MBTiles tile data
  * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
@@ -670,7 +772,7 @@ export async function downloadMBTilesTile(
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
-export async function cacheMBtilesTileData(
+export async function storeMBtilesTileData(
   source,
   z,
   x,
@@ -805,7 +907,7 @@ export async function addMBTilesOverviews(
           height: height,
         });
 
-        await cacheMBtilesTileData(source, z, x, y, image, storeTransparent);
+        await storeMBtilesTileData(source, z, x, y, image, storeTransparent);
       }
     }
   }
@@ -890,7 +992,7 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
       if (item.storeCache) {
         printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
 
-        cacheMBtilesTileData(
+        storeMBtilesTileData(
           item.source,
           z,
           x,
@@ -1295,6 +1397,7 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
  */
 export async function calculatePostgreSQLTileExtraInfo(source) {
   const selectSQL = `SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles WHERE hash IS NULL LIMIT $1;`;
+  const updateSQL = `UPDATE tiles SET hash = $1, created = $2 WHERE zoom_level = $3 AND tile_column = $4 AND tile_row = $5;`;
 
   const created = Date.now();
 
@@ -1304,8 +1407,6 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
     if (!data.rows.length) {
       break;
     }
-
-    const updateSQL = `UPDATE tiles SET hash = $1, created = $2 WHERE zoom_level = $3 AND tile_column = $4 AND tile_row = $5;`;
 
     await Promise.all(
       data.rows.map((row) =>
@@ -1617,6 +1718,70 @@ export async function updatePostgreSQLMetadata(source, metadataAdds) {
 }
 
 /**
+ * Download PostgreSQL tile data bulk
+ * @param {string} url The URL to download the file from
+ * @param {pg.Client} source PostgreSQL database instance
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {number} maxTry Number of retry attempts on failure
+ * @param {number} timeout Timeout in milliseconds
+ * @param {number} created Created
+ * @param {boolean} storeTransparent Is store transparent tile?
+ * @param {object} headers Headers
+ * @returns {Promise<void>}
+ */
+export async function downloadPostgreSQLTileBulk(
+  url,
+  source,
+  z,
+  x,
+  y,
+  maxTry,
+  timeout,
+  created,
+  storeTransparent,
+  headers,
+) {
+  await retry(async () => {
+    try {
+      // Get data from URL
+      const response = await getDataFromURL(
+        url,
+        timeout,
+        "arraybuffer",
+        false,
+        headers,
+      );
+
+      // Store data
+      await storePostgreSQLTileDataBulk(
+        source,
+        z,
+        x,
+        y,
+        response.data,
+        created,
+        storeTransparent,
+      );
+    } catch (error) {
+      if (error.statusCode) {
+        if (
+          error.statusCode === StatusCodes.NO_CONTENT ||
+          error.statusCode === StatusCodes.NOT_FOUND
+        ) {
+          return;
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
+  }, maxTry);
+}
+
+/**
  * Download PostgreSQL tile data
  * @param {string} url The URL to download the file from
  * @param {pg.Client} source PostgreSQL database instance
@@ -1652,7 +1817,7 @@ export async function downloadPostgreSQLTile(
       );
 
       // Store data
-      await cachePostgreSQLTileData(
+      await storePostgreSQLTileData(
         source,
         z,
         x,
@@ -1678,7 +1843,41 @@ export async function downloadPostgreSQLTile(
 }
 
 /**
- * Cache PostgreSQL tile data
+ * Store PostgreSQL tile data bulk
+ * @param {pg.Client} source PostgreSQL database instance
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {Buffer} data Tile data buffer
+ * @param {number} created Created
+ * @param {boolean} storeTransparent Is store transparent tile?
+ * @returns {Promise<void>}
+ */
+export async function storePostgreSQLTileDataBulk(
+  source,
+  z,
+  x,
+  y,
+  data,
+  created,
+  storeTransparent,
+) {
+  if (storeTransparent === false && (await isFullTransparentImage(data))) {
+    return;
+  } else {
+    await source.query(POSTGRESQL_INSERT_TILE_QUERY, [
+      z,
+      x,
+      y,
+      data,
+      calculateMD5(data),
+      created,
+    ]);
+  }
+}
+
+/**
+ * Store PostgreSQL tile data
  * @param {pg.Client} source PostgreSQL database instance
  * @param {number} z Zoom level
  * @param {number} x X tile index
@@ -1687,7 +1886,7 @@ export async function downloadPostgreSQLTile(
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
-export async function cachePostgreSQLTileData(
+export async function storePostgreSQLTileData(
   source,
   z,
   x,
@@ -1825,7 +2024,7 @@ export async function addPostgreSQLOverviews(
           height: height,
         });
 
-        await cachePostgreSQLTileData(source, z, x, y, image, storeTransparent);
+        await storePostgreSQLTileData(source, z, x, y, image, storeTransparent);
       }
     }
   }
@@ -1909,7 +2108,7 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
       if (item.storeCache) {
         printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
 
-        cachePostgreSQLTileData(
+        storePostgreSQLTileData(
           item.source,
           z,
           x,
@@ -2129,6 +2328,17 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
       ${BATCH_SIZE};
     `,
   );
+  const updateSQL = source.prepare(
+    `
+    UPDATE
+      md5s
+    SET
+      hash = ?,
+      created = ?
+    WHERE
+      zoom_level = ? AND tile_column = ? AND tile_row = ?;
+    `,
+  );
 
   const created = Date.now();
 
@@ -2138,18 +2348,6 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
     if (!rows.length) {
       break;
     }
-
-    const updateSQL = source.prepare(
-      `
-      UPDATE
-        md5s
-      SET
-        hash = ?,
-        created = ?
-      WHERE
-        zoom_level = ? AND tile_column = ? AND tile_row = ?;
-      `,
-    );
 
     await Promise.all(
       rows.map(async (row) => {
@@ -2171,6 +2369,31 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
       }),
     );
   }
+}
+
+/**
+ * Remove XYZ tile data file bulk
+ * @param {string} sourcePath XYZ folder path
+ * @param {BetterSqlite3.Statement} statement SQLite statement
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<void>}
+ */
+export async function removeXYZTileBulk(
+  sourcePath,
+  statement,
+  z,
+  x,
+  y,
+  format,
+  timeout,
+) {
+  await removeFileWithLock(`${sourcePath}/${z}/${x}/${y}.${format}`, timeout);
+
+  statement.run([z, x, y]);
 }
 
 /**
@@ -2471,6 +2694,76 @@ export function closeXYZMD5DB(source) {
 }
 
 /**
+ * Download XYZ tile data file bulk
+ * @param {string} url The URL to download the file from
+ * @param {string} sourcePath XYZ folder path
+ * @param {BetterSqlite3.Statement} statement SQLite statement
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * @param {number} maxTry Number of retry attempts on failure
+ * @param {number} timeout Timeout in milliseconds
+ * @param {number} created Created
+ * @param {boolean} storeTransparent Is store transparent tile?
+ * @param {object} headers Headers
+ * @returns {Promise<void>}
+ */
+export async function downloadXYZTileBulk(
+  url,
+  sourcePath,
+  statement,
+  z,
+  x,
+  y,
+  format,
+  maxTry,
+  timeout,
+  created,
+  storeTransparent,
+  headers,
+) {
+  await retry(async () => {
+    try {
+      // Get data from URL
+      const response = await getDataFromURL(
+        url,
+        timeout,
+        "arraybuffer",
+        false,
+        headers,
+      );
+
+      // Store data to file bulk
+      await storeXYZTileFileBulk(
+        sourcePath,
+        statement,
+        z,
+        x,
+        y,
+        format,
+        response.data,
+        created,
+        storeTransparent,
+      );
+    } catch (error) {
+      if (error.statusCode) {
+        if (
+          error.statusCode === StatusCodes.NO_CONTENT ||
+          error.statusCode === StatusCodes.NOT_FOUND
+        ) {
+          return;
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
+  }, maxTry);
+}
+
+/**
  * Download XYZ tile data file
  * @param {string} url The URL to download the file from
  * @param {string} sourcePath XYZ folder path
@@ -2510,7 +2803,7 @@ export async function downloadXYZTile(
       );
 
       // Store data to file
-      await cacheXYZTileFile(
+      await storeXYZTileFile(
         sourcePath,
         source,
         z,
@@ -2573,7 +2866,44 @@ export function updateXYZMetadata(source, metadataAdds) {
 }
 
 /**
- * Cache XYZ tile data file
+ * Store XYZ tile data file bulk
+ * @param {string} sourcePath XYZ folder path
+ * @param {BetterSqlite3.Statement} statement SQLite statement
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * @param {Buffer} data Tile data buffer
+ * @param {number} created Created
+ * @param {boolean} storeTransparent Is store transparent tile?
+ * @returns {Promise<void>}
+ */
+export async function storeXYZTileFileBulk(
+  sourcePath,
+  statement,
+  z,
+  x,
+  y,
+  format,
+  data,
+  created,
+  storeTransparent,
+) {
+  if (storeTransparent === false && (await isFullTransparentImage(data))) {
+    return;
+  } else {
+    await createFileWithLock(
+      `${sourcePath}/${z}/${x}/${y}.${format}`,
+      data,
+      30000, // 30 seconds
+    );
+
+    statement.run([z, x, y, calculateMD5(data), created]);
+  }
+}
+
+/**
+ * Store XYZ tile data file
  * @param {string} sourcePath XYZ folder path
  * @param {Database} source SQLite database instance
  * @param {number} z Zoom level
@@ -2584,7 +2914,7 @@ export function updateXYZMetadata(source, metadataAdds) {
  * @param {boolean} storeTransparent Is store transparent tile?
  * @returns {Promise<void>}
  */
-export async function cacheXYZTileFile(
+export async function storeXYZTileFile(
   sourcePath,
   source,
   z,
@@ -2769,7 +3099,7 @@ export async function addXYZOverviews(
         height: height,
       });
 
-      await cacheXYZTileFile(
+      await storeXYZTileFile(
         sourcePath,
         source,
         z,
@@ -2862,7 +3192,7 @@ export async function getAndCacheXYZDataTile(id, z, x, y) {
       if (item.storeCache) {
         printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
 
-        cacheXYZTileFile(
+        storeXYZTileFile(
           item.source,
           item.md5Source,
           z,

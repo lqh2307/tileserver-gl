@@ -52,7 +52,7 @@ export async function downloadStyleFile(
       );
 
       // Store data to file
-      await cacheStyleFile(filePath, response.data);
+      await storeStyleFile(filePath, response.data);
     } catch (error) {
       if (error.statusCode) {
         if (
@@ -71,12 +71,12 @@ export async function downloadStyleFile(
 }
 
 /**
- * Cache style file
+ * Store style file
  * @param {string} filePath Style file path to store
  * @param {Buffer} data Tile data buffer
  * @returns {Promise<void>}
  */
-export async function cacheStyleFile(filePath, data) {
+export async function storeStyleFile(filePath, data) {
   await createFileWithLock(
     filePath,
     data,
@@ -400,7 +400,7 @@ export async function getAndCacheDataStyleJSON(id) {
       if (item.storeCache) {
         printLog("info", `Caching style "${id}" - File "${item.path}"...`);
 
-        cacheStyleFile(item.path, styleJSON).catch((error) =>
+        storeStyleFile(item.path, styleJSON).catch((error) =>
           printLog(
             "error",
             `Failed to cache style "${id}" - File "${item.path}": ${error}`,
