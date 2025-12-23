@@ -40,8 +40,8 @@ import {
 import {
   renderImageToHighQualityPDF,
   detectFormatAndHeaders,
-  createFallbackTileData,
   handleTilesConcurrency,
+  FALLBACK_TILE_DATA,
   lonLat4326ToXY3857,
   xy3857ToLonLat4326,
   handleConcurrency,
@@ -172,7 +172,7 @@ function createRenderer(option) {
               `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
             );
 
-            data = createFallbackTileData(item.tileJSON.format);
+            data = FALLBACK_TILE_DATA[item.tileJSON.format];
           }
 
           break;
@@ -205,7 +205,7 @@ function createRenderer(option) {
               `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
             );
 
-            data = createFallbackTileData(item.tileJSON.format);
+            data = FALLBACK_TILE_DATA[item.tileJSON.format];
           }
 
           break;
@@ -233,7 +233,7 @@ function createRenderer(option) {
               `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
             );
 
-            data = createFallbackTileData(item.tileJSON.format);
+            data = FALLBACK_TILE_DATA[item.tileJSON.format];
           }
 
           break;
@@ -266,7 +266,7 @@ function createRenderer(option) {
               `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
             );
 
-            data = createFallbackTileData(item.tileJSON.format);
+            data = FALLBACK_TILE_DATA[item.tileJSON.format];
           }
 
           break;
@@ -297,7 +297,7 @@ function createRenderer(option) {
                   `Failed to get tile from "${req.url}": ${error}. Serving empty tile...`,
                 );
 
-                data = createFallbackTileData(result[0]);
+                data = FALLBACK_TILE_DATA[result[0]];
               } else {
                 printLog("error", `Failed to detect tile from "${req.url}"`);
 

@@ -207,7 +207,7 @@ export function getMBTilesTileExtraInfoFromCoverages(
   const rows = source.prepare(query).all();
 
   rows.forEach((row) => {
-    if (row[extraInfoType] !== null) {
+    if (row[extraInfoType]) {
       // TMS -> XYZ
       result[
         `${row.zoom_level}/${row.tile_column}/${
@@ -1244,7 +1244,7 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
   const data = await source.query(query);
 
   data.rows.forEach((row) => {
-    if (row[extraInfoType] !== null) {
+    if (row[extraInfoType]) {
       result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] =
         row[extraInfoType];
     }
@@ -2028,7 +2028,7 @@ export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
   const rows = source.prepare(query).all();
 
   rows.forEach((row) => {
-    if (row[extraInfoType] !== null) {
+    if (row[extraInfoType]) {
       result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] =
         row[extraInfoType];
     }
