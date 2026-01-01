@@ -36,6 +36,20 @@ const BATCH_SIZE = 1000;
 export const FALLBACK_BBOX = [-180, -85.051129, 180, 85.051129];
 export const FALLBACK_VECTOR_LAYERS = [];
 
+export const ALL_FORMATS = new Set([
+  "jpeg",
+  "jpg",
+  "pbf",
+  "png",
+  "webp",
+  "gif",
+]);
+export const VECTOR_FORMATS = new Set(["pbf"]);
+export const RASTER_FORMATS = new Set(["jpeg", "jpg", "png", "webp", "gif"]);
+export const SPRITE_FORMATS = new Set(["json", "png"]);
+export const TILE_SIZES = new Set(["256", "512"]);
+export const LAYER_TYPES = new Set(["baselayer", "overlay"]);
+
 export const MBTILES_INSERT_TILE_QUERY = `INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;`;
 const MBTILES_SELECT_TILE_QUERY = `SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
 export const MBTILES_DELETE_TILE_QUERY = `DELETE FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
@@ -2756,16 +2770,13 @@ export function validateTileMetadata(metadata) {
 
   /* Validate type */
   if (metadata.type !== undefined) {
-    if (!["baselayer", "overlay"].includes(metadata.type)) {
+    if (!LAYER_TYPES.has(metadata.type)) {
       throw new Error(`"type" property is invalid`);
     }
   }
 
   /* Validate format */
-  if (
-    ["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(metadata.format) ===
-    false
-  ) {
+  if (!ALL_FORMATS.has(metadata.format)) {
     throw new Error(`"format" property is invalid`);
   }
 

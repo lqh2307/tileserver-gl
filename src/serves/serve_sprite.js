@@ -1,8 +1,12 @@
 "use strict";
 
-import { getAndCacheDataSprite, validateSprite } from "../resources/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
+import {
+  getAndCacheDataSprite,
+  SPRITE_FORMATS,
+  validateSprite,
+} from "../resources/index.js";
 import {
   detectContentTypeFromFormat,
   getRequestHost,
@@ -20,7 +24,7 @@ function getSpriteHandler() {
 
     try {
       /* Check sprite format? */
-      if (!["png", "json"].includes(req.params.format)) {
+      if (!SPRITE_FORMATS.has(req.params.format)) {
         return res
           .status(StatusCodes.BAD_REQUEST)
           .send("Sprite format is not support");

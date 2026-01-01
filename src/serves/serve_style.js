@@ -6,7 +6,9 @@ import { StatusCodes } from "http-status-codes";
 import {
   getAndCacheDataStyleJSON,
   getRenderedStyleJSON,
+  RASTER_FORMATS,
   validateStyle,
+  TILE_SIZES,
   getStyle,
 } from "../resources/index.js";
 import {
@@ -267,16 +269,13 @@ function getStylesListHandler() {
 function getRenderedTileHandler() {
   return async (req, res) => {
     /* Check data tile format */
-    if (
-      ["jpeg", "jpg", "png", "webp", "gif"].includes(req.params.format) ===
-      false
-    ) {
+    if (!RASTER_FORMATS.has(req.params.format)) {
       return res
         .status(StatusCodes.BAD_REQUEST)
         .send("Rendered tile format is not support");
     }
 
-    if (req.query.tileSize && !["256", "512"].includes(req.query.tileSize)) {
+    if (req.query.tileSize && !TILE_SIZES.has(req.query.tileSize)) {
       return res
         .status(StatusCodes.BAD_REQUEST)
         .send("Tile size is not support");
@@ -331,7 +330,7 @@ function getRenderedHandler() {
     const queryStrings = [];
 
     if (req.query.tileSize) {
-      if (!["256", "512"].includes(req.query.tileSize)) {
+      if (!TILE_SIZES.has(req.query.tileSize)) {
         return res
           .status(StatusCodes.BAD_REQUEST)
           .send("Tile size is not support");

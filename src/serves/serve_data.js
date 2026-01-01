@@ -38,6 +38,7 @@ import {
   openMBTilesDB,
   openXYZMD5DB,
   openPMTiles,
+  ALL_FORMATS,
 } from "../resources/index.js";
 
 /**
@@ -92,7 +93,7 @@ function getDataTileHandler() {
     /* Check data tile format */
     if (
       req.params.format !== item.tileJSON.format ||
-      !["jpeg", "jpg", "pbf", "png", "webp", "gif"].includes(req.params.format)
+      !ALL_FORMATS.has(req.params.format)
     ) {
       return res
         .status(StatusCodes.BAD_REQUEST)
