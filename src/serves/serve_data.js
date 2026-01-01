@@ -16,7 +16,6 @@ import {
   validateJSON,
   isExistFile,
   gzipAsync,
-  deepClone,
   printLog,
 } from "../utils/index.js";
 import {
@@ -969,7 +968,7 @@ export const serve_data = {
 
                 if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
-                  dataInfo.headers = deepClone(cacheSource.headers);
+                  dataInfo.headers = cacheSource.headers;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
@@ -1055,7 +1054,7 @@ export const serve_data = {
 
                 if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
-                  dataInfo.headers = deepClone(cacheSource.headers);
+                  dataInfo.headers = cacheSource.headers;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;
@@ -1112,7 +1111,7 @@ export const serve_data = {
 
                 if (item.cache.forward) {
                   dataInfo.sourceURL = cacheSource.url;
-                  dataInfo.headers = deepClone(cacheSource.headers);
+                  dataInfo.headers = cacheSource.headers;
                   dataInfo.scheme = cacheSource.scheme;
                   dataInfo.storeCache = item.cache.store;
                   dataInfo.storeTransparent = cacheSource.storeTransparent;

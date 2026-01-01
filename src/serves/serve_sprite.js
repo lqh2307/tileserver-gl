@@ -6,7 +6,6 @@ import { StatusCodes } from "http-status-codes";
 import {
   detectContentTypeFromFormat,
   getRequestHost,
-  deepClone,
   gzipAsync,
   printLog,
 } from "../utils/index.js";
@@ -242,7 +241,7 @@ export const serve_sprite = {
 
               if (item.cache.forward) {
                 spriteInfo.sourceURL = cacheSource.url;
-                spriteInfo.headers = deepClone(cacheSource.headers);
+                spriteInfo.headers = cacheSource.headers;
                 spriteInfo.storeCache = item.cache.store;
               }
             } else {

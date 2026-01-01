@@ -27,12 +27,14 @@ import {
   closeSQLite,
   openSQLite,
   findFiles,
-  deepClone,
   printLog,
   retry,
 } from "../utils/index.js";
 
 const BATCH_SIZE = 1000;
+
+export const FALLBACK_BBOX = [-180, -85.051129, 180, 85.051129];
+export const FALLBACK_VECTOR_LAYERS = [];
 
 export const MBTILES_INSERT_TILE_QUERY = `INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;`;
 const MBTILES_SELECT_TILE_QUERY = `SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;`;
@@ -508,7 +510,7 @@ export async function getMBTilesMetadata(source) {
     try {
       metadata.bounds = getMBTilesBBoxFromTiles(source);
     } catch (error) {
-      metadata.bounds = [-180, -85.051129, 180, 85.051129];
+      metadata.bounds = FALLBACK_BBOX;
     }
   }
 
@@ -530,7 +532,7 @@ export async function getMBTilesMetadata(source) {
         id: layer,
       }));
     } catch (error) {
-      metadata.vector_layers = [];
+      metadata.vector_layers = FALLBACK_VECTOR_LAYERS;
     }
   }
 
@@ -928,38 +930,20 @@ export function openPMTiles(filePath) {
  * @returns {Promise<object>}
  */
 export async function getPMTilesMetadata(pmtilesSource) {
-  /* Default metadata */
-  const metadata = {};
-
   /* Get metadatas */
   const [pmtilesHeader, pmtilesMetadata] = await Promise.all([
     pmtilesSource.getHeader(),
     pmtilesSource.getMetadata(),
   ]);
 
-  if (pmtilesMetadata.name !== undefined) {
-    metadata.name = pmtilesMetadata.name;
-  } else {
-    metadata.name = "Unknown";
-  }
+  /* Default metadata */
+  const metadata = {};
 
-  if (pmtilesMetadata.description !== undefined) {
-    metadata.description = pmtilesMetadata.description;
-  } else {
-    metadata.description = metadata.name;
-  }
-
-  if (pmtilesMetadata.attribution !== undefined) {
-    metadata.attribution = pmtilesMetadata.attribution;
-  } else {
-    metadata.attribution = "<b>Viettel HighTech</b>";
-  }
-
-  if (pmtilesMetadata.version !== undefined) {
-    metadata.version = pmtilesMetadata.version;
-  } else {
-    metadata.version = "1.0.0";
-  }
+  metadata.name = pmtilesMetadata.name ?? "Unknown";
+  metadata.description = pmtilesMetadata.description ?? metadata.name;
+  metadata.attribution =
+    pmtilesMetadata.attribution ?? "<b>Viettel HighTech</b>";
+  metadata.version = pmtilesMetadata.version ?? "1.0.0";
 
   switch (pmtilesHeader.tileType) {
     case 1: {
@@ -999,17 +983,8 @@ export async function getPMTilesMetadata(pmtilesSource) {
     }
   }
 
-  if (pmtilesHeader.minZoom !== undefined) {
-    metadata.minzoom = pmtilesHeader.minZoom;
-  } else {
-    metadata.minzoom = 0;
-  }
-
-  if (pmtilesHeader.maxZoom !== undefined) {
-    metadata.maxzoom = pmtilesHeader.maxZoom;
-  } else {
-    metadata.maxzoom = 22;
-  }
+  metadata.minzoom = pmtilesHeader.minZoom ?? 0;
+  metadata.maxzoom = pmtilesHeader.maxZoom ?? 22;
 
   if (
     pmtilesHeader.minLon !== undefined &&
@@ -1024,7 +999,7 @@ export async function getPMTilesMetadata(pmtilesSource) {
       pmtilesHeader.maxLat,
     ];
   } else {
-    metadata.bounds = [-180, -85.051129, 180, 85.051129];
+    metadata.bounds = FALLBACK_BBOX;
   }
 
   if (
@@ -1045,12 +1020,9 @@ export async function getPMTilesMetadata(pmtilesSource) {
     ];
   }
 
-  if (pmtilesMetadata.vector_layers !== undefined) {
-    metadata.vector_layers = deepClone(pmtilesMetadata.vector_layers);
-  } else {
-    if (metadata.format === "pbf") {
-      metadata.vector_layers = [];
-    }
+  if (metadata.format === "pbf") {
+    metadata.vector_layers =
+      pmtilesMetadata.vector_layers ?? FALLBACK_VECTOR_LAYERS;
   }
 
   return metadata;
@@ -1518,7 +1490,7 @@ export async function getPostgreSQLMetadata(source) {
     try {
       metadata.bounds = await getPostgreSQLBBoxFromTiles(source);
     } catch (error) {
-      metadata.bounds = [-180, -85.051129, 180, 85.051129];
+      metadata.bounds = FALLBACK_BBOX;
     }
   }
 
@@ -1540,7 +1512,7 @@ export async function getPostgreSQLMetadata(source) {
         id: layer,
       }));
     } catch (error) {
-      metadata.vector_layers = [];
+      metadata.vector_layers = FALLBACK_VECTOR_LAYERS;
     }
   }
 
@@ -2346,7 +2318,7 @@ export async function getXYZMetadata(sourcePath, source) {
     try {
       metadata.bounds = await getXYZBBoxFromTiles(sourcePath);
     } catch (error) {
-      metadata.bounds = [-180, -85.051129, 180, 85.051129];
+      metadata.bounds = FALLBACK_BBOX;
     }
   }
 
@@ -2368,7 +2340,7 @@ export async function getXYZMetadata(sourcePath, source) {
         id: layer,
       }));
     } catch (error) {
-      metadata.vector_layers = [];
+      metadata.vector_layers = FALLBACK_VECTOR_LAYERS;
     }
   }
 

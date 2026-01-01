@@ -10,7 +10,6 @@ import {
 import {
   detectFormatAndHeaders,
   getRequestHost,
-  deepClone,
   gzipAsync,
   printLog,
 } from "../utils/index.js";
@@ -311,7 +310,7 @@ export const serve_font = {
 
               if (item.cache.forward) {
                 fontInfo.sourceURL = cacheSource.url;
-                fontInfo.headers = deepClone(cacheSource.headers);
+                fontInfo.headers = cacheSource.headers;
                 fontInfo.storeCache = item.cache.store;
               }
             } else {

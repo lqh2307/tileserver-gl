@@ -1,6 +1,6 @@
 "use strict";
 
-import { deepClone } from "./util.js";
+import { FALLBACK_BBOX, FALLBACK_VECTOR_LAYERS } from "../resources/index.js";
 
 export const FALLBACK_TILE_DATA = {
   gif: Buffer.from([
@@ -89,62 +89,18 @@ export const FALLBACK_TILE_DATA = {
 export function createTileMetadata(metadata = {}) {
   const data = {};
 
-  if (metadata.name !== undefined) {
-    data.name = metadata.name;
-  } else {
-    data.name = "Unknown";
-  }
-
-  if (metadata.description !== undefined) {
-    data.description = metadata.description;
-  } else {
-    data.description = data.name;
-  }
-
-  if (metadata.attribution !== undefined) {
-    data.attribution = metadata.attribution;
-  } else {
-    data.attribution = "<b>Viettel HighTech</b>";
-  }
-
-  if (metadata.version !== undefined) {
-    data.version = metadata.version;
-  } else {
-    data.version = "1.0.0";
-  }
-
-  if (metadata.type !== undefined) {
-    data.type = metadata.type;
-  } else {
-    data.type = "overlay";
-  }
-
-  if (metadata.format !== undefined) {
-    data.format = metadata.format;
-  } else {
-    data.format = "png";
-  }
-
-  if (metadata.minzoom !== undefined) {
-    data.minzoom = metadata.minzoom;
-  } else {
-    data.minzoom = 0;
-  }
-
-  if (metadata.maxzoom !== undefined) {
-    data.maxzoom = metadata.maxzoom;
-  } else {
-    data.maxzoom = 22;
-  }
-
-  if (metadata.bounds !== undefined) {
-    data.bounds = [...metadata.bounds];
-  } else {
-    data.bounds = [-180, -85.051129, 180, 85.051129];
-  }
+  data.name = metadata.name ?? "Unknown";
+  data.description = metadata.description ?? data.name;
+  data.attribution = metadata.attribution ?? "<b>Viettel HighTech</b>";
+  data.version = metadata.version ?? "1.0.0";
+  data.type = metadata.type ?? "overlay";
+  data.format = metadata.format ?? "png";
+  data.minzoom = metadata.minzoom ?? 0;
+  data.maxzoom = metadata.maxzoom ?? 22;
+  data.bounds = metadata.bounds ?? FALLBACK_BBOX;
 
   if (metadata.center !== undefined) {
-    data.center = [...metadata.center];
+    data.center = metadata.center;
   } else {
     data.center = [
       (data.bounds[0] + data.bounds[2]) / 2,
@@ -154,15 +110,11 @@ export function createTileMetadata(metadata = {}) {
   }
 
   if (data.format === "pbf") {
-    if (metadata.vector_layers !== undefined) {
-      data.vector_layers = deepClone(metadata.vector_layers);
-    } else {
-      data.vector_layers = [];
-    }
+    data.vector_layers = metadata.vector_layers ?? FALLBACK_VECTOR_LAYERS;
   }
 
   if (metadata.cacheCoverages !== undefined) {
-    data.cacheCoverages = deepClone(metadata.cacheCoverages);
+    data.cacheCoverages = metadata.cacheCoverages;
   }
 
   return data;

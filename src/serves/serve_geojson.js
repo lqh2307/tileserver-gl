@@ -16,7 +16,6 @@ import {
   getRequestHost,
   isExistFile,
   gzipAsync,
-  deepClone,
   printLog,
 } from "../utils/index.js";
 
@@ -827,7 +826,7 @@ export const serve_geojson = {
 
                     if (item.cache.forward) {
                       geojsonInfo.sourceURL = cacheSource.url;
-                      geojsonInfo.headers = deepClone(cacheSource.headers);
+                      geojsonInfo.headers = cacheSource.headers;
                       geojsonInfo.storeCache = item.cache.store;
                     }
                   } else {
