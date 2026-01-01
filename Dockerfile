@@ -1,6 +1,9 @@
 ARG BUILDER_IMAGE=ubuntu:24.04
 ARG TARGET_IMAGE=ubuntu:24.04
 
+# ARG BUILDER_IMAGE=ubuntu:22.04
+# ARG TARGET_IMAGE=ubuntu:22.04
+
 FROM ${BUILDER_IMAGE} AS builder
 
 ARG NODEJS_VERSION=24.12.0
@@ -38,20 +41,41 @@ RUN \
   export DEBIAN_FRONTEND=noninteractive; \
   apt-get -y update; \
   apt-get -y install \
-  xvfb \
-  fontconfig \
-  libglfw3 \
-  libuv1 \
-  libjpeg-turbo8 \
-  libicu70 \
-  libgif7 \
-  libopengl0 \
-  libpng16-16 \
-  libwebp7 \
-  libcurl4; \
+    xvfb \
+    fontconfig \
+    libglfw3 \
+    libuv1t64 \
+    libsqlite3-0 \
+    libjpeg-turbo8 \
+    libicu74 \
+    libgif7 \
+    libopengl0 \
+    libpng16-16t64 \
+    libwebp7 \
+    libcurl4t64; \
   apt-get -y --purge autoremove; \
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;
+
+# RUN \
+#   export DEBIAN_FRONTEND=noninteractive; \
+#   apt-get -y update; \
+#   apt-get -y install \
+#     fontconfig \
+#     xvfb \
+#     libglfw3 \
+#     libuv1 \
+#     libsqlite3-0 \
+#     libjpeg-turbo8 \
+#     libicu70 \
+#     libgif7 \
+#     libopengl0 \
+#     libpng16-16 \
+#     libwebp7 \
+#     libcurl4;
+#   apt-get -y --purge autoremove; \
+#   apt-get clean; \
+#   rm -rf /var/lib/apt/lists/*;
 
 WORKDIR /tile-server
 

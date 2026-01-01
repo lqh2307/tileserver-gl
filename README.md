@@ -22,19 +22,20 @@ Switch to 1.0.0 branch:
 git checkout 1.0.0
 ```
 
-### Run with nodejs - native (on ubuntu 22.04 x86_64 amd)
+### Run with nodejs - native
 
-Install dependencies:
+Install dependencies (ubuntu 22.04):
 
 ```bash
 export DEBIAN_FRONTEND=noninteractive; \
 apt-get -y update; \
 apt-get -y install \
   wget \
-  fontconfig \
   xvfb \
+  fontconfig \
   libglfw3 \
   libuv1 \
+  libsqlite3-0 \
   libjpeg-turbo8 \
   libicu70 \
   libgif7 \
@@ -42,6 +43,27 @@ apt-get -y install \
   libpng16-16 \
   libwebp7 \
   libcurl4;
+```
+
+Install dependencies (ubuntu 24.04):
+
+```bash
+export DEBIAN_FRONTEND=noninteractive; \
+apt-get -y update; \
+apt-get -y install \
+  wget \
+  xvfb \
+  fontconfig \
+  libglfw3 \
+  libuv1t64 \
+  libsqlite3-0 \
+  libjpeg-turbo8 \
+  libicu74 \
+  libgif7 \
+  libopengl0 \
+  libpng16-16t64 \
+  libwebp7 \
+  libcurl4t64;
 ```
 
 Install nodejs:
