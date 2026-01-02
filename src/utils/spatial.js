@@ -509,16 +509,9 @@ export function getBBoxFromPoint(points) {
  */
 export function getCenterFromBBox(bbox, z) {
   if (z === undefined) {
-    return [
-      (bbox.bounds[0] + bbox.bounds[2]) / 2,
-      (bbox.bounds[1] + bbox.bounds[3]) / 2,
-    ];
+    return [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
   } else {
-    return [
-      (bbox.bounds[0] + bbox.bounds[2]) / 2,
-      (bbox.bounds[1] + bbox.bounds[3]) / 2,
-      z,
-    ];
+    return [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2, z];
   }
 }
 

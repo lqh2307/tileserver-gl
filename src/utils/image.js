@@ -6,6 +6,8 @@ import { convertLength, toPixel } from "./util.js";
 import { jsPDF } from "jspdf";
 import sharp from "sharp";
 
+export const BACKGROUND_COLOR = { r: 255, g: 255, b: 255, alpha: 0 };
+
 sharp.cache(false);
 // sharp.timeout({
 //   seconds: 300,
@@ -967,7 +969,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
       left: totalMargin,
       bottom: totalMargin,
       right: totalMargin,
-      background: { r: 255, g: 255, b: 255, alpha: 0 },
+      background: BACKGROUND_COLOR,
     };
   }
 
@@ -1159,7 +1161,7 @@ export async function mergeTilesToImage(input, output) {
       width: targetWidth,
       height: targetHeight,
       channels: 4,
-      background: { r: 255, g: 255, b: 255, alpha: 0 },
+      background: BACKGROUND_COLOR,
     },
     compositesOption: compositesOption,
     extractOption: extractOption,
@@ -1283,7 +1285,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       top: extendTop,
       right: Math.ceil(newWidthPX - width - extendLeft),
       bottom: Math.ceil(newHeightPX - height - extendTop),
-      background: { r: 255, g: 255, b: 255, alpha: 0 },
+      background: BACKGROUND_COLOR,
     };
 
     // Process Preview or PDF
@@ -1523,7 +1525,7 @@ export async function renderImageToPDF(input, preview, output) {
             resizeOption: {
               fit: output.fit,
               position: position,
-              background: { r: 255, g: 255, b: 255, alpha: 0 },
+              background: BACKGROUND_COLOR,
             },
             width: cellWidth,
             height: cellHeight,
@@ -1589,7 +1591,7 @@ export async function renderImageToPDF(input, preview, output) {
           width: paperWidthPX,
           height: paperHeightPX,
           channels: 4,
-          background: { r: 255, g: 255, b: 255, alpha: 0 },
+          background: BACKGROUND_COLOR,
         },
         compositesOption: compositesOption,
         format: format,
@@ -1630,7 +1632,7 @@ export async function renderImageToPDF(input, preview, output) {
               resizeOption: {
                 fit: output.fit,
                 position: position,
-                background: { r: 255, g: 255, b: 255, alpha: 0 },
+                background: BACKGROUND_COLOR,
               },
               width: cellWidth,
               height: cellHeight,
@@ -1685,7 +1687,7 @@ export async function renderImageToPDF(input, preview, output) {
           width: paperWidthPX,
           height: paperHeightPX,
           channels: 4,
-          background: { r: 255, g: 255, b: 255, alpha: 0 },
+          background: BACKGROUND_COLOR,
         },
         compositesOption: compositesOption,
         format: "png",
