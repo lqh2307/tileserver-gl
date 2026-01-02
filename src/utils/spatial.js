@@ -502,6 +502,27 @@ export function getBBoxFromPoint(points) {
 }
 
 /**
+ * Get center from bbox
+ * @param {[number, number, number, number]} bbox Bounding box in the format [minLon, minLat, maxLon, maxLat]
+ * @param {number} z Zoom level
+ * @returns {[number, number] | [number, number, number]} Center
+ */
+export function getCenterFromBBox(bbox, z) {
+  if (z === undefined) {
+    return [
+      (bbox.bounds[0] + bbox.bounds[2]) / 2,
+      (bbox.bounds[1] + bbox.bounds[3]) / 2,
+    ];
+  } else {
+    return [
+      (bbox.bounds[0] + bbox.bounds[2]) / 2,
+      (bbox.bounds[1] + bbox.bounds[3]) / 2,
+      z,
+    ];
+  }
+}
+
+/**
  * Get bounding box intersect
  * @param {[number, number, number, number]} bbox1 Bounding box 1 in the format [minLon, minLat, maxLon, maxLat]
  * @param {[number, number, number, number]} bbox2 Bounding box 2 in the format [minLon, minLat, maxLon, maxLat]
