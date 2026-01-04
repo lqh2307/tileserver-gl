@@ -5,7 +5,7 @@ import handlebars from "handlebars";
 
 /**
  * Compile handlebars template
- * @param {"index"|"viewer"|"vector_data"|"raster_data"|"geojson_group"|"geojson"|"wmts"} template Template
+ * @param {"index"|"viewer"|"vector_data"|"raster_data"|"geojson_data"|"wmts"} template Template
  * @param {object} data Data to fill to template
  * @returns {Promise<string>}
  */
