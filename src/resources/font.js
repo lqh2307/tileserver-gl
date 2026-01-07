@@ -254,12 +254,22 @@ export async function getAndCacheDataFonts(ids, fileName) {
   const buffers = await Promise.all(
     ids.split(",").map(async (id) => {
       const item = config.fonts[id];
+      if (!item) {
+        printLog(
+          "warn",
+          `Font source "${id}" does not exist. Using fallback font "Open Sans"...`,
+        );
+
+        return await getFallbackFont(id, fileName);
+      }
+
+      const filePath = `${item.path}/${fileName}`;
 
       try {
-        return await getFont(`${item.path}/${fileName}`);
+        return await getFont(filePath);
       } catch (error) {
         try {
-          if (item?.sourceURL && error.message === "Font does not exist") {
+          if (item.sourceURL && error.message === "Font does not exist") {
             const targetURL = item.sourceURL.replace("{range}.pbf", fileName);
 
             printLog(
@@ -281,7 +291,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
                 `Caching font "${id}" - Filename "${fileName}"...`,
               );
 
-              storeFontFile(`${item.path}/${fileName}`, font).catch((error) =>
+              storeFontFile(filePath, font).catch((error) =>
                 printLog(
                   "error",
                   `Failed to cache font "${id}" - Filename "${fileName}": ${error}`,
