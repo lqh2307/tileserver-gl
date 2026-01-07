@@ -42,6 +42,7 @@ RUN \
   apt-get -y update; \
   apt-get -y install \
     xvfb \
+    x11-utils \
     fontconfig \
     libglfw3 \
     libuv1t64 \

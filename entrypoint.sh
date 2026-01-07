@@ -1,42 +1,62 @@
 #!/bin/sh
 
-# Run Xvfb
-if test -z "$DISPLAY"; then
-  echo "Starting Xvfb..."
+set -e
 
-  Xvfb :99 -screen 0 1920x1080x24 &
+XVFB_DISPLAY=99
+XVFB_SCREEN="1920x1080x24"
+XVFB_LOCK="/tmp/.X${XVFB_DISPLAY}-lock"
+XVFB_SOCKET="/tmp/.X11-unix/X${XVFB_DISPLAY}"
 
-  XVFB_PID=$!
-
-  export DISPLAY=:99
-fi
-
-# Run nodejs
 while true; do
-  echo "Starting application..."
+  echo "Checking display..."
 
-  node ./src/main.js "$@"
+  if xdpyinfo >/dev/null 2>&1; then
+    echo "System display detected, running app without Xvfb"
 
-  EXIT_CODE=$?
+    node ./src/main.js "$@"
 
-  if test "$EXIT_CODE" -eq 0; then
-    break
-  elif test "$EXIT_CODE" -ne 1; then
-    echo "Server exited with code: $EXIT_CODE. Restarting server after 5 seconds..."
+    EXIT_CODE=$?
+  else
+    echo "No system display, starting Xvfb"
 
-    sleep 5
+    export DISPLAY=:$XVFB_DISPLAY
+
+    pkill Xvfb || true
+    rm -f "$XVFB_LOCK" "$XVFB_SOCKET"
+
+    Xvfb :$XVFB_DISPLAY -screen 0 $XVFB_SCREEN -nolisten tcp &
+
+    XVFB_PID=$!
+
+    for i in $(seq 1 20); do
+      xdpyinfo -display :$XVFB_DISPLAY >/dev/null 2>&1 && break
+
+      sleep 0.5
+    done
+
+    if ! xdpyinfo -display :$XVFB_DISPLAY >/dev/null 2>&1; then
+      echo "Xvfb failed to start, retrying..."
+
+      kill "$XVFB_PID" 2>/dev/null || true
+
+      rm -f "$XVFB_LOCK" "$XVFB_SOCKET"
+
+      sleep 2
+
+      continue
+    fi
+
+    node ./src/main.js "$@"
+
+    EXIT_CODE=$?
+
+    kill "$XVFB_PID" 2>/dev/null || true
+    rm -f "$XVFB_LOCK" "$XVFB_SOCKET"
   fi
+
+  [ "$EXIT_CODE" -eq 0 ] && exit 0
+
+  echo "App exited with $EXIT_CODE, restarting in 5s..."
+
+  sleep 5
 done
-
-# Stop Xvfb
-if test -n "$XVFB_PID"; then
-  if ps -p "$XVFB_PID" > /dev/null; then
-    echo "Stopping Xvfb..."
-
-    kill "$XVFB_PID"
-
-    wait "$XVFB_PID" 2>/dev/null
-
-    unset DISPLAY
-  fi
-fi

@@ -191,15 +191,16 @@ export async function validateSprite(spriteDirPath) {
  */
 export async function getAndCacheDataSprite(id, fileName) {
   const item = config.sprites[id];
+  if (!item) {
+    throw new Error("Sprite source does not exist");
+  }
+
+  const filePath = `${item.path}/${fileName}`;
 
   try {
-    if (!item) {
-      throw new Error("Sprite does not exist");
-    }
-
-    return await getSprite(`${item.path}/${fileName}`);
+    return await getSprite(filePath);
   } catch (error) {
-    if (item?.sourceURL && error.message === "Sprite does not exist") {
+    if (item.sourceURL && error.message === "Sprite does not exist") {
       const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
 
       printLog(
@@ -218,7 +219,7 @@ export async function getAndCacheDataSprite(id, fileName) {
       if (item.storeCache) {
         printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
 
-        storeSpriteFile(`${item.path}/${fileName}`, sprite).catch((error) =>
+        storeSpriteFile(filePath, sprite).catch((error) =>
           printLog(
             "error",
             `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`,

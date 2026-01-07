@@ -843,12 +843,16 @@ export async function addMBTilesOverviews(
  */
 export async function getAndCacheMBTilesDataTile(id, z, x, y) {
   const item = config.datas[id];
+  if (!item) {
+    throw new Error("Tile source does not exist");
+  }
+
   const tileName = `${z}/${x}/${y}`;
 
   try {
     return getMBTilesTile(item.source, z, x, y);
   } catch (error) {
-    if (item?.sourceURL && error.message === "Tile does not exist") {
+    if (item.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -1795,12 +1799,16 @@ export async function addPostgreSQLOverviews(
  */
 export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
   const item = config.datas[id];
+  if (!item) {
+    throw new Error("Tile source does not exist");
+  }
+
   const tileName = `${z}/${x}/${y}`;
 
   try {
     return await getPostgreSQLTile(item.source, z, x, y);
   } catch (error) {
-    if (item?.sourceURL && error.message === "Tile does not exist") {
+    if (item.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -2703,12 +2711,16 @@ export async function addXYZOverviews(
  */
 export async function getAndCacheXYZDataTile(id, z, x, y) {
   const item = config.datas[id];
+  if (!item) {
+    throw new Error("Tile source does not exist");
+  }
+
   const tileName = `${z}/${x}/${y}`;
 
   try {
     return await getXYZTile(item.source, z, x, y, item.tileJSON.format);
   } catch (error) {
-    if (item?.sourceURL && error.message === "Tile does not exist") {
+    if (item.sourceURL && error.message === "Tile does not exist") {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL

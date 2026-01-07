@@ -292,7 +292,7 @@ function getRenderedTileHandler() {
     /* Render tile */
     try {
       const image = await renderImageTileData({
-        styleJSON: await getRenderedStyleJSON(item.path),
+        styleJSON: await getRenderedStyleJSON(item.path, id),
         tileScale: +req.query.tileScale || 1,
         tileSize: +req.query.tileSize || 256,
         z: +req.params.z,

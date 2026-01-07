@@ -310,11 +310,14 @@ export async function validateAndGetGeometryTypes(data) {
  */
 export async function getAndCacheDataGeoJSON(id, layer) {
   const item = config.geojsons[id]?.[layer];
+  if (!item) {
+    throw new Error("GeoJSON source does not exist");
+  }
 
   try {
     return await getGeoJSON(item.path);
   } catch (error) {
-    if (item?.sourceURL && error.message === "JSON does not exist") {
+    if (item.sourceURL && error.message === "JSON does not exist") {
       printLog(
         "info",
         `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`,

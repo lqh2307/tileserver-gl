@@ -4,6 +4,7 @@ import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
+import { createCache } from "cache-manager";
 import {
   removeFileWithLock,
   createFileWithLock,
@@ -13,6 +14,10 @@ import {
   printLog,
   retry,
 } from "../utils/index.js";
+
+const renderedStyleJSONCaches = createCache({
+  ttl: 300000,
+});
 
 /**
  * Remove style data file with lock
@@ -104,39 +109,69 @@ export async function getStyle(filePath) {
 /**
  * Get rendered StyleJSON
  * @param {string} filePath Style file path to render
+ * @param {string} id Style id (For cache)
  * @returns {Promise<object>}
  */
-export async function getRenderedStyleJSON(filePath) {
-  try {
-    const styleJSON = JSON.parse(await readFile(filePath));
+export async function getRenderedStyleJSON(filePath, id) {
+  return await renderedStyleJSONCaches.wrap(id, async () => {
+    try {
+      const styleJSON = JSON.parse(await readFile(filePath));
 
-    await Promise.all(
-      Object.keys(styleJSON.sources).map(async (id) => {
-        const source = styleJSON.sources[id];
+      await Promise.all(
+        Object.keys(styleJSON.sources).map(async (id) => {
+          const source = styleJSON.sources[id];
 
-        if (source.tiles !== undefined) {
-          const tiles = new Set(
-            source.tiles.map((tile) => {
-              if (isLocalURL(tile)) {
-                const sourceID = tile.split("/")[2];
+          if (source.tiles !== undefined) {
+            const tiles = new Set(
+              source.tiles.map((tile) => {
+                if (isLocalURL(tile)) {
+                  const sourceID = tile.split("/")[2];
+                  const sourceData = config.datas[sourceID];
+
+                  tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+                }
+
+                return tile;
+              }),
+            );
+
+            source.tiles = Array.from(tiles);
+          }
+
+          if (source.urls !== undefined) {
+            const otherUrls = [];
+
+            source.urls.forEach((url) => {
+              if (isLocalURL(url)) {
+                const sourceID = url.split("/")[2];
                 const sourceData = config.datas[sourceID];
 
-                tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+                const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
+
+                if (source.tiles !== undefined) {
+                  if (!source.tiles.includes(tile)) {
+                    source.tiles.push(tile);
+                  }
+                } else {
+                  source.tiles = [tile];
+                }
+              } else {
+                if (!otherUrls.includes(url)) {
+                  otherUrls.push(url);
+                }
               }
+            });
 
-              return tile;
-            }),
-          );
+            if (!otherUrls.length) {
+              delete source.urls;
+            } else {
+              source.urls = otherUrls;
+            }
+          }
 
-          source.tiles = Array.from(tiles);
-        }
-
-        if (source.urls !== undefined) {
-          const otherUrls = [];
-
-          source.urls.forEach((url) => {
-            if (isLocalURL(url)) {
-              const sourceID = url.split("/")[2];
+          if (source.url !== undefined) {
+            if (isLocalURL(source.url)) {
+              const sourceID = source.url.split("/")[2];
               const sourceData = config.datas[sourceID];
 
               const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
@@ -148,68 +183,41 @@ export async function getRenderedStyleJSON(filePath) {
               } else {
                 source.tiles = [tile];
               }
-            } else {
-              if (!otherUrls.includes(url)) {
-                otherUrls.push(url);
+
+              delete source.url;
+            }
+          }
+
+          if (
+            source.url === undefined &&
+            source.urls === undefined &&
+            source.tiles !== undefined
+          ) {
+            if (source.tiles.length === 1) {
+              if (isLocalURL(source.tiles[0])) {
+                const sourceID = source.tiles[0].split("/")[2];
+                const sourceData = config.datas[sourceID];
+
+                styleJSON.sources[id] = {
+                  ...sourceData.tileJSON,
+                  ...source,
+                  tiles: [source.tiles[0]],
+                };
               }
             }
-          });
-
-          if (!otherUrls.length) {
-            delete source.urls;
-          } else {
-            source.urls = otherUrls;
           }
-        }
+        }),
+      );
 
-        if (source.url !== undefined) {
-          if (isLocalURL(source.url)) {
-            const sourceID = source.url.split("/")[2];
-            const sourceData = config.datas[sourceID];
-
-            const tile = `${sourceData.sourceType}://${sourceID}/{z}/{x}/{y}.${sourceData.tileJSON.format}`;
-
-            if (source.tiles !== undefined) {
-              if (!source.tiles.includes(tile)) {
-                source.tiles.push(tile);
-              }
-            } else {
-              source.tiles = [tile];
-            }
-
-            delete source.url;
-          }
-        }
-
-        if (
-          source.url === undefined &&
-          source.urls === undefined &&
-          source.tiles !== undefined
-        ) {
-          if (source.tiles.length === 1) {
-            if (isLocalURL(source.tiles[0])) {
-              const sourceID = source.tiles[0].split("/")[2];
-              const sourceData = config.datas[sourceID];
-
-              styleJSON.sources[id] = {
-                ...sourceData.tileJSON,
-                ...source,
-                tiles: [source.tiles[0]],
-              };
-            }
-          }
-        }
-      }),
-    );
-
-    return styleJSON;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("JSON does not exist");
-    } else {
-      throw error;
+      return styleJSON;
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        throw new Error("JSON does not exist");
+      } else {
+        throw error;
+      }
     }
-  }
+  });
 }
 
 /**
@@ -384,11 +392,14 @@ export async function validateStyle(data) {
  */
 export async function getAndCacheDataStyleJSON(id) {
   const item = config.styles[id];
+  if (!item) {
+    throw new Error("Style source does not exist");
+  }
 
   try {
     return await getStyle(item.path);
   } catch (error) {
-    if (item?.sourceURL && error.message === "JSON does not exist") {
+    if (item.sourceURL && error.message === "JSON does not exist") {
       printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
 
       const styleJSON = await getDataFileFromURL(
