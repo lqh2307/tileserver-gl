@@ -32,6 +32,7 @@ apt-get -y update; \
 apt-get -y install \
   wget \
   xvfb \
+  x11-utils \
   fontconfig \
   libglfw3 \
   libuv1 \
@@ -53,6 +54,7 @@ apt-get -y update; \
 apt-get -y install \
   wget \
   xvfb \
+  x11-utils \
   fontconfig \
   libglfw3 \
   libuv1t64 \

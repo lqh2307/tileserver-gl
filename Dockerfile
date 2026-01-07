@@ -62,8 +62,9 @@ RUN \
 #   export DEBIAN_FRONTEND=noninteractive; \
 #   apt-get -y update; \
 #   apt-get -y install \
-#     fontconfig \
 #     xvfb \
+#     x11-utils \
+#     fontconfig \
 #     libglfw3 \
 #     libuv1 \
 #     libsqlite3-0 \
