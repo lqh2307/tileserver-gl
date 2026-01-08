@@ -35,7 +35,9 @@ import {
 
 const BATCH_SIZE = 1000;
 
-export const FALLBACK_BBOX = [-180, -85.051129, 180, 85.051129];
+export const MAX_LON = 180;
+export const MAX_LAT = 85.051129;
+export const FALLBACK_BBOX = [-MAX_LON, -MAX_LAT, MAX_LON, MAX_LAT];
 export const FALLBACK_VECTOR_LAYERS = [];
 
 export const ALL_FORMATS = new Set([
@@ -149,10 +151,10 @@ function getMBTilesBBoxFromTiles(source) {
       );
     }
 
-    bbox[0] = limitValue(bbox[0], -180, 180);
-    bbox[2] = limitValue(bbox[2], -180, 180);
-    bbox[1] = limitValue(bbox[1], -85.051129, 85.051129);
-    bbox[3] = limitValue(bbox[3], -85.051129, 85.051129);
+    bbox[0] = limitValue(bbox[0], -MAX_LON, MAX_LON);
+    bbox[2] = limitValue(bbox[2], -MAX_LON, MAX_LON);
+    bbox[1] = limitValue(bbox[1], -MAX_LAT, MAX_LAT);
+    bbox[3] = limitValue(bbox[3], -MAX_LAT, MAX_LAT);
   } else {
     throw new Error("No row found");
   }
@@ -1161,10 +1163,10 @@ async function getPostgreSQLBBoxFromTiles(source) {
       );
     }
 
-    bbox[0] = limitValue(bbox[0], -180, 180);
-    bbox[2] = limitValue(bbox[2], -180, 180);
-    bbox[1] = limitValue(bbox[1], -85.051129, 85.051129);
-    bbox[3] = limitValue(bbox[3], -85.051129, 85.051129);
+    bbox[0] = limitValue(bbox[0], -MAX_LON, MAX_LON);
+    bbox[2] = limitValue(bbox[2], -MAX_LON, MAX_LON);
+    bbox[1] = limitValue(bbox[1], -MAX_LAT, MAX_LAT);
+    bbox[3] = limitValue(bbox[3], -MAX_LAT, MAX_LAT);
   } else {
     throw new Error("No row found");
   }

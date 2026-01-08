@@ -1,5 +1,6 @@
 "use strict";
 
+import { MAX_LAT, MAX_LON } from "../resources/index.js";
 import { calculateResolution } from "./image.js";
 import { limitValue } from "./number.js";
 
@@ -14,9 +15,9 @@ const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
  */
 export function lonLat4326ToXY3857(lon, lat) {
   return [
-    limitValue(lon, -180, 180) * (Math.PI / 180) * SPHERICAL_RADIUS,
+    limitValue(lon, -MAX_LON, MAX_LON) * (Math.PI / MAX_LON) * SPHERICAL_RADIUS,
     Math.log(
-      Math.tan((Math.PI * (limitValue(lat, -85.051129, 85.051129) + 90)) / 360),
+      Math.tan((Math.PI * (limitValue(lat, -MAX_LAT, MAX_LAT) + 90)) / 360),
     ) * SPHERICAL_RADIUS,
   ];
 }
@@ -29,11 +30,11 @@ export function lonLat4326ToXY3857(lon, lat) {
  */
 export function xy3857ToLonLat4326(x, y) {
   return [
-    limitValue((x / SPHERICAL_RADIUS) * (180 / Math.PI), -180, 180),
+    limitValue((x / SPHERICAL_RADIUS) * (180 / Math.PI), -MAX_LON, MAX_LON),
     limitValue(
       Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (180 / Math.PI),
-      -85.051129,
-      85.051129,
+      -MAX_LAT,
+      MAX_LAT,
     ),
   ];
 }
@@ -49,13 +50,11 @@ export function xy3857ToLonLat4326(x, y) {
 export function getXYZFromLonLatZ(lon, lat, z, scheme) {
   const maxTile = 1 << z;
 
-  let x = (0.5 + limitValue(lon, -180, 180) / 360) * maxTile;
+  let x = (0.5 + limitValue(lon, -MAX_LON, MAX_LON) / 360) * maxTile;
   let y =
     (0.5 -
       Math.log(
-        Math.tan(
-          (Math.PI * (limitValue(lat, -85.051129, 85.051129) + 90)) / 360,
-        ),
+        Math.tan((Math.PI * (limitValue(lat, -MAX_LAT, MAX_LAT) + 90)) / 360),
       ) /
         (2 * Math.PI)) *
     maxTile;
@@ -495,10 +494,10 @@ export function getBBoxFromPoint(points) {
       }
     }
 
-    bbox[0] = limitValue(bbox[0], -180, 180);
-    bbox[2] = limitValue(bbox[2], -180, 180);
-    bbox[1] = limitValue(bbox[1], -85.051129, 85.051129);
-    bbox[3] = limitValue(bbox[3], -85.051129, 85.051129);
+    bbox[0] = limitValue(bbox[0], -MAX_LON, MAX_LON);
+    bbox[2] = limitValue(bbox[2], -MAX_LON, MAX_LON);
+    bbox[1] = limitValue(bbox[1], -MAX_LAT, MAX_LAT);
+    bbox[3] = limitValue(bbox[3], -MAX_LAT, MAX_LAT);
   }
 
   return bbox;
