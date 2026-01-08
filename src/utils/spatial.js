@@ -13,12 +13,11 @@ const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
  * @returns {[number, number]} Web Mercator x, y in meters
  */
 export function lonLat4326ToXY3857(lon, lat) {
-  lon = limitValue(lon, -180, 180);
-  lat = limitValue(lat, -85.051129, 85.051129);
-
   return [
-    lon * (Math.PI / 180) * SPHERICAL_RADIUS,
-    Math.log(Math.tan((Math.PI * (lat + 90)) / 360)) * SPHERICAL_RADIUS,
+    limitValue(lon, -180, 180) * (Math.PI / 180) * SPHERICAL_RADIUS,
+    Math.log(
+      Math.tan((Math.PI * (limitValue(lat, -85.051129, 85.051129) + 90)) / 360),
+    ) * SPHERICAL_RADIUS,
   ];
 }
 
@@ -29,13 +28,14 @@ export function lonLat4326ToXY3857(lon, lat) {
  * @returns {[number, number]} Longitude and latitude in degrees
  */
 export function xy3857ToLonLat4326(x, y) {
-  let lon = (x / SPHERICAL_RADIUS) * (180 / Math.PI);
-  let lat = Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (180 / Math.PI);
-
-  lon = limitValue(lon, -180, 180);
-  lat = limitValue(lat, -85.051129, 85.051129);
-
-  return [lon, lat];
+  return [
+    limitValue((x / SPHERICAL_RADIUS) * (180 / Math.PI), -180, 180),
+    limitValue(
+      Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (180 / Math.PI),
+      -85.051129,
+      85.051129,
+    ),
+  ];
 }
 
 /**
@@ -47,14 +47,17 @@ export function xy3857ToLonLat4326(x, y) {
  * @returns {[number, number, number]} Tile indices [x, y, z]
  */
 export function getXYZFromLonLatZ(lon, lat, z, scheme) {
-  lon = limitValue(lon, -180, 180);
-  lat = limitValue(lat, -85.051129, 85.051129);
-
   const maxTile = 1 << z;
 
-  let x = (0.5 + lon / 360) * maxTile;
+  let x = (0.5 + limitValue(lon, -180, 180) / 360) * maxTile;
   let y =
-    (0.5 - Math.log(Math.tan((Math.PI * (lat + 90)) / 360)) / (2 * Math.PI)) *
+    (0.5 -
+      Math.log(
+        Math.tan(
+          (Math.PI * (limitValue(lat, -85.051129, 85.051129) + 90)) / 360,
+        ),
+      ) /
+        (2 * Math.PI)) *
     maxTile;
 
   if (scheme === "tms") {
