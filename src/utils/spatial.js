@@ -1,9 +1,10 @@
 "use strict";
 
-import { MAX_LAT, MAX_LON } from "../resources/index.js";
 import { calculateResolution } from "./image.js";
 import { limitValue } from "./number.js";
 
+export const MAX_LON = 180;
+export const MAX_LAT = 85.051129;
 const SPHERICAL_RADIUS = 6378137.0;
 const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
 

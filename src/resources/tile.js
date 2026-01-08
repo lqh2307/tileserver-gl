@@ -30,13 +30,13 @@ import {
   openSQLite,
   findFiles,
   printLog,
+  MAX_LON,
+  MAX_LAT,
   retry,
 } from "../utils/index.js";
 
 const BATCH_SIZE = 1000;
 
-export const MAX_LON = 180;
-export const MAX_LAT = 85.051129;
 export const FALLBACK_BBOX = [-MAX_LON, -MAX_LAT, MAX_LON, MAX_LAT];
 export const FALLBACK_VECTOR_LAYERS = [];
 
