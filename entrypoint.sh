@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 XVFB_DISPLAY=99
 XVFB_SCREEN="1920x1080x24"
 XVFB_LOCK="/tmp/.X${XVFB_DISPLAY}-lock"
@@ -60,7 +58,7 @@ if [[ "$OS" == "Linux" ]]; then
 
     [ "$EXIT_CODE" -eq 0 ] && exit 0
 
-    echo "App exited with $EXIT_CODE, restarting after 5s..."
+    echo "App exited with exit code $EXIT_CODE, restarting after 5s..."
 
     sleep 5
   done
@@ -73,7 +71,7 @@ elif [[ "$OS" == "MINGW"* ]] || [[ "$OS" == "CYGWIN"* ]] || [[ "$OS" == "MSYS"* 
 
     [ "$EXIT_CODE" -eq 0 ] && exit 0
 
-    echo "App exited with $EXIT_CODE, restarting after 5s..."
+    echo "App exited with exit code $EXIT_CODE, restarting after 5s..."
 
     sleep 5
   done
