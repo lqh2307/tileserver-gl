@@ -64,10 +64,11 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme) {
     y = maxTile - y;
   }
 
-  x = limitValue(Math.floor(x), 0, maxTile - 1);
-  y = limitValue(Math.floor(y), 0, maxTile - 1);
-
-  return [x, y, z];
+  return [
+    limitValue(Math.floor(x), 0, maxTile - 1),
+    limitValue(Math.floor(y), 0, maxTile - 1),
+    z,
+  ];
 }
 
 /**
@@ -544,12 +545,12 @@ export function getIntersectBBox(bbox1, bbox2) {
  * @returns {[number, number, number, number]} Cover bounding box in the format [minLon, minLat, maxLon, maxLat]
  */
 export function getCoverBBox(bbox1, bbox2) {
-  const minLon = bbox1[0] < bbox2[0] ? bbox1[0] : bbox2[0];
-  const minLat = bbox1[1] < bbox2[1] ? bbox1[1] : bbox2[1];
-  const maxLon = bbox1[2] > bbox2[2] ? bbox1[2] : bbox2[2];
-  const maxLat = bbox1[3] > bbox2[3] ? bbox1[3] : bbox2[3];
-
-  return [minLon, minLat, maxLon, maxLat];
+  return [
+    bbox1[0] < bbox2[0] ? bbox1[0] : bbox2[0],
+    bbox1[1] < bbox2[1] ? bbox1[1] : bbox2[1],
+    bbox1[2] > bbox2[2] ? bbox1[2] : bbox2[2],
+    bbox1[3] > bbox2[3] ? bbox1[3] : bbox2[3],
+  ];
 }
 
 /**
