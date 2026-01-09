@@ -167,6 +167,17 @@ export async function isExistFile(fileOrDirPath, isDir) {
 }
 
 /**
+ * Get file size
+ * @param {string} filePath File path
+ * @returns {Promise<number>}
+ */
+export async function getFileSize(filePath) {
+  const stats = await stat(filePath);
+
+  return stats.size;
+}
+
+/**
  * Find matching files or folders in a directory
  * @param {string} filePath Directory path
  * @param {RegExp} regex The regex to match file or folder names

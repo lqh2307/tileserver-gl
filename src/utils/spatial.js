@@ -16,7 +16,7 @@ const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
  */
 export function lonLat4326ToXY3857(lon, lat) {
   return [
-    limitValue(lon, -MAX_LON, MAX_LON) * (Math.PI / MAX_LON) * SPHERICAL_RADIUS,
+    limitValue(lon, -MAX_LON, MAX_LON) * (Math.PI / 180) * SPHERICAL_RADIUS,
     Math.log(
       Math.tan((Math.PI * (limitValue(lat, -MAX_LAT, MAX_LAT) + 90)) / 360),
     ) * SPHERICAL_RADIUS,

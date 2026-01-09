@@ -508,7 +508,7 @@ export async function renderImageStaticData(option) {
  * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number, filePath: string }} option Option object
  * @returns {Promise<Buffer|string|void>}
  */
-async function renderStyleJSON(option) {
+export async function renderStyleJSON(option) {
   const MAX_TILE_PX = 8192;
 
   const sizes = calculateSizes(option.zoom, option.bbox, option.tileSize);
@@ -577,6 +577,7 @@ async function renderStyleJSON(option) {
       height: option.height,
       base64: option.base64,
       grayscale: option.grayscale,
+      filePath: option.filePath,
     });
   }
 }

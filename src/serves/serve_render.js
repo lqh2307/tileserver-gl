@@ -1,6 +1,11 @@
 "use strict";
 
+import { getRenderedStyleJSON } from "../resources/style.js";
 import { StatusCodes } from "http-status-codes";
+import { config } from "../configs/index.js";
+import { stat, rm } from "fs/promises";
+import { createReadStream } from "fs";
+import { nanoid } from "nanoid";
 import {
   detectContentTypeFromFormat,
   getJSONSchema,
@@ -10,6 +15,7 @@ import {
 import {
   renderHighQualityPDF,
   renderStyleJSONs,
+  renderStyleJSON,
   renderSVGs,
   renderPDF,
   addFrame,
@@ -39,6 +45,85 @@ function renderStyleJSONsHandler() {
       return res.status(StatusCodes.CREATED).send(image);
     } catch (error) {
       printLog("error", `Failed to render styleJSONs: ${error}`);
+
+      if (error instanceof SyntaxError) {
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .send(`Options parameter is invalid: ${error}`);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
+    }
+  };
+}
+
+/**
+ * Render styleJSON handler
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
+ */
+function renderStyleJSONHandler() {
+  return async (req, res) => {
+    try {
+      /* Validate options */
+      try {
+        validateJSON(await getJSONSchema("render_stylejson"), req.body);
+      } catch (error) {
+        throw new SyntaxError(error);
+      }
+
+      if (req.body.styleId) {
+        const item = config.styles[req.body.styleId];
+
+        if (!item) {
+          return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
+        }
+
+        req.body.styleJSON = await getRenderedStyleJSON(item.path);
+      }
+
+      /* Render style JSON */
+      if (req.body.base64) {
+        const image = await renderStyleJSON(req.body);
+
+        res.set({
+          "content-type": "text/plain",
+        });
+
+        return res.status(StatusCodes.CREATED).send(image);
+      } else {
+        const format = req.body.format ?? "png";
+        const fileName = `${nanoid()}.${format}`;
+
+        req.body.filePath = `${process.env.DATA_DIR}/exports/${format}s/${fileName}`;
+
+        await renderStyleJSON(req.body);
+
+        const stats = await stat(req.body.filePath);
+
+        res.set({
+          "content-length": stats.size,
+          "content-disposition": `attachment; filename="${fileName}`,
+          "content-type": detectContentTypeFromFormat(format),
+        });
+
+        const readStream = createReadStream(req.body.filePath);
+
+        readStream.pipe(res);
+
+        readStream
+          .on("error", (error) => {
+            throw error;
+          })
+          .on("close", () => {
+            rm(req.body.filePath, {
+              force: true,
+            });
+          });
+      }
+    } catch (error) {
+      printLog("error", `Failed to render styleJSON: ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -281,7 +366,7 @@ export const serve_render = {
      *             schema:
      *               type: object
      *               example: {}
-     *       description: Render styleJSON options
+     *       description: Render styleJSONs options
      *     responses:
      *       201:
      *         description: StyleJSONs rendered
@@ -302,6 +387,45 @@ export const serve_render = {
      *         description: Internal server error
      */
     app.post("/renders/stylejsons", renderStyleJSONsHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Render
+     *     description: Render related endpoints
+     * /renders/stylejson:
+     *   post:
+     *     tags:
+     *       - Render
+     *     summary: Render styleJSON
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *             schema:
+     *               type: object
+     *               example: {}
+     *       description: Render styleJSON options
+     *     responses:
+     *       201:
+     *         description: StyleJSONs rendered
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.post("/renders/stylejson", renderStyleJSONHandler());
 
     /**
      * @swagger
