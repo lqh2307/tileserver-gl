@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 XVFB_DISPLAY=99
 XVFB_SCREEN="1920x1080x24"
