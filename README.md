@@ -1427,8 +1427,16 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
 ```json
 [
   {
-    "zoom": 8.45,
-    "bbox": [104.55758541249514, 20.40418806657307, 106.68188322743384, 22.266067290668104],
+    "zoom": 9,
+    "bbox": [96, 4, 120, 28],
+    "tileScale": 1,
+    "tileSize": 512,
+    "styleId": "openstreetmap",
+    "format": "png"
+  },
+  {
+    "zoom": 9.5,
+    "bbox": [96, 4, 120, 28],
     "tileScale": 1,
     "tileSize": 512,
     "styleJSON": {

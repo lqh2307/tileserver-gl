@@ -3,6 +3,7 @@
 import mlgl from "@maplibre/maplibre-gl-native";
 import { config } from "./configs/index.js";
 import { createPool } from "generic-pool";
+import { nanoid } from "nanoid";
 import path from "path";
 import os from "os";
 import {
@@ -388,7 +389,7 @@ function createRenderer(option) {
 /**
  * Render image tile data
  * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, z: number, x: number, y: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, filePath: string }} option Option object
- * @returns {Promise<Buffer|string|void>}
+ * @returns {Promise<Buffer|string>}
  */
 export async function renderImageTileData(option) {
   const renderer = option.pool
@@ -449,7 +450,7 @@ export async function renderImageTileData(option) {
 /**
  * Render image static data
  * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number, filePath: string }} option Option object
- * @returns {Promise<Buffer|string|void>}
+ * @returns {Promise<Buffer|string>}
  */
 export async function renderImageStaticData(option) {
   const renderer = option.pool
@@ -506,7 +507,7 @@ export async function renderImageStaticData(option) {
 /**
  * Render StyleJSON
  * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number, filePath: string }} option Option object
- * @returns {Promise<Buffer|string|void>}
+ * @returns {Promise<Buffer|string>}
  */
 export async function renderStyleJSON(option) {
   const MAX_TILE_PX = 8192;
@@ -527,41 +528,57 @@ export async function renderStyleJSON(option) {
     const xStep = (maxX - minX) / xSplits;
     const yStep = (maxY - minY) / ySplits;
 
-    const compositesOption = await Promise.all(
-      Array.from({ length: xSplits * ySplits }, async (_, i) => {
-        const xi = Math.floor(i / ySplits);
-        const yi = i % ySplits;
+    const pxStep = totalWidth / xSplits;
+    const pyStep = totalHeight / ySplits;
 
-        const subMinX = minX + xi * xStep;
-        const subMinY = minY + yi * yStep;
-        const subMaxX = subMinX + xStep;
-        const subMaxY = subMinY + yStep;
+    const total = xSplits * ySplits;
+    const compositesOption = Array(total);
 
-        const subBBox = [
+    const id = nanoid();
+    const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${option.format}s/${id}`;
+
+    if (!option.base64) {
+      option.filePath = `${dirPath}/${id}.${option.format}`;
+    }
+
+    async function createCompositeOption(idx) {
+      const xi = Math.floor(idx / ySplits);
+      const yi = idx % ySplits;
+
+      const subMinX = minX + xi * xStep;
+      const subMinY = minY + yi * yStep;
+      const subMaxX = subMinX + xStep;
+      const subMaxY = subMinY + yStep;
+      const filePath = `${dirPath}/${idx}.${option.format}`;
+
+      await renderImageStaticData({
+        styleJSON: option.styleJSON,
+        tileScale: option.tileScale,
+        tileSize: option.tileSize,
+        format: option.format,
+        pitch: option.pitch,
+        bearing: option.bearing,
+        bbox: [
           ...xy3857ToLonLat4326(subMinX, subMinY),
           ...xy3857ToLonLat4326(subMaxX, subMaxY),
-        ];
+        ],
+        filePath: filePath,
+        zoom: option.zoom,
+      });
 
-        const subSizes = calculateSizes(option.zoom, subBBox, option.tileSize);
+      compositesOption[idx] = {
+        limitInputPixels: false,
+        input: filePath,
+        left: Math.round(xi * pxStep),
+        top: Math.round(totalHeight - (yi + 1) * pyStep),
+      };
+    }
 
-        return {
-          limitInputPixels: false,
-          input: await renderImageStaticData({
-            styleJSON: option.styleJSON,
-            tileScale: option.tileScale,
-            tileSize: option.tileSize,
-            format: option.format,
-            pitch: option.pitch,
-            bearing: option.bearing,
-            bbox: subBBox,
-            zoom: option.zoom,
-          }),
-          left: xi * Math.round(option.tileScale * subSizes.width),
-          top:
-            totalHeight -
-            (yi + 1) * Math.round(option.tileScale * subSizes.height),
-        };
-      }),
+    // Batch run
+    await handleConcurrency(
+      os.cpus().length,
+      createCompositeOption,
+      Array.from({ length: xSplits * ySplits }, (_, i) => i),
     );
 
     return await createImageOutput(undefined, {
@@ -603,7 +620,7 @@ export async function renderStyleJSONs(overlays) {
 /**
  * Render SVG
  * @param {{ image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, filePath: string }} option Option object
- * @returns {Promise<Buffer|string|void>}
+ * @returns {Promise<Buffer|string>}
  */
 async function renderSVG(option) {
   return await createImageOutput(base64ToBuffer(option.image), {

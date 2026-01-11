@@ -230,7 +230,7 @@ export async function getImageMetadata(filePath) {
  * Create image output (Order: Input -> Extend -> Composites -> Extract -> Resize -> Output !== Default sharp order: Input -> Resize/Extract/... -> Extend -> Composites -> Output)
  * @param {sharp.Sharp|string|Buffer} image Image
  * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean, createOption: sharp.Create, rawOption: sharp.CreateRaw, resizeOption: sharp.ResizeOptions, compositesOption: sharp.OverlayOptions[], extendOption: sharp.ExtendOptions, extractOption: sharp.Region }} options Options
- * @returns {Promise<void|Buffer|string>}
+ * @returns {Promise<Buffer|string>}
  */
 export async function createImageOutput(image, options) {
   let targetImage;
@@ -350,6 +350,8 @@ export async function createImageOutput(image, options) {
       buffer,
       300000, // 5 mins
     );
+
+    return options.filePath;
   } else if (options.base64) {
     return createBase64(buffer, options.format || "png");
   } else {
@@ -364,7 +366,7 @@ export async function createImageOutput(image, options) {
  * @param {{ frameMargin: number, frameInnerColor: string, frameInnerWidth: number, frameInnerStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameOuterColor: string, frameOuterWidth: number, frameOuterStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameSpace: number, tickLabelFormat: "D"|"DMS"|"DMSD", majorTickStep: number, minorTickStep: number, majorTickWidth: number, minorTickWidth: number, majorTickSize: number, minorTickSize: number, majorTickLabelSize: number, minorTickLabelSize: number, majorTickColor: string, minorTickColor: string, majorTickLabelColor: string, minorTickLabelColor: string, majorTickLabelFont: string, minorTickLabelFont: string, xTickLabelOffset: number, yTickLabelOffset: number, xTickEnd: boolean, xTickMajorLabelRotation: number, xTickMinorLabelRotation: number, yTickMajorLabelRotation: number, yTickEnd: boolean, yTickMinorLabelRotation: number }} frame Frame object
  * @param {{ majorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", majorGridWidth: number, majorGridStep: number, majorGridColor: string, minorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", minorGridWidth: number, minorGridStep: number, minorGridColor: string }} grid Grid object
  * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
- * @returns {Promise<void|Buffer|string>}
+ * @returns {Promise<Buffer|string>}
  */
 export async function addFrameToImage(input, overlays, frame, grid, output) {
   // Get origin image size
@@ -1190,7 +1192,7 @@ export async function splitImageToTiles(input, output) {
  * @param {{ images: { image: string|Buffer, res: [number, number] }[], res: [number, number] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot", pageColor: string, pageSize: number, pageFont: string }} preview Preview object
  * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean }} output Output object
- * @returns {Promise<void|Buffer|string>}
+ * @returns {Promise<Buffer|string>}
  */
 export async function renderImageToHighQualityPDF(input, preview, output) {
   // Get paper size (in mm)
@@ -1419,7 +1421,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
  * @param {{ images: string[]|Buffer[] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot" }} preview Preview object
  * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, pagination: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, grayscale: boolean, grid: { row: number, column: number, marginX: number, marginY: number, gapX: number, gapY: number } }} output Output object
- * @returns {Promise<void|Buffer[]|string[]>}
+ * @returns {Promise<Buffer[]|string[]>}
  */
 export async function renderImageToPDF(input, preview, output) {
   // Get paper size (in mm)

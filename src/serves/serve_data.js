@@ -312,7 +312,7 @@ function downloadDataHandler() {
 
         res.set({
           "content-length": stats.size,
-          "content-disposition": `attachment; filename="${fileName}`,
+          "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": detectContentTypeFromFormat(item.tileJSON.format),
         });
 

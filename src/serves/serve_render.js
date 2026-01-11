@@ -5,7 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
 import { stat, rm } from "fs/promises";
 import { createReadStream } from "fs";
-import { nanoid } from "nanoid";
+import path from "path";
 import {
   detectContentTypeFromFormat,
   getJSONSchema,
@@ -94,21 +94,17 @@ function renderStyleJSONHandler() {
         return res.status(StatusCodes.CREATED).send(image);
       } else {
         const format = req.body.format ?? "png";
-        const fileName = `${nanoid()}.${format}`;
+        const filePath = await renderStyleJSON(req.body);
 
-        req.body.filePath = `${process.env.DATA_DIR}/exports/${format}s/${fileName}`;
-
-        await renderStyleJSON(req.body);
-
-        const stats = await stat(req.body.filePath);
+        const stats = await stat(filePath);
 
         res.set({
           "content-length": stats.size,
-          "content-disposition": `attachment; filename="${fileName}`,
+          "content-disposition": `attachment; filename="${path.basename(filePath)}"`,
           "content-type": detectContentTypeFromFormat(format),
         });
 
-        const readStream = createReadStream(req.body.filePath);
+        const readStream = createReadStream(filePath);
 
         readStream.pipe(res);
 
@@ -117,8 +113,9 @@ function renderStyleJSONHandler() {
             throw error;
           })
           .on("close", () => {
-            rm(req.body.filePath, {
+            rm(path.dirname(filePath), {
               force: true,
+              recursive: true,
             });
           });
       }

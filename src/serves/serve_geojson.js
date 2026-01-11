@@ -327,7 +327,7 @@ function downloadGeoJSONHandler() {
 
         res.set({
           "content-length": stats.size,
-          "content-disposition": `attachment; filename="${fileName}`,
+          "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": "application/json",
         });
 

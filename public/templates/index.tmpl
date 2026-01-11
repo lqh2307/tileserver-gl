@@ -368,6 +368,17 @@
     </form>
   </dialog>
 
+  <dialog id="exportImageDialog">
+    <form id="exportImageForm" method="dialog">
+      <label for="exportImageInput">Enter JSON:</label>
+      <textarea id="exportImageInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">Export</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('exportImageDialog');">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="exportDataDialog">
     <form id="exportDataForm" method="dialog">
       <label for="exportDataInput">Enter JSON:</label>
@@ -728,6 +739,16 @@
               </div>
               <div class="viewers">
                 <a class="btn" href="${baseURL}/summary?type=seed">View</a>
+              </div>
+            </div>
+            <div class="item">
+              <img src="${emptyImageURL}" alt="Empty image" />
+              <div class="details">
+                <h3 class="name">Export image</h3>
+                <p>description: Export static image</p>
+              </div>
+              <div class="viewers">
+                <a class="btn" href="#" onclick="handleExportImage(event)">Export</a>
               </div>
             </div>
           </div>
@@ -1237,6 +1258,45 @@
         }
 
         tryFetch();
+      }
+    }
+
+    function handleExportImage(event) {
+      event.preventDefault();
+
+      document.getElementById("exportImageDialog").showModal();
+
+      document.getElementById("exportImageForm").onsubmit = (event) => {
+        event.preventDefault();
+
+        fetch(`${baseURL}/renders/stylejson`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: document.getElementById("exportImageInput").value
+        })
+          .then(async (response) => {
+            const contentDisposition = response.headers.get("content-disposition");
+
+            if (contentDisposition) {
+              const url = window.URL.createObjectURL(await response.blob());
+
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = contentDisposition.split("filename=")[1].replace(/"/g, "");
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+
+              window.URL.revokeObjectURL(url);
+            } else {
+              alert(JSON.stringify(await response.json(), null, 2));
+            }
+          })
+          .catch((error) => {
+            alert(`Failed to export image: ${error.message ? error.message : `Status code: ${response.status} - ${response.statusText}`}`);
+          });
       }
     }
 
