@@ -3,7 +3,9 @@
 import { getBBoxFromTiles, lonLat4326ToXY3857 } from "./spatial.js";
 import { base64ToBuffer, createFileWithLock } from "./file.js";
 import { convertLength, toPixel } from "./util.js";
+import { mkdir } from "node:fs/promises";
 import { jsPDF } from "jspdf";
+import path from "node:path";
 import sharp from "sharp";
 
 export const BACKGROUND_COLOR = { r: 255, g: 255, b: 255, alpha: 0 };
@@ -351,20 +353,17 @@ export async function createImageOutput(options) {
     }
   }
 
-  // Buffer
-  const buffer = await targetImage.toBuffer();
-
   // Write to output
   if (filePath) {
-    await createFileWithLock(
-      filePath,
-      buffer,
-      300000, // 5 mins
-    );
+    await mkdir(path.dirname(filePath), {
+      recursive: true,
+    });
+
+    await targetImage.toFile(filePath);
 
     return filePath;
   } else {
-    return buffer;
+    return await targetImage.toBuffer();
   }
 }
 

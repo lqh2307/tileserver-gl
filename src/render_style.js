@@ -584,27 +584,14 @@ export async function renderStyleJSON(option) {
         channels: 4,
         background: BACKGROUND_COLOR,
       },
+      filePath: filePath,
       compositesOption: compositesOption,
       format: option.format,
       width: option.width,
       height: option.height,
-      filePath: filePath,
       grayscale: option.grayscale,
-      filePath: option.filePath,
     });
   }
-}
-
-/**
- * Render SVG
- * @param { image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", grayscale: boolean } overlay SVG overlay
- * @returns {Promise<Buffer|string>}
- */
-export async function renderSVG(overlay) {
-  return await createImageOutput({
-    ...overlay,
-    data: base64ToBuffer(overlay.image),
-  });
 }
 
 /**

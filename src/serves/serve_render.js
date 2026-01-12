@@ -135,7 +135,7 @@ function addFrameHandler() {
         const fileName = `${nanoid()}.${format}`;
 
         res.set({
-          "content-length": await getFileSize(image.length),
+          "content-length": image.length,
           "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": detectContentTypeFromFormat(format),
         });
@@ -242,7 +242,7 @@ function renderPDFHandler() {
         const fileName = `${nanoid()}.${format}`;
 
         res.set({
-          "content-length": await getFileSize(image.length),
+          "content-length": image.length,
           "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": detectContentTypeFromFormat(format),
         });
@@ -309,7 +309,7 @@ function renderHighQualityPDFHandler() {
         const fileName = `${nanoid()}.${format}`;
 
         res.set({
-          "content-length": await getFileSize(image.length),
+          "content-length": image.length,
           "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": detectContentTypeFromFormat(format),
         });
