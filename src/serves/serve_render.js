@@ -48,17 +48,14 @@ function renderStyleJSONHandler() {
       }
 
       /* Render style JSON */
-      const format = req.body.format ?? "png";
+      req.body.format = req.body.format ?? "png";
 
-      const filePath = await renderStyleJSON({
-        ...req.body,
-        format: format,
-      });
+      const filePath = await renderStyleJSON(req.body);
 
       let readStream;
 
       if (req.body.base64) {
-        const image = bufferToBase64(await readFile(filePath), format);
+        const image = bufferToBase64(await readFile(filePath), req.body.format);
 
         res.set({
           "content-length": image.length,
@@ -70,7 +67,7 @@ function renderStyleJSONHandler() {
         res.set({
           "content-length": await getFileSize(filePath),
           "content-disposition": `attachment; filename="${path.basename(filePath)}"`,
-          "content-type": detectContentTypeFromFormat(format),
+          "content-type": detectContentTypeFromFormat(req.body.format),
         });
 
         readStream = createReadStream(filePath);
@@ -119,7 +116,7 @@ function addFrameHandler() {
       }
 
       /* Add frame */
-      const format = req.body.output.format ?? "png";
+      req.body.output.format = req.body.output.format ?? "png";
 
       let image = await addFrameToImage(
         {
@@ -129,15 +126,11 @@ function addFrameHandler() {
         req.body.overlays,
         req.body.frame,
         req.body.grid,
-        {
-          ...req.body.output,
-          format: format,
-        },
+        req.body.output,
       );
 
       if (req.body.output.base64) {
-        image = bufferToBase64(image, format);
-
+        image = bufferToBase64(image, req.body.output.format);
         res.set({
           "content-length": image.length,
           "content-type": "text/plain",
@@ -145,8 +138,8 @@ function addFrameHandler() {
       } else {
         res.set({
           "content-length": image.length,
-          "content-disposition": `attachment; filename="${`${nanoid()}.${format}`}"`,
-          "content-type": detectContentTypeFromFormat(format),
+          "content-disposition": `attachment; filename="${`${nanoid()}.${req.body.output.format}`}"`,
+          "content-type": detectContentTypeFromFormat(req.body.output.format),
         });
       }
 
@@ -188,16 +181,15 @@ function renderSVGHandler() {
       }
 
       /* Render SVG */
-      const format = req.body.format ?? "png";
+      req.body.format = req.body.format ?? "png";
 
       let image = await createImageOutput({
         ...req.body,
-        format: format,
         data: base64ToBuffer(req.body.image),
       });
 
       if (req.body.base64) {
-        image = bufferToBase64(image, format);
+        image = bufferToBase64(image, req.body.format);
 
         res.set({
           "content-length": image.length,
@@ -206,8 +198,8 @@ function renderSVGHandler() {
       } else {
         res.set({
           "content-length": image.length,
-          "content-disposition": `attachment; filename="${`${nanoid()}.${format}`}"`,
-          "content-type": detectContentTypeFromFormat(format),
+          "content-disposition": `attachment; filename="${`${nanoid()}.${req.body.format}`}"`,
+          "content-type": detectContentTypeFromFormat(req.body.format),
         });
       }
 
@@ -249,7 +241,7 @@ function renderPDFHandler() {
       }
 
       /* Render PDF */
-      const format = req.body.output.format ?? "png";
+      req.body.output.format = req.body.output.format ?? "png";
 
       let image = await renderImageToPDF(
         {
@@ -257,15 +249,11 @@ function renderPDFHandler() {
           images: req.body.input.images.map(base64ToBuffer),
         },
         req.body.preview,
-        {
-          ...req.body.output,
-          format: format,
-        },
+        req.body.output,
       );
 
       if (req.body.output.base64) {
-        image = bufferToBase64(image, format);
-
+        image = bufferToBase64(image, req.body.output.format);
         res.set({
           "content-length": image.length,
           "content-type": "text/plain",
@@ -273,8 +261,8 @@ function renderPDFHandler() {
       } else {
         res.set({
           "content-length": image.length,
-          "content-disposition": `attachment; filename="${`${nanoid()}.${format}`}"`,
-          "content-type": detectContentTypeFromFormat(format),
+          "content-disposition": `attachment; filename="${`${nanoid()}.${req.body.output.format}`}"`,
+          "content-type": detectContentTypeFromFormat(req.body.output.format),
         });
       }
 
@@ -316,7 +304,7 @@ function renderHighQualityPDFHandler() {
       }
 
       /* Render PDF */
-      const format = req.body.output.format ?? "png";
+      req.body.output.format = req.body.output.format ?? "png";
 
       let image = await renderImageToHighQualityPDF(
         {
@@ -327,15 +315,11 @@ function renderHighQualityPDFHandler() {
           })),
         },
         req.body.preview,
-        {
-          ...req.body.output,
-          format: format,
-        },
+        req.body.output,
       );
 
       if (req.body.output.base64) {
-        image = bufferToBase64(image, format);
-
+        image = bufferToBase64(image, req.body.output.format);
         res.set({
           "content-length": image.length,
           "content-type": "text/plain",
@@ -343,8 +327,8 @@ function renderHighQualityPDFHandler() {
       } else {
         res.set({
           "content-length": image.length,
-          "content-disposition": `attachment; filename="${`${nanoid()}.${format}`}"`,
-          "content-type": detectContentTypeFromFormat(format),
+          "content-disposition": `attachment; filename="${`${nanoid()}.${req.body.output.format}`}"`,
+          "content-type": detectContentTypeFromFormat(req.body.output.format),
         });
       }
 
