@@ -1,63 +1,27 @@
 "use strict";
 
 import { getRenderedStyleJSON } from "../resources/style.js";
+import { renderStyleJSON } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
-import { stat, rm } from "fs/promises";
+import { readFile, rm } from "fs/promises";
 import { createReadStream } from "fs";
+import { Readable } from "stream";
+import { nanoid } from "nanoid";
 import path from "path";
 import {
   detectContentTypeFromFormat,
+  renderImageToHighQualityPDF,
+  createImageOutput,
+  renderImageToPDF,
+  addFrameToImage,
+  base64ToBuffer,
+  bufferToBase64,
   getJSONSchema,
   validateJSON,
+  getFileSize,
   printLog,
 } from "../utils/index.js";
-import {
-  renderHighQualityPDF,
-  renderStyleJSONs,
-  renderStyleJSON,
-  renderSVGs,
-  renderPDF,
-  addFrame,
-} from "../render_style.js";
-
-/**
- * Render styleJSONs handler
- * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
- */
-function renderStyleJSONsHandler() {
-  return async (req, res) => {
-    try {
-      /* Validate options */
-      try {
-        validateJSON(await getJSONSchema("render_stylejsons"), req.body);
-      } catch (error) {
-        throw new SyntaxError(error);
-      }
-
-      /* Render style */
-      const image = await renderStyleJSONs(req.body);
-
-      res.set({
-        "content-type": "application/json",
-      });
-
-      return res.status(StatusCodes.CREATED).send(image);
-    } catch (error) {
-      printLog("error", `Failed to render styleJSONs: ${error}`);
-
-      if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
-      } else {
-        return res
-          .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .send("Internal server error");
-      }
-    }
-  };
-}
 
 /**
  * Render styleJSON handler
@@ -84,8 +48,10 @@ function renderStyleJSONHandler() {
       }
 
       /* Render style JSON */
+      const filePath = await renderStyleJSON(req.body);
+
       if (req.body.base64) {
-        const image = await renderStyleJSON(req.body);
+        const image = bufferToBase64(await readFile(filePath));
 
         res.set({
           "content-type": "text/plain",
@@ -93,15 +59,12 @@ function renderStyleJSONHandler() {
 
         return res.status(StatusCodes.CREATED).send(image);
       } else {
-        const format = req.body.format ?? "png";
-        const filePath = await renderStyleJSON(req.body);
-
-        const stats = await stat(filePath);
+        req.body.format = req.body.format ?? "png";
 
         res.set({
-          "content-length": stats.size,
+          "content-length": await getFileSize(filePath),
           "content-disposition": `attachment; filename="${path.basename(filePath)}"`,
-          "content-type": detectContentTypeFromFormat(format),
+          "content-type": detectContentTypeFromFormat(req.body.format),
         });
 
         const readStream = createReadStream(filePath);
@@ -150,21 +113,41 @@ function addFrameHandler() {
       }
 
       /* Add frame */
-      const image = await addFrame(
-        req.body.input,
+      const image = await addFrameToImage(
+        {
+          ...req.body.input,
+          image: base64ToBuffer(req.body.input.image),
+        },
         req.body.overlays,
         req.body.frame,
         req.body.grid,
         req.body.output,
       );
 
-      res.set({
-        "content-type": detectContentTypeFromFormat(
-          req.body.output.format || "png",
-        ),
-      });
+      if (req.body.output.base64) {
+        res.set({
+          "content-type": "text/plain",
+        });
 
-      return res.status(StatusCodes.CREATED).send(image);
+        return res.status(StatusCodes.CREATED).send(image);
+      } else {
+        const format = req.body.output.format ?? "png";
+        const fileName = `${nanoid()}.${format}`;
+
+        res.set({
+          "content-length": await getFileSize(image.length),
+          "content-disposition": `attachment; filename="${fileName}"`,
+          "content-type": detectContentTypeFromFormat(format),
+        });
+
+        const readStream = Readable.from(image);
+
+        readStream.pipe(res);
+
+        readStream.on("error", (error) => {
+          throw error;
+        });
+      }
     } catch (error) {
       printLog("error", `Failed to add frame: ${error}`);
 
@@ -182,28 +165,34 @@ function addFrameHandler() {
 }
 
 /**
- * Render SVGs handler
+ * Render SVG handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
-function renderSVGsHandler() {
+function renderSVGHandler() {
   return async (req, res) => {
     try {
       /* Validate options */
       try {
-        validateJSON(await getJSONSchema("render_svgs"), req.body);
+        validateJSON(await getJSONSchema("render_svg"), req.body);
       } catch (error) {
         throw new SyntaxError(error);
       }
 
-      const result = await renderSVGs(req.body);
+      /* Render SVG */
+      const data = await createImageOutput({
+        ...req.body,
+        data: base64ToBuffer(req.body.image),
+      });
+
+      const image = req.body.base64 ? bufferToBase64(data) : data;
 
       res.set({
         "content-type": "application/json",
       });
 
-      return res.status(StatusCodes.CREATED).send(result);
+      return res.status(StatusCodes.CREATED).send(image);
     } catch (error) {
-      printLog("error", `Failed to render SVGs: ${error}`);
+      printLog("error", `Failed to render SVG: ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -232,17 +221,40 @@ function renderPDFHandler() {
         throw new SyntaxError(error);
       }
 
-      const result = await renderPDF(
-        req.body.input,
+      /* Render PDF */
+      const image = await renderImageToPDF(
+        {
+          ...req.body.input,
+          images: req.body.input.images.map(base64ToBuffer),
+        },
         req.body.preview,
         req.body.output,
       );
 
-      res.set({
-        "content-type": "application/json",
-      });
+      if (req.body.output.base64) {
+        res.set({
+          "content-type": "text/plain",
+        });
 
-      return res.status(StatusCodes.CREATED).send(result);
+        return res.status(StatusCodes.CREATED).send(image);
+      } else {
+        const format = req.body.output.format ?? "png";
+        const fileName = `${nanoid()}.${format}`;
+
+        res.set({
+          "content-length": await getFileSize(image.length),
+          "content-disposition": `attachment; filename="${fileName}"`,
+          "content-type": detectContentTypeFromFormat(format),
+        });
+
+        const readStream = Readable.from(image);
+
+        readStream.pipe(res);
+
+        readStream.on("error", (error) => {
+          throw error;
+        });
+      }
     } catch (error) {
       printLog("error", `Failed to render PDF: ${error}`);
 
@@ -273,17 +285,43 @@ function renderHighQualityPDFHandler() {
         throw new SyntaxError(error);
       }
 
-      const result = await renderHighQualityPDF(
-        req.body.input,
+      /* Render PDF */
+      const image = await renderImageToHighQualityPDF(
+        {
+          ...req.body.input,
+          images: req.body.input.images.map((item) => ({
+            image: base64ToBuffer(item.image),
+            res: item.resolution,
+          })),
+        },
         req.body.preview,
         req.body.output,
       );
 
-      res.set({
-        "content-type": "application/json",
-      });
+      if (req.body.output.base64) {
+        res.set({
+          "content-type": "text/plain",
+        });
 
-      return res.status(StatusCodes.CREATED).send(result);
+        return res.status(StatusCodes.CREATED).send(image);
+      } else {
+        const format = req.body.output.format ?? "png";
+        const fileName = `${nanoid()}.${format}`;
+
+        res.set({
+          "content-length": await getFileSize(image.length),
+          "content-disposition": `attachment; filename="${fileName}"`,
+          "content-type": detectContentTypeFromFormat(format),
+        });
+
+        const readStream = Readable.from(image);
+
+        readStream.pipe(res);
+
+        readStream.on("error", (error) => {
+          throw error;
+        });
+      }
     } catch (error) {
       printLog("error", `Failed to render high quality PDF: ${error}`);
 
@@ -351,45 +389,6 @@ export const serve_render = {
      * tags:
      *   - name: Render
      *     description: Render related endpoints
-     * /renders/stylejsons:
-     *   post:
-     *     tags:
-     *       - Render
-     *     summary: Render styleJSONs
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
-     *       description: Render styleJSONs options
-     *     responses:
-     *       201:
-     *         description: StyleJSONs rendered
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.post("/renders/stylejsons", renderStyleJSONsHandler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Render
-     *     description: Render related endpoints
      * /renders/stylejson:
      *   post:
      *     tags:
@@ -429,18 +428,16 @@ export const serve_render = {
      * tags:
      *   - name: Render
      *     description: Render related endpoints
-     * /renders/svgs:
+     * /renders/svg:
      *   post:
      *     tags:
      *       - Render
-     *     summary: Render SVGs
+     *     summary: Render SVG
      *     requestBody:
      *       required: true
      *       content:
      *         application/json:
      *             schema:
-     *               type: array
-     *               items:
      *                 type: object
      *                 properties:
      *                   content:
@@ -454,11 +451,11 @@ export const serve_render = {
      *                    enum: [jpeg, jpg, png, webp, gif]
      *                   base64:
      *                    type: boolean
-     *               example: []
+     *               example: {}
      *       description: Render SVG options
      *     responses:
      *       201:
-     *         description: SVGs rendered
+     *         description: SVG rendered
      *         content:
      *           application/json:
      *             schema:
@@ -475,7 +472,7 @@ export const serve_render = {
      *       500:
      *         description: Internal server error
      */
-    app.post("/renders/svgs", renderSVGsHandler());
+    app.post("/renders/svg", renderSVGHandler());
 
     /**
      * @swagger

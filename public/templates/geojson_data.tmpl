@@ -60,19 +60,23 @@
     const group = "{{group}}";
     const layer = "{{layer}}";
 
+    function handleError(error) {
+      if (error.response) {
+        alert(`Error: Status code: ${error.response.status} - ${error.response.statusText}`);
+      } else if (error.request) {
+        alert("No response received");
+      } else {
+        alert(`Error: ${error.message}`);
+      }
+    }
+
     fetch(`${baseURL}/geojsons/${group}/${layer}.json`, {
         method: "GET",
         headers: {
-          "Content-Type": "application/json"
+          "content-type": "application/json"
         },
       })
-      .then((response) => {
-        if (response.status === 200) {
-          return response.json();
-        } else {
-          alert(`Failed to fetch GeoJSON info: Status code: ${response.status} - ${response.statusText}`);
-        }
-      })
+      .then((response) => response.json())
       .then((jsonResponse) => {
         const style = {
           "version": 8,
@@ -157,9 +161,7 @@
           }
         });
       })
-      .catch((error) => {
-        alert(`Failed to fetch GeoJSON info: Status code: ${error.message}`);
-      });
+      .catch(handleError);
   </script>
 </body>
 
@@ -228,7 +230,7 @@
     fetch(`${baseURL}/geojsons/${group}.json`, {
         method: "GET",
         headers: {
-          "Content-Type": "application/json"
+          "content-type": "application/json"
         },
       })
       .then((response) => {

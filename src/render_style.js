@@ -39,7 +39,6 @@ import {
   openXYZMD5DB,
 } from "./resources/index.js";
 import {
-  renderImageToHighQualityPDF,
   detectFormatAndHeaders,
   handleTilesConcurrency,
   FALLBACK_TILE_DATA,
@@ -48,14 +47,12 @@ import {
   handleConcurrency,
   createImageOutput,
   getLonLatFromXYZ,
-  renderImageToPDF,
   BACKGROUND_COLOR,
-  addFrameToImage,
-  getDataFromURL,
   calculateSizes,
   base64ToBuffer,
   getTileBounds,
   calculateMD5,
+  requestToURL,
   unzipAsync,
   printLog,
 } from "./utils/index.js";
@@ -278,11 +275,12 @@ function createRenderer(option) {
         case "http":
         case "https": {
           try {
-            const dataRemote = await getDataFromURL(
-              req.url,
-              30000, // 30 seconds
-              "arraybuffer",
-            );
+            const dataRemote = await requestToURL({
+              url: req.url,
+              method: "GET",
+              timeout: 30000, // 30 seconds
+              responseType: "arraybuffer",
+            });
 
             /* Unzip data */
             const headers = detectFormatAndHeaders(dataRemote.data).headers;
@@ -388,7 +386,7 @@ function createRenderer(option) {
 
 /**
  * Render image tile data
- * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, z: number, x: number, y: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, filePath: string }} option Option object
+ * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, z: number, x: number, y: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", grayscale: boolean, filePath: string }} option Option object
  * @returns {Promise<Buffer|string>}
  */
 export async function renderImageTileData(option) {
@@ -426,7 +424,8 @@ export async function renderImageTileData(option) {
           ? Math.round(tileSize / 2)
           : undefined;
 
-        createImageOutput(data, {
+        createImageOutput({
+          data: data,
           rawOption: {
             premultiplied: true,
             width: originTileSize,
@@ -434,7 +433,6 @@ export async function renderImageTileData(option) {
             channels: 4,
           },
           format: option.format,
-          base64: option.base64,
           grayscale: option.grayscale,
           filePath: option.filePath,
           width: targetTileSize,
@@ -449,7 +447,7 @@ export async function renderImageTileData(option) {
 
 /**
  * Render image static data
- * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number, filePath: string }} option Option object
+ * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", grayscale: boolean, width: number, height: number, filePath: string }} option Option object
  * @returns {Promise<Buffer|string>}
  */
 export async function renderImageStaticData(option) {
@@ -483,7 +481,8 @@ export async function renderImageStaticData(option) {
           return reject(error);
         }
 
-        createImageOutput(data, {
+        createImageOutput({
+          data: data,
           rawOption: {
             premultiplied: true,
             width: Math.round(option.tileScale * sizes.width),
@@ -491,7 +490,6 @@ export async function renderImageStaticData(option) {
             channels: 4,
           },
           format: option.format,
-          base64: option.base64,
           grayscale: option.grayscale,
           width: option.width,
           height: option.height,
@@ -506,8 +504,8 @@ export async function renderImageStaticData(option) {
 
 /**
  * Render StyleJSON
- * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, width: number, height: number, filePath: string }} option Option object
- * @returns {Promise<Buffer|string>}
+ * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", grayscale: boolean, width: number, height: number }} option Option object
+ * @returns {Promise<string>}
  */
 export async function renderStyleJSON(option) {
   const MAX_TILE_PX = 8192;
@@ -516,8 +514,15 @@ export async function renderStyleJSON(option) {
   const totalWidth = Math.round(option.tileScale * sizes.width);
   const totalHeight = Math.round(option.tileScale * sizes.height);
 
+  const id = nanoid();
+  const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${option.format}s/${id}`;
+  const filePath = `${dirPath}/${id}.${option.format}`;
+
   if (totalWidth <= MAX_TILE_PX && totalHeight <= MAX_TILE_PX) {
-    return await renderImageStaticData(option);
+    return await renderImageStaticData({
+      ...option,
+      filePath: filePath,
+    });
   } else {
     const [minX, minY] = lonLat4326ToXY3857(option.bbox[0], option.bbox[1]);
     const [maxX, maxY] = lonLat4326ToXY3857(option.bbox[2], option.bbox[3]);
@@ -534,22 +539,13 @@ export async function renderStyleJSON(option) {
     const total = xSplits * ySplits;
     const compositesOption = Array(total);
 
-    const id = nanoid();
-    const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${option.format}s/${id}`;
-
-    if (!option.base64) {
-      option.filePath = `${dirPath}/${id}.${option.format}`;
-    }
-
     async function createCompositeOption(idx) {
       const xi = Math.floor(idx / ySplits);
       const yi = idx % ySplits;
 
       const subMinX = minX + xi * xStep;
       const subMinY = minY + yi * yStep;
-      const subMaxX = subMinX + xStep;
-      const subMaxY = subMinY + yStep;
-      const filePath = `${dirPath}/${idx}.${option.format}`;
+      const subFilePath = `${dirPath}/${idx}.${option.format}`;
 
       await renderImageStaticData({
         styleJSON: option.styleJSON,
@@ -560,15 +556,15 @@ export async function renderStyleJSON(option) {
         bearing: option.bearing,
         bbox: [
           ...xy3857ToLonLat4326(subMinX, subMinY),
-          ...xy3857ToLonLat4326(subMaxX, subMaxY),
+          ...xy3857ToLonLat4326(subMinX + xStep, subMinY + yStep),
         ],
-        filePath: filePath,
+        filePath: subFilePath,
         zoom: option.zoom,
       });
 
       compositesOption[idx] = {
         limitInputPixels: false,
-        input: filePath,
+        input: subFilePath,
         left: Math.round(xi * pxStep),
         top: Math.round(totalHeight - (yi + 1) * pyStep),
       };
@@ -581,7 +577,7 @@ export async function renderStyleJSON(option) {
       Array.from({ length: xSplits * ySplits }, (_, i) => i),
     );
 
-    return await createImageOutput(undefined, {
+    return await createImageOutput({
       createOption: {
         width: totalWidth,
         height: totalHeight,
@@ -592,7 +588,7 @@ export async function renderStyleJSON(option) {
       format: option.format,
       width: option.width,
       height: option.height,
-      base64: option.base64,
+      filePath: filePath,
       grayscale: option.grayscale,
       filePath: option.filePath,
     });
@@ -600,114 +596,15 @@ export async function renderStyleJSON(option) {
 }
 
 /**
- * Render StyleJSONs
- * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean }[]} overlays StyleJSON overlays
- * @returns {Promise<Buffer[]|string[]>} Response
- */
-export async function renderStyleJSONs(overlays) {
-  const targetOverlays = Array(overlays.length);
-
-  async function renderImageData(idx) {
-    targetOverlays[idx] = await renderStyleJSON(overlays[idx]);
-  }
-
-  // Batch run
-  await handleConcurrency(os.cpus().length, renderImageData, overlays);
-
-  return targetOverlays;
-}
-
-/**
  * Render SVG
- * @param {{ image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean, filePath: string }} option Option object
+ * @param { image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", grayscale: boolean } overlay SVG overlay
  * @returns {Promise<Buffer|string>}
  */
-async function renderSVG(option) {
-  return await createImageOutput(base64ToBuffer(option.image), {
-    format: option.format,
-    width: option.width,
-    height: option.height,
-    base64: option.base64,
-    grayscale: option.grayscale,
-    filePath: option.filePath,
+export async function renderSVG(overlay) {
+  return await createImageOutput({
+    ...overlay,
+    data: base64ToBuffer(overlay.image),
   });
-}
-
-/**
- * Render SVGs
- * @param {{ image: string, width: number, height: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", base64: boolean, grayscale: boolean }[]} overlays SVG overlays
- * @returns {Promise<Buffer[]|string[]>}
- */
-export async function renderSVGs(overlays) {
-  const targetOverlays = Array(overlays.length);
-
-  async function renderImageData(idx) {
-    targetOverlays[idx] = await renderSVG(overlays[idx]);
-  }
-
-  // Batch run
-  await handleConcurrency(os.cpus().length, renderImageData, overlays);
-
-  return targetOverlays;
-}
-
-/**
- * Add frame to Image
- * @param {{ filePath: string|Buffer, bbox: [number, number, number, number] }} input Input object
- * @param {{ image: Buffer, bbox: [number, number, number, number] }[]} overlays Array of overlay object
- * @param {{ frameMargin: number, frameInnerColor: string, frameInnerWidth: number, frameInnerStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameOuterColor: string, frameOuterWidth: number, frameOuterStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameSpace: number, tickLabelFormat: "D"|"DMS"|"DMSD", majorTickStep: number, minorTickStep: number, majorTickWidth: number, minorTickWidth: number, majorTickSize: number, minorTickSize: number, majorTickLabelSize: number, minorTickLabelSize: number, majorTickColor: string, minorTickColor: string, majorTickLabelColor: string, minorTickLabelColor: string, majorTickLabelFont: string, minorTickLabelFont: string, xTickLabelOffset: number, yTickLabelOffset: number, xTickEnd: boolean, xTickMajorLabelRotation: number, xTickMinorLabelRotation: number, yTickMajorLabelRotation: number, yTickEnd: boolean, yTickMinorLabelRotation: number }} frame Frame object
- * @param {{ majorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", majorGridWidth: number, majorGridStep: number, majorGridColor: string, minorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", minorGridWidth: number, minorGridStep: number, minorGridColor: string }} grid Grid object
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
- * @returns {Promise<Buffer|string>} Response
- */
-export async function addFrame(input, overlays, frame, grid, output) {
-  return await addFrameToImage(
-    {
-      image: base64ToBuffer(input.image),
-      bbox: input.bbox,
-    },
-    overlays,
-    frame,
-    grid,
-    output,
-  );
-}
-
-/**
- * Render high quality PDF
- * @param {object} input Input object
- * @param {object} preview Preview object
- * @param {object} output Output object
- * @returns {Promise<Buffer[]|string[]>}
- */
-export async function renderHighQualityPDF(input, preview, output) {
-  return await renderImageToHighQualityPDF(
-    {
-      images: input.images.map((item) => ({
-        image: base64ToBuffer(item.image),
-        res: item.resolution,
-      })),
-    },
-    preview,
-    output,
-  );
-}
-
-/**
- * Render PDF
- * @param {object} input Input object
- * @param {object} preview Preview object
- * @param {object} output Output object
- * @returns {Promise<Buffer|string[]>}
- */
-export async function renderPDF(input, preview, output) {
-  return await renderImageToPDF(
-    {
-      images: input.images.map(base64ToBuffer),
-    },
-    preview,
-    output,
-  );
 }
 
 /**

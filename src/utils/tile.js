@@ -12,7 +12,7 @@ const FALLBACK_TILE_DATA = {
 (async () =>
   await Promise.all(
     ["gif", "png", "jpg", "jpeg", "webp"].map(async (format) => {
-      FALLBACK_TILE_DATA[format] = await createImageOutput(undefined, {
+      FALLBACK_TILE_DATA[format] = await createImageOutput({
         createOption: {
           width: 1,
           height: 1,

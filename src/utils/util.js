@@ -146,7 +146,7 @@ export async function handleTilesConcurrency(
 
         /* Wait slot for a task */
         while (tasks.activeTasks >= concurrency) {
-          await delay(25);
+          await delay(5);
         }
 
         /* Acquire mutex */
@@ -168,14 +168,14 @@ export async function handleTilesConcurrency(
 
   /* Wait all tasks done */
   while (tasks.activeTasks > 0) {
-    await delay(25);
+    await delay(5);
   }
 }
 
 /**
  * Handle concurrency
  * @param {number} concurrency Concurrency
- * @param {(idx: number, value: any[], tasks: { activeTasks: number, completeTasks: number }) => void} handleFunc Handle function
+ * @param {(idx: number, values: any[], tasks: { activeTasks: number, completeTasks: number }) => void} handleFunc Handle function
  * @param {any[]} values Values
  * @param {{ interval: number, callbackFunc: (tasks: { activeTasks: number, completeTasks: number }) => void }} callback Callback
  * @returns {Promise<{void}>} Response
@@ -206,7 +206,7 @@ export async function handleConcurrency(
     for (let idx = 0; idx < values.length; idx++) {
       /* Wait slot for a task */
       while (tasks.activeTasks >= concurrency) {
-        await delay(25);
+        await delay(5);
       }
 
       /* Acquire mutex */
@@ -226,7 +226,7 @@ export async function handleConcurrency(
 
     /* Wait all tasks done */
     while (tasks.activeTasks > 0) {
-      await delay(25);
+      await delay(5);
     }
 
     /* Last call callback */

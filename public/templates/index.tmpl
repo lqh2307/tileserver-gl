@@ -871,6 +871,16 @@
       }
     }
 
+    function handleError(error) {
+      if (error.response) {
+        alert(`Error: Status code: ${error.response.status} - ${error.response.statusText}`);
+      } else if (error.request) {
+        alert("No response received");
+      } else {
+        alert(`Error: ${error.message}`);
+      }
+    }
+
     function handleAction(event, action) {
       event.preventDefault();
 
@@ -878,146 +888,74 @@
         fetch(`${baseURL}/tasks/start?seedStyles=true&cleanUpStyles=true&cleanUpDatas=true&seedDatas=true&seedGeoJSONs=true&cleanUpGeoJSONs=true&seedSprites=true&cleanUpSprites=true&seedFonts=true&cleanUpFonts=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting cleanup/seed tasks...");
-            } else {
-              alert(`Failed to start cleanup/seed tasks: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start cleanup/seed tasks: ${error.message}`));
+          .then(() => alert("Starting cleanup/seed tasks..."))
+          .catch(handleError);
       } else if (action === "cleanUpStyles") {
         fetch(`${baseURL}/tasks/start?cleanUpStyles=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting start cleanup styles...");
-            } else {
-              alert(`Failed to start cleanup styles: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to cleanup styles: ${error.message}`));
+          .then(() => alert("Starting start cleanup styles..."))
+          .catch(handleError);
       } else if (action === "cleanUpGeoJSONs") {
         fetch(`${baseURL}/tasks/start?cleanUpGeoJSONs=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting start cleanup geojsons...");
-            } else {
-              alert(`Failed to start cleanup geojsons: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to cleanup geojsons: ${error.message}`));
+          .then(() => alert("Starting start cleanup geojsons..."))
+          .catch(handleError);
       } else if (action === "cleanUpDatas") {
         fetch(`${baseURL}/tasks/start?cleanUpDatas=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting cleanup datas...");
-            } else {
-              alert(`Failed to start cleanup datas: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start cleanup datas: ${error.message}`));
+          .then(() => alert("Starting cleanup datas..."))
+          .catch(handleError);
       } else if (action === "cleanUpSprites") {
         fetch(`${baseURL}/tasks/start?cleanUpSprites=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting cleanup sprites...");
-            } else {
-              alert(`Failed to start cleanup sprites: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start cleanup sprites: ${error.message}`));
+          .then(() => alert("Starting cleanup sprites..."))
+          .catch(handleError);
       } else if (action === "cleanUpFonts") {
         fetch(`${baseURL}/tasks/start?cleanUpFonts=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting cleanup fonts...");
-            } else {
-              alert(`Failed to start cleanup fonts: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start cleanup fonts: ${error.message}`));
+          .then(() => alert("Starting cleanup fonts..."))
+          .catch(handleError);
       } else if (action === "seedStyles") {
         fetch(`${baseURL}/tasks/start?seedStyles=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting seed styles...");
-            } else {
-              alert(`Failed to start seed styles: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start seed styles: ${error.message}`));
+          .then(() => alert("Starting seed styles..."))
+          .catch(handleError);
       } else if (action === "seedGeoJSONs") {
         fetch(`${baseURL}/tasks/start?seedGeoJSONs=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting seed geojsons...");
-            } else {
-              alert(`Failed to start seed geojsons: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start seed geojsons: ${error.message}`));
+          .then(() => alert("Starting seed geojsons..."))
+          .catch(handleError);
       } else if (action === "seedDatas") {
         fetch(`${baseURL}/tasks/start?seedDatas=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting seed datas...");
-            } else {
-              alert(`Failed to start seed datas: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start seed datas: ${error.message}`));
+          .then(() => alert("Starting seed datas..."))
+          .catch(handleError);
       } else if (action === "seedSprites") {
         fetch(`${baseURL}/tasks/start?seedSprites=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting seed sprites...");
-            } else {
-              alert(`Failed to start seed sprites: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start seed sprites: ${error.message}`));
+          .then(() => alert("Starting seed sprites..."))
+          .catch(handleError);
       } else if (action === "seedFonts") {
         fetch(`${baseURL}/tasks/start?seedFonts=true&restart=true`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Starting seed fonts...");
-            } else {
-              alert(`Failed to start seed fonts: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to start seed fonts: ${error.message}`));
+          .then(() => alert("Starting seed fonts..."))
+          .catch(handleError);
       } else if (action === "cancel") {
         fetch(`${baseURL}/tasks/cancel`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Canceling cleanup/seed tasks...");
-            } else {
-              alert(`Failed to cancel cleanup/seed tasks: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to cancel cleanup/seed tasks: ${error.message}`));
+          .then(() => alert("Canceling cleanup/seed tasks..."))
+          .catch(handleError);
       }
     }
 
@@ -1028,26 +966,14 @@
         fetch(`${baseURL}/restart?type=restart`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Server restarted successfully!");
-            } else {
-              alert(`Failed to restart server: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to restart server: ${error.message}`));
+          .then(() => alert("Server restarted successfully!"))
+          .catch(handleError);
       } else if (action === "kill") {
         fetch(`${baseURL}/restart?type=kill`, {
           method: "GET",
         })
-          .then((response) => {
-            if (response.status === 200) {
-              alert("Server killed successfully!");
-            } else {
-              alert(`Failed to kill server: Status code: ${response.status} - ${response.statusText}`);
-            }
-          })
-          .catch((error) => alert(`Failed to kill server: ${error.message}`));
+          .then(() => alert("Server killed successfully!"))
+          .catch(handleError);
       } else if (action === "showUpdateConfig") {
         document.getElementById("updateConfigDialog").showModal();
 
@@ -1057,22 +983,16 @@
           fetch(`${baseURL}/config?type=config&restart=true`, {
             method: "PUT",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
             },
             body: document.getElementById("updateConfigInput").value
           })
-            .then((response) => {
-              if (response.status === 200) {
-                alert("Updating config...");
+            .then(() => {
+              alert("Updating config...");
 
-                closeDialog("updateConfigDialog");
-              } else {
-                alert(`Failed to update config: Status code: ${response.status} - ${response.statusText}`);
-              }
+              closeDialog("updateConfigDialog");
             })
-            .catch((error) => {
-              alert(`Failed to update config: ${error.message}`);
-            });
+            .catch(handleError);
         };
       } else if (action === "showUpdateSeed") {
         document.getElementById("updateSeedDialog").showModal();
@@ -1083,22 +1003,16 @@
           fetch(`${baseURL}/config?type=seed&restart=true`, {
             method: "PUT",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
             },
             body: document.getElementById("updateSeedInput").value
           })
-            .then((response) => {
-              if (response.status === 200) {
-                alert("Updating seed...");
+            .then(() => {
+              alert("Updating seed...");
 
-                closeDialog("updateSeedDialog");
-              } else {
-                alert(`Failed to update seed: Status code: ${response.status} - ${response.statusText}`);
-              }
+              closeDialog("updateSeedDialog");
             })
-            .catch((error) => {
-              alert(`Failed to update seed: ${error.message}`);
-            });
+            .catch(handleError);
         };
       } else if (action === "showUpdateCleanUp") {
         document.getElementById("updateCleanUpDialog").showModal();
@@ -1109,22 +1023,16 @@
           fetch(`${baseURL}/config?type=cleanup&restart=true`, {
             method: "PUT",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
             },
             body: document.getElementById("updateCleanUpInput").value
           })
-            .then((response) => {
-              if (response.status === 200) {
-                alert("Updating cleanup...");
+            .then(() => {
+              alert("Updating cleanup...");
 
-                closeDialog("updateCleanUpDialog");
-              } else {
-                alert(`Failed to update cleanup: Status code: ${response.status} - ${response.statusText}`);
-              }
+              closeDialog("updateCleanUpDialog");
             })
-            .catch((error) => {
-              alert(`Failed to update cleanup: ${error.message}`);
-            });
+            .catch(handleError);
         };
       } else if (action === "showDeleteConfig") {
         document.getElementById("deleteConfigDialog").showModal();
@@ -1135,22 +1043,16 @@
           fetch(`${baseURL}/config?type=config&restart=true`, {
             method: "DELETE",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
             },
             body: document.getElementById("deleteConfigInput").value
           })
-            .then((response) => {
-              if (response.status === 200) {
-                alert("Deleting config...");
+            .then(() => {
+              alert("Deleting config...");
 
-                closeDialog("deleteConfigDialog");
-              } else {
-                alert(`Failed to delete config: Status code: ${response.status} - ${response.statusText}`);
-              }
+              closeDialog("deleteConfigDialog");
             })
-            .catch((error) => {
-              alert(`Failed to delete config: ${error.message}`);
-            });
+            .catch(handleError);
         };
       } else if (action === "showDeleteSeed") {
         document.getElementById("deleteSeedDialog").showModal();
@@ -1161,22 +1063,16 @@
           fetch(`${baseURL}/config?type=seed&restart=true`, {
             method: "DELETE",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
             },
             body: document.getElementById("deleteSeedInput").value
           })
-            .then((response) => {
-              if (response.status === 200) {
-                alert("Deleting seed...");
+            .then(() => {
+              alert("Deleting seed...");
 
-                closeDialog("deleteSeedDialog");
-              } else {
-                alert(`Failed to delete seed: Status code: ${response.status} - ${response.statusText}`);
-              }
+              closeDialog("deleteSeedDialog");
             })
-            .catch((error) => {
-              alert(`Failed to delete seed: ${error.message}`);
-            });
+            .catch(handleError);
         };
       } else if (action === "showDeleteCleanUp") {
         document.getElementById("deleteCleanUpDialog").showModal();
@@ -1187,22 +1083,16 @@
           fetch(`${baseURL}/config?type=cleanup&restart=true`, {
             method: "DELETE",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
             },
             body: document.getElementById("deleteCleanUpInput").value
           })
-            .then((response) => {
-              if (response.status === 200) {
-                alert("Deleting cleanup...");
+            .then(() => {
+              alert("Deleting cleanup...");
 
-                closeDialog("deleteCleanUpDialog");
-              } else {
-                alert(`Failed to delete cleanup: Status code: ${response.status} - ${response.statusText}`);
-              }
+              closeDialog("deleteCleanUpDialog");
             })
-            .catch((error) => {
-              alert(`Failed to delete cleanup: ${error.message}`);
-            });
+            .catch(handleError);
         };
       }
     }
@@ -1219,22 +1109,16 @@
           fetch(`${baseURL}/exports/style-render/${styleID}`, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
             },
             body: document.getElementById("exportRenderInput").value
           })
-            .then((response) => {
-              if (response.status === 201) {
-                alert("Exporting render style...");
+            .then(() => {
+              alert("Exporting render style...");
 
-                closeDialog("exportRenderDialog");
-              } else {
-                alert(`Failed to export render style: Status code: ${response.status} - ${response.statusText}`);
-              }
+              closeDialog("exportRenderDialog");
             })
-            .catch((error) => {
-              alert(`Failed to export render style: ${error.message}`);
-            });
+            .catch(handleError);
         }
       } else if (action === "cancel") {
         let maxRetries = 5;
@@ -1243,18 +1127,8 @@
           fetch(`${baseURL}/exports/style-render/${styleID}?cancel=true`, {
             method: "GET",
           })
-            .then((response) => {
-              if (response.status === 200) {
-                alert("Canceling render style...");
-              } else if (response.status === 404 && maxRetries-- >= 0) {
-                tryFetch();
-              } else {
-                alert(`Failed to cancel render style: Status code: ${response.status} - ${response.statusText}`);
-              }
-            })
-            .catch((error) => {
-              alert(`Failed to cancel render style: ${error.message}`);
-            });
+            .then(() => alert("Canceling render style..."))
+            .catch(handleError);
         }
 
         tryFetch();
@@ -1272,7 +1146,7 @@
         fetch(`${baseURL}/renders/stylejson`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "content-type": "application/json",
           },
           body: document.getElementById("exportImageInput").value
         })
@@ -1293,10 +1167,10 @@
             } else {
               alert(JSON.stringify(await response.json(), null, 2));
             }
+
+            closeDialog("exportImageDialog");
           })
-          .catch((error) => {
-            alert(`Failed to export image: ${error.message ? error.message : `Status code: ${response.status} - ${response.statusText}`}`);
-          });
+          .catch(handleError);
       }
     }
 
@@ -1312,22 +1186,16 @@
           fetch(`${baseURL}/exports/data/${dataID}`, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
             },
             body: document.getElementById("exportDataInput").value
           })
-            .then((response) => {
-              if (response.status === 201) {
-                alert("Exporting data...");
+            .then(() => {
+              alert("Exporting data...");
 
-                closeDialog("exportDataDialog");
-              } else {
-                alert(`Failed to export data: Status code: ${response.status} - ${response.statusText}`);
-              }
+              closeDialog("exportDataDialog");
             })
-            .catch((error) => {
-              alert(`Failed to export data: ${error.message}`);
-            });
+            .catch(handleError);
         }
       } else if (action === "cancel") {
         let maxRetries = 5;
@@ -1336,18 +1204,8 @@
           fetch(`${baseURL}/exports/data/${dataID}?cancel=true`, {
             method: "GET",
           })
-            .then((response) => {
-              if (response.status === 200) {
-                alert("Canceling export data...");
-              } else if (response.status === 404 && maxRetries-- >= 0) {
-                tryFetch();
-              } else {
-                alert(`Failed to cancel export data: Status code: ${response.status} - ${response.statusText}`);
-              }
-            })
-            .catch((error) => {
-              alert(`Failed to cancel export data: ${error.message}`);
-            });
+            .then(() => alert("Canceling export data..."))
+            .catch(handleError);
         }
 
         tryFetch();

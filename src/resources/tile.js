@@ -1,11 +1,11 @@
 "use strict";
 
 import { limitValue, maxValue, minValue } from "../utils/number.js";
-import { readFile, stat } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
 import { PMTiles, FetchSource } from "pmtiles";
 import { openSync, readSync } from "node:fs";
 import { config } from "../configs/index.js";
+import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import {
   isFullTransparentImage,
@@ -21,12 +21,13 @@ import {
   getBBoxFromTiles,
   BACKGROUND_COLOR,
   closePostgreSQL,
-  getDataFromURL,
   openPostgreSQL,
   getTileBounds,
   calculateMD5,
   getCoverBBox,
+  requestToURL,
   closeSQLite,
+  getFileSize,
   openSQLite,
   findFiles,
   printLog,
@@ -618,13 +619,13 @@ export async function downloadMBTilesTile(option) {
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(
-        option.url,
-        option.timeout,
-        "arraybuffer",
-        false,
-        option.headers,
-      );
+      const response = await requestToURL({
+        url: option.url,
+        method: "GET",
+        timeout: option.timeout,
+        responseType: "arraybuffer",
+        headers: option.headers,
+      });
 
       option.data = response.data;
 
@@ -708,9 +709,7 @@ export async function countMBTilesTiles(filePath) {
  * @returns {Promise<number>}
  */
 export async function getMBTilesSize(filePath) {
-  const stats = await stat(filePath);
-
-  return stats.size;
+  return await getFileSize(filePath);
 }
 
 /**
@@ -780,7 +779,9 @@ export async function addMBTilesOverviews(
 
         compositesOption.push({
           limitInputPixels: false,
-          input: await createImageOutput(tile.tile_data, {}),
+          input: await createImageOutput({
+            data: tile.tile_data,
+          }),
           left: (tile.tile_column - minX) * width,
           top: (maxY - tile.tile_row) * height,
         });
@@ -788,7 +789,7 @@ export async function addMBTilesOverviews(
 
       if (compositesOption.length) {
         // Create image
-        const image = await createImageOutput(undefined, {
+        const image = await createImageOutput({
           createOption: {
             width: width * 2,
             height: height * 2,
@@ -1074,9 +1075,7 @@ export async function getPMTilesTile(pmtilesSource, z, x, y) {
  * @returns {Promise<number>}
  */
 export async function getPMTilesSize(filePath) {
-  const stats = await stat(filePath);
-
-  return stats.size;
+  return await getFileSize(filePath);
 }
 
 /*********************************** PostgreSQL *************************************/
@@ -1582,13 +1581,13 @@ export async function downloadPostgreSQLTile(option) {
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(
-        option.url,
-        option.timeout,
-        "arraybuffer",
-        false,
-        option.headers,
-      );
+      const response = await requestToURL({
+        url: option.url,
+        method: "GET",
+        timeout: option.timeout,
+        responseType: "arraybuffer",
+        headers: option.headers,
+      });
 
       option.data = response.data;
 
@@ -1729,7 +1728,9 @@ export async function addPostgreSQLOverviews(
 
         compositesOption.push({
           limitInputPixels: false,
-          input: await createImageOutput(tile.tile_data, {}),
+          input: await createImageOutput({
+            data: tile.tile_data,
+          }),
           left: (tile.tile_column - minX) * width,
           top: (tile.tile_row - minY) * height,
         });
@@ -1737,7 +1738,7 @@ export async function addPostgreSQLOverviews(
 
       if (compositesOption.length) {
         // Create image
-        const image = await createImageOutput(undefined, {
+        const image = await createImageOutput({
           createOption: {
             width: width * 2,
             height: height * 2,
@@ -2397,13 +2398,13 @@ export async function downloadXYZTile(option) {
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(
-        option.url,
-        option.timeout,
-        "arraybuffer",
-        false,
-        option.headers,
-      );
+      const response = await requestToURL({
+        url: option.url,
+        method: "GET",
+        timeout: option.timeout,
+        responseType: "arraybuffer",
+        headers: option.headers,
+      });
 
       option.data = response.data;
 
@@ -2533,9 +2534,7 @@ export async function getXYZSize(sourcePath) {
   let size = 0;
 
   for (const fileName of fileNames) {
-    const stats = await stat(fileName);
-
-    size += stats.size;
+    size += await getFileSize(fileName);
   }
 
   return size;
@@ -2636,7 +2635,9 @@ export async function addXYZOverviews(
 
           compositesOption.push({
             limitInputPixels: false,
-            input: await createImageOutput(tile, {}),
+            input: await createImageOutput({
+              data: tile,
+            }),
             left: (dx - minX) * width,
             top: (dy - minY) * height,
           });
@@ -2648,7 +2649,7 @@ export async function addXYZOverviews(
 
     if (compositesOption.length) {
       // Create image
-      const image = await createImageOutput(undefined, {
+      const image = await createImageOutput({
         createOption: {
           width: width * 2,
           height: height * 2,

@@ -8,9 +8,10 @@ import {
   createFileWithLock,
   getDataFileFromURL,
   getImageMetadata,
-  getDataFromURL,
   getJSONSchema,
   validateJSON,
+  requestToURL,
+  getFileSize,
   findFiles,
   printLog,
   retry,
@@ -59,13 +60,13 @@ export async function downloadSpriteFile(
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(
-        url,
-        timeout,
-        "arraybuffer",
-        false,
-        headers,
-      );
+      const response = await requestToURL({
+        url: url,
+        method: "GET",
+        timeout: timeout,
+        responseType: "arraybuffer",
+        headers: headers,
+      });
 
       // Store data to file
       await storeSpriteFile(filePath, response.data);
@@ -138,9 +139,7 @@ export async function getSpriteSize(spriteDirPath) {
   let size = 0;
 
   for (const fileName of fileNames) {
-    const stats = await stat(fileName);
-
-    size += stats.size;
+    size += await getFileSize(fileName);
   }
 
   return size;

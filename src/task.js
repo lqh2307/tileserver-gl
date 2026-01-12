@@ -47,9 +47,8 @@ import {
   handleTilesConcurrency,
   removeEmptyFolders,
   handleConcurrency,
-  getDataFromURL,
-  postDataToURL,
   getTileBounds,
+  requestToURL,
   calculateMD5,
   unzipAsync,
   printLog,
@@ -692,16 +691,17 @@ async function seedDataTiles(
               `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
             );
 
-            const res = await postDataToURL(
-              hashURL,
-              3600000, // 1 hours
-              coverages,
-              "arraybuffer",
-              false,
-              {
-                "Content-Type": "application/json",
+            const res = await requestToURL({
+              url: hashURL,
+              method: "POST",
+              timeout: 3600000, // 1 hours
+              body: coverages,
+              responseType: "arraybuffer",
+              headers: {
+                ...(headers ?? {}),
+                "content-type": "application/json",
               },
-            );
+            });
 
             if (res.headers["content-encoding"] === "gzip") {
               targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
@@ -840,16 +840,17 @@ async function seedDataTiles(
               `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
             );
 
-            const res = await postDataToURL(
-              hashURL,
-              3600000, // 1 hours
-              coverages,
-              "arraybuffer",
-              false,
-              {
-                "Content-Type": "application/json",
+            const res = await requestToURL({
+              url: hashURL,
+              method: "POST",
+              timeout: 3600000, // 1 hours
+              body: coverages,
+              responseType: "arraybuffer",
+              headers: {
+                ...(headers ?? {}),
+                "content-type": "application/json",
               },
-            );
+            });
 
             if (res.headers["content-encoding"] === "gzip") {
               targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
@@ -988,16 +989,17 @@ async function seedDataTiles(
               `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
             );
 
-            const res = await postDataToURL(
-              hashURL,
-              3600000, // 1 hours
-              coverages,
-              "arraybuffer",
-              false,
-              {
-                "Content-Type": "application/json",
+            const res = await requestToURL({
+              url: hashURL,
+              method: "POST",
+              timeout: 3600000, // 1 hours
+              body: coverages,
+              responseType: "arraybuffer",
+              headers: {
+                ...(headers ?? {}),
+                "content-type": "application/json",
               },
-            );
+            });
 
             if (res.headers["content-encoding"] === "gzip") {
               targetTileExtraInfo = JSON.parse(await unzipAsync(res.data));
@@ -1173,11 +1175,13 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
     if (refreshTimestamp === true) {
       try {
         const [response, geoJSONData] = await Promise.all([
-          getDataFromURL(
-            `${url.slice(0, url.indexOf(`/${id}.geojson`))}/md5`,
-            timeout,
-            "arraybuffer",
-          ),
+          requestToURL({
+            url: `${url.slice(0, url.indexOf(`/${id}.geojson`))}/md5`,
+            method: "GET",
+            timeout: timeout,
+            responseType: "arraybuffer",
+            headers: headers,
+          }),
           getGeoJSON(filePath),
         ]);
 
@@ -1485,11 +1489,13 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
     if (refreshTimestamp === true) {
       try {
         const [response, styleData] = await Promise.all([
-          getDataFromURL(
-            `${url.slice(0, url.indexOf(`/${id}/style.json?raw=true`))}/md5`,
-            timeout,
-            "arraybuffer",
-          ),
+          requestToURL({
+            url: `${url.slice(0, url.indexOf(`/${id}/style.json?raw=true`))}/md5`,
+            method: "GET",
+            timeout: timeout,
+            responseType: "arraybuffer",
+            headers: headers,
+          }),
           getStyle(filePath),
         ]);
 

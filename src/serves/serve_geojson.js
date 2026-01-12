@@ -3,7 +3,6 @@
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import { createReadStream } from "fs";
-import { stat } from "fs/promises";
 import path from "path";
 import {
   validateAndGetGeometryTypes,
@@ -15,6 +14,7 @@ import {
   calculateMD5OfFile,
   getRequestHost,
   isExistFile,
+  getFileSize,
   gzipAsync,
   printLog,
 } from "../utils/index.js";
@@ -322,11 +322,10 @@ function downloadGeoJSONHandler() {
       }
 
       if (await isExistFile(geoJSONLayer.path)) {
-        const stats = await stat(geoJSONLayer.path);
         const fileName = path.basename(geoJSONLayer.path);
 
         res.set({
-          "content-length": stats.size,
+          "content-length": await getFileSize(geoJSONLayer.path),
           "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": "application/json",
         });

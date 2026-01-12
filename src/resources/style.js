@@ -9,7 +9,8 @@ import {
   removeFileWithLock,
   createFileWithLock,
   getDataFileFromURL,
-  getDataFromURL,
+  requestToURL,
+  getFileSize,
   isLocalURL,
   printLog,
   retry,
@@ -48,13 +49,13 @@ export async function downloadStyleFile(
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(
-        url,
-        timeout,
-        "arraybuffer",
-        false,
-        headers,
-      );
+      const response = await requestToURL({
+        url: url,
+        method: "GET",
+        timeout: timeout,
+        responseType: "arraybuffer",
+        headers: headers,
+      });
 
       // Store data to file
       await storeStyleFile(filePath, response.data);
@@ -245,9 +246,7 @@ export async function getStyleCreated(filePath) {
  * @returns {Promise<number>}
  */
 export async function getStyleSize(filePath) {
-  const stats = await stat(filePath);
-
-  return stats.size;
+  return await getFileSize(filePath);
 }
 
 /**

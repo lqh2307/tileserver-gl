@@ -1,7 +1,7 @@
 "use strict";
 
 import { getBBoxFromTiles, lonLat4326ToXY3857 } from "./spatial.js";
-import { createBase64, createFileWithLock } from "./file.js";
+import { base64ToBuffer, createFileWithLock } from "./file.js";
 import { convertLength, toPixel } from "./util.js";
 import { jsPDF } from "jspdf";
 import sharp from "sharp";
@@ -228,39 +228,50 @@ export async function getImageMetadata(filePath) {
 
 /**
  * Create image output (Order: Input -> Extend -> Composites -> Extract -> Resize -> Output !== Default sharp order: Input -> Resize/Extract/... -> Extend -> Composites -> Output)
- * @param {sharp.Sharp|string|Buffer} image Image
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean, createOption: sharp.Create, rawOption: sharp.CreateRaw, resizeOption: sharp.ResizeOptions, compositesOption: sharp.OverlayOptions[], extendOption: sharp.ExtendOptions, extractOption: sharp.Region }} options Options
+ * @param {{ data: sharp.Sharp|string|Buffer, format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, grayscale: boolean, createOption: sharp.Create, rawOption: sharp.CreateRaw, resizeOption: sharp.ResizeOptions, compositesOption: sharp.OverlayOptions[], extendOption: sharp.ExtendOptions, extractOption: sharp.Region }} options Options
  * @returns {Promise<Buffer|string>}
  */
-export async function createImageOutput(image, options) {
+export async function createImageOutput(options) {
+  const {
+    format,
+    data,
+    filePath,
+    width,
+    height,
+    grayscale,
+    extendOption,
+    compositesOption,
+    extractOption,
+    createOption,
+    resizeOption,
+    rawOption,
+  } = options;
+
   let targetImage;
 
   if (
-    (options.extendOption || options.compositesOption) &&
-    (options.extractOption ||
-      options.width ||
-      options.height ||
-      options.grayscale)
+    (extendOption || compositesOption) &&
+    (extractOption || width || height || grayscale)
   ) {
     // Read input
-    targetImage = options.createOption
+    targetImage = createOption
       ? sharp({
           limitInputPixels: false,
-          create: options.createOption,
+          create: createOption,
         }).png()
-      : sharp(image, {
+      : sharp(data, {
           limitInputPixels: false,
-          raw: options.rawOption,
+          raw: rawOption,
         });
 
     // Extend
-    if (options.extendOption) {
-      targetImage.extend(options.extendOption);
+    if (extendOption) {
+      targetImage.extend(extendOption);
     }
 
     // Composites
-    if (options.compositesOption) {
-      targetImage.composite(options.compositesOption);
+    if (compositesOption) {
+      targetImage.composite(compositesOption);
     }
 
     targetImage = sharp(await targetImage.toBuffer(), {
@@ -268,44 +279,44 @@ export async function createImageOutput(image, options) {
     });
   } else {
     // Read input
-    targetImage = options.createOption
+    targetImage = createOption
       ? sharp({
           limitInputPixels: false,
-          create: options.createOption,
+          create: createOption,
         }).png()
-      : sharp(image, {
+      : sharp(data, {
           limitInputPixels: false,
-          raw: options.rawOption,
+          raw: rawOption,
         });
 
     // Extend
-    if (options.extendOption) {
-      targetImage.extend(options.extendOption);
+    if (extendOption) {
+      targetImage.extend(extendOption);
     }
 
     // Composites
-    if (options.compositesOption) {
-      targetImage.composite(options.compositesOption);
+    if (compositesOption) {
+      targetImage.composite(compositesOption);
     }
   }
 
   // Extract
-  if (options.extractOption) {
-    targetImage.extract(options.extractOption);
+  if (extractOption) {
+    targetImage.extract(extractOption);
   }
 
   // Resize
-  if (options.width || options.height) {
-    targetImage.resize(options.width, options.height, options.resizeOption);
+  if (width || height) {
+    targetImage.resize(width, height, resizeOption);
   }
 
   // Grayscale
-  if (options.grayscale) {
+  if (grayscale) {
     targetImage.grayscale(true);
   }
 
   // Format
-  switch (options.format) {
+  switch (format) {
     case "gif": {
       targetImage.gif({
         quality: 100,
@@ -344,16 +355,14 @@ export async function createImageOutput(image, options) {
   const buffer = await targetImage.toBuffer();
 
   // Write to output
-  if (options.filePath) {
+  if (filePath) {
     await createFileWithLock(
-      options.filePath,
+      filePath,
       buffer,
       300000, // 5 mins
     );
 
-    return options.filePath;
-  } else if (options.base64) {
-    return createBase64(buffer, options.format || "png");
+    return filePath;
   } else {
     return buffer;
   }
@@ -365,7 +374,7 @@ export async function createImageOutput(image, options) {
  * @param {{ image: string, bbox: [number, number, number, number] }[]} overlays Array of overlay object
  * @param {{ frameMargin: number, frameInnerColor: string, frameInnerWidth: number, frameInnerStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameOuterColor: string, frameOuterWidth: number, frameOuterStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameSpace: number, tickLabelFormat: "D"|"DMS"|"DMSD", majorTickStep: number, minorTickStep: number, majorTickWidth: number, minorTickWidth: number, majorTickSize: number, minorTickSize: number, majorTickLabelSize: number, minorTickLabelSize: number, majorTickColor: string, minorTickColor: string, majorTickLabelColor: string, minorTickLabelColor: string, majorTickLabelFont: string, minorTickLabelFont: string, xTickLabelOffset: number, yTickLabelOffset: number, xTickEnd: boolean, xTickMajorLabelRotation: number, xTickMinorLabelRotation: number, yTickMajorLabelRotation: number, yTickEnd: boolean, yTickMinorLabelRotation: number }} frame Frame object
  * @param {{ majorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", majorGridWidth: number, majorGridStep: number, majorGridColor: string, minorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", minorGridWidth: number, minorGridStep: number, minorGridColor: string }} grid Grid object
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, grayscale: boolean }} output Output object
  * @returns {Promise<Buffer|string>}
  */
 export async function addFrameToImage(input, overlays, frame, grid, output) {
@@ -398,7 +407,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
         return {
           limitInputPixels: false,
-          input: await createImageOutput(base64ToBuffer(overlay.image), {
+          input: await createImageOutput({
+            data: base64ToBuffer(overlay.image),
             width: Math.round((overlayMaxX - overlayMinX) * xRes),
             height: Math.round((overlayMaxY - overlayMinY) * yRes),
           }),
@@ -409,7 +419,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     );
 
     // Create composited image
-    image = await createImageOutput(input.image, {
+    image = await createImageOutput({
+      data: input.image,
       compositesOption: compositesOption,
     });
   }
@@ -1094,7 +1105,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     : undefined;
 
   // Create image
-  return await createImageOutput(image ?? input.image, {
+  return await createImageOutput({
+    data: image ?? input.image,
     extendOption: extendOption,
     compositesOption: compositesOption,
     ...output,
@@ -1104,8 +1116,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 /**
  * Merge tiles to image
  * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", scheme: "xyz" | "tms", bbox: [number, number, number, number] }} input Input object
- * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, base64: boolean, grayscale: boolean }} output Output object
- * @returns {Promise<void|Buffer|string>}
+ * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, grayscale: boolean }} output Output object
+ * @returns {Promise<Buffer|string>}
  */
 export async function mergeTilesToImage(input, output) {
   // Detect origin tile size
@@ -1158,7 +1170,7 @@ export async function mergeTilesToImage(input, output) {
   }
 
   // Return image
-  return await createImageOutput(undefined, {
+  return await createImageOutput({
     createOption: {
       width: targetWidth,
       height: targetHeight,
@@ -1174,8 +1186,8 @@ export async function mergeTilesToImage(input, output) {
 /**
  * Split image to tiles
  * @param {{ image: string|Buffer, bbox: [number, number, number, number] }} input Input object
- * @param {{ dirPath: string, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, base64: boolean, grayscale: boolean }} output Output object
- * @returns {Promise<void|Buffer|string>}
+ * @param {{ dirPath: string, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, grayscale: boolean }} output Output object
+ * @returns {Promise<void>}
  */
 export async function splitImageToTiles(input, output) {
   await sharp(input.image)
@@ -1191,7 +1203,7 @@ export async function splitImageToTiles(input, output) {
  * Render image to PDF or Preview image with high quality
  * @param {{ images: { image: string|Buffer, res: [number, number] }[], res: [number, number] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot", pageColor: string, pageSize: number, pageFont: string }} preview Preview object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean }} output Output object
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape" }} output Output object
  * @returns {Promise<Buffer|string>}
  */
 export async function renderImageToHighQualityPDF(input, preview, output) {
@@ -1349,7 +1361,8 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       }
 
       // Create image
-      const previewImage = await createImageOutput(image.image, {
+      const previewImage = await createImageOutput({
+        data: image.image,
         extendOption: extendOption,
         compositesOption: compositesOption,
         format: format,
@@ -1364,7 +1377,8 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       images.push(previewImage);
     } else {
       // Create extended image
-      const baseImage = await createImageOutput(image.image, {
+      const baseImage = await createImageOutput({
+        data: image.image,
         extendOption: extendOption,
       });
 
@@ -1377,7 +1391,8 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
           }
 
           // Create image
-          const pdfImage = await createImageOutput(baseImage, {
+          const pdfImage = await createImageOutput({
+            data: baseImage,
             extractOption: {
               left: x * paperWidthPX,
               top: y * paperHeightPX,
@@ -1408,10 +1423,8 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
         arrayBuffer,
         300000, // 5 mins
       );
-    } else if (output.base64) {
-      return createBase64(Buffer.from(arrayBuffer), "pdf");
     } else {
-      return arrayBuffer;
+      return Buffer.from(arrayBuffer);
     }
   }
 }
@@ -1420,8 +1433,8 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
  * Render image to PDF or Preview image
  * @param {{ images: string[]|Buffer[] }} input Input object
  * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot" }} preview Preview object
- * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", base64: boolean, fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, pagination: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, grayscale: boolean, grid: { row: number, column: number, marginX: number, marginY: number, gapX: number, gapY: number } }} output Output object
- * @returns {Promise<Buffer[]|string[]>}
+ * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, pagination: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, grayscale: boolean, grid: { row: number, column: number, marginX: number, marginY: number, gapX: number, gapY: number } }} output Output object
+ * @returns {Promise<Buffer|string>}
  */
 export async function renderImageToPDF(input, preview, output) {
   // Get paper size (in mm)
@@ -1523,7 +1536,8 @@ export async function renderImageToPDF(input, preview, output) {
       const compositesOption = await Promise.all(
         items.map(async (item, idx) => ({
           limitInputPixels: false,
-          input: await createImageOutput(item, {
+          input: await createImageOutput({
+            data: item,
             resizeOption: {
               fit: output.fit,
               position: position,
@@ -1588,7 +1602,7 @@ export async function renderImageToPDF(input, preview, output) {
       }
 
       // Create image
-      const previewImage = await createImageOutput(undefined, {
+      const previewImage = await createImageOutput({
         createOption: {
           width: paperWidthPX,
           height: paperHeightPX,
@@ -1630,7 +1644,8 @@ export async function renderImageToPDF(input, preview, output) {
           .slice(page * imageInPageNum, (page + 1) * imageInPageNum)
           .map(async (item, idx) => ({
             limitInputPixels: false,
-            input: await createImageOutput(item, {
+            input: await createImageOutput({
+              data: item,
               resizeOption: {
                 fit: output.fit,
                 position: position,
@@ -1684,7 +1699,7 @@ export async function renderImageToPDF(input, preview, output) {
       }
 
       // Create image
-      const pdfImage = await createImageOutput(undefined, {
+      const pdfImage = await createImageOutput({
         createOption: {
           width: paperWidthPX,
           height: paperHeightPX,
@@ -1710,10 +1725,8 @@ export async function renderImageToPDF(input, preview, output) {
         arrayBuffer,
         300000, // 5 mins
       );
-    } else if (output.base64) {
-      return createBase64(Buffer.from(arrayBuffer), "pdf");
     } else {
-      return arrayBuffer;
+      return Buffer.from(arrayBuffer);
     }
   }
 }
@@ -1747,13 +1760,4 @@ export async function isFullTransparentImage(buffer) {
   } catch (error) {
     return false;
   }
-}
-
-/**
- * Convert base64 string to buffer
- * @param {string} base64
- * @returns {Buffer}
- */
-export function base64ToBuffer(base64) {
-  return Buffer.from(base64.slice(base64.indexOf(",") + 1), "base64");
 }

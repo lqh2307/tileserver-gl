@@ -10,88 +10,39 @@ import path from "node:path";
 import axios from "axios";
 
 /**
- * Get data from URL
- * @param {string} url URL to fetch data from
- * @param {number} timeout Timeout in milliseconds
- * @param {"arraybuffer"|"json"|"text"|"stream"|"blob"|"document"|"formdata"} responseType Response type
- * @param {boolean} keepAlive Whether to keep the connection alive
- * @param {object} headers Headers
+ * Request to URL
+ * @param {{ url: string, method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object }} options Options
  * @returns {Promise<axios.AxiosResponse>}
  */
-export async function getDataFromURL(
-  url,
-  timeout,
-  responseType,
-  keepAlive,
-  headers,
-) {
+export async function requestToURL(options) {
   try {
     return await axios({
-      method: "GET",
-      url: url,
-      timeout: timeout,
-      responseType: responseType,
-      headers: headers,
+      method: options.method,
+      url: options.url,
+      timeout: options.timeout,
+      responseType: options.responseType,
+      headers: options.headers,
+      data: options.body,
       validateStatus: (status) => {
-        return status === StatusCodes.OK;
+        return (
+          StatusCodes.OK <= status &&
+          status < StatusCodes.MULTIPLE_CHOICES &&
+          status !== StatusCodes.NO_CONTENT
+        );
       },
       httpAgent: new http.Agent({
-        keepAlive: keepAlive,
+        keepAlive: options.keepAlive,
       }),
       httpsAgent: new https.Agent({
-        keepAlive: keepAlive,
+        keepAlive: options.keepAlive,
       }),
     });
   } catch (error) {
     if (error.response) {
       error.message = `Status code: ${error.response.status} - ${error.response.statusText}`;
       error.statusCode = error.response.status;
-    }
-
-    throw error;
-  }
-}
-
-/**
- * Post data to URL
- * @param {string} url URL to post data
- * @param {number} timeout Timeout in milliseconds
- * @param {object} body Body
- * @param {"arraybuffer"|"json"|"text"|"stream"|"blob"|"document"|"formdata"} responseType Response type
- * @param {boolean} keepAlive Whether to keep the connection alive
- * @param {object} headers Headers
- * @returns {Promise<axios.AxiosResponse>}
- */
-export async function postDataToURL(
-  url,
-  timeout,
-  body,
-  responseType,
-  keepAlive,
-  headers,
-) {
-  try {
-    return await axios({
-      method: "POST",
-      url: url,
-      timeout: timeout,
-      responseType: responseType,
-      headers: headers,
-      data: body,
-      validateStatus: (status) => {
-        return status === StatusCodes.OK;
-      },
-      httpAgent: new http.Agent({
-        keepAlive: keepAlive,
-      }),
-      httpsAgent: new https.Agent({
-        keepAlive: keepAlive,
-      }),
-    });
-  } catch (error) {
-    if (error.response) {
-      error.message = `Status code: ${error.response.status} - ${error.response.statusText}`;
-      error.statusCode = error.response.status;
+    } else if (error.request) {
+      error.message = "No response received";
     }
 
     throw error;
@@ -107,13 +58,13 @@ export async function postDataToURL(
  */
 export async function getDataTileFromURL(url, headers, timeout) {
   try {
-    const response = await getDataFromURL(
-      url,
-      timeout,
-      "arraybuffer",
-      false,
-      headers,
-    );
+    const response = await requestToURL({
+      url: url,
+      method: "GET",
+      timeout: timeout,
+      responseType: "arraybuffer",
+      headers: headers,
+    });
 
     return {
       data: response.data,
@@ -144,13 +95,13 @@ export async function getDataTileFromURL(url, headers, timeout) {
  */
 export async function getDataFileFromURL(url, headers, timeout) {
   try {
-    const response = await getDataFromURL(
-      url,
-      timeout,
-      "arraybuffer",
-      false,
-      headers,
-    );
+    const response = await requestToURL({
+      url: url,
+      method: "GET",
+      timeout: timeout,
+      responseType: "arraybuffer",
+      headers: headers,
+    });
 
     return response.data;
   } catch (error) {
@@ -182,7 +133,12 @@ export async function downloadFileWithStream(url, filePath, timeout) {
       recursive: true,
     });
 
-    const response = await getDataFromURL(url, timeout, "stream");
+    const response = await await requestToURL({
+      url: url,
+      method: "GET",
+      timeout: timeout,
+      responseType: "stream",
+    });
 
     const tempFilePath = `${filePath}.tmp`;
 

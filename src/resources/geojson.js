@@ -7,7 +7,8 @@ import {
   removeFileWithLock,
   createFileWithLock,
   getDataFileFromURL,
-  getDataFromURL,
+  requestToURL,
+  getFileSize,
   printLog,
   retry,
 } from "../utils/index.js";
@@ -41,13 +42,13 @@ export async function downloadGeoJSONFile(
   await retry(async () => {
     try {
       // Get data from URL
-      const response = await getDataFromURL(
-        url,
-        timeout,
-        "arraybuffer",
-        false,
-        headers,
-      );
+      const response = await requestToURL({
+        url: url,
+        method: "GET",
+        timeout: timeout,
+        responseType: "arraybuffer",
+        headers: headers,
+      });
 
       // Store data to file
       await storeGeoJSONFile(filePath, response.data);
@@ -124,9 +125,7 @@ export async function getGeoJSONCreated(filePath) {
  * @returns {Promise<number>}
  */
 export async function getGeoJSONSize(filePath) {
-  const stats = await stat(filePath);
-
-  return stats.size;
+  return await getFileSize(filePath);
 }
 
 /**

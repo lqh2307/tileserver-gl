@@ -3,7 +3,6 @@
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import { createReadStream } from "fs";
-import { stat } from "fs/promises";
 import path from "path";
 import {
   detectContentTypeFromFormat,
@@ -14,6 +13,7 @@ import {
   getTileBounds,
   getJSONSchema,
   validateJSON,
+  getFileSize,
   isExistFile,
   gzipAsync,
   printLog,
@@ -307,11 +307,10 @@ function downloadDataHandler() {
       }
 
       if (await isExistFile(item.path)) {
-        const stats = await stat(item.path);
         const fileName = path.basename(item.path);
 
         res.set({
-          "content-length": stats.size,
+          "content-length": await getFileSize(item.path),
           "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": detectContentTypeFromFormat(item.tileJSON.format),
         });

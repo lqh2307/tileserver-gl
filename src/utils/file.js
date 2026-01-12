@@ -51,15 +51,24 @@ export async function calculateMD5OfFile(filePath) {
 }
 
 /**
- * Create base64 string from buffer
+ * Convert buffer to base64
  * @param {Buffer} buffer Input data
  * @param {format} format Data format
  * @returns {string} Base64 string
  */
-export function createBase64(buffer, format) {
+export function bufferToBase64(buffer, format) {
   return `data:${detectContentTypeFromFormat(format)};base64,${buffer.toString(
     "base64",
   )}`;
+}
+
+/**
+ * Convert base64 string to buffer
+ * @param {string} base64
+ * @returns {Buffer}
+ */
+export function base64ToBuffer(base64) {
+  return Buffer.from(base64.slice(base64.indexOf(",") + 1), "base64");
 }
 
 /**
@@ -336,7 +345,7 @@ export async function createFileWithLock(filePath, data, timeout) {
 
         continue;
       } else if (error.code === "EEXIST") {
-        await delay(25);
+        await delay(5);
       } else {
         if (lockFileHandle) {
           await lockFileHandle.close();
@@ -383,7 +392,7 @@ export async function removeFileWithLock(filePath, timeout) {
       if (error.code === "ENOENT") {
         return;
       } else if (error.code === "EEXIST") {
-        await delay(25);
+        await delay(5);
       } else {
         if (lockFileHandle) {
           await lockFileHandle.close();
