@@ -50,14 +50,17 @@ function renderStyleJSONHandler() {
       /* Render style JSON */
       const filePath = await renderStyleJSON(req.body);
 
+      let readStream;
+
       if (req.body.base64) {
         const image = bufferToBase64(await readFile(filePath));
 
         res.set({
+          "content-length": image.length,
           "content-type": "text/plain",
         });
 
-        return res.status(StatusCodes.CREATED).send(image);
+        readStream = Readable.from(image);
       } else {
         req.body.format = req.body.format ?? "png";
 
@@ -67,21 +70,21 @@ function renderStyleJSONHandler() {
           "content-type": detectContentTypeFromFormat(req.body.format),
         });
 
-        const readStream = createReadStream(filePath);
-
-        readStream.pipe(res);
-
-        readStream
-          .on("error", (error) => {
-            throw error;
-          })
-          .on("close", () => {
-            rm(path.dirname(filePath), {
-              force: true,
-              recursive: true,
-            });
-          });
+        readStream = createReadStream(filePath);
       }
+
+      readStream.pipe(res);
+
+      readStream
+        .on("error", (error) => {
+          throw error;
+        })
+        .on("close", () => {
+          rm(path.dirname(filePath), {
+            force: true,
+            recursive: true,
+          });
+        });
     } catch (error) {
       printLog("error", `Failed to render styleJSON: ${error}`);
 
@@ -113,7 +116,7 @@ function addFrameHandler() {
       }
 
       /* Add frame */
-      const image = await addFrameToImage(
+      let image = await addFrameToImage(
         {
           ...req.body.input,
           image: base64ToBuffer(req.body.input.image),
@@ -125,11 +128,12 @@ function addFrameHandler() {
       );
 
       if (req.body.output.base64) {
+        image = bufferToBase64(image);
+
         res.set({
+          "content-length": image.length,
           "content-type": "text/plain",
         });
-
-        return res.status(StatusCodes.CREATED).send(image);
       } else {
         const format = req.body.output.format ?? "png";
         const fileName = `${nanoid()}.${format}`;
@@ -139,15 +143,15 @@ function addFrameHandler() {
           "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": detectContentTypeFromFormat(format),
         });
-
-        const readStream = Readable.from(image);
-
-        readStream.pipe(res);
-
-        readStream.on("error", (error) => {
-          throw error;
-        });
       }
+
+      const readStream = Readable.from(image);
+
+      readStream.pipe(res);
+
+      readStream.on("error", (error) => {
+        throw error;
+      });
     } catch (error) {
       printLog("error", `Failed to add frame: ${error}`);
 
@@ -179,18 +183,38 @@ function renderSVGHandler() {
       }
 
       /* Render SVG */
-      const data = await createImageOutput({
+      req.body.format = req.body.format ?? "png";
+
+      let image = await createImageOutput({
         ...req.body,
         data: base64ToBuffer(req.body.image),
       });
 
-      const image = req.body.base64 ? bufferToBase64(data) : data;
+      if (req.body.base64) {
+        image = bufferToBase64(image);
 
-      res.set({
-        "content-type": "application/json",
+        res.set({
+          "content-length": image.length,
+          "content-type": "text/plain",
+        });
+      } else {
+        const format = req.body.format ?? "png";
+        const fileName = `${nanoid()}.${format}`;
+
+        res.set({
+          "content-length": image.length,
+          "content-disposition": `attachment; filename="${fileName}"`,
+          "content-type": detectContentTypeFromFormat(format),
+        });
+      }
+
+      const readStream = Readable.from(image);
+
+      readStream.pipe(res);
+
+      readStream.on("error", (error) => {
+        throw error;
       });
-
-      return res.status(StatusCodes.CREATED).send(image);
     } catch (error) {
       printLog("error", `Failed to render SVG: ${error}`);
 
@@ -222,7 +246,7 @@ function renderPDFHandler() {
       }
 
       /* Render PDF */
-      const image = await renderImageToPDF(
+      let image = await renderImageToPDF(
         {
           ...req.body.input,
           images: req.body.input.images.map(base64ToBuffer),
@@ -232,11 +256,12 @@ function renderPDFHandler() {
       );
 
       if (req.body.output.base64) {
+        image = bufferToBase64(image);
+
         res.set({
+          "content-length": image.length,
           "content-type": "text/plain",
         });
-
-        return res.status(StatusCodes.CREATED).send(image);
       } else {
         const format = req.body.output.format ?? "png";
         const fileName = `${nanoid()}.${format}`;
@@ -246,15 +271,15 @@ function renderPDFHandler() {
           "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": detectContentTypeFromFormat(format),
         });
-
-        const readStream = Readable.from(image);
-
-        readStream.pipe(res);
-
-        readStream.on("error", (error) => {
-          throw error;
-        });
       }
+
+      const readStream = Readable.from(image);
+
+      readStream.pipe(res);
+
+      readStream.on("error", (error) => {
+        throw error;
+      });
     } catch (error) {
       printLog("error", `Failed to render PDF: ${error}`);
 
@@ -286,7 +311,7 @@ function renderHighQualityPDFHandler() {
       }
 
       /* Render PDF */
-      const image = await renderImageToHighQualityPDF(
+      let image = await renderImageToHighQualityPDF(
         {
           ...req.body.input,
           images: req.body.input.images.map((item) => ({
@@ -299,11 +324,12 @@ function renderHighQualityPDFHandler() {
       );
 
       if (req.body.output.base64) {
+        image = bufferToBase64(image);
+
         res.set({
+          "content-length": image.length,
           "content-type": "text/plain",
         });
-
-        return res.status(StatusCodes.CREATED).send(image);
       } else {
         const format = req.body.output.format ?? "png";
         const fileName = `${nanoid()}.${format}`;
@@ -313,15 +339,15 @@ function renderHighQualityPDFHandler() {
           "content-disposition": `attachment; filename="${fileName}"`,
           "content-type": detectContentTypeFromFormat(format),
         });
-
-        const readStream = Readable.from(image);
-
-        readStream.pipe(res);
-
-        readStream.on("error", (error) => {
-          throw error;
-        });
       }
+
+      const readStream = Readable.from(image);
+
+      readStream.pipe(res);
+
+      readStream.on("error", (error) => {
+        throw error;
+      });
     } catch (error) {
       printLog("error", `Failed to render high quality PDF: ${error}`);
 
