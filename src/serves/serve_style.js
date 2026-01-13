@@ -232,7 +232,7 @@ function getStylesListHandler() {
 
       const result = await Promise.all(
         Object.keys(config.styles).map(async (id) => {
-          const res = {
+          const data = {
             id: id,
             url: `${requestHost}/styles/${id}/style.json`,
           };
@@ -246,13 +246,13 @@ function getStylesListHandler() {
               center[2],
             );
 
-            res.name = name;
-            res.thumbnail = `${requestHost}/styles/${id}/${z}/${x}/${y}.png`;
+            data.name = name;
+            data.thumbnail = `${requestHost}/styles/${id}/${z}/${x}/${y}.png`;
           } else {
-            res.name = config.styles[id].name;
+            data.name = config.styles[id].name;
           }
 
-          return res;
+          return data;
         }),
       );
 
@@ -370,7 +370,10 @@ function getRenderedHandler() {
           .send("Rendered does not exist");
       }
 
-      const res = {
+      res.header("content-type", "application/json");
+
+      /* Get render info */
+      return res.status(StatusCodes.OK).send({
         ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
@@ -380,12 +383,7 @@ function getRenderedHandler() {
             queryStrings.length ? `?${queryStrings.join("&")}` : ""
           }`,
         ],
-      };
-
-      res.header("content-type", "application/json");
-
-      /* Get render info */
-      return res.status(StatusCodes.OK).send(res);
+      });
     } catch (error) {
       printLog("error", `Failed to get rendered "${id}": ${error}`);
 

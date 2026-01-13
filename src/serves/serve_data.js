@@ -196,7 +196,9 @@ function getDataHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      const res = {
+      res.header("content-type", "application/json");
+
+      return res.status(StatusCodes.OK).send({
         ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
@@ -206,11 +208,7 @@ function getDataHandler() {
             item.tileJSON.format
           }`,
         ],
-      };
-
-      res.header("content-type", "application/json");
-
-      return res.status(StatusCodes.OK).send(res);
+      });
     } catch (error) {
       printLog("error", `Failed to get data "${id}": ${error}`);
 
@@ -520,7 +518,7 @@ function getDatasListHandler() {
         Object.keys(config.datas).map(async (id) => {
           const { name, center, format } = config.datas[id].tileJSON;
 
-          const res = {
+          const data = {
             id: id,
             name: name,
             url: `${requestHost}/datas/${id}.json`,
@@ -533,10 +531,10 @@ function getDatasListHandler() {
               center[2],
             );
 
-            res.thumbnail = `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`;
+            data.thumbnail = `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`;
           }
 
-          return res;
+          return data;
         }),
       );
 
