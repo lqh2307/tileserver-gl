@@ -36,7 +36,7 @@ function serveSummaryHandler() {
         };
 
         await Promise.all([
-          ...Object.keys(seed.styles || {}).map(async (id) => {
+          ...Object.keys(seed.styles ?? {}).map(async (id) => {
             if (
               await isExistFile(
                 `${process.env.DATA_DIR}/caches/styles/${id}`,
@@ -54,7 +54,7 @@ function serveSummaryHandler() {
               };
             }
           }),
-          ...Object.keys(seed.geojsons || {}).map(async (id) => {
+          ...Object.keys(seed.geojsons ?? {}).map(async (id) => {
             if (
               await isExistFile(
                 `${process.env.DATA_DIR}/caches/geojsons/${id}`,
@@ -72,7 +72,7 @@ function serveSummaryHandler() {
               };
             }
           }),
-          ...Object.keys(seed.datas || {}).map(async (id) => {
+          ...Object.keys(seed.datas ?? {}).map(async (id) => {
             const item = seed.datas[id];
 
             switch (item.storeType) {
@@ -145,7 +145,7 @@ function serveSummaryHandler() {
               }
             }
           }),
-          ...Object.keys(seed.sprites || {}).map(async (id) => {
+          ...Object.keys(seed.sprites ?? {}).map(async (id) => {
             if (
               await isExistFile(
                 `${process.env.DATA_DIR}/caches/sprites/${id}`,
@@ -163,7 +163,7 @@ function serveSummaryHandler() {
               };
             }
           }),
-          ...Object.keys(seed.fonts || {}).map(async (id) => {
+          ...Object.keys(seed.fonts ?? {}).map(async (id) => {
             if (
               await isExistFile(
                 `${process.env.DATA_DIR}/caches/fonts/${id}`,

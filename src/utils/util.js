@@ -196,7 +196,7 @@ export async function handleConcurrency(
       completeTasks: 0,
     };
 
-    const { interval, callbackFunc } = callback || {};
+    const { interval, callbackFunc } = callback ?? {};
 
     /* Call callback */
     if (interval > 0 && callbackFunc) {

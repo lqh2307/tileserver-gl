@@ -122,7 +122,7 @@ function getGeoJSONGroupInfoHandler() {
         };
       }
 
-      const data = {
+      const res = {
         id: id,
         name: id,
         geojsons: geojsons,
@@ -130,7 +130,7 @@ function getGeoJSONGroupInfoHandler() {
 
       res.header("content-type", "application/json");
 
-      return res.status(StatusCodes.OK).send(data);
+      return res.status(StatusCodes.OK).send(res);
     } catch (error) {
       printLog("error", `Failed to get GeoJSON group info "${id}": ${error}`);
 
@@ -159,7 +159,7 @@ function getGeoJSONInfoHandler() {
           .send("GeoJSON group does not exist");
       }
 
-      const data = {
+      const res = {
         group: id,
         layer: req.params.layer,
         url: `${getRequestHost(req)}/geojsons/${id}/${
@@ -170,7 +170,7 @@ function getGeoJSONInfoHandler() {
 
       res.header("content-type", "application/json");
 
-      return res.status(StatusCodes.OK).send(data);
+      return res.status(StatusCodes.OK).send(res);
     } catch (error) {
       printLog(
         "error",

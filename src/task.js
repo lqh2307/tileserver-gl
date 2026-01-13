@@ -99,7 +99,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpSprite(
                   id,
-                  item.cleanUpBefore?.time || item.cleanUpBefore?.day,
+                  item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
@@ -145,7 +145,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpFont(
                   id,
-                  item.cleanUpBefore?.time || item.cleanUpBefore?.day,
+                  item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
@@ -191,7 +191,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpStyle(
                   id,
-                  item.cleanUpBefore?.time || item.cleanUpBefore?.day,
+                  item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
@@ -237,7 +237,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpGeoJSON(
                   id,
-                  item.cleanUpBefore?.time || item.cleanUpBefore?.day,
+                  item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
@@ -286,7 +286,7 @@ export async function runTasks(opts) {
                   seedDataItem.storeType,
                   id,
                   cleanUpDataItem.coverages,
-                  cleanUpDataItem.cleanUpBefore?.time ||
+                  cleanUpDataItem.cleanUpBefore?.time ??
                     cleanUpDataItem.cleanUpBefore?.day,
                 );
               } catch (error) {
@@ -336,8 +336,8 @@ export async function runTasks(opts) {
                   item.url,
                   item.maxTry || 5,
                   item.timeout ?? 60000,
-                  item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
+                  item.refreshBefore?.time ??
+                    item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
                   item.headers,
                 );
@@ -389,8 +389,8 @@ export async function runTasks(opts) {
                   item.concurrency || os.cpus().length,
                   item.maxTry || 5,
                   item.timeout ?? 60000,
-                  item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
+                  item.refreshBefore?.time ??
+                    item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
                   item.headers,
                 );
@@ -441,8 +441,8 @@ export async function runTasks(opts) {
                   item.url,
                   item.maxTry || 5,
                   item.timeout ?? 60000,
-                  item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
+                  item.refreshBefore?.time ??
+                    item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
                   item.headers,
                 );
@@ -493,8 +493,8 @@ export async function runTasks(opts) {
                   item.url,
                   item.maxTry || 5,
                   item.timeout ?? 60000,
-                  item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
+                  item.refreshBefore?.time ??
+                    item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
                   item.headers,
                 );
@@ -551,8 +551,8 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.storeTransparent ?? true,
-                  item.refreshBefore?.time ||
-                    item.refreshBefore?.day ||
+                  item.refreshBefore?.time ??
+                    item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
                   item.headers,
                 );

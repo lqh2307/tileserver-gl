@@ -40,6 +40,7 @@ function serveFrontPageHandler() {
           const style = config.styles[id];
 
           if (style.tileJSON) {
+            // Rendered StyleJSONs
             const { name, center } = style.tileJSON;
 
             const [x, y, z] = getXYZFromLonLatZ(
@@ -56,6 +57,7 @@ function serveFrontPageHandler() {
               cancel_render: style.export,
             };
           } else {
+            // StyleJSON
             const { name, zoom, center } = style;
 
             styles[id] = {

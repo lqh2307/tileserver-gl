@@ -16,6 +16,7 @@ import {
   compileHandleBarsTemplate,
   createTileMetadata,
   calculateMD5OfFile,
+  getXYZFromLonLatZ,
   getRequestHost,
   isLocalURL,
   gzipAsync,
@@ -231,11 +232,27 @@ function getStylesListHandler() {
 
       const result = await Promise.all(
         Object.keys(config.styles).map(async (id) => {
-          return {
+          const res = {
             id: id,
-            name: config.styles[id].name,
             url: `${requestHost}/styles/${id}/style.json`,
           };
+
+          if (config.styles[id].tileJSON) {
+            const { name, center } = config.styles[id].tileJSON;
+
+            const [x, y, z] = getXYZFromLonLatZ(
+              center[0],
+              center[1],
+              center[2],
+            );
+
+            res.name = name;
+            res.thumbnail = `${requestHost}/styles/${id}/${z}/${x}/${y}.png`;
+          } else {
+            res.name = config.styles[id].name;
+          }
+
+          return res;
         }),
       );
 
@@ -353,7 +370,7 @@ function getRenderedHandler() {
           .send("Rendered does not exist");
       }
 
-      const data = {
+      const res = {
         ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
@@ -368,7 +385,7 @@ function getRenderedHandler() {
       res.header("content-type", "application/json");
 
       /* Get render info */
-      return res.status(StatusCodes.OK).send(data);
+      return res.status(StatusCodes.OK).send(res);
     } catch (error) {
       printLog("error", `Failed to get rendered "${id}": ${error}`);
 
@@ -928,20 +945,19 @@ export const serve_style = {
               }
 
               /* Store style info */
-              styleInfo.name = styleJSON.name || "Unknown";
-              styleInfo.zoom = styleJSON.zoom || 0;
-              styleInfo.center = styleJSON.center || [0, 0, 0];
+              styleInfo.name = styleJSON.name ?? "Unknown";
+              styleInfo.zoom = styleJSON.zoom ?? 0;
+              styleInfo.center = styleJSON.center ?? [0, 0, 0];
 
               /* Mark to serve rendered */
               isCanServeRendered = true;
             } catch (error) {
               if (item.cache && error.message === "JSON does not exist") {
-                styleInfo.name =
-                  seed.styles[item.style].metadata.name || "Unknown";
-                styleInfo.zoom = seed.styles[item.style].metadata.zoom || 0;
-                styleInfo.center = seed.styles[item.style].metadata.center || [
-                  0, 0, 0,
-                ];
+                const styleSeed = seed.styles[item.style];
+
+                styleInfo.name = styleSeed.metadata.name ?? "Unknown";
+                styleInfo.zoom = styleSeed.metadata.zoom ?? 0;
+                styleInfo.center = styleSeed.metadata.center ?? [0, 0, 0];
 
                 /* Mark to serve rendered */
                 isCanServeRendered = false;

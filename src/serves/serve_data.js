@@ -9,6 +9,7 @@ import {
   compileHandleBarsTemplate,
   createTileMetadata,
   calculateMD5OfFile,
+  getXYZFromLonLatZ,
   getRequestHost,
   getTileBounds,
   getJSONSchema,
@@ -195,7 +196,7 @@ function getDataHandler() {
         return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
       }
 
-      const data = {
+      const res = {
         ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
@@ -209,7 +210,7 @@ function getDataHandler() {
 
       res.header("content-type", "application/json");
 
-      return res.status(StatusCodes.OK).send(data);
+      return res.status(StatusCodes.OK).send(res);
     } catch (error) {
       printLog("error", `Failed to get data "${id}": ${error}`);
 
@@ -517,11 +518,25 @@ function getDatasListHandler() {
 
       const result = await Promise.all(
         Object.keys(config.datas).map(async (id) => {
-          return {
+          const { name, center, format } = config.datas[id].tileJSON;
+
+          const res = {
             id: id,
-            name: config.datas[id].tileJSON.name,
+            name: name,
             url: `${requestHost}/datas/${id}.json`,
           };
+
+          if (format !== "pbf") {
+            const [x, y, z] = getXYZFromLonLatZ(
+              center[0],
+              center[1],
+              center[2],
+            );
+
+            res.thumbnail = `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`;
+          }
+
+          return res;
         }),
       );
 
