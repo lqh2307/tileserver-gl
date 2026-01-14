@@ -57,6 +57,28 @@ import {
   printLog,
 } from "./utils/index.js";
 
+mlgl.on("message", (msg) => {
+  switch (msg.severity) {
+    case "ERROR": {
+      printLog("error", `Render StyleJSON: ${msg.text}`);
+
+      break;
+    }
+
+    case "WARNING": {
+      printLog("warn", `Render StyleJSON: ${msg.text}`);
+
+      break;
+    }
+
+    default: {
+      printLog("info", `Render StyleJSON: ${msg.text}`);
+
+      break;
+    }
+  }
+});
+
 /**
  * Create render
  * @param {{ mode: "tile"|"static", styleJSON: object, ratio: number }} option Option object
