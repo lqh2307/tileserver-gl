@@ -120,6 +120,39 @@ export function getLonLatFromXYZ(x, y, z, position, scheme) {
 }
 
 /**
+ * Get tile bounds from z/x/y (Default: XYZ) in EPSG:4326
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {number} z Zoom level
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @returns {[number, number, number, number]} [minLon, minLat, maxLon, maxLat] in EPSG:4326
+ */
+export function getTileBounds4326(x, y, z, scheme) {
+  const [minLon, maxLat] = getLonLatFromXYZ(x, y, z, "topLeft", scheme);
+  const [maxLon, minLat] = getLonLatFromXYZ(x, y, z, "bottomRight", scheme);
+
+  return [minLon, minLat, maxLon, maxLat];
+}
+
+/**
+ * Get tile bounds from z/x/y (Default: XYZ) in EPSG:3857
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {number} z Zoom level
+ * @param {"xyz"|"tms"} scheme Tile scheme
+ * @returns {[number, number, number, number]} [minLon, minLat, maxLon, maxLat] in EPSG:3857
+ */
+export function getTileBounds3857(x, y, z, scheme) {
+  const [minLon, maxLat] = getLonLatFromXYZ(x, y, z, "topLeft", scheme);
+  const [maxLon, minLat] = getLonLatFromXYZ(x, y, z, "bottomRight", scheme);
+
+  return [
+    ...lonLat4326ToXY3857(minLon, minLat),
+    ...lonLat4326ToXY3857(maxLon, maxLat),
+  ];
+}
+
+/**
  * Calculate zoom levels
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} width Width of image
