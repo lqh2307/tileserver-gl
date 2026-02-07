@@ -875,7 +875,7 @@ export const serve_data = {
      *         required: true
      *         schema:
      *           type: string
-     *           enum: [jpeg, jpg, pbf, png, webp, gif]
+     *           enum: [jpeg, jpg, pbf, png, webp]
      *           example: png
      *         description: Tile format
      *     responses:

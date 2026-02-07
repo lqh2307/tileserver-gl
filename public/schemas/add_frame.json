@@ -19,10 +19,7 @@
           "maxItems": 4
         }
       },
-      "required": [
-        "image",
-        "bbox"
-      ]
+      "required": ["image", "bbox"]
     },
     "overlays": {
       "type": "array",
@@ -63,13 +60,7 @@
         },
         "frameInnerStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "frameOuterColor": {
           "type": "string",
@@ -81,13 +72,7 @@
         },
         "frameOuterStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "frameSpace": {
           "type": "integer",
@@ -95,11 +80,7 @@
         },
         "tickLabelFormat": {
           "type": "string",
-          "enum": [
-            "D",
-            "DMS",
-            "DMSD"
-          ]
+          "enum": ["D", "DMS", "DMSD"]
         },
         "majorTickStep": {
           "type": "number",
@@ -188,13 +169,7 @@
       "properties": {
         "majorGridStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "majorGridWidth": {
           "type": "integer",
@@ -210,13 +185,7 @@
         },
         "minorGridStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         },
         "minorGridWidth": {
           "type": "integer",
@@ -237,13 +206,7 @@
       "properties": {
         "format": {
           "type": "string",
-          "enum": [
-            "gif",
-            "png",
-            "jpg",
-            "jpeg",
-            "webp"
-          ]
+          "enum": ["png", "jpg", "jpeg", "webp"]
         },
         "base64": {
           "type": "boolean"
@@ -254,8 +217,5 @@
       }
     }
   },
-  "required": [
-    "input",
-    "output"
-  ]
+  "required": ["input", "output"]
 }

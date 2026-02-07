@@ -465,7 +465,7 @@ export const serve_render = {
      *                     type: number
      *                   format:
      *                    type: string
-     *                    enum: [jpeg, jpg, png, webp, gif]
+     *                    enum: [jpeg, jpg, png, webp]
      *                   base64:
      *                    type: boolean
      *               example: {}

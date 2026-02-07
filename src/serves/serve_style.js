@@ -804,7 +804,7 @@ export const serve_style = {
        *         required: true
        *         schema:
        *           type: string
-       *           enum: [jpeg, jpg, png, webp, gif]
+       *           enum: [jpeg, jpg, png, webp]
        *           example: png
        *         description: Tile format
        *       - in: query

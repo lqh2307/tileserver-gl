@@ -1,8 +1,12 @@
 "use strict";
 
-import { FALLBACK_BBOX, FALLBACK_VECTOR_LAYERS } from "../resources/index.js";
 import { BACKGROUND_COLOR, createImageOutput } from "./image.js";
 import { getCenterFromBBox } from "./spatial.js";
+import {
+  FALLBACK_VECTOR_LAYERS,
+  RASTER_FORMATS,
+  FALLBACK_BBOX,
+} from "../resources/index.js";
 
 /* Create fallback tile data */
 const FALLBACK_TILE_DATA = {
@@ -11,7 +15,7 @@ const FALLBACK_TILE_DATA = {
 
 (async () =>
   await Promise.all(
-    ["gif", "png", "jpg", "jpeg", "webp"].map(async (format) => {
+    [...RASTER_FORMATS].map(async (format) => {
       FALLBACK_TILE_DATA[format] = await createImageOutput({
         createOption: {
           width: 1,

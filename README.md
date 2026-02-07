@@ -39,7 +39,6 @@ apt-get -y install \
   libsqlite3-0 \
   libjpeg-turbo8 \
   libicu70 \
-  libgif7 \
   libopengl0 \
   libpng16-16 \
   libwebp7 \
@@ -61,7 +60,6 @@ apt-get -y install \
   libsqlite3-0 \
   libjpeg-turbo8 \
   libicu74 \
-  libgif7 \
   libopengl0 \
   libpng16-16t64 \
   libwebp7 \

@@ -13,22 +13,14 @@
           "minItems": 1
         }
       },
-      "required": [
-        "images"
-      ]
+      "required": ["images"]
     },
     "preview": {
       "type": "object",
       "properties": {
         "format": {
           "type": "string",
-          "enum": [
-            "gif",
-            "png",
-            "jpg",
-            "jpeg",
-            "webp"
-          ]
+          "enum": ["png", "jpg", "jpeg", "webp"]
         },
         "width": {
           "type": "integer",
@@ -48,13 +40,7 @@
         },
         "lineStyle": {
           "type": "string",
-          "enum": [
-            "solid",
-            "dashed",
-            "longDashed",
-            "dotted",
-            "dashedDot"
-          ]
+          "enum": ["solid", "dashed", "longDashed", "dotted", "dashedDot"]
         }
       }
     },
@@ -66,19 +52,11 @@
           "properties": {
             "horizontal": {
               "type": "string",
-              "enum": [
-                "left",
-                "center",
-                "right"
-              ]
+              "enum": ["left", "center", "right"]
             },
             "vertical": {
               "type": "string",
-              "enum": [
-                "top",
-                "middle",
-                "bottom"
-              ]
+              "enum": ["top", "middle", "bottom"]
             }
           }
         },
@@ -90,10 +68,7 @@
         },
         "orientation": {
           "type": "string",
-          "enum": [
-            "portrait",
-            "landscape"
-          ]
+          "enum": ["portrait", "landscape"]
         },
         "paperSize": {
           "type": "array",
@@ -106,11 +81,7 @@
         },
         "fit": {
           "type": "string",
-          "enum": [
-            "contain",
-            "cover",
-            "fill"
-          ]
+          "enum": ["contain", "cover", "fill"]
         },
         "grid": {
           "type": "object",
@@ -146,30 +117,17 @@
           "properties": {
             "horizontal": {
               "type": "string",
-              "enum": [
-                "left",
-                "center",
-                "right"
-              ]
+              "enum": ["left", "center", "right"]
             },
             "vertical": {
               "type": "string",
-              "enum": [
-                "top",
-                "middle",
-                "bottom"
-              ]
+              "enum": ["top", "middle", "bottom"]
             }
           }
         }
       },
-      "required": [
-        "paperSize"
-      ]
+      "required": ["paperSize"]
     }
   },
-  "required": [
-    "input",
-    "output"
-  ]
+  "required": ["input", "output"]
 }

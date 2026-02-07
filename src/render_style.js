@@ -312,7 +312,7 @@ function createRenderer(option) {
               : dataRemote.data;
           } catch (error) {
             if (req.kind === 3) {
-              const result = req.url.match(/(gif|png|jpg|jpeg|webp|pbf)/g);
+              const result = req.url.match(/(png|jpg|jpeg|webp|pbf)/g);
               if (result) {
                 printLog(
                   "warn",
@@ -408,7 +408,7 @@ function createRenderer(option) {
 
 /**
  * Render image tile data
- * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, z: number, x: number, y: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", grayscale: boolean, filePath: string }} option Option object
+ * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, z: number, x: number, y: number, format: "jpeg"|"jpg"|"png"|"webp", grayscale: boolean, filePath: string }} option Option object
  * @returns {Promise<Buffer|string>}
  */
 export async function renderImageTileData(option) {
@@ -469,7 +469,7 @@ export async function renderImageTileData(option) {
 
 /**
  * Render image static data
- * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", grayscale: boolean, width: number, height: number, filePath: string }} option Option object
+ * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp", grayscale: boolean, width: number, height: number, filePath: string }} option Option object
  * @returns {Promise<Buffer|string>}
  */
 export async function renderImageStaticData(option) {
@@ -526,7 +526,7 @@ export async function renderImageStaticData(option) {
 
 /**
  * Render StyleJSON
- * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", grayscale: boolean, width: number, height: number }} option Option object
+ * @param {{ styleJSON: object, tileScale: number, tileSize: 256|512, zoom: number, bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp", grayscale: boolean, width: number, height: number }} option Option object
  * @returns {Promise<string>}
  */
 export async function renderStyleJSON(option) {

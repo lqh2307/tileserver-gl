@@ -230,7 +230,7 @@ export async function getImageMetadata(filePath) {
 
 /**
  * Create image output (Order: Input -> Extend -> Composites -> Extract -> Resize -> Output !== Default sharp order: Input -> Resize/Extract/... -> Extend -> Composites -> Output)
- * @param {{ data: sharp.Sharp|string|Buffer, format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, grayscale: boolean, createOption: sharp.Create, rawOption: sharp.CreateRaw, resizeOption: sharp.ResizeOptions, compositesOption: sharp.OverlayOptions[], extendOption: sharp.ExtendOptions, extractOption: sharp.Region }} options Options
+ * @param {{ data: sharp.Sharp|string|Buffer, format: "jpeg"|"jpg"|"png"|"webp", filePath: string, width: number, height: number, grayscale: boolean, createOption: sharp.Create, rawOption: sharp.CreateRaw, resizeOption: sharp.ResizeOptions, compositesOption: sharp.OverlayOptions[], extendOption: sharp.ExtendOptions, extractOption: sharp.Region }} options Options
  * @returns {Promise<Buffer|string>}
  */
 export async function createImageOutput(options) {
@@ -319,17 +319,11 @@ export async function createImageOutput(options) {
 
   // Format
   switch (format) {
-    case "gif": {
-      targetImage.gif({
-        quality: 100,
-      });
-
-      break;
-    }
-
     case "png": {
       targetImage.png({
+        quality: 100,
         compressionLevel: 9,
+        adaptiveFiltering: true,
       });
 
       break;
@@ -339,6 +333,9 @@ export async function createImageOutput(options) {
     case "jpeg": {
       targetImage.jpeg({
         quality: 100,
+        mozjpeg: true,
+        progressive: true,
+        optimiseScans: true,
       });
 
       break;
@@ -347,6 +344,8 @@ export async function createImageOutput(options) {
     case "webp": {
       targetImage.webp({
         quality: 100,
+        effort: 6,
+        lossless: true,
       });
 
       break;
@@ -373,7 +372,7 @@ export async function createImageOutput(options) {
  * @param {{ image: string, bbox: [number, number, number, number] }[]} overlays Array of overlay object
  * @param {{ frameMargin: number, frameInnerColor: string, frameInnerWidth: number, frameInnerStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameOuterColor: string, frameOuterWidth: number, frameOuterStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", frameSpace: number, tickLabelFormat: "D"|"DMS"|"DMSD", majorTickStep: number, minorTickStep: number, majorTickWidth: number, minorTickWidth: number, majorTickSize: number, minorTickSize: number, majorTickLabelSize: number, minorTickLabelSize: number, majorTickColor: string, minorTickColor: string, majorTickLabelColor: string, minorTickLabelColor: string, majorTickLabelFont: string, minorTickLabelFont: string, xTickLabelOffset: number, yTickLabelOffset: number, xTickEnd: boolean, xTickMajorLabelRotation: number, xTickMinorLabelRotation: number, yTickMajorLabelRotation: number, yTickEnd: boolean, yTickMinorLabelRotation: number }} frame Frame object
  * @param {{ majorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", majorGridWidth: number, majorGridStep: number, majorGridColor: string, minorGridStyle: "solid"|"dashed"|"longDashed"|"dotted"|"dashedDot", minorGridWidth: number, minorGridStep: number, minorGridColor: string }} grid Grid object
- * @param {{ format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, grayscale: boolean }} output Output object
+ * @param {{ format: "jpeg"|"jpg"|"png"|"webp", filePath: string, width: number, height: number, grayscale: boolean }} output Output object
  * @returns {Promise<Buffer|string>}
  */
 export async function addFrameToImage(input, overlays, frame, grid, output) {
@@ -1114,8 +1113,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 
 /**
  * Merge tiles to image
- * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp"|"gif", scheme: "xyz" | "tms", bbox: [number, number, number, number] }} input Input object
- * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, width: number, height: number, grayscale: boolean }} output Output object
+ * @param {{ dirPath: string, z: number, xMin: number, xMax: Number, yMin: number, yMax: number, format: "jpeg"|"jpg"|"png"|"webp", scheme: "xyz" | "tms", bbox: [number, number, number, number] }} input Input object
+ * @param {{ bbox: [number, number, number, number], format: "jpeg"|"jpg"|"png"|"webp", filePath: string, width: number, height: number, grayscale: boolean }} output Output object
  * @returns {Promise<Buffer|string>}
  */
 export async function mergeTilesToImage(input, output) {
@@ -1185,7 +1184,7 @@ export async function mergeTilesToImage(input, output) {
 /**
  * Split image to tiles
  * @param {{ image: string|Buffer, bbox: [number, number, number, number] }} input Input object
- * @param {{ dirPath: string, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp"|"gif", filePath: string, grayscale: boolean }} output Output object
+ * @param {{ dirPath: string, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp", filePath: string, grayscale: boolean }} output Output object
  * @returns {Promise<void>}
  */
 export async function splitImageToTiles(input, output) {
@@ -1201,7 +1200,7 @@ export async function splitImageToTiles(input, output) {
 /**
  * Render image to PDF or Preview image with high quality
  * @param {{ images: { image: string|Buffer, res: [number, number] }[], res: [number, number] }} input Input object
- * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot", pageColor: string, pageSize: number, pageFont: string }} preview Preview object
+ * @param {{ format?: "png" | "jpg" | "jpeg" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot", pageColor: string, pageSize: number, pageFont: string }} preview Preview object
  * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape" }} output Output object
  * @returns {Promise<Buffer|string>}
  */
@@ -1431,7 +1430,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
 /**
  * Render image to PDF or Preview image
  * @param {{ images: string[]|Buffer[] }} input Input object
- * @param {{ format?: "png" | "jpg" | "jpeg" | "gif" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot" }} preview Preview object
+ * @param {{ format?: "png" | "jpg" | "jpeg" | "webp", width: number, height: number, lineColor: string, lineWidth: number, lineStyle: "dashed" | "dotted" | "solid" | "longDashed" | "dashedDot" }} preview Preview object
  * @param {{ filePath: string, paperSize: [number, number], orientation: "portrait"|"landscape", fit: "auto"|"cover"|"contain"|"fill", alignContent: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, pagination: { horizontal: "left"|"center"|"right", vertical: "top"|"middle"|"bottom" }, grayscale: boolean, grid: { row: number, column: number, marginX: number, marginY: number, gapX: number, gapY: number } }} output Output object
  * @returns {Promise<Buffer|string>}
  */

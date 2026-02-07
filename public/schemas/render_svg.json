@@ -13,13 +13,7 @@
     },
     "format": {
       "type": "string",
-      "enum": [
-        "gif",
-        "png",
-        "jpg",
-        "jpeg",
-        "webp"
-      ]
+      "enum": ["png", "jpg", "jpeg", "webp"]
     },
     "width": {
       "type": "integer",
@@ -30,7 +24,5 @@
       "minimum": 1
     }
   },
-  "required": [
-    "image"
-  ]
+  "required": ["image"]
 }

@@ -41,16 +41,9 @@ const BATCH_SIZE = 1000;
 export const FALLBACK_BBOX = [-MAX_LON, -MAX_LAT, MAX_LON, MAX_LAT];
 export const FALLBACK_VECTOR_LAYERS = [];
 
-export const ALL_FORMATS = new Set([
-  "jpeg",
-  "jpg",
-  "pbf",
-  "png",
-  "webp",
-  "gif",
-]);
+export const ALL_FORMATS = new Set(["jpeg", "jpg", "pbf", "png", "webp"]);
 export const VECTOR_FORMATS = new Set(["pbf"]);
-export const RASTER_FORMATS = new Set(["jpeg", "jpg", "png", "webp", "gif"]);
+export const RASTER_FORMATS = new Set(["jpeg", "jpg", "png", "webp"]);
 export const SPRITE_FORMATS = new Set(["json", "png"]);
 export const TILE_SIZES = new Set(["256", "512"]);
 export const LAYER_TYPES = new Set(["baselayer", "overlay"]);
@@ -1910,7 +1903,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
       for (const xFolder of xFolders) {
         let yFiles = await findFiles(
           `${sourcePath}/${zFolder}/${xFolder}`,
-          /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
+          /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
           false,
           false,
         );
@@ -1988,7 +1981,7 @@ export async function getXYZFormatFromTiles(sourcePath) {
     for (const xFolder of xFolders) {
       const yFiles = await findFiles(
         `${sourcePath}/${zFolder}/${xFolder}`,
-        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
+        /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
       );
 
       if (yFiles.length) {
@@ -2100,7 +2093,7 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
 
 /**
  * Remove XYZ tile data file
- * @param {{ sourcePath: string, statement: BetterSqlite3.Statement, source: Database, z: number, x: number, y: number, format: "jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif" }} option
+ * @param {{ sourcePath: string, statement: BetterSqlite3.Statement, source: Database, z: number, x: number, y: number, format: "jpeg"|"jpg"|"pbf"|"png"|"webp" }} option
  * @returns {Promise<void>}
  */
 export async function removeXYZTile(option) {
@@ -2202,7 +2195,7 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif"} format Tile format
+ * @param {"jpeg"|"jpg"|"pbf"|"png"|"webp"} format Tile format
  * @returns {Promise<object>}
  */
 export async function getXYZTile(sourcePath, z, x, y, format) {
@@ -2391,7 +2384,7 @@ export function closeXYZMD5DB(source) {
 
 /**
  * Download XYZ tile data file
- * @param {{ headers: object, maxTry: number, timeout: number, url: string, statement: BetterSqlite3.Statement, sourcePath: string, source: Database, z: number, x: number, y: number, data: Buffer, format: "jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif", storeTransparent: boolean, created: number }} option Option
+ * @param {{ headers: object, maxTry: number, timeout: number, url: string, statement: BetterSqlite3.Statement, sourcePath: string, source: Database, z: number, x: number, y: number, data: Buffer, format: "jpeg"|"jpg"|"pbf"|"png"|"webp", storeTransparent: boolean, created: number }} option Option
  * @returns {Promise<void>}
  */
 export async function downloadXYZTile(option) {
@@ -2464,7 +2457,7 @@ export function updateXYZMetadata(source, metadataAdds) {
 
 /**
  * Store XYZ tile data file
- * @param {{ statement: BetterSqlite3.Statement, sourcePath: string, source: Database, z: number, x: number, y: number, data: Buffer, format: "jpeg"|"jpg"|"pbf"|"png"|"webp"|"gif", storeTransparent: boolean, created: number }} option Option
+ * @param {{ statement: BetterSqlite3.Statement, sourcePath: string, source: Database, z: number, x: number, y: number, data: Buffer, format: "jpeg"|"jpg"|"pbf"|"png"|"webp", storeTransparent: boolean, created: number }} option Option
  * @returns {Promise<void>}
  */
 export async function storeXYZTileFile(option) {
@@ -2510,7 +2503,7 @@ export async function storeXYZTileFile(option) {
 export async function countXYZTiles(sourcePath) {
   const fileNames = await findFiles(
     sourcePath,
-    /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
+    /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
     true,
     false,
   );
@@ -2526,7 +2519,7 @@ export async function countXYZTiles(sourcePath) {
 export async function getXYZSize(sourcePath) {
   const fileNames = await findFiles(
     sourcePath,
-    /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
+    /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
     true,
     true,
   );
@@ -2574,7 +2567,7 @@ export async function addXYZOverviews(
     for (const xFolder of xFolders) {
       const yFiles = await findFiles(
         `${sourcePath}/${zFolder}/${xFolder}`,
-        /^\d+\.(gif|png|jpg|jpeg|webp|pbf)$/,
+        /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
       );
 
       if (yFiles.length) {

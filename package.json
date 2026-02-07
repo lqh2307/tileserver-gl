@@ -19,6 +19,9 @@
     "format": "prettier --write \"src/**/*.{json,js,ts,tsx,css}\"",
     "prepare": "husky"
   },
+  "lint-staged": {
+    "*.{json,js,ts,tsx,css}": "prettier --write"
+  },
   "dependencies": {
     "@maplibre/maplibre-gl-style-spec": "24.4.1",
     "@maplibre/maplibre-gl-native": "6.3.0",
