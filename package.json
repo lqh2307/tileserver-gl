@@ -7,6 +7,7 @@
   "keywords": [
     "ms-tile-server"
   ],
+  "private": true,
   "type": "module",
   "main": "src/main.js",
   "bin": {
@@ -15,7 +16,8 @@
   "scripts": {
     "server": "./entrypoint.sh",
     "lint": "eslint .",
-    "format": "prettier --write \"src/**/*.{js,json}\""
+    "format": "prettier --write \"src/**/*.{json,js,ts,tsx,css}\"",
+    "prepare": "husky"
   },
   "dependencies": {
     "@maplibre/maplibre-gl-style-spec": "24.4.1",
@@ -38,20 +40,22 @@
     "chokidar": "5.0.0",
     "archiver": "7.0.1",
     "express": "5.2.1",
-    "pmtiles": "4.3.2",
+    "pmtiles": "4.4.0",
     "nanoid": "5.1.6",
     "sharp": "0.34.5",
-    "axios": "1.13.2",
-    "jspdf": "4.0.0",
-    "pino": "10.2.1",
+    "axios": "1.13.4",
+    "jspdf": "4.1.0",
+    "pino": "10.3.0",
     "mime": "4.1.0",
-    "cors": "2.8.5",
+    "cors": "2.8.6",
     "ajv": "8.17.1",
-    "pg": "8.17.2"
+    "pg": "8.18.0"
   },
   "devDependencies": {
+    "lint-staged": "16.2.7",
     "prettier": "3.8.1",
-    "eslint": "9.39.2"
+    "eslint": "10.0.0",
+    "husky": "9.1.7"
   },
   "engines": {
     "node": ">=22 <=24"
