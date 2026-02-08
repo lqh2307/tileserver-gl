@@ -15,12 +15,15 @@
   },
   "scripts": {
     "server": "./entrypoint.sh",
-    "lint": "eslint .",
+    "lint": "eslint \"src/**/*.{json,js,ts,tsx,css}\"",
     "format": "prettier --write \"src/**/*.{json,js,ts,tsx,css}\"",
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{json,js,ts,tsx,css}": "prettier --write"
+    "*.{json,js,ts,tsx,css}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@maplibre/maplibre-gl-style-spec": "24.4.1",
