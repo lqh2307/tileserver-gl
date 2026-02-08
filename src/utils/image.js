@@ -323,7 +323,6 @@ export async function createImageOutput(options) {
       targetImage.png({
         quality: 100,
         compressionLevel: 9,
-        adaptiveFiltering: true,
       });
 
       break;
@@ -334,7 +333,6 @@ export async function createImageOutput(options) {
       targetImage.jpeg({
         quality: 100,
         mozjpeg: true,
-        progressive: true,
         optimiseScans: true,
       });
 

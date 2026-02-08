@@ -16,8 +16,9 @@ import {
   retry,
 } from "../utils/index.js";
 
+/* Cache in RAM */
 const renderedStyleJSONCaches = createCache({
-  ttl: 300000,
+  ttl: 300000, // 5 mins
 });
 
 /**

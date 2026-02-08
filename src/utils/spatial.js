@@ -4,7 +4,8 @@ import { calculateResolution } from "./image.js";
 import { limitValue } from "./number.js";
 
 export const MAX_LON = 180;
-export const MAX_LAT = 85.051129;
+export const MAX_LAT = 90;
+export const MAX_CAL_LAT = 85.051129;
 const SPHERICAL_RADIUS = 6378137.0;
 const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
 
@@ -16,9 +17,12 @@ const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
  */
 export function lonLat4326ToXY3857(lon, lat) {
   return [
-    limitValue(lon, -MAX_LON, MAX_LON) * (Math.PI / 180) * SPHERICAL_RADIUS,
+    limitValue(lon, -MAX_LON, MAX_LON) * (Math.PI / MAX_LON) * SPHERICAL_RADIUS,
     Math.log(
-      Math.tan((Math.PI * (limitValue(lat, -MAX_LAT, MAX_LAT) + 90)) / 360),
+      Math.tan(
+        (Math.PI * (limitValue(lat, -MAX_CAL_LAT, MAX_CAL_LAT) + MAX_LAT)) /
+          (2 * MAX_LON),
+      ),
     ) * SPHERICAL_RADIUS,
   ];
 }
@@ -31,11 +35,11 @@ export function lonLat4326ToXY3857(lon, lat) {
  */
 export function xy3857ToLonLat4326(x, y) {
   return [
-    limitValue((x / SPHERICAL_RADIUS) * (180 / Math.PI), -MAX_LON, MAX_LON),
+    limitValue((x / SPHERICAL_RADIUS) * (MAX_LON / Math.PI), -MAX_LON, MAX_LON),
     limitValue(
-      Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (180 / Math.PI),
-      -MAX_LAT,
-      MAX_LAT,
+      Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (MAX_LON / Math.PI),
+      -MAX_CAL_LAT,
+      MAX_CAL_LAT,
     ),
   ];
 }
@@ -51,11 +55,14 @@ export function xy3857ToLonLat4326(x, y) {
 export function getXYZFromLonLatZ(lon, lat, z, scheme) {
   const maxTile = 1 << z;
 
-  let x = (0.5 + limitValue(lon, -MAX_LON, MAX_LON) / 360) * maxTile;
+  let x = (0.5 + limitValue(lon, -MAX_LON, MAX_LON) / (2 * MAX_LON)) * maxTile;
   let y =
     (0.5 -
       Math.log(
-        Math.tan((Math.PI * (limitValue(lat, -MAX_LAT, MAX_LAT) + 90)) / 360),
+        Math.tan(
+          (Math.PI * (limitValue(lat, -MAX_CAL_LAT, MAX_CAL_LAT) + MAX_LAT)) /
+            (2 * MAX_LON),
+        ),
       ) /
         (2 * Math.PI)) *
     maxTile;
@@ -113,8 +120,9 @@ export function getLonLatFromXYZ(x, y, z, position, scheme) {
   }
 
   return [
-    360 * (x / maxTile - 0.5),
-    (360 * Math.atan(Math.exp(Math.PI * (1 - (2 * y) / maxTile)))) / Math.PI -
+    2 * MAX_LON * (x / maxTile - 0.5),
+    (2 * MAX_LON * Math.atan(Math.exp(Math.PI * (1 - (2 * y) / maxTile)))) /
+      Math.PI -
       90,
   ];
 }
@@ -153,43 +161,25 @@ export function getTileBounds3857(x, y, z, scheme) {
 }
 
 /**
- * Calculate zoom levels
+ * Calculate maxzoom
  * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
  * @param {number} width Width of image
  * @param {number} height Height of image
  * @param {256|512} tileSize Tile size (Default: 256)
- * @returns {Promise<{ minZoom: number, maxZoom: number }>} Zoom levels
+ * @returns {Promise<number>} Max zoom
  */
-export async function calculateZoomLevels(bbox, width, height, tileSize = 256) {
+export async function calculateMaxZoom(bbox, width, height, tileSize = 256) {
   const [xRes, yRes] = await calculateResolution({
     bbox: bbox,
     width: width,
     height: height,
   });
 
-  const res = xRes <= yRes ? xRes : yRes;
-
-  const maxZoom = limitValue(
-    Math.round(Math.log2(MAX_GM / tileSize / res)),
+  return limitValue(
+    Math.round(Math.log2(MAX_GM / tileSize / (xRes <= yRes ? xRes : yRes))),
     0,
     25,
   );
-
-  let minZoom = maxZoom;
-
-  const targetTileSize = Math.floor(tileSize * 0.95);
-
-  while (minZoom > 0 && (width > targetTileSize || height > targetTileSize)) {
-    width /= 2;
-    height /= 2;
-
-    minZoom--;
-  }
-
-  return {
-    minZoom,
-    maxZoom,
-  };
 }
 
 /**
@@ -531,8 +521,8 @@ export function getBBoxFromPoint(points) {
 
     bbox[0] = limitValue(bbox[0], -MAX_LON, MAX_LON);
     bbox[2] = limitValue(bbox[2], -MAX_LON, MAX_LON);
-    bbox[1] = limitValue(bbox[1], -MAX_LAT, MAX_LAT);
-    bbox[3] = limitValue(bbox[3], -MAX_LAT, MAX_LAT);
+    bbox[1] = limitValue(bbox[1], -MAX_CAL_LAT, MAX_CAL_LAT);
+    bbox[3] = limitValue(bbox[3], -MAX_CAL_LAT, MAX_CAL_LAT);
   }
 
   return bbox;
@@ -559,10 +549,20 @@ export function getCenterFromBBox(bbox, z) {
  * @returns {[number, number, number, number]} Intersect bounding box in the format [minLon, minLat, maxLon, maxLat]
  */
 export function getIntersectBBox(bbox1, bbox2) {
-  const minLon = bbox1[0] > bbox2[0] ? bbox1[0] : bbox2[0];
-  const minLat = bbox1[1] > bbox2[1] ? bbox1[1] : bbox2[1];
-  const maxLon = bbox1[2] < bbox2[2] ? bbox1[2] : bbox2[2];
-  const maxLat = bbox1[3] < bbox2[3] ? bbox1[3] : bbox2[3];
+  const aMinX = bbox1[0] < bbox1[2] ? bbox1[0] : bbox1[2];
+  const aMaxX = bbox1[0] > bbox1[2] ? bbox1[0] : bbox1[2];
+  const aMinY = bbox1[1] < bbox1[3] ? bbox1[1] : bbox1[3];
+  const aMaxY = bbox1[1] > bbox1[3] ? bbox1[1] : bbox1[3];
+
+  const bMinX = bbox2[0] < bbox2[2] ? bbox2[0] : bbox2[2];
+  const bMaxX = bbox2[0] > bbox2[2] ? bbox2[0] : bbox2[2];
+  const bMinY = bbox2[1] < bbox2[3] ? bbox2[1] : bbox2[3];
+  const bMaxY = bbox2[1] > bbox2[3] ? bbox2[1] : bbox2[3];
+
+  const minLon = aMinX > bMinX ? aMinX : bMinX;
+  const minLat = aMinY > bMinY ? aMinY : bMinY;
+  const maxLon = aMaxX < bMaxX ? aMaxX : bMaxX;
+  const maxLat = aMaxY < bMaxY ? aMaxY : bMaxY;
 
   if (minLon >= maxLon || minLat >= maxLat) {
     return;
@@ -572,17 +572,68 @@ export function getIntersectBBox(bbox1, bbox2) {
 }
 
 /**
+ * Check if two bounding boxes intersect (works for any coordinate system)
+ * @param {[number, number, number, number]} bbox1 Bounding box 1 in the format [minLon, minLat, maxLon, maxLat]
+ * @param {[number, number, number, number]} bbox2 Bounding box 2 in the format [minLon, minLat, maxLon, maxLat]
+ * @returns {boolean} Intersect
+ */
+export function isIntersectBBoxs(bbox1, bbox2) {
+  const aMinX = bbox1[0] < bbox1[2] ? bbox1[0] : bbox1[2];
+  const aMaxX = bbox1[0] > bbox1[2] ? bbox1[0] : bbox1[2];
+  const aMinY = bbox1[1] < bbox1[3] ? bbox1[1] : bbox1[3];
+  const aMaxY = bbox1[1] > bbox1[3] ? bbox1[1] : bbox1[3];
+
+  const bMinX = bbox2[0] < bbox2[2] ? bbox2[0] : bbox2[2];
+  const bMaxX = bbox2[0] > bbox2[2] ? bbox2[0] : bbox2[2];
+  const bMinY = bbox2[1] < bbox2[3] ? bbox2[1] : bbox2[3];
+  const bMaxY = bbox2[1] > bbox2[3] ? bbox2[1] : bbox2[3];
+
+  if (aMaxX <= bMinX || aMinX >= bMaxX || aMaxY <= bMinY || aMinY >= bMaxY) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Check if point is inside bbox (works for both GIS and pixel coordinate systems)
+ * @param {[number, number, number, number]} bbox Bounding box in the format [minLon, minLat, maxLon, maxLat]
+ * @param {[number, number]} point Point in the format [lon, lat]
+ * @returns {boolean} Intersect
+ */
+export function isIntersectBBoxPoint(bbox, point) {
+  const minX = bbox[0] < bbox[2] ? bbox[0] : bbox[2];
+  const maxX = bbox[0] > bbox[2] ? bbox[0] : bbox[2];
+  const minY = bbox[1] < bbox[3] ? bbox[1] : bbox[3];
+  const maxY = bbox[1] > bbox[3] ? bbox[1] : bbox[3];
+
+  return (
+    point[0] >= minX && point[0] <= maxX && point[1] >= minY && point[1] <= maxY
+  );
+}
+
+/**
  * Get bounding box cover
  * @param {[number, number, number, number]} bbox1 Bounding box 1 in the format [minLon, minLat, maxLon, maxLat]
  * @param {[number, number, number, number]} bbox2 Bounding box 2 in the format [minLon, minLat, maxLon, maxLat]
  * @returns {[number, number, number, number]} Cover bounding box in the format [minLon, minLat, maxLon, maxLat]
  */
 export function getCoverBBox(bbox1, bbox2) {
+  const aMinX = bbox1[0] < bbox1[2] ? bbox1[0] : bbox1[2];
+  const aMaxX = bbox1[0] > bbox1[2] ? bbox1[0] : bbox1[2];
+  const aMinY = bbox1[1] < bbox1[3] ? bbox1[1] : bbox1[3];
+  const aMaxY = bbox1[1] > bbox1[3] ? bbox1[1] : bbox1[3];
+
+  const bMinX = bbox2[0] < bbox2[2] ? bbox2[0] : bbox2[2];
+  const bMaxX = bbox2[0] > bbox2[2] ? bbox2[0] : bbox2[2];
+  const bMinY = bbox2[1] < bbox2[3] ? bbox2[1] : bbox2[3];
+  const bMaxY = bbox2[1] > bbox2[3] ? bbox2[1] : bbox2[3];
+
   return [
-    bbox1[0] < bbox2[0] ? bbox1[0] : bbox2[0],
-    bbox1[1] < bbox2[1] ? bbox1[1] : bbox2[1],
-    bbox1[2] > bbox2[2] ? bbox1[2] : bbox2[2],
-    bbox1[3] > bbox2[3] ? bbox1[3] : bbox2[3],
+    aMinX < bMinX ? aMinX : bMinX,
+    aMinY < bMinY ? aMinY : bMinY,
+    aMaxX > bMaxX ? aMaxX : bMaxX,
+    aMaxY > bMaxY ? aMaxY : bMaxY,
   ];
 }
 
