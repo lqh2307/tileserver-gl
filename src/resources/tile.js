@@ -75,19 +75,33 @@ export const POSTGRESQL_DELETE_TILE_QUERY =
  * @returns {Promise<[string, string, string, string]>}
  */
 async function getMBTilesLayersFromTiles(source) {
-  const layerNames = new Set();
-  let offset = 0;
-
   const vectorTileProto = protobuf(
     await readFile("public/protos/vector_tile.proto"),
   );
 
-  const sql = source.prepare("SELECT tile_data FROM tiles LIMIT ? OFFSET ?;");
+  const layerNames = new Set();
+
+  let lastRowID = 0;
+  const sql = source.prepare(
+    `
+    SELECT
+      rowid, tile_data
+    FROM
+      tiles
+    WHERE
+      rowid > ?
+    ORDER BY
+      rowid
+    LIMIT
+      ${BATCH_SIZE};
+    `,
+  );
 
   while (true) {
-    const rows = sql.all([BATCH_SIZE, offset]);
+    const rows = sql.all([lastRowID]);
 
-    if (!rows.length) {
+    const len = rows.length;
+    if (!len) {
       break;
     }
 
@@ -98,7 +112,7 @@ async function getMBTilesLayersFromTiles(source) {
         .forEach(layerNames.add),
     );
 
-    offset += BATCH_SIZE;
+    lastRowID = rows[len - 1].rowid;
   }
 
   return Array.from(layerNames);
@@ -227,11 +241,13 @@ export function calculateMBTilesTileExtraInfo(source) {
   const selectSQL = source.prepare(
     `
     SELECT
-      zoom_level, tile_column, tile_row, tile_data
+      rowid, zoom_level, tile_column, tile_row, tile_data
     FROM
       tiles
     WHERE
-      hash IS NULL
+      rowid > ?
+    ORDER BY
+      rowid
     LIMIT
       ${BATCH_SIZE};
     `,
@@ -248,12 +264,14 @@ export function calculateMBTilesTileExtraInfo(source) {
     `,
   );
 
+  let lastRowID = 0;
   const created = Date.now();
 
   while (true) {
-    const rows = selectSQL.all();
+    const rows = selectSQL.all([lastRowID]);
 
-    if (!rows.length) {
+    const len = rows.length;
+    if (!len) {
       break;
     }
 
@@ -266,6 +284,8 @@ export function calculateMBTilesTileExtraInfo(source) {
         row.tile_row,
       ]),
     );
+
+    lastRowID = rows[len - 1].rowid;
   }
 }
 
@@ -1809,12 +1829,13 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
  * @returns {Promise<[string, string, string, string]>}
  */
 async function getXYZLayersFromTiles(sourcePath) {
-  const pbfFilePaths = await findFiles(sourcePath, /^\d+\.pbf$/, true, true);
-  const layerNames = new Set();
-
   const vectorTileProto = protobuf(
     await readFile("public/protos/vector_tile.proto"),
   );
+
+  const pbfFilePaths = await findFiles(sourcePath, /^\d+\.pbf$/, true, true);
+
+  const layerNames = new Set();
 
   async function getLayer(idx, pbfFilePaths) {
     vectorTileProto.tile
@@ -1991,11 +2012,13 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
   const selectSQL = source.prepare(
     `
     SELECT
-      zoom_level, tile_column, tile_row
+      rowid, zoom_level, tile_column, tile_row
     FROM
       md5s
     WHERE
-      hash IS NULL
+      rowid > ?
+    ORDER BY
+      rowid
     LIMIT
       ${BATCH_SIZE};
     `,
@@ -2012,12 +2035,14 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
     `,
   );
 
+  let lastRowID = 0;
   const created = Date.now();
 
   while (true) {
-    const rows = selectSQL.all();
+    const rows = selectSQL.all([lastRowID]);
 
-    if (!rows.length) {
+    const len = rows.length;
+    if (!len) {
       break;
     }
 
@@ -2040,6 +2065,8 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
         ]);
       }),
     );
+
+    lastRowID = rows[len - 1].rowid;
   }
 }
 
