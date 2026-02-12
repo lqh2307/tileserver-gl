@@ -876,7 +876,7 @@ wget https://github.com/acalcutt/tileserver-gl/releases/download/test_data/zuric
           "zoom": 10
         },
         {
-          "bbox": [96, 4, 120, 28],
+          "bbox": [-180, -85.051129, 180, 85.051129],
           "zoom": 11
         },
         {
