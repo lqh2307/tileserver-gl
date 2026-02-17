@@ -24,7 +24,6 @@ import {
   openPostgreSQL,
   getTileBounds,
   calculateMD5,
-  getCoverBBox,
   requestToURL,
   closeSQLite,
   getFileSize,
@@ -82,7 +81,8 @@ async function getMBTilesLayersFromTiles(source) {
   const layerNames = new Set();
 
   let lastRowID = 0;
-  const sql = source.prepare(
+
+  const selectSQL = source.prepare(
     `
     SELECT
       rowid, tile_data
@@ -98,7 +98,7 @@ async function getMBTilesLayersFromTiles(source) {
   );
 
   while (true) {
-    const rows = sql.all([lastRowID]);
+    const rows = selectSQL.all([lastRowID]);
 
     const len = rows.length;
     if (!len) {
@@ -252,6 +252,7 @@ export function calculateMBTilesTileExtraInfo(source) {
       ${BATCH_SIZE};
     `,
   );
+
   const updateSQL = source.prepare(
     `
     UPDATE
@@ -565,7 +566,7 @@ export function closeMBTilesDB(source) {
  * @returns {void}
  */
 export function updateMBTilesMetadata(source, metadataAdds) {
-  const sql = source.prepare(
+  const insertSQL = source.prepare(
     `
     INSERT INTO
       metadata (name, value)
@@ -581,16 +582,16 @@ export function updateMBTilesMetadata(source, metadataAdds) {
 
   Object.entries(metadataAdds).map(([name, value]) => {
     if (name === "center" || name === "bounds") {
-      sql.run([name, value.join(",")]);
+      insertSQL.run([name, value.join(",")]);
     } else {
-      sql.run([
+      insertSQL.run([
         name,
         typeof value === "object" ? JSON.stringify(value) : value,
       ]);
     }
   });
 
-  sql.run(["scheme", "tms"]);
+  insertSQL.run(["scheme", "tms"]);
 }
 
 /**
@@ -731,7 +732,7 @@ export async function addMBTilesOverviews(
   let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
   let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
 
-  const sql = source.prepare(
+  const querySQL = source.prepare(
     `
     SELECT
       tile_column, tile_row, tile_data
@@ -742,6 +743,15 @@ export async function addMBTilesOverviews(
     `,
   );
 
+  const insertSQL = source.prepare(MBTILES_INSERT_TILE_QUERY);
+
+  const createOption = {
+    width: width * 2,
+    height: height * 2,
+    channels: 4,
+    background: BACKGROUND_COLOR,
+  };
+
   /* Create tile data handler function */
   async function createTileData(z, x, y) {
     const minX = x * 2;
@@ -749,7 +759,7 @@ export async function addMBTilesOverviews(
     const minY = y * 2;
     const maxY = minY + 1;
 
-    const tiles = sql.all([z + 1, minX, maxX, minY, maxY]);
+    const tiles = querySQL.all([z + 1, minX, maxX, minY, maxY]);
 
     if (tiles.length) {
       // Create composites option
@@ -773,19 +783,21 @@ export async function addMBTilesOverviews(
       if (compositesOption.length) {
         // Create image
         const image = await createImageOutput({
-          createOption: {
-            width: width * 2,
-            height: height * 2,
-            channels: 4,
-            background: BACKGROUND_COLOR,
-          },
+          createOption: createOption,
           compositesOption: compositesOption,
           format: metadata.format,
           width: width,
           height: height,
         });
 
-        await storeMBtilesTileData(source, z, x, y, image, storeTransparent);
+        await storeMBtilesTileData({
+          statement: insertSQL,
+          z: z,
+          x: x,
+          y: y,
+          data: image,
+          storeTransparent: storeTransparent,
+        });
       }
     }
   }
@@ -1076,10 +1088,10 @@ async function getPostgreSQLLayersFromTiles(source) {
     await readFile("public/protos/vector_tile.proto"),
   );
 
-  const sql = "SELECT tile_data FROM tiles LIMIT $1 OFFSET $2;";
+  const selectSQL = "SELECT tile_data FROM tiles LIMIT $1 OFFSET $2;";
 
   while (true) {
-    const data = await source.query(sql, [BATCH_SIZE, offset]);
+    const data = await source.query(selectSQL, [BATCH_SIZE, offset]);
 
     if (!data.rows.length) {
       break;
@@ -1669,8 +1681,15 @@ export async function addPostgreSQLOverviews(
   let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
   let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
 
-  const sql =
+  const querySQL =
     "SELECT tile_column, tile_row, tile_data FROM tiles WHERE zoom_level = $1 AND tile_column BETWEEN $2 AND $3 AND tile_row BETWEEN $4 AND $5;";
+
+  const createOption = {
+    width: width * 2,
+    height: height * 2,
+    channels: 4,
+    background: BACKGROUND_COLOR,
+  };
 
   /* Create tile data handler function */
   async function createTileData(z, x, y) {
@@ -1679,7 +1698,7 @@ export async function addPostgreSQLOverviews(
     const minY = y * 2;
     const maxY = minY + 1;
 
-    const tiles = await source.query(sql, [z + 1, minX, maxX, minY, maxY]);
+    const tiles = await source.query(querySQL, [z + 1, minX, maxX, minY, maxY]);
 
     if (tiles.rows.length) {
       // Create composites option
@@ -1703,12 +1722,7 @@ export async function addPostgreSQLOverviews(
       if (compositesOption.length) {
         // Create image
         const image = await createImageOutput({
-          createOption: {
-            width: width * 2,
-            height: height * 2,
-            channels: 4,
-            background: BACKGROUND_COLOR,
-          },
+          createOption: createOption,
           compositesOption: compositesOption,
           format: metadata.format,
           width: width,
@@ -2392,7 +2406,7 @@ export async function downloadXYZTile(option) {
  * @returns {void}
  */
 export function updateXYZMetadata(source, metadataAdds) {
-  const sql = source.prepare(
+  const insertSQL = source.prepare(
     `
     INSERT INTO
       metadata (name, value)
@@ -2408,16 +2422,16 @@ export function updateXYZMetadata(source, metadataAdds) {
 
   Object.entries(metadataAdds).map(([name, value]) => {
     if (name === "center" || name === "bounds") {
-      sql.run([name, value.join(",")]);
+      insertSQL.run([name, value.join(",")]);
     } else {
-      sql.run([
+      insertSQL.run([
         name,
         typeof value === "object" ? JSON.stringify(value) : value,
       ]);
     }
   });
 
-  sql.run(["scheme", "tms"]);
+  insertSQL.run(["scheme", "tms"]);
 }
 
 /**
@@ -2569,6 +2583,15 @@ export async function addXYZOverviews(
   let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
   let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
 
+  const insertSQL = source.prepare(XYZ_INSERT_MD5_QUERY);
+
+  const createOption = {
+    width: width * 2,
+    height: height * 2,
+    channels: 4,
+    background: BACKGROUND_COLOR,
+  };
+
   /* Create tile data handler function */
   async function createTileData(z, x, y) {
     const minX = x * 2;
@@ -2607,28 +2630,23 @@ export async function addXYZOverviews(
     if (compositesOption.length) {
       // Create image
       const image = await createImageOutput({
-        createOption: {
-          width: width * 2,
-          height: height * 2,
-          channels: 4,
-          background: BACKGROUND_COLOR,
-        },
+        createOption: createOption,
         compositesOption: compositesOption,
         format: metadata.format,
         width: width,
         height: height,
       });
 
-      await storeXYZTileFile(
-        sourcePath,
-        source,
-        z,
-        x,
-        y,
-        metadata.format,
-        image,
-        storeTransparent,
-      );
+      await storeXYZTileFile({
+        sourcePath: sourcePath,
+        statement: insertSQL,
+        z: z,
+        x: x,
+        y: y,
+        format: metadata.format,
+        data: image,
+        storeTransparent: storeTransparent,
+      });
     }
   }
 
