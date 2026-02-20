@@ -27,7 +27,7 @@ function getSpriteHandler() {
       if (!SPRITE_FORMATS.has(req.params.format)) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send("Sprite format is not support");
+          .send(`Sprite format "${req.params.format}" is not support`);
       }
 
       /* Get and cache Sprite */

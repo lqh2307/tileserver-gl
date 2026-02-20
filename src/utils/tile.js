@@ -1,12 +1,25 @@
 "use strict";
 
+import { getCenterFromBBox, MAX_LAT, MAX_LON } from "./spatial.js";
 import { BACKGROUND_COLOR, createImageOutput } from "./image.js";
-import { getCenterFromBBox } from "./spatial.js";
-import {
-  FALLBACK_VECTOR_LAYERS,
-  RASTER_FORMATS,
-  FALLBACK_BBOX,
-} from "../resources/index.js";
+import { StatusCodes } from "http-status-codes";
+import { requestToURL } from "./request.js";
+import { retry } from "./util.js";
+
+const FALLBACK_BBOX = [-MAX_LON, -MAX_LAT, MAX_LON, MAX_LAT];
+
+const FALLBACK_VECTOR_LAYERS = [];
+
+const RASTER_TILE_FORMATS = new Set(["jpeg", "jpg", "png", "webp"]);
+const VECTOR_TILE_FORMATS = new Set(["pbf"]);
+const ALL_TILE_FORMATS = new Set([
+  ...RASTER_TILE_FORMATS,
+  ...VECTOR_TILE_FORMATS,
+]);
+
+const TILE_SIZES = new Set(["256", "512"]);
+
+const LAYER_TYPES = new Set(["baselayer", "overlay"]);
 
 /* Create fallback tile data */
 const FALLBACK_TILE_DATA = {
@@ -15,7 +28,7 @@ const FALLBACK_TILE_DATA = {
 
 (async () =>
   await Promise.all(
-    [...RASTER_FORMATS].map(async (format) => {
+    [...RASTER_TILE_FORMATS].map(async (format) => {
       FALLBACK_TILE_DATA[format] = await createImageOutput({
         createOption: {
           width: 1,
@@ -66,4 +79,80 @@ function createTileMetadata(metadata = {}) {
   return data;
 }
 
-export { FALLBACK_TILE_DATA, createTileMetadata };
+/**
+ * Validate tile metadata (no validate json field)
+ * @param {object} metadata Metadata object
+ * @returns {void}
+ */
+function validateTileMetadata(metadata) {
+  /* Validate name */
+  if (metadata.name === undefined) {
+    throw new Error(`"name" property is invalid`);
+  }
+
+  /* Validate type */
+  if (metadata.type !== undefined) {
+    if (!LAYER_TYPES.has(metadata.type)) {
+      throw new Error(`"type" property is invalid`);
+    }
+  }
+
+  /* Validate format */
+  if (!ALL_TILE_FORMATS.has(metadata.format)) {
+    throw new Error(`"format" property is invalid`);
+  }
+
+  /* Validate json */
+  if (metadata.format === "pbf" && metadata.vector_layers === undefined) {
+    throw new Error(`"vector_layers" property is invalid`);
+  }
+}
+
+/**
+ * Download tile data
+ * @param {string} url URL to download tile data
+ * @param {{ headers: object, maxTry: number, timeout: number }} option Option
+ * @returns {Promise<Buffer>}
+ */
+export async function downloadTileData(url, option) {
+  await retry(async () => {
+    try {
+      // Get data from URL
+      const response = await requestToURL({
+        url: url,
+        method: "GET",
+        timeout: option.timeout,
+        responseType: "arraybuffer",
+        headers: option.headers,
+      });
+
+      return response.data;
+    } catch (error) {
+      if (error.statusCode) {
+        if (
+          error.statusCode === StatusCodes.NO_CONTENT ||
+          error.statusCode === StatusCodes.NOT_FOUND
+        ) {
+          return;
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
+  }, option.maxTry);
+}
+
+export {
+  FALLBACK_VECTOR_LAYERS,
+  RASTER_TILE_FORMATS,
+  VECTOR_TILE_FORMATS,
+  FALLBACK_TILE_DATA,
+  ALL_TILE_FORMATS,
+  FALLBACK_BBOX,
+  LAYER_TYPES,
+  TILE_SIZES,
+  validateTileMetadata,
+  createTileMetadata,
+};

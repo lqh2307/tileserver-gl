@@ -7,9 +7,11 @@ import path from "path";
 import {
   detectContentTypeFromFormat,
   compileHandleBarsTemplate,
+  validateTileMetadata,
   createTileMetadata,
   calculateMD5OfFile,
   getXYZFromLonLatZ,
+  ALL_TILE_FORMATS,
   getRequestHost,
   getTileBounds,
   getJSONSchema,
@@ -30,7 +32,6 @@ import {
   calculateXYZTileExtraInfo,
   getAndCacheXYZDataTile,
   getPostgreSQLMetadata,
-  validateTileMetadata,
   getMBTilesMetadata,
   getPMTilesMetadata,
   openPostgreSQLDB,
@@ -39,7 +40,6 @@ import {
   openMBTilesDB,
   openXYZMD5DB,
   openPMTiles,
-  ALL_FORMATS,
 } from "../resources/index.js";
 
 /**
@@ -94,11 +94,11 @@ function getDataTileHandler() {
     /* Check data tile format */
     if (
       req.params.format !== item.tileJSON.format ||
-      !ALL_FORMATS.has(req.params.format)
+      !ALL_TILE_FORMATS.has(req.params.format)
     ) {
       return res
         .status(StatusCodes.BAD_REQUEST)
-        .send("Data tile format is not support");
+        .send(`Data tile format "${req.params.format}" is not support`);
     }
 
     /* Get and cache tile data */

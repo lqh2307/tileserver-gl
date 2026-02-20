@@ -60,3 +60,21 @@ export async function openSQLite(filePath, isCreate, timeout) {
 export function closeSQLite(source) {
   source.close();
 }
+
+/**
+ * Open transaction SQLite database
+ * @param {Database} source SQLite database instance
+ * @returns {void}
+ */
+export function openSQLiteTransaction(source) {
+  source.exec("BEGIN;");
+}
+
+/**
+ * Close transaction SQLite database
+ * @param {Database} source SQLite database instance
+ * @returns {void}
+ */
+export function closeSQLiteTransaction(source) {
+  source.exec("COMMIT;");
+}

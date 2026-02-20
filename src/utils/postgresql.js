@@ -54,3 +54,21 @@ export async function openPostgreSQL(uri, isCreate, timeout) {
 export async function closePostgreSQL(source) {
   await source.end();
 }
+
+/**
+ * Open transaction PostgreSQL database
+ * @param {pg.Client} source PostgreSQL database instance
+ * @returns {Promise<void>}
+ */
+export async function openPostgreSQLTransaction(source) {
+  await source.query("BEGIN;");
+}
+
+/**
+ * Close transaction PostgreSQL database
+ * @param {pg.Client} source PostgreSQL database instance
+ * @returns {Promise<void>}
+ */
+export async function closePostgreSQLTransaction(source) {
+  await source.query("COMMIT;");
+}

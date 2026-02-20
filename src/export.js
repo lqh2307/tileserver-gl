@@ -810,6 +810,7 @@ export async function exportDataTiles(
     let getDataTileFunc;
     let storeDataTileFunc;
     let sqliteFilePath;
+    let tileOption;
 
     const item = config.datas[id];
     const newMetadata = {
@@ -841,16 +842,14 @@ export async function exportDataTiles(
         getTileExtraInfo = () =>
           getMBTilesTileExtraInfoFromCoverages(source, coverages, false);
 
+        tileOption = {
+          source: source,
+          storeTransparent: storeTransparent,
+        };
+
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storeMBtilesTileData({
-            source: source,
-            z: z,
-            x: x,
-            y: y,
-            data: data,
-            storeTransparent: storeTransparent,
-          });
+          storeMBtilesTileData(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeMBTilesDB(source);
@@ -877,16 +876,14 @@ export async function exportDataTiles(
         getTileExtraInfo = () =>
           getPostgreSQLTileExtraInfoFromCoverages(source, coverages, true);
 
+        tileOption = {
+          source: source,
+          storeTransparent: storeTransparent,
+        };
+
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storePostgreSQLTileData({
-            source: source,
-            z: z,
-            x: x,
-            y: y,
-            data: data,
-            storeTransparent: storeTransparent,
-          });
+          storePostgreSQLTileData(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => await closePostgreSQLDB(source);
@@ -915,18 +912,16 @@ export async function exportDataTiles(
         getTileExtraInfo = () =>
           getXYZTileExtraInfoFromCoverages(source, coverages, true);
 
+        tileOption = {
+          source: source,
+          sourcePath: storePath,
+          format: metadata.format,
+          storeTransparent: storeTransparent,
+        };
+
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storeXYZTileFile({
-            sourcePath: storePath,
-            source: source,
-            z: z,
-            x: x,
-            y: y,
-            format: metadata.format,
-            data: data,
-            storeTransparent: storeTransparent,
-          });
+          storeXYZTileFile(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeXYZMD5DB(source);

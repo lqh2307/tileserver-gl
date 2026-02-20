@@ -360,7 +360,7 @@ export async function createFileWithLock(filePath, data, timeout) {
     }
   }
 
-  throw new Error(`Timeout to access lock file`);
+  throw new Error("Timeout to access lock file");
 }
 
 /**
@@ -407,5 +407,5 @@ export async function removeFileWithLock(filePath, timeout) {
     }
   }
 
-  throw new Error(`Timeout to access lock file`);
+  throw new Error("Timeout to access lock file");
 }

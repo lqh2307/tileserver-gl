@@ -6,18 +6,18 @@ import { StatusCodes } from "http-status-codes";
 import {
   getAndCacheDataStyleJSON,
   getRenderedStyleJSON,
-  RASTER_FORMATS,
   validateStyle,
-  TILE_SIZES,
   getStyle,
 } from "../resources/index.js";
 import {
   detectContentTypeFromFormat,
   compileHandleBarsTemplate,
+  RASTER_TILE_FORMATS,
   createTileMetadata,
   calculateMD5OfFile,
   getXYZFromLonLatZ,
   getRequestHost,
+  TILE_SIZES,
   isLocalURL,
   gzipAsync,
   printLog,
@@ -286,16 +286,16 @@ function getStylesListHandler() {
 function getRenderedTileHandler() {
   return async (req, res) => {
     /* Check data tile format */
-    if (!RASTER_FORMATS.has(req.params.format)) {
+    if (!RASTER_TILE_FORMATS.has(req.params.format)) {
       return res
         .status(StatusCodes.BAD_REQUEST)
-        .send("Rendered tile format is not support");
+        .send(`Rendered tile format "${req.params.format}" is not support`);
     }
 
     if (req.query.tileSize && !TILE_SIZES.has(req.query.tileSize)) {
       return res
         .status(StatusCodes.BAD_REQUEST)
-        .send("Tile size is not support");
+        .send(`Tile size "${req.query.tileSize}" is not support`);
     }
 
     const id = req.params.id;
@@ -350,7 +350,7 @@ function getRenderedHandler() {
       if (!TILE_SIZES.has(req.query.tileSize)) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .send("Tile size is not support");
+          .send(`Tile size "${req.query.tileSize}" is not support`);
       } else {
         queryStrings.push(`tileSize=${req.query.tileSize}`);
       }

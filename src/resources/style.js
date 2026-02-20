@@ -21,6 +21,8 @@ const renderedStyleJSONCaches = createCache({
   ttl: 300000, // 5 mins
 });
 
+/*********************************** Style *************************************/
+
 /**
  * Remove style data file with lock
  * @param {string} filePath Style file path to remove
@@ -276,7 +278,7 @@ export async function validateStyle(data) {
         styleJSON.glyphs.startsWith(scheme),
       )
     ) {
-      throw new Error(`Invalid font url "${styleJSON.glyphs}"`);
+      throw new Error(`Invalid font url: "${styleJSON.glyphs}"`);
     }
   }
 
@@ -293,7 +295,7 @@ export async function validateStyle(data) {
         styleJSON.sprite.startsWith(scheme),
       )
     ) {
-      throw new Error(`Invalid sprite url "${styleJSON.sprite}"`);
+      throw new Error(`Invalid sprite url: "${styleJSON.sprite}"`);
     }
   }
 
@@ -334,13 +336,17 @@ export async function validateStyle(data) {
             source.url.startsWith(scheme),
           )
         ) {
-          throw new Error(`Source "${id}" is invalid data url "${source.url}"`);
+          throw new Error(
+            `Source "${id}" is invalid data url: "${source.url}"`,
+          );
         }
       }
 
       if (source.urls !== undefined) {
         if (!source.urls.length) {
-          throw new Error(`Source "${id}" is invalid data urls`);
+          throw new Error(
+            `Source "${id}" is invalid data urls: "${source.urls}"`,
+          );
         }
 
         source.urls.forEach((url) => {
@@ -355,14 +361,16 @@ export async function validateStyle(data) {
           } else if (
             !["https://", "http://"].some((scheme) => url.startsWith(scheme))
           ) {
-            throw new Error(`Source "${id}" is invalid data url "${url}"`);
+            throw new Error(`Source "${id}" is invalid data url: "${url}"`);
           }
         });
       }
 
       if (source.tiles !== undefined) {
         if (!source.tiles.length) {
-          throw new Error(`Source "${id}" is invalid tile urls`);
+          throw new Error(
+            `Source "${id}" is invalid tile urls: "${source.tiles}"`,
+          );
         }
 
         source.tiles.forEach((tile) => {
@@ -377,7 +385,7 @@ export async function validateStyle(data) {
           } else if (
             !["https://", "http://"].some((scheme) => tile.startsWith(scheme))
           ) {
-            throw new Error(`Source "${id}" is invalid tile url "${tile}"`);
+            throw new Error(`Source "${id}" is invalid tile url: "${tile}"`);
           }
         });
       }

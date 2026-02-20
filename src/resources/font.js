@@ -31,6 +31,8 @@ if (!cluster.isPrimary) {
     });
 }
 
+/*********************************** Font *************************************/
+
 /**
  * Remove font file with lock
  * @param {string} filePath Font file path to remove

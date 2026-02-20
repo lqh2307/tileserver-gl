@@ -17,6 +17,10 @@ import {
   retry,
 } from "../utils/index.js";
 
+export const SPRITE_FORMATS = new Set(["json", "png"]);
+
+/*********************************** Sprite *************************************/
+
 /**
  * Remove sprite file with lock
  * @param {string} filePath Sprite file path to remove
@@ -176,7 +180,7 @@ export async function validateSprite(spriteDirPath) {
       const pngMetadata = await getImageMetadata(`${fileNameWoExt}.png`);
 
       if (pngMetadata.format !== "png") {
-        throw new Error("Invalid PNG file");
+        throw new Error(`Invalid PNG file: ${fileNameWoExt}.png`);
       }
     }),
   );

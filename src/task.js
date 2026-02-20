@@ -9,13 +9,13 @@ import {
   MBTILES_INSERT_TILE_QUERY,
   MBTILES_DELETE_TILE_QUERY,
   updatePostgreSQLMetadata,
-  downloadPostgreSQLTile,
+  storePostgreSQLTileData,
   updateMBTilesMetadata,
   getXYZFormatFromTiles,
   removePostgreSQLTile,
   XYZ_DELETE_MD5_QUERY,
   XYZ_INSERT_MD5_QUERY,
-  downloadMBTilesTile,
+  storeMBtilesTileData,
   downloadGeoJSONFile,
   downloadSpriteFile,
   updateXYZMetadata,
@@ -24,11 +24,11 @@ import {
   downloadStyleFile,
   getGeoJSONCreated,
   removeGeoJSONFile,
+  storeXYZTileFile,
   openPostgreSQLDB,
   downloadFontFile,
   getSpriteCreated,
   removeSpriteFile,
-  downloadXYZTile,
   getStyleCreated,
   removeStyleFile,
   getFontCreated,
@@ -47,12 +47,15 @@ import {
   handleTilesConcurrency,
   removeEmptyFolders,
   handleConcurrency,
+  downloadTileData,
   getTileBounds,
   requestToURL,
   calculateMD5,
   unzipAsync,
   printLog,
 } from "./utils/index.js";
+
+const BATCH_SIZE = 10000;
 
 /**
  * Run cleanup and seed tasks
@@ -655,7 +658,8 @@ async function seedDataTiles(
 
     printLog("info", log);
 
-    let downloadDataTileFunc;
+    let downloadAndStoreDataTileFunc;
+    let tileOption;
 
     switch (storeType) {
       case "mbtiles": {
@@ -751,11 +755,17 @@ async function seedDataTiles(
           }
         }
 
-        const sql = source.prepare(MBTILES_INSERT_TILE_QUERY);
-        const created = Date.now();
+        tileOption = {
+          statement: source.prepare(MBTILES_INSERT_TILE_QUERY),
+          maxTry: maxTry,
+          timeout: timeout,
+          created: Date.now(),
+          storeTransparent: storeTransparent,
+          headers: headers,
+        };
 
-        /* Download data tile function */
-        downloadDataTileFunc = async (z, x, y, tasks) => {
+        /* Download and store data tile function */
+        downloadAndStoreDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
 
           if (
@@ -781,18 +791,13 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadMBTilesTile({
-              url: targetURL,
-              statement: sql,
-              z: z,
-              x: x,
-              y: tmpY,
-              maxTry: maxTry,
-              timeout: timeout,
-              created: created,
-              storeTransparent: storeTransparent,
-              headers: headers,
-            });
+            await storeMBtilesTileData(
+              z,
+              x,
+              tmpY,
+              await downloadTileData(targetURL, tileOption),
+              tileOption,
+            );
           } catch (error) {
             printLog(
               "error",
@@ -900,10 +905,17 @@ async function seedDataTiles(
           }
         }
 
-        const created = Date.now();
+        tileOption = {
+          source: source,
+          maxTry: maxTry,
+          timeout: timeout,
+          created: Date.now(),
+          storeTransparent: storeTransparent,
+          headers: headers,
+        };
 
-        /* Download data tile function */
-        downloadDataTileFunc = async (z, x, y, tasks) => {
+        /* Download and store data tile function */
+        downloadAndStoreDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
 
           if (
@@ -929,18 +941,13 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadPostgreSQLTile({
-              url: targetURL,
-              source: source,
-              z: z,
-              x: x,
-              y: tmpY,
-              maxTry: maxTry,
-              timeout: timeout,
-              created: created,
-              storeTransparent: storeTransparent,
-              headers: headers,
-            });
+            await storePostgreSQLTileData(
+              z,
+              x,
+              tmpY,
+              await downloadTileData(targetURL, tileOption),
+              tileOption,
+            );
           } catch (error) {
             printLog(
               "error",
@@ -1049,11 +1056,19 @@ async function seedDataTiles(
           }
         }
 
-        const sql = source.prepare(XYZ_INSERT_MD5_QUERY);
-        const created = Date.now();
+        tileOption = {
+          sourcePath: sourcePath,
+          statement: source.prepare(XYZ_INSERT_MD5_QUERY),
+          format: metadata.format,
+          maxTry: maxTry,
+          timeout: timeout,
+          created: Date.now(),
+          storeTransparent: storeTransparent,
+          headers: headers,
+        };
 
-        /* Download data tile function */
-        downloadDataTileFunc = async (z, x, y, tasks) => {
+        /* Download and store data tile function */
+        downloadAndStoreDataTileFunc = async (z, x, y, tasks) => {
           const tileName = `${z}/${x}/${y}`;
 
           if (
@@ -1079,20 +1094,13 @@ async function seedDataTiles(
           );
 
           try {
-            await downloadXYZTile({
-              url: targetURL,
-              sourcePath: sourcePath,
-              statement: sql,
-              z: z,
-              x: x,
-              y: tmpY,
-              format: metadata.format,
-              maxTry: maxTry,
-              timeout: timeout,
-              created: created,
-              storeTransparent: storeTransparent,
-              headers: headers,
-            });
+            await storeXYZTileFile(
+              z,
+              x,
+              tmpY,
+              downloadTileData(targetURL, tileOption),
+              tileOption,
+            );
           } catch (error) {
             printLog(
               "error",
@@ -1111,7 +1119,11 @@ async function seedDataTiles(
     /* Download data tiles */
     printLog("info", "Downloading data tiles...");
 
-    await handleTilesConcurrency(concurrency, downloadDataTileFunc, tileBounds);
+    await handleTilesConcurrency(
+      concurrency,
+      downloadAndStoreDataTileFunc,
+      tileBounds,
+    );
 
     printLog(
       "info",

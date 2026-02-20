@@ -690,6 +690,7 @@ export async function renderDataTiles(
     let storeDataTileFunc;
     let createOverviewsFunc;
     let calculateTileExtraInfo;
+    let tileOption;
 
     const item = config.styles[id];
     const styleJSON = await getRenderedStyleJSON(item.path);
@@ -766,16 +767,14 @@ export async function renderDataTiles(
             format: metadata.format,
           });
 
+        tileOption = {
+          source: source,
+          storeTransparent: storeTransparent,
+        };
+
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storeMBtilesTileData({
-            source: source,
-            z: z,
-            x: x,
-            y: y,
-            data: data,
-            storeTransparent: storeTransparent,
-          });
+          storeMBtilesTileData(z, x, y, data, tileOption);
 
         /* Add overviews function */
         createOverviewsFunc = () =>
@@ -839,16 +838,14 @@ export async function renderDataTiles(
             format: metadata.format,
           });
 
+        tileOption = {
+          source: source,
+          storeTransparent: storeTransparent,
+        };
+
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storePostgreSQLTileData({
-            source: source,
-            z: z,
-            x: x,
-            y: y,
-            data: data,
-            storeTransparent: storeTransparent,
-          });
+          storePostgreSQLTileData(z, x, y, data, tileOption);
 
         /* Add overviews function */
         createOverviewsFunc = () =>
@@ -919,18 +916,16 @@ export async function renderDataTiles(
             format: metadata.format,
           });
 
+        tileOption = {
+          source: source,
+          sourcePath: storePath,
+          format: metadata.format,
+          storeTransparent: storeTransparent,
+        };
+
         /* Store data function */
         storeDataTileFunc = (z, x, y, data) =>
-          storeXYZTileFile({
-            sourcePath: storePath,
-            source: source,
-            z: z,
-            x: x,
-            y: y,
-            format: metadata.format,
-            data: data,
-            storeTransparent: storeTransparent,
-          });
+          storeXYZTileFile(z, x, y, data, tileOption);
 
         /* Add overviews function */
         createOverviewsFunc = () =>

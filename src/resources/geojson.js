@@ -13,6 +13,8 @@ import {
   retry,
 } from "../utils/index.js";
 
+/*********************************** GeoJSON *************************************/
+
 /**
  * Remove GeoJSON data file with lock
  * @param {string} filePath GeoJSON file path to remove
