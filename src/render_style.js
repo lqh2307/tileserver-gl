@@ -980,11 +980,8 @@ export async function renderDataTiles(
             `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
           );
 
-          // Get data tile
-          const data = await getDataTileFunc(z, x, y);
-
           // Store data tile
-          await storeDataTileFunc(z, x, y, data);
+          await storeDataTileFunc(z, x, y, await getDataTileFunc(z, x, y));
         }
       } catch (error) {
         printLog(

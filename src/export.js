@@ -972,7 +972,11 @@ export async function exportDataTiles(
         }
 
         /* Get data function */
-        getDataTileFunc = (z, x, y) => getAndCacheMBTilesDataTile(id, z, x, y);
+        getDataTileFunc = async (z, x, y) => {
+          const tile = await getAndCacheMBTilesDataTile(id, z, x, y);
+
+          return tile.data;
+        };
 
         break;
       }
@@ -1018,8 +1022,11 @@ export async function exportDataTiles(
         }
 
         /* Get data function */
-        getDataTileFunc = (z, x, y) =>
-          getAndCachePostgreSQLDataTile(id, z, x, y);
+        getDataTileFunc = async (z, x, y) => {
+          const tile = await getAndCachePostgreSQLDataTile(id, z, x, y);
+
+          return tile.data;
+        };
 
         break;
       }
@@ -1065,7 +1072,11 @@ export async function exportDataTiles(
         }
 
         /* Get data function */
-        getDataTileFunc = (z, x, y) => getAndCacheXYZDataTile(id, z, x, y);
+        getDataTileFunc = async (z, x, y) => {
+          const tile = await getAndCacheXYZDataTile(id, z, x, y);
+
+          return tile.data;
+        };
 
         break;
       }
@@ -1092,11 +1103,7 @@ export async function exportDataTiles(
       );
 
       try {
-        // Get data tile
-        const tile = await getDataTileFunc(z, x, y);
-
-        // Store data tile
-        await storeDataTileFunc(z, x, y, tile.data);
+        await storeDataTileFunc(z, x, y, await getDataTileFunc(z, x, y));
       } catch (error) {
         printLog(
           "error",
