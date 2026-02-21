@@ -11,12 +11,12 @@ import {
   handleTilesConcurrency,
   closeSQLiteTransaction,
   openSQLiteTransaction,
-  getDataTileFromURL,
   createImageOutput,
   getCenterFromBBox,
   getImageMetadata,
   getBBoxFromTiles,
   BACKGROUND_COLOR,
+  getDataFromURL,
   FALLBACK_BBOX,
   getTileBounds,
   calculateMD5,
@@ -356,7 +356,7 @@ export function getMBTilesTile(source, z, x, y) {
     .get([z, x, (1 << z) - 1 - y]);
 
   if (!data?.tile_data) {
-    throw new Error("Tile does not exist");
+    throw new Error("Not Found");
   }
 
   return {
@@ -777,7 +777,7 @@ export async function addMBTilesOverviews(
 export async function getAndCacheMBTilesDataTile(id, z, x, y) {
   const item = config.datas[id];
   if (!item) {
-    throw new Error("Tile source does not exist");
+    throw new Error(`Data id "${id}" does not exist`);
   }
 
   const tileName = `${z}/${x}/${y}`;
@@ -785,7 +785,7 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
   try {
     return getMBTilesTile(item.source, z, x, y);
   } catch (error) {
-    if (item.sourceURL && error.message === "Tile does not exist") {
+    if (item.sourceURL && error.message.includes("Not Found")) {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -795,34 +795,39 @@ export async function getAndCacheMBTilesDataTile(id, z, x, y) {
 
       printLog(
         "info",
-        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
+        `Forwarding data id "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
       );
 
       /* Get data */
-      const dataTile = await getDataTileFromURL(
-        targetURL,
-        item.headers,
-        30000, // 30 seconds
-      );
+      const data = await getDataFromURL(targetURL, {
+        method: "GET",
+        responseType: "arraybuffer",
+        timeout: 30000, // 30 seconds
+        headers: item.headers,
+        decompress: false,
+      });
 
       /* Cache */
       if (item.storeCache) {
-        printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+        printLog("info", `Caching data id "${id}" - Tile "${tileName}"...`);
 
-        storeMBtilesTileData(z, x, tmpY, dataTile.data, {
+        storeMBtilesTileData(z, x, tmpY, data, {
           source: item.source,
           storeTransparent: item.storeTransparent,
         }).catch((error) =>
           printLog(
             "error",
-            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`,
+            `Failed to cache data id "${id}" - Tile "${tileName}": ${error}`,
           ),
         );
       }
 
-      return dataTile;
-    } else {
-      throw error;
+      return {
+        data: data,
+        headers: detectFormatAndHeaders(data).headers,
+      };
     }
+
+    throw error;
   }
 }

@@ -1,16 +1,13 @@
 "use strict";
 
 import { readFile, stat } from "node:fs/promises";
-import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
 import {
   removeFileWithLock,
   createFileWithLock,
-  getDataFileFromURL,
-  requestToURL,
+  getDataFromURL,
   getFileSize,
   printLog,
-  retry,
 } from "../utils/index.js";
 
 /*********************************** GeoJSON *************************************/
@@ -18,57 +15,13 @@ import {
 /**
  * Remove GeoJSON data file with lock
  * @param {string} filePath GeoJSON file path to remove
- * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function removeGeoJSONFile(filePath, timeout) {
-  await removeFileWithLock(filePath, timeout);
-}
-
-/**
- * Download GeoJSON file
- * @param {string} url The URL to download the file from
- * @param {string} filePath GeoJSON file path to store
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {object} headers Headers
- * @returns {Promise<void>}
- */
-export async function downloadGeoJSONFile(
-  url,
-  filePath,
-  maxTry,
-  timeout,
-  headers,
-) {
-  await retry(async () => {
-    try {
-      // Get data from URL
-      const response = await requestToURL({
-        url: url,
-        method: "GET",
-        timeout: timeout,
-        responseType: "arraybuffer",
-        headers: headers,
-      });
-
-      // Store data to file
-      await storeGeoJSONFile(filePath, response.data);
-    } catch (error) {
-      if (error.statusCode) {
-        if (
-          error.statusCode === StatusCodes.NO_CONTENT ||
-          error.statusCode === StatusCodes.NOT_FOUND
-        ) {
-          return;
-        } else {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
-    }
-  }, maxTry);
+export async function removeGeoJSONFile(filePath) {
+  await removeFileWithLock(
+    filePath,
+    30000, // 30 seconds
+  );
 }
 
 /**
@@ -95,10 +48,10 @@ export async function getGeoJSON(filePath) {
     return await readFile(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("JSON does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -114,10 +67,10 @@ export async function getGeoJSONCreated(filePath) {
     return stats.ctimeMs;
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("GeoJSON created does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -312,23 +265,25 @@ export async function validateAndGetGeometryTypes(data) {
 export async function getAndCacheDataGeoJSON(id, layer) {
   const item = config.geojsons[id]?.[layer];
   if (!item) {
-    throw new Error("GeoJSON source does not exist");
+    throw new Error(`GeoJSON id "${id}" - Layer "${layer}" does not exist`);
   }
 
   try {
     return await getGeoJSON(item.path);
   } catch (error) {
-    if (item.sourceURL && error.message === "JSON does not exist") {
+    if (item.sourceURL && error.message.includes("Not Found")) {
       printLog(
         "info",
         `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`,
       );
 
-      const geoJSON = await getDataFileFromURL(
-        item.sourceURL,
-        item.headers,
-        30000, // 30 seconds
-      );
+      const geoJSON = await getDataFromURL({
+        url: item.sourceURL,
+        method: "GET",
+        responseType: "arraybuffer",
+        timeout: 30000, // 30 seconds
+        headers: item.headers,
+      });
 
       if (item.storeCache) {
         printLog("info", `Caching GeoJSON "${id}" - File "${item.path}"...`);
@@ -342,8 +297,8 @@ export async function getAndCacheDataGeoJSON(id, layer) {
       }
 
       return geoJSON;
-    } else {
-      throw error;
     }
+
+    throw error;
   }
 }

@@ -70,7 +70,7 @@ function getFontStaticHandler() {
 
       return res.status(StatusCodes.OK).send(data);
     } catch (error) {
-      printLog("error", `Failed to get font ${format} "${id}": ${error}`);
+      printLog("error", `Failed to get font "${format}" id "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -327,7 +327,7 @@ export const serve_font = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load font "${id}": ${error}. Skipping...`,
+              `Failed to load font id "${id}": ${error}. Skipping...`,
             );
           }
         }),

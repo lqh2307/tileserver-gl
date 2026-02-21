@@ -779,7 +779,7 @@ export async function exportDataTiles(
       coverages: coverages,
     });
 
-    let log = `Exporting ${total} tiles of data "${id}" to ${storeType} with:`;
+    let log = `Exporting ${total} tiles of data id "${id}" to ${storeType} with:`;
     log += `\n\tSource path: ${storePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency}`;
@@ -1099,7 +1099,7 @@ export async function exportDataTiles(
 
       printLog(
         "info",
-        `Exporting data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+        `Exporting data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
       );
 
       try {
@@ -1107,7 +1107,7 @@ export async function exportDataTiles(
       } catch (error) {
         printLog(
           "error",
-          `Failed to export data "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+          `Failed to export data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
         );
       }
     };
@@ -1124,14 +1124,14 @@ export async function exportDataTiles(
 
     printLog(
       "info",
-      `Completed export ${total} tiles of data "${id}" to ${storeType} after ${
+      `Completed export ${total} tiles of data id "${id}" to ${storeType} after ${
         (Date.now() - startTime) / 1000
       }s!`,
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to export data "${id}" to ${storeType} after ${
+      `Failed to export data id "${id}" to ${storeType} after ${
         (Date.now() - startTime) / 1000
       }s: ${error}`,
     );

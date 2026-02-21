@@ -43,7 +43,10 @@ function getSpriteHandler() {
 
       return res.status(StatusCodes.OK).send(sprite);
     } catch (error) {
-      printLog("error", `Failed to get sprite "${id}": ${error}`);
+      printLog(
+        "error",
+        `Failed to get sprite format "${req.params.format}" id "${id}": ${error}`,
+      );
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -262,7 +265,7 @@ export const serve_sprite = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load sprite "${id}": ${error}. Skipping...`,
+              `Failed to load sprite id "${id}": ${error}. Skipping...`,
             );
           }
         }),

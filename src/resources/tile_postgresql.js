@@ -11,13 +11,13 @@ import {
   isFullTransparentImage,
   detectFormatAndHeaders,
   handleTilesConcurrency,
-  getDataTileFromURL,
   createImageOutput,
   getImageMetadata,
   getBBoxFromTiles,
   BACKGROUND_COLOR,
   closePostgreSQL,
   openPostgreSQL,
+  getDataFromURL,
   FALLBACK_BBOX,
   getTileBounds,
   calculateMD5,
@@ -310,7 +310,7 @@ export async function getPostgreSQLTile(source, z, x, y) {
   let data = await source.query(POSTGRESQL_SELECT_TILE_QUERY, [z, x, y]);
 
   if (!data.rows.length || !data.rows[0].tile_data) {
-    throw new Error("Tile does not exist");
+    throw new Error("Not Found");
   }
 
   return {
@@ -713,7 +713,7 @@ export async function addPostgreSQLOverviews(
 export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
   const item = config.datas[id];
   if (!item) {
-    throw new Error("Tile source does not exist");
+    throw new Error(`Data id "${id}" does not exist`);
   }
 
   const tileName = `${z}/${x}/${y}`;
@@ -721,7 +721,7 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
   try {
     return await getPostgreSQLTile(item.source, z, x, y);
   } catch (error) {
-    if (item.sourceURL && error.message === "Tile does not exist") {
+    if (item.sourceURL && error.message.includes("Not Found")) {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL
@@ -731,34 +731,39 @@ export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
 
       printLog(
         "info",
-        `Forwarding data "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
+        `Forwarding data id "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
       );
 
       /* Get data */
-      const dataTile = await getDataTileFromURL(
-        targetURL,
-        item.headers,
-        30000, // 30 seconds
-      );
+      const data = await getDataFromURL(targetURL, {
+        method: "GET",
+        responseType: "arraybuffer",
+        timeout: 30000, // 30 seconds
+        headers: item.headers,
+        decompress: false,
+      });
 
       /* Cache */
       if (item.storeCache) {
-        printLog("info", `Caching data "${id}" - Tile "${tileName}"...`);
+        printLog("info", `Caching data id "${id}" - Tile "${tileName}"...`);
 
-        storePostgreSQLTileData(z, x, tmpY, dataTile.data, {
+        storePostgreSQLTileData(z, x, tmpY, data, {
           source: item.source,
           storeTransparent: item.storeTransparent,
         }).catch((error) =>
           printLog(
             "error",
-            `Failed to cache data "${id}" - Tile "${tileName}": ${error}`,
+            `Failed to cache data id "${id}" - Tile "${tileName}": ${error}`,
           ),
         );
       }
 
-      return dataTile;
-    } else {
-      throw error;
+      return {
+        data: data,
+        headers: detectFormatAndHeaders(data).headers,
+      };
     }
+
+    throw error;
   }
 }

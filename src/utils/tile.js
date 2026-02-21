@@ -2,9 +2,6 @@
 
 import { getCenterFromBBox, MAX_LAT, MAX_LON } from "./spatial.js";
 import { BACKGROUND_COLOR, createImageOutput } from "./image.js";
-import { StatusCodes } from "http-status-codes";
-import { requestToURL } from "./request.js";
-import { retry } from "./util.js";
 
 const FALLBACK_BBOX = [-MAX_LON, -MAX_LAT, MAX_LON, MAX_LAT];
 
@@ -106,42 +103,6 @@ function validateTileMetadata(metadata) {
   if (metadata.format === "pbf" && metadata.vector_layers === undefined) {
     throw new Error(`"vector_layers" property is invalid`);
   }
-}
-
-/**
- * Download tile data
- * @param {string} url URL to download tile data
- * @param {{ headers: object, maxTry: number, timeout: number }} option Option
- * @returns {Promise<Buffer>}
- */
-export async function downloadTileData(url, option) {
-  await retry(async () => {
-    try {
-      // Get data from URL
-      const response = await requestToURL({
-        url: url,
-        method: "GET",
-        timeout: option.timeout,
-        responseType: "arraybuffer",
-        headers: option.headers,
-      });
-
-      return response.data;
-    } catch (error) {
-      if (error.statusCode) {
-        if (
-          error.statusCode === StatusCodes.NO_CONTENT ||
-          error.statusCode === StatusCodes.NOT_FOUND
-        ) {
-          return;
-        } else {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
-    }
-  }, option.maxTry);
 }
 
 export {

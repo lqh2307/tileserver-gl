@@ -49,10 +49,10 @@ import {
   getLonLatFromXYZ,
   BACKGROUND_COLOR,
   calculateSizes,
+  getDataFromURL,
   base64ToBuffer,
   getTileBounds,
   calculateMD5,
-  requestToURL,
   unzipAsync,
   printLog,
 } from "./utils/index.js";
@@ -297,19 +297,12 @@ function createRenderer(option) {
         case "http":
         case "https": {
           try {
-            const dataRemote = await requestToURL({
+            data = await getDataFromURL({
               url: req.url,
               method: "GET",
               timeout: 30000, // 30 seconds
               responseType: "arraybuffer",
             });
-
-            /* Unzip data */
-            const headers = detectFormatAndHeaders(dataRemote.data).headers;
-
-            data = headers["content-encoding"]
-              ? await unzipAsync(dataRemote.data)
-              : dataRemote.data;
           } catch (error) {
             if (req.kind === 3) {
               const result = req.url.match(/(png|jpg|jpeg|webp|pbf)/g);
@@ -658,7 +651,7 @@ export async function renderDataTiles(
       maxZoom: metadata.maxzoom,
     });
 
-    let log = `Rendering ${total} tiles of style "${id}" to ${storeType} with:`;
+    let log = `Rendering ${total} tiles of style id "${id}" to ${storeType} with:`;
     log += `\n\tStore path: ${storePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
@@ -958,7 +951,7 @@ export async function renderDataTiles(
         if (refreshTimestamp === true) {
           printLog(
             "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+            `Rendering style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
           );
 
           // Get data tile
@@ -977,7 +970,7 @@ export async function renderDataTiles(
 
           printLog(
             "info",
-            `Rendering style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+            `Rendering style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
           );
 
           // Store data tile
@@ -986,7 +979,7 @@ export async function renderDataTiles(
       } catch (error) {
         printLog(
           "error",
-          `Failed to render style "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+          `Failed to render style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
         );
       }
     };
@@ -1014,14 +1007,14 @@ export async function renderDataTiles(
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style "${id}" to ${storeType} after ${
+      `Completed render ${total} tiles of style id "${id}" to ${storeType} after ${
         (Date.now() - startTime) / 1000
       }s!`,
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style "${id}" to ${storeType} after ${
+      `Failed to render style id "${id}" to ${storeType} after ${
         (Date.now() - startTime) / 1000
       }s: ${error}`,
     );

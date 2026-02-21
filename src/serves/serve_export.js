@@ -101,7 +101,9 @@ function exportDataHandler() {
       const item = config.datas[id];
 
       if (!item) {
-        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Data id "${id}" does not exist`);
       }
 
       if (req.query.cancel === "true") {
@@ -174,7 +176,7 @@ function exportDataHandler() {
             refreshBefore,
           )
             .catch((error) => {
-              printLog("error", `Failed to export data "${id}": ${error}`);
+              printLog("error", `Failed to export data id "${id}": ${error}`);
             })
             .finally(() => {
               item.export = false;
@@ -184,7 +186,7 @@ function exportDataHandler() {
         }
       }
     } catch (error) {
-      printLog("error", `Failed to export data "${id}": ${error}`);
+      printLog("error", `Failed to export data id "${id}": ${error}`);
 
       if (error instanceof SyntaxError) {
         return res
@@ -214,7 +216,7 @@ function renderStyleHandler() {
       if (!item || !item.tileJSON) {
         return res
           .status(StatusCodes.NOT_FOUND)
-          .send("Rendered does not exist");
+          .send(`Rendered of style id "${id}" does not exist`);
       }
 
       if (req.query.cancel === "true") {
@@ -290,7 +292,7 @@ function renderStyleHandler() {
             refreshBefore,
           )
             .catch((error) => {
-              printLog("error", `Failed to render style "${id}": ${error}`);
+              printLog("error", `Failed to render style id "${id}": ${error}`);
             })
             .finally(() => {
               item.export = false;
@@ -300,7 +302,7 @@ function renderStyleHandler() {
         }
       }
     } catch (error) {
-      printLog("error", `Failed to render style "${id}": ${error}`);
+      printLog("error", `Failed to render style id "${id}": ${error}`);
 
       if (error instanceof SyntaxError) {
         return res

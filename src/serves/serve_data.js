@@ -54,7 +54,9 @@ function serveDataHandler() {
       const item = config.datas[id];
 
       if (!item) {
-        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Data id "${id}" does not exist`);
       }
 
       const compiled = await compileHandleBarsTemplate(
@@ -68,7 +70,7 @@ function serveDataHandler() {
 
       return res.status(StatusCodes.OK).send(compiled);
     } catch (error) {
-      printLog("error", `Failed to serve data "${id}": ${error}`);
+      printLog("error", `Failed to serve data id "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -88,7 +90,9 @@ function getDataTileHandler() {
 
     /* Check data is exist? */
     if (!item) {
-      return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .send(`Data id "${id}" does not exist`);
     }
 
     /* Check data tile format */
@@ -167,10 +171,10 @@ function getDataTileHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to get data "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}": ${error}`,
+        `Failed to get data id "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}": ${error}`,
       );
 
-      if (error.message === "Tile does not exist") {
+      if (error.message.includes("Not Found")) {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -193,7 +197,9 @@ function getDataHandler() {
       const item = config.datas[id];
 
       if (!item) {
-        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Data id "${id}" does not exist`);
       }
 
       res.header("content-type", "application/json");
@@ -210,7 +216,7 @@ function getDataHandler() {
         ],
       });
     } catch (error) {
-      printLog("error", `Failed to get data "${id}": ${error}`);
+      printLog("error", `Failed to get data id "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -232,7 +238,9 @@ function getDataMD5Handler() {
 
       /* Check data is used? */
       if (!item) {
-        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Data id "${id}" does not exist`);
       }
 
       /* Calculate MD5 and Add to header */
@@ -276,9 +284,9 @@ function getDataMD5Handler() {
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {
-      printLog("error", `Failed to get md5 of data "${id}": ${error}`);
+      printLog("error", `Failed to get md5 of data id "${id}": ${error}`);
 
-      if (error.message === "File does not exist") {
+      if (error.message.includes("Not Found")) {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -302,7 +310,9 @@ function downloadDataHandler() {
 
       /* Check data is used? */
       if (!item) {
-        return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Data id "${id}" does not exist`);
       }
 
       if (await isExistFile(item.path)) {
@@ -322,12 +332,12 @@ function downloadDataHandler() {
           throw error;
         });
       } else {
-        throw new Error("File does not exist");
+        throw new Error("Not Found");
       }
     } catch (error) {
-      printLog("error", `Failed to get data "${id}": ${error}`);
+      printLog("error", `Failed to get data id "${id}": ${error}`);
 
-      if (error.message === "File does not exist") {
+      if (error.message.includes("Not Found")) {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -349,7 +359,9 @@ function getDataTileExtraInfoHandler() {
 
     /* Check data is exist? */
     if (!item) {
-      return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .send(`Data id "${id}" does not exist`);
     }
 
     /* Get tile extra info */
@@ -422,7 +434,10 @@ function getDataTileExtraInfoHandler() {
 
       return res.status(StatusCodes.CREATED).send(extraInfo);
     } catch (error) {
-      printLog("error", `Failed to get tile extra info "${id}": ${error}`);
+      printLog(
+        "error",
+        `Failed to get tile extra info of data id "${id}": ${error}`,
+      );
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -442,7 +457,9 @@ function calculateDataExtraInfoHandler() {
 
     /* Check data is exist? */
     if (!item) {
-      return res.status(StatusCodes.NOT_FOUND).send("Data does not exist");
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .send(`Data id "${id}" does not exist`);
     }
 
     /* Calculate tile extra info */
@@ -487,7 +504,7 @@ function calculateDataExtraInfoHandler() {
         .catch((error) => {
           printLog(
             "error",
-            `Failed to calculate tile extra info "${id}": ${error}`,
+            `Failed to calculate tile extra info for data id "${id}": ${error}`,
           );
         });
 
@@ -495,7 +512,7 @@ function calculateDataExtraInfoHandler() {
     } catch (error) {
       printLog(
         "error",
-        `Failed to calculate tile extra info "${id}": ${error}`,
+        `Failed to calculate tile extra info for data id "${id}": ${error}`,
       );
 
       return res
@@ -1177,7 +1194,7 @@ export const serve_data = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load data "${id}": ${error}. Skipping...`,
+              `Failed to load data id "${id}": ${error}. Skipping...`,
             );
           }
         }),

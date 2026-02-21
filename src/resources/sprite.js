@@ -1,20 +1,17 @@
 "use strict";
 
 import { readFile, stat } from "node:fs/promises";
-import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
 import {
   removeFileWithLock,
   createFileWithLock,
-  getDataFileFromURL,
   getImageMetadata,
+  getDataFromURL,
   getJSONSchema,
   validateJSON,
-  requestToURL,
   getFileSize,
   findFiles,
   printLog,
-  retry,
 } from "../utils/index.js";
 
 export const SPRITE_FORMATS = new Set(["json", "png"]);
@@ -24,11 +21,13 @@ export const SPRITE_FORMATS = new Set(["json", "png"]);
 /**
  * Remove sprite file with lock
  * @param {string} filePath Sprite file path to remove
- * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function removeSpriteFile(filePath, timeout) {
-  await removeFileWithLock(filePath, timeout);
+export async function removeSpriteFile(filePath) {
+  await removeFileWithLock(
+    filePath,
+    30000, // 30 seconds
+  );
 }
 
 /**
@@ -46,52 +45,6 @@ export async function storeSpriteFile(filePath, data) {
 }
 
 /**
- * Download sprite file
- * @param {string} url The URL to download the file from
- * @param {string} filePath Sprite file path to store
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {object} headers Headers
- * @returns {Promise<void>}
- */
-export async function downloadSpriteFile(
-  url,
-  filePath,
-  maxTry,
-  timeout,
-  headers,
-) {
-  await retry(async () => {
-    try {
-      // Get data from URL
-      const response = await requestToURL({
-        url: url,
-        method: "GET",
-        timeout: timeout,
-        responseType: "arraybuffer",
-        headers: headers,
-      });
-
-      // Store data to file
-      await storeSpriteFile(filePath, response.data);
-    } catch (error) {
-      if (error.statusCode) {
-        if (
-          error.statusCode === StatusCodes.NO_CONTENT ||
-          error.statusCode === StatusCodes.NOT_FOUND
-        ) {
-          return;
-        } else {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
-    }
-  }, maxTry);
-}
-
-/**
  * Get created time of sprite file
  * @param {string} filePath Sprite file path to get
  * @returns {Promise<number>}
@@ -103,10 +56,10 @@ export async function getSpriteCreated(filePath) {
     return stats.ctimeMs;
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("Sprite created does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -120,10 +73,10 @@ export async function getSprite(filePath) {
     return await readFile(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("Sprite does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -195,7 +148,7 @@ export async function validateSprite(spriteDirPath) {
 export async function getAndCacheDataSprite(id, fileName) {
   const item = config.sprites[id];
   if (!item) {
-    throw new Error("Sprite source does not exist");
+    throw new Error(`Sprite id "${id}" does not exist`);
   }
 
   const filePath = `${item.path}/${fileName}`;
@@ -203,36 +156,41 @@ export async function getAndCacheDataSprite(id, fileName) {
   try {
     return await getSprite(filePath);
   } catch (error) {
-    if (item.sourceURL && error.message === "Sprite does not exist") {
+    if (item.sourceURL && error.message.includes("Not Found")) {
       const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
 
       printLog(
         "info",
-        `Forwarding sprite "${id}" - Filename "${fileName}" - To "${targetURL}"...`,
+        `Forwarding sprite id "${id}" - Filename "${fileName}" - To "${targetURL}"...`,
       );
 
       /* Get sprite */
-      const sprite = await getDataFileFromURL(
-        targetURL,
-        item.headers,
-        30000, // 30 seconds
-      );
+      const sprite = await getDataFromURL({
+        url: targetURL,
+        method: "GET",
+        responseType: "arraybuffer",
+        timeout: 30000, // 30 seconds
+        headers: item.headers,
+      });
 
       /* Cache */
       if (item.storeCache) {
-        printLog("info", `Caching sprite "${id}" - Filename "${fileName}"...`);
+        printLog(
+          "info",
+          `Caching sprite id "${id}" - Filename "${fileName}"...`,
+        );
 
         storeSpriteFile(filePath, sprite).catch((error) =>
           printLog(
             "error",
-            `Failed to cache sprite "${id}" - Filename "${fileName}": ${error}`,
+            `Failed to cache sprite id "${id}" - Filename "${fileName}": ${error}`,
           ),
         );
       }
 
       return sprite;
-    } else {
-      throw error;
     }
+
+    throw error;
   }
 }

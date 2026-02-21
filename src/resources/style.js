@@ -2,18 +2,15 @@
 
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import { readFile, stat } from "node:fs/promises";
-import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
 import { createCache } from "cache-manager";
 import {
   removeFileWithLock,
   createFileWithLock,
-  getDataFileFromURL,
-  requestToURL,
+  getDataFromURL,
   getFileSize,
   isLocalURL,
   printLog,
-  retry,
 } from "../utils/index.js";
 
 /* Cache in RAM */
@@ -26,57 +23,13 @@ const renderedStyleJSONCaches = createCache({
 /**
  * Remove style data file with lock
  * @param {string} filePath Style file path to remove
- * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function removeStyleFile(filePath, timeout) {
-  await removeFileWithLock(filePath, timeout);
-}
-
-/**
- * Download style file
- * @param {string} url The URL to download the file from
- * @param {string} filePath Style file path to store
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {object} headers Headers
- * @returns {Promise<void>}
- */
-export async function downloadStyleFile(
-  url,
-  filePath,
-  maxTry,
-  timeout,
-  headers,
-) {
-  await retry(async () => {
-    try {
-      // Get data from URL
-      const response = await requestToURL({
-        url: url,
-        method: "GET",
-        timeout: timeout,
-        responseType: "arraybuffer",
-        headers: headers,
-      });
-
-      // Store data to file
-      await storeStyleFile(filePath, response.data);
-    } catch (error) {
-      if (error.statusCode) {
-        if (
-          error.statusCode === StatusCodes.NO_CONTENT ||
-          error.statusCode === StatusCodes.NOT_FOUND
-        ) {
-          return;
-        } else {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
-    }
-  }, maxTry);
+export async function removeStyleFile(filePath) {
+  await removeFileWithLock(
+    filePath,
+    30000, // 30 seconds
+  );
 }
 
 /**
@@ -103,10 +56,10 @@ export async function getStyle(filePath) {
     return await readFile(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("JSON does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -216,10 +169,10 @@ export async function getRenderedStyleJSON(filePath, id) {
       return styleJSON;
     } catch (error) {
       if (error.code === "ENOENT") {
-        throw new Error("JSON does not exist");
-      } else {
-        throw error;
+        throw new Error("Not Found");
       }
+
+      throw error;
     }
   });
 }
@@ -236,10 +189,10 @@ export async function getStyleCreated(filePath) {
     return stats.ctimeMs;
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("Style created does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -401,35 +354,40 @@ export async function validateStyle(data) {
 export async function getAndCacheDataStyleJSON(id) {
   const item = config.styles[id];
   if (!item) {
-    throw new Error("Style source does not exist");
+    throw new Error(`Style id "${id}" does not exist`);
   }
 
   try {
     return await getStyle(item.path);
   } catch (error) {
-    if (item.sourceURL && error.message === "JSON does not exist") {
-      printLog("info", `Forwarding style "${id}" - To "${item.sourceURL}"...`);
-
-      const styleJSON = await getDataFileFromURL(
-        item.sourceURL,
-        item.headers,
-        30000, // 30 seconds
+    if (item.sourceURL && error.message.includes("Not Found")) {
+      printLog(
+        "info",
+        `Forwarding style id "${id}" - To "${item.sourceURL}"...`,
       );
 
+      const styleJSON = await getDataFromURL({
+        url: item.sourceURL,
+        method: "GET",
+        responseType: "arraybuffer",
+        timeout: 30000, // 30 seconds
+        headers: item.headers,
+      });
+
       if (item.storeCache) {
-        printLog("info", `Caching style "${id}" - File "${item.path}"...`);
+        printLog("info", `Caching style id "${id}" - File "${item.path}"...`);
 
         storeStyleFile(item.path, styleJSON).catch((error) =>
           printLog(
             "error",
-            `Failed to cache style "${id}" - File "${item.path}": ${error}`,
+            `Failed to cache style id "${id}" - File "${item.path}": ${error}`,
           ),
         );
       }
 
       return styleJSON;
-    } else {
-      throw error;
     }
+
+    throw error;
   }
 }

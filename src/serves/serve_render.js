@@ -41,7 +41,9 @@ function renderStyleJSONHandler() {
         const item = config.styles[req.body.styleId];
 
         if (!item) {
-          return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
+          return res
+            .status(StatusCodes.NOT_FOUND)
+            .send(`Style id "${req.body.styleId}" does not exist`);
         }
 
         req.body.styleJSON = await getRenderedStyleJSON(item.path);

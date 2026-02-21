@@ -61,7 +61,7 @@
     "lint-staged": "16.2.7",
     "prettier": "3.8.1",
     "globals": "17.3.0",
-    "eslint": "10.0.0",
+    "eslint": "10.0.1",
     "husky": "9.1.7"
   },
   "engines": {

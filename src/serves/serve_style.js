@@ -35,7 +35,9 @@ function serveStyleHandler() {
       const item = config.styles[id];
 
       if (!item) {
-        return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Style id "${id}" does not exist`);
       }
 
       const compiled = await compileHandleBarsTemplate("viewer", {
@@ -46,7 +48,7 @@ function serveStyleHandler() {
 
       return res.status(StatusCodes.OK).send(compiled);
     } catch (error) {
-      printLog("error", `Failed to serve style "${id}": ${error}`);
+      printLog("error", `Failed to serve style id "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -67,7 +69,9 @@ function serveWMTSHandler() {
       const item = config.styles[id].tileJSON;
 
       if (!item) {
-        return res.status(StatusCodes.NOT_FOUND).send("WMTS does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`WMTS of style id "${id}" does not exist`);
       }
 
       const compiled = await compileHandleBarsTemplate("wmts", {
@@ -80,7 +84,7 @@ function serveWMTSHandler() {
 
       return res.status(StatusCodes.OK).send(compiled);
     } catch (error) {
-      printLog("error", `Failed to serve WMTS "${id}": ${error}`);
+      printLog("error", `Failed to serve WMTS of style id "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -100,7 +104,9 @@ function getStyleHandler() {
     try {
       /* Check style is used? */
       if (!config.styles[id]) {
-        return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Style id "${id}" does not exist`);
       }
 
       /* Get and cache StyleJSON */
@@ -208,9 +214,9 @@ function getStyleHandler() {
 
       return res.status(StatusCodes.OK).send(styleJSON);
     } catch (error) {
-      printLog("error", `Failed to get style "${id}": ${error}`);
+      printLog("error", `Failed to get style id "${id}": ${error}`);
 
-      if (error.message === "JSON does not exist") {
+      if (error.message.includes("Not Found")) {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -303,7 +309,9 @@ function getRenderedTileHandler() {
 
     /* Check rendered is exist? */
     if (!item || !item.tileJSON) {
-      return res.status(StatusCodes.NOT_FOUND).send("Rendered does not exist");
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .send(`Rendered of style id "${id}" does not exist`);
     }
 
     /* Render tile */
@@ -367,7 +375,7 @@ function getRenderedHandler() {
       if (!item || !item.tileJSON) {
         return res
           .status(StatusCodes.NOT_FOUND)
-          .send("Rendered does not exist");
+          .send(`Rendered of style id "${id}" does not exist`);
       }
 
       res.header("content-type", "application/json");
@@ -385,7 +393,7 @@ function getRenderedHandler() {
         ],
       });
     } catch (error) {
-      printLog("error", `Failed to get rendered "${id}": ${error}`);
+      printLog("error", `Failed to get rendered of style id "${id}": ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -407,7 +415,9 @@ function getStyleMD5Handler() {
 
       /* Check style is used? */
       if (!item) {
-        return res.status(StatusCodes.NOT_FOUND).send("Style does not exist");
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Style id "${id}" does not exist`);
       }
 
       /* Calculate MD5 and Add to header */
@@ -417,9 +427,9 @@ function getStyleMD5Handler() {
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {
-      printLog("error", `Failed to get md5 of style "${id}": ${error}`);
+      printLog("error", `Failed to get md5 of style id "${id}": ${error}`);
 
-      if (error.message === "File does not exist") {
+      if (error.message.includes("Not Found")) {
         return res.status(StatusCodes.NO_CONTENT).send(error.message);
       } else {
         return res
@@ -595,7 +605,7 @@ export const serve_style = {
        *   get:
        *     tags:
        *       - Style
-       *     summary: Get WMTS XML for style
+       *     summary: Get WMTS XML of style
        *     parameters:
        *       - in: path
        *         name: id
@@ -950,7 +960,7 @@ export const serve_style = {
               /* Mark to serve rendered */
               isCanServeRendered = true;
             } catch (error) {
-              if (item.cache && error.message === "JSON does not exist") {
+              if (item.cache && error.message.includes("Not Found")) {
                 const styleSeed = seed.styles[item.style];
 
                 styleInfo.name = styleSeed.metadata.name ?? "Unknown";
@@ -969,7 +979,7 @@ export const serve_style = {
           } catch (error) {
             printLog(
               "error",
-              `Failed to load style "${id}": ${error}. Skipping...`,
+              `Failed to load style id "${id}": ${error}. Skipping...`,
             );
           }
 
@@ -999,7 +1009,7 @@ export const serve_style = {
             } catch (error) {
               printLog(
                 "error",
-                `Failed to load rendered "${id}": ${error}. Skipping...`,
+                `Failed to load rendered of style id "${id}": ${error}. Skipping...`,
               );
             }
           }

@@ -1,9 +1,9 @@
 "use strict";
 
 import { rename, mkdir, rm } from "node:fs/promises";
-import { detectFormatAndHeaders } from "./util.js";
 import { StatusCodes } from "http-status-codes";
 import { createWriteStream } from "node:fs";
+import { printLog } from "./logger";
 import https from "node:https";
 import http from "node:http";
 import path from "node:path";
@@ -11,25 +11,25 @@ import axios from "axios";
 
 /**
  * Request to URL
- * @param {{ url: string, method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object }} options Options
+ *
+ * @param {string} url URL to request
+ * @param {{ method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean }} options Options
  * @returns {Promise<axios.AxiosResponse>}
  */
-export async function requestToURL(options) {
+export async function requestToURL(url, options) {
   try {
     return await axios({
       method: options.method,
-      url: options.url,
+      url: url,
       timeout: options.timeout,
       responseType: options.responseType,
       headers: options.headers,
       data: options.body,
-      validateStatus: (status) => {
-        return (
-          StatusCodes.OK <= status &&
-          status < StatusCodes.MULTIPLE_CHOICES &&
-          status !== StatusCodes.NO_CONTENT
-        );
-      },
+      decompress: options.decompress,
+      validateStatus: (status) =>
+        StatusCodes.OK <= status &&
+        status < StatusCodes.MULTIPLE_CHOICES &&
+        status !== StatusCodes.NO_CONTENT,
       httpAgent: new http.Agent({
         keepAlive: options.keepAlive,
       }),
@@ -39,8 +39,8 @@ export async function requestToURL(options) {
     });
   } catch (error) {
     if (error.response) {
-      error.message = `Status code: ${error.response.status} - ${error.response.statusText}`;
       error.statusCode = error.response.status;
+      error.message = `Status code: ${error.response.status} - ${error.statusCode === StatusCodes.NO_CONTENT ? "Not Found" : error.response.statusText}`;
     } else if (error.request) {
       error.message = "No response received";
     }
@@ -50,135 +50,76 @@ export async function requestToURL(options) {
 }
 
 /**
- * Get data tile from a URL
- * @param {string} url The URL to fetch data tile from
- * @param {object} headers Headers
- * @param {number} timeout Timeout in milliseconds
- * @returns {Promise<object>}
- */
-export async function getDataTileFromURL(url, headers, timeout) {
-  try {
-    const response = await requestToURL({
-      url: url,
-      method: "GET",
-      timeout: timeout,
-      responseType: "arraybuffer",
-      headers: headers,
-    });
-
-    return {
-      data: response.data,
-      headers: detectFormatAndHeaders(response.data).headers,
-    };
-  } catch (error) {
-    if (error.statusCode) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("Tile does not exist");
-      } else {
-        throw new Error(`Failed to get data tile from "${url}": ${error}`);
-      }
-    } else {
-      throw new Error(`Failed to get data tile from "${url}": ${error}`);
-    }
-  }
-}
-
-/**
- * Get data file from a URL
- * @param {string} url The URL to fetch data from
- * @param {object} headers Headers
- * @param {number} timeout Timeout in milliseconds
+ * Get data from a URL
+ * @param {string} url URL to get data
+ * @param {{ method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean, maxTry: number }} options Options
  * @returns {Promise<Buffer>}
  */
-export async function getDataFileFromURL(url, headers, timeout) {
-  try {
-    const response = await requestToURL({
-      url: url,
-      method: "GET",
-      timeout: timeout,
-      responseType: "arraybuffer",
-      headers: headers,
-    });
+export async function getDataFromURL(url, options) {
+  if (options.maxTry > 0) {
+    for (let attempt = 1; attempt <= options.maxTry; attempt++) {
+      try {
+        return await requestToURL(url, options);
+      } catch (error) {
+        if (
+          error.statusCode &&
+          (error.statusCode === StatusCodes.NO_CONTENT ||
+            error.statusCode === StatusCodes.NOT_FOUND)
+        ) {
+          throw error;
+        }
 
-    return response.data;
-  } catch (error) {
-    if (error.statusCode) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("File does not exist");
-      } else {
-        throw new Error(`Failed to get file from "${url}": ${error}`);
+        const remainingAttempts = options.maxTry - attempt;
+        if (remainingAttempts > 0) {
+          printLog("warn", `${error}. ${remainingAttempts} try remaining...`);
+        } else {
+          throw error;
+        }
       }
-    } else {
-      throw new Error(`Failed to get file from "${url}": ${error}`);
     }
+  } else {
+    return await requestToURL(url, options);
   }
 }
 
 /**
- * Download file with stream
- * @param {string} url The URL to download the file from
- * @param {string} filePath The path where the file will be saved
- * @param {number} timeout Timeout in milliseconds
+ * Download file from a URL with stream
+ * @param {string} filePath File path to save
+ * @param {{ url: string, method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean }} options Options
  * @returns {Promise<void>}
  */
-export async function downloadFileWithStream(url, filePath, timeout) {
-  try {
-    await mkdir(path.dirname(filePath), {
-      recursive: true,
-    });
+export async function downloadFileFromURLWithStream(filePath, options) {
+  await mkdir(path.dirname(filePath), {
+    recursive: true,
+  });
 
-    const response = await await requestToURL({
-      url: url,
-      method: "GET",
-      timeout: timeout,
-      responseType: "stream",
-    });
+  const response = await await requestToURL({
+    ...options,
+    method: "GET",
+    responseType: "stream",
+  });
 
-    const tempFilePath = `${filePath}.tmp`;
+  const tempFilePath = `${filePath}.tmp`;
 
-    const writer = createWriteStream(tempFilePath);
+  const writer = createWriteStream(tempFilePath);
 
-    response.data.pipe(writer);
+  response.data.pipe(writer);
 
-    return await new Promise((resolve, reject) => {
-      writer
-        .on("finish", async () => {
-          await rename(tempFilePath, filePath);
+  return await new Promise((resolve, reject) => {
+    writer
+      .on("finish", async () => {
+        await rename(tempFilePath, filePath);
 
-          resolve();
-        })
-        .on("error", async (error) => {
-          await rm(tempFilePath, {
-            force: true,
-          });
-
-          reject(error);
+        resolve();
+      })
+      .on("error", async (error) => {
+        await rm(tempFilePath, {
+          force: true,
         });
-    });
-  } catch (error) {
-    if (error.statusCode) {
-      if (
-        error.statusCode === StatusCodes.NO_CONTENT ||
-        error.statusCode === StatusCodes.NOT_FOUND
-      ) {
-        throw new Error("File does not exist");
-      } else {
-        throw new Error(
-          `Failed to download file "${filePath}" - From "${url}": ${error}`,
-        );
-      }
-    } else {
-      throw new Error(
-        `Failed to download file "${filePath}" - From "${url}": ${error}`,
-      );
-    }
-  }
+
+        reject(error);
+      });
+  });
 }
 
 /**

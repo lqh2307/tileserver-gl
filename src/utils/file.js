@@ -43,10 +43,10 @@ export async function calculateMD5OfFile(filePath) {
     });
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("File does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -169,9 +169,9 @@ export async function isExistFile(fileOrDirPath, isDir) {
   } catch (error) {
     if (error.code === "ENOENT") {
       return false;
-    } else {
-      throw error;
     }
+
+    throw error;
   }
 }
 

@@ -169,7 +169,7 @@ export async function getPMTilesMetadata(pmtilesSource) {
 export async function getPMTilesTile(pmtilesSource, z, x, y) {
   const zxyTile = await pmtilesSource.getZxy(z, x, y);
   if (!zxyTile?.data) {
-    throw new Error("Tile does not exist");
+    throw new Error("Not Found");
   }
 
   return {

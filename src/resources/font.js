@@ -1,19 +1,16 @@
 "use strict";
 
 import { readFile, stat } from "node:fs/promises";
-import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
 import protobuf from "protocol-buffers";
 import cluster from "cluster";
 import {
   removeFileWithLock,
   createFileWithLock,
-  getDataFileFromURL,
-  requestToURL,
+  getDataFromURL,
   getFileSize,
   findFiles,
   printLog,
-  retry,
 } from "../utils/index.js";
 
 let glyphsProto;
@@ -36,11 +33,13 @@ if (!cluster.isPrimary) {
 /**
  * Remove font file with lock
  * @param {string} filePath Font file path to remove
- * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<void>}
  */
-export async function removeFontFile(filePath, timeout) {
-  await removeFileWithLock(filePath, timeout);
+export async function removeFontFile(filePath) {
+  await removeFileWithLock(
+    filePath,
+    30000, // 30 seconds
+  );
 }
 
 /**
@@ -58,52 +57,6 @@ export async function storeFontFile(filePath, data) {
 }
 
 /**
- * Download font file
- * @param {string} url The URL to download the file from
- * @param {string} filePath Font file path to store
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {object} headers Headers
- * @returns {Promise<void>}
- */
-export async function downloadFontFile(
-  url,
-  filePath,
-  maxTry,
-  timeout,
-  headers,
-) {
-  await retry(async () => {
-    try {
-      // Get data from URL
-      const response = await requestToURL({
-        url: url,
-        method: "GET",
-        timeout: timeout,
-        responseType: "arraybuffer",
-        headers: headers,
-      });
-
-      // Store data to file
-      await storeFontFile(filePath, response.data);
-    } catch (error) {
-      if (error.statusCode) {
-        if (
-          error.statusCode === StatusCodes.NO_CONTENT ||
-          error.statusCode === StatusCodes.NOT_FOUND
-        ) {
-          return;
-        } else {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
-    }
-  }, maxTry);
-}
-
-/**
  * Get created time of font file
  * @param {string} filePath Font file path to get
  * @returns {Promise<number>}
@@ -115,10 +68,10 @@ export async function getFontCreated(filePath) {
     return stats.ctimeMs;
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("Font created does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -132,10 +85,10 @@ export async function getFont(filePath) {
     return await readFile(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
-      throw new Error("Font does not exist");
-    } else {
-      throw error;
+      throw new Error("Not Found");
     }
+
+    throw error;
   }
 }
 
@@ -258,7 +211,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
       if (!item) {
         printLog(
           "warn",
-          `Font source "${id}" does not exist. Using fallback font "Open Sans"...`,
+          `Font id "${id}" does not exist. Using fallback font "Open Sans"...`,
         );
 
         return await getFallbackFont(id, fileName);
@@ -270,44 +223,47 @@ export async function getAndCacheDataFonts(ids, fileName) {
         return await getFont(filePath);
       } catch (error) {
         try {
-          if (item.sourceURL && error.message === "Font does not exist") {
+          if (item.sourceURL && error.message.includes("Not Found")) {
             const targetURL = item.sourceURL.replace("{range}.pbf", fileName);
 
             printLog(
               "info",
-              `Forwarding font "${id}" - Filename "${fileName}" - To "${targetURL}"...`,
+              `Forwarding font id "${id}" - Filename "${fileName}" - To "${targetURL}"...`,
             );
 
             /* Get font */
-            const font = await getDataFileFromURL(
-              targetURL,
-              item.headers,
-              30000, // 30 seconds
-            );
+            const font = await getDataFromURL({
+              url: targetURL,
+              method: "GET",
+              responseType: "arraybuffer",
+              timeout: 30000, // 30 seconds
+              headers: item.headers,
+              decompress: false,
+            });
 
             /* Cache */
             if (item.storeCache) {
               printLog(
                 "info",
-                `Caching font "${id}" - Filename "${fileName}"...`,
+                `Caching font id "${id}" - Filename "${fileName}"...`,
               );
 
               storeFontFile(filePath, font).catch((error) =>
                 printLog(
                   "error",
-                  `Failed to cache font "${id}" - Filename "${fileName}": ${error}`,
+                  `Failed to cache font id "${id}" - Filename "${fileName}": ${error}`,
                 ),
               );
             }
 
             return font;
-          } else {
-            throw error;
           }
+
+          throw error;
         } catch (error) {
           printLog(
             "warn",
-            `Failed to get font "${id}": ${error}. Using fallback font "Open Sans"...`,
+            `Failed to get font id "${id}": ${error}. Using fallback font "Open Sans"...`,
           );
 
           return await getFallbackFont(id, fileName);
