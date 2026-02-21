@@ -1,17 +1,13 @@
 "use strict";
 
-import { rename, mkdir, rm } from "node:fs/promises";
 import { StatusCodes } from "http-status-codes";
-import { createWriteStream } from "node:fs";
 import { printLog } from "./logger";
 import https from "node:https";
 import http from "node:http";
-import path from "node:path";
 import axios from "axios";
 
 /**
  * Request to URL
- *
  * @param {string} url URL to request
  * @param {{ method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean }} options Options
  * @returns {Promise<axios.AxiosResponse>}
@@ -53,13 +49,15 @@ export async function requestToURL(url, options) {
  * Get data from a URL
  * @param {string} url URL to get data
  * @param {{ method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean, maxTry: number }} options Options
- * @returns {Promise<Buffer>}
+ * @returns {Promise<any>}
  */
 export async function getDataFromURL(url, options) {
   if (options.maxTry > 0) {
     for (let attempt = 1; attempt <= options.maxTry; attempt++) {
       try {
-        return await requestToURL(url, options);
+        const response = await requestToURL(url, options);
+
+        return response.data;
       } catch (error) {
         if (
           error.statusCode &&
@@ -78,48 +76,10 @@ export async function getDataFromURL(url, options) {
       }
     }
   } else {
-    return await requestToURL(url, options);
+    const response = await requestToURL(url, options);
+
+    return response.data;
   }
-}
-
-/**
- * Download file from a URL with stream
- * @param {string} filePath File path to save
- * @param {{ url: string, method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean }} options Options
- * @returns {Promise<void>}
- */
-export async function downloadFileFromURLWithStream(filePath, options) {
-  await mkdir(path.dirname(filePath), {
-    recursive: true,
-  });
-
-  const response = await await requestToURL({
-    ...options,
-    method: "GET",
-    responseType: "stream",
-  });
-
-  const tempFilePath = `${filePath}.tmp`;
-
-  const writer = createWriteStream(tempFilePath);
-
-  response.data.pipe(writer);
-
-  return await new Promise((resolve, reject) => {
-    writer
-      .on("finish", async () => {
-        await rename(tempFilePath, filePath);
-
-        resolve();
-      })
-      .on("error", async (error) => {
-        await rm(tempFilePath, {
-          force: true,
-        });
-
-        reject(error);
-      });
-  });
 }
 
 /**

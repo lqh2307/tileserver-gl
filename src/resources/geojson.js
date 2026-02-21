@@ -277,12 +277,12 @@ export async function getAndCacheDataGeoJSON(id, layer) {
         `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`,
       );
 
-      const geoJSON = await getDataFromURL({
-        url: item.sourceURL,
+      const geoJSON = await getDataFromURL(item.sourceURL, {
         method: "GET",
         responseType: "arraybuffer",
         timeout: 30000, // 30 seconds
         headers: item.headers,
+        decompress: true,
       });
 
       if (item.storeCache) {

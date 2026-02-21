@@ -366,12 +366,12 @@ export async function getAndCacheDataStyleJSON(id) {
         `Forwarding style id "${id}" - To "${item.sourceURL}"...`,
       );
 
-      const styleJSON = await getDataFromURL({
-        url: item.sourceURL,
+      const styleJSON = await getDataFromURL(item.sourceURL, {
         method: "GET",
         responseType: "arraybuffer",
         timeout: 30000, // 30 seconds
         headers: item.headers,
+        decompress: true,
       });
 
       if (item.storeCache) {

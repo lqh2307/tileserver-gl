@@ -165,12 +165,12 @@ export async function getAndCacheDataSprite(id, fileName) {
       );
 
       /* Get sprite */
-      const sprite = await getDataFromURL({
-        url: targetURL,
+      const sprite = await getDataFromURL(targetURL, {
         method: "GET",
         responseType: "arraybuffer",
         timeout: 30000, // 30 seconds
         headers: item.headers,
+        decompress: fileName.endsWith(".json") ? true : false,
       });
 
       /* Cache */

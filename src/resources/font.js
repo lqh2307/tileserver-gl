@@ -232,8 +232,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
             );
 
             /* Get font */
-            const font = await getDataFromURL({
-              url: targetURL,
+            const font = await getDataFromURL(targetURL, {
               method: "GET",
               responseType: "arraybuffer",
               timeout: 30000, // 30 seconds

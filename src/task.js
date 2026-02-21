@@ -702,6 +702,7 @@ async function seedDataTiles(
                 ...(headers ?? {}),
                 "content-type": "application/json",
               },
+              decompress: true,
             });
 
             tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
@@ -753,6 +754,7 @@ async function seedDataTiles(
           created: Date.now(),
           storeTransparent: storeTransparent,
           headers: headers,
+          decompress: false,
         };
 
         /* Download and store data tile function */
@@ -845,6 +847,7 @@ async function seedDataTiles(
                 ...(headers ?? {}),
                 "content-type": "application/json",
               },
+              decompress: true,
             });
 
             tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
@@ -896,6 +899,7 @@ async function seedDataTiles(
           created: Date.now(),
           storeTransparent: storeTransparent,
           headers: headers,
+          decompress: false,
         };
 
         /* Download and store data tile function */
@@ -989,6 +993,7 @@ async function seedDataTiles(
                 ...(headers ?? {}),
                 "content-type": "application/json",
               },
+              decompress: true,
             });
 
             tileExtraInfo = getXYZTileExtraInfoFromCoverages(
@@ -1042,6 +1047,7 @@ async function seedDataTiles(
           created: Date.now(),
           storeTransparent: storeTransparent,
           headers: headers,
+          decompress: false,
         };
 
         /* Download and store data tile function */

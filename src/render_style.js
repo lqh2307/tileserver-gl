@@ -297,11 +297,11 @@ function createRenderer(option) {
         case "http":
         case "https": {
           try {
-            data = await getDataFromURL({
-              url: req.url,
+            data = await getDataFromURL(req.url, {
               method: "GET",
               timeout: 30000, // 30 seconds
               responseType: "arraybuffer",
+              decompress: true,
             });
           } catch (error) {
             if (req.kind === 3) {
