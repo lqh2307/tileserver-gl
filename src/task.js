@@ -748,6 +748,8 @@ async function seedDataTiles(
         }
 
         tileOption = {
+          method: "GET",
+          responseType: "arraybuffer",
           statement: source.prepare(MBTILES_INSERT_TILE_QUERY),
           maxTry: maxTry,
           timeout: timeout,
@@ -893,6 +895,8 @@ async function seedDataTiles(
         }
 
         tileOption = {
+          method: "GET",
+          responseType: "arraybuffer",
           source: source,
           maxTry: maxTry,
           timeout: timeout,
@@ -1039,6 +1043,8 @@ async function seedDataTiles(
         }
 
         tileOption = {
+          method: "GET",
+          responseType: "arraybuffer",
           sourcePath: sourcePath,
           statement: source.prepare(XYZ_INSERT_MD5_QUERY),
           format: metadata.format,
@@ -1505,7 +1511,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 
   printLog("info", log);
 
-  /* Download style.json file */
+  /* Download styleJSON file */
   const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
   const filePath = `${sourcePath}/style.json`;
 
