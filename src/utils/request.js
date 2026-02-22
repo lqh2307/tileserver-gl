@@ -1,10 +1,12 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "./logger";
+import { printLog } from "./logger.js";
 import https from "node:https";
 import http from "node:http";
 import axios from "axios";
+
+export const HTTP_SCHEMES = ["https://", "http://"];
 
 /**
  * Request to URL

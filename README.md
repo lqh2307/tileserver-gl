@@ -974,8 +974,7 @@ docker push quanghuy2307/tile-server:1.0.0
   },
   "concurrency": 50,
   "storeType": "mbtiles",
-  "storeTransparent": true,
-  "createOverview": true
+  "storeTransparent": true
 }
 ```
 
@@ -999,7 +998,6 @@ docker push quanghuy2307/tile-server:1.0.0
   "concurrency": 100,
   "storeType": "mbtiles",
   "storeTransparent": true,
-  "createOverview": false,
   "coverages": [
     {
       "zoom": 0,

@@ -1,5 +1,6 @@
 "use strict";
 
+export * from "./concurrency.js";
 export * from "./prometheus.js";
 export * from "./postgresql.js";
 export * from "./handlebar.js";

@@ -8,17 +8,13 @@ import {
   FALLBACK_VECTOR_LAYERS,
   isFullTransparentImage,
   detectFormatAndHeaders,
-  handleTilesConcurrency,
   closeSQLiteTransaction,
   openSQLiteTransaction,
   removeFileWithLock,
   createFileWithLock,
-  handleConcurrency,
-  createImageOutput,
   getCenterFromBBox,
-  getImageMetadata,
   getBBoxFromTiles,
-  BACKGROUND_COLOR,
+  runAllWithLimit,
   getDataFromURL,
   FALLBACK_BBOX,
   getTileBounds,
@@ -53,15 +49,19 @@ async function getXYZLayersFromTiles(sourcePath) {
 
   const layerNames = new Set();
 
-  async function getLayer(idx, pbfFilePaths) {
-    vectorTileProto.tile
-      .decode(await readFile(pbfFilePaths[idx]))
-      .layers.map((layer) => layer.name)
-      .forEach(layerNames.add);
+  function* getLayerGenerator() {
+    for (const pbfFilePath of pbfFilePaths) {
+      yield async () => {
+        vectorTileProto.tile
+          .decode(await readFile(pbfFilePath))
+          .layers.map((layer) => layer.name)
+          .forEach(layerNames.add);
+      };
+    }
   }
 
   // Batch run
-  await handleConcurrency(BATCH_SIZE, getLayer, pbfFilePaths);
+  await runAllWithLimit(getLayerGenerator(), BATCH_SIZE);
 
   return Array.from(layerNames);
 }
@@ -289,21 +289,22 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
 
 /**
  * Remove XYZ tile data file
- * @param {{ sourcePath: string, statement: BetterSqlite3.Statement, source: Database, z: number, x: number, y: number, format: "jpeg"|"jpg"|"pbf"|"png"|"webp" }} option
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {{ sourcePath: string, statement: BetterSqlite3.Statement, source: Database, format: "jpeg"|"jpg"|"pbf"|"png"|"webp" }} option
  * @returns {Promise<void>}
  */
-export async function removeXYZTile(option) {
+export async function removeXYZTile(z, x, y, option) {
   await removeFileWithLock(
-    `${option.sourcePath}/${option.z}/${option.x}/${option.y}.${option.format}`,
+    `${option.sourcePath}/${z}/${x}/${y}.${option.format}`,
     30000, // 30 seconds
   );
 
   if (option.statement) {
-    option.statement.run([option.z, option.x, option.y]);
+    option.statement.run([z, x, y]);
   } else {
-    option.source
-      .prepare(XYZ_DELETE_MD5_QUERY)
-      .run([option.z, option.x, option.y]);
+    option.source.prepare(XYZ_DELETE_MD5_QUERY).run([z, x, y]);
   }
 }
 
@@ -674,181 +675,14 @@ export async function getXYZSize(sourcePath) {
 }
 
 /**
- * Add XYZ overviews (downsample to lower zoom levels)
- * @param {string} sourcePath XYZ folder path
- * @param {Database} source SQLite database instance
- * @param {number} concurrency Concurrency to generate overviews
- * @param {256|512} tileSize Tile size
- * @param {boolean} storeTransparent Is store transparent tile?
- * @returns {Promise<void>}
- */
-export async function addXYZOverviews(
-  sourcePath,
-  source,
-  concurrency,
-  tileSize,
-  storeTransparent,
-) {
-  /* Get tile width & height */
-  let data;
-  let found = false;
-
-  const zFolders = await findFiles(sourcePath, /^\d+$/, false, false, true);
-
-  loop: for (const zFolder of zFolders) {
-    const xFolders = await findFiles(
-      `${sourcePath}/${zFolder}`,
-      /^\d+$/,
-      false,
-      false,
-      true,
-    );
-
-    for (const xFolder of xFolders) {
-      const yFiles = await findFiles(
-        `${sourcePath}/${zFolder}/${xFolder}`,
-        /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
-      );
-      if (yFiles.length) {
-        data = await readFile(
-          `${sourcePath}/${zFolder}/${xFolder}/${yFiles[0]}`,
-        );
-
-        if (!data) {
-          return;
-        }
-
-        found = true;
-
-        break loop;
-      }
-    }
-  }
-
-  if (!found) {
-    return;
-  }
-
-  const { width, height } = await getImageMetadata(data);
-
-  /* Get source width & height */
-  const metadata = await getXYZMetadata(sourcePath, source);
-
-  const { tileBounds } = getTileBounds({
-    bbox: metadata.bounds,
-    minZoom: metadata.maxzoom,
-    maxZoom: metadata.maxzoom,
-    scheme: "xyz",
-  });
-
-  let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
-  let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
-
-  const insertSQL = source.prepare(XYZ_INSERT_MD5_QUERY);
-
-  const createOption = {
-    width: width * 2,
-    height: height * 2,
-    channels: 4,
-    background: BACKGROUND_COLOR,
-  };
-
-  /* Create tile data handler function */
-  async function createTileData(z, x, y) {
-    const minX = x * 2;
-    const maxX = minX + 1;
-    const minY = y * 2;
-    const maxY = minY + 1;
-
-    // Create composites option
-    const compositesOption = [];
-
-    for (let dx = minX; dx <= maxX; dx++) {
-      for (let dy = minY; dy <= maxY; dy++) {
-        try {
-          const tile = await readFile(
-            `${sourcePath}/${z + 1}/${dx}/${dy}.${metadata.format}`,
-          );
-
-          if (!tile) {
-            continue;
-          }
-
-          compositesOption.push({
-            limitInputPixels: false,
-            input: await createImageOutput({
-              data: tile,
-            }),
-            left: (dx - minX) * width,
-            top: (dy - minY) * height,
-          });
-        } catch (error) {
-          continue;
-        }
-      }
-    }
-
-    if (compositesOption.length) {
-      // Create image
-      const image = await createImageOutput({
-        createOption: createOption,
-        compositesOption: compositesOption,
-        format: metadata.format,
-        width: width,
-        height: height,
-      });
-
-      await storeXYZTileFile({
-        sourcePath: sourcePath,
-        statement: insertSQL,
-        z: z,
-        x: x,
-        y: y,
-        format: metadata.format,
-        data: image,
-        storeTransparent: storeTransparent,
-      });
-    }
-  }
-
-  /* Get delta z */
-  let deltaZ = 0;
-  const targetTileSize = Math.floor(tileSize * 0.95);
-
-  while (
-    deltaZ < metadata.maxzoom &&
-    (sourceWidth > targetTileSize || sourceheight > targetTileSize)
-  ) {
-    sourceWidth /= 2;
-    sourceheight /= 2;
-
-    deltaZ++;
-
-    const { tileBounds } = getTileBounds({
-      bbox: metadata.bounds,
-      minZoom: metadata.maxzoom - deltaZ,
-      maxZoom: metadata.maxzoom - deltaZ,
-      scheme: "xyz",
-    });
-
-    await handleTilesConcurrency(concurrency, createTileData, tileBounds);
-  }
-
-  /* Update minzoom */
-  updateXYZMetadata(source, {
-    minzoom: metadata.maxzoom - deltaZ,
-  });
-}
-
-/**
- * Get and cache XYZ data tile
+ * Get and cache XYZ tile data
  * @param {string} id Data id
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @returns {Promise<object>}
  */
-export async function getAndCacheXYZDataTile(id, z, x, y) {
+export async function getAndCacheXYZTileData(id, z, x, y) {
   const item = config.datas[id];
   if (!item) {
     throw new Error(`Data id "${id}" does not exist`);

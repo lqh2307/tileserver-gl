@@ -1,8 +1,8 @@
 "use strict";
 
 import { getJSONSchema, validateJSON, printLog } from "../utils/index.js";
-import { exportDataTiles, exportAll } from "../export.js";
-import { renderDataTiles } from "../render_style.js";
+import { exportTileDatas, exportAll } from "../export.js";
+import { renderTileDatas } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
 import os from "os";
@@ -165,7 +165,7 @@ function exportDataHandler() {
             }
           }
 
-          exportDataTiles(
+          exportTileDatas(
             id,
             req.body.storeType,
             storePath,
@@ -278,7 +278,7 @@ function renderStyleHandler() {
             }
           }
 
-          renderDataTiles(
+          renderTileDatas(
             id,
             req.body.storeType,
             storePath,
@@ -286,7 +286,6 @@ function renderStyleHandler() {
             req.body.maxRendererPoolSize,
             req.body.concurrency || os.cpus().length,
             req.body.storeTransparent ?? true,
-            req.body.createOverview ?? false,
             req.body.tileScale || 1,
             req.body.tileSize || 256,
             refreshBefore,

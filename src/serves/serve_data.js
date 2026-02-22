@@ -16,6 +16,7 @@ import {
   getTileBounds,
   getJSONSchema,
   validateJSON,
+  HTTP_SCHEMES,
   getFileSize,
   isExistFile,
   gzipAsync,
@@ -27,10 +28,10 @@ import {
   getXYZTileExtraInfoFromCoverages,
   calculatePostgreSQLTileExtraInfo,
   calculateMBTilesTileExtraInfo,
-  getAndCachePostgreSQLDataTile,
-  getAndCacheMBTilesDataTile,
+  getAndCachePostgreSQLTileData,
+  getAndCacheMBTilesTileData,
   calculateXYZTileExtraInfo,
-  getAndCacheXYZDataTile,
+  getAndCacheXYZTileData,
   getPostgreSQLMetadata,
   getMBTilesMetadata,
   getPMTilesMetadata,
@@ -80,10 +81,10 @@ function serveDataHandler() {
 }
 
 /**
- * Get data tile handler
+ * Get tile data handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
-function getDataTileHandler() {
+function getTileDataHandler() {
   return async (req, res) => {
     const id = req.params.id;
     const item = config.datas[id];
@@ -95,7 +96,7 @@ function getDataTileHandler() {
         .send(`Data id "${id}" does not exist`);
     }
 
-    /* Check data tile format */
+    /* Check tile data format */
     if (
       req.params.format !== item.tileJSON.format ||
       !ALL_TILE_FORMATS.has(req.params.format)
@@ -107,11 +108,11 @@ function getDataTileHandler() {
 
     /* Get and cache tile data */
     try {
-      let dataTile;
+      let tileData;
 
       switch (item.sourceType) {
         case "mbtiles": {
-          dataTile = await getAndCacheMBTilesDataTile(
+          tileData = await getAndCacheMBTilesTileData(
             id,
             +req.params.z,
             +req.params.x,
@@ -122,7 +123,7 @@ function getDataTileHandler() {
         }
 
         case "pmtiles": {
-          dataTile = await getPMTilesTile(
+          tileData = await getPMTilesTile(
             item.source,
             +req.params.z,
             +req.params.x,
@@ -133,7 +134,7 @@ function getDataTileHandler() {
         }
 
         case "xyz": {
-          dataTile = await getAndCacheXYZDataTile(
+          tileData = await getAndCacheXYZTileData(
             id,
             +req.params.z,
             +req.params.x,
@@ -144,7 +145,7 @@ function getDataTileHandler() {
         }
 
         case "pg": {
-          dataTile = await getAndCachePostgreSQLDataTile(
+          tileData = await getAndCachePostgreSQLTileData(
             id,
             +req.params.z,
             +req.params.x,
@@ -155,19 +156,19 @@ function getDataTileHandler() {
         }
       }
 
-      /* Gzip pbf data tile */
+      /* Gzip pbf tile data */
       if (
-        dataTile.headers["content-type"] === "application/x-protobuf" &&
-        !dataTile.headers["content-encoding"]
+        tileData.headers["content-type"] === "application/x-protobuf" &&
+        !tileData.headers["content-encoding"]
       ) {
-        dataTile.data = await gzipAsync(dataTile.data);
+        tileData.data = await gzipAsync(tileData.data);
 
-        dataTile.headers["content-encoding"] = "gzip";
+        tileData.headers["content-encoding"] = "gzip";
       }
 
-      res.set(dataTile.headers);
+      res.set(tileData.headers);
 
-      return res.status(StatusCodes.OK).send(dataTile.data);
+      return res.status(StatusCodes.OK).send(tileData.data);
     } catch (error) {
       printLog(
         "error",
@@ -186,7 +187,7 @@ function getDataTileHandler() {
 }
 
 /**
- * Get data tileJSON handler
+ * Get tile dataJSON handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getDataHandler() {
@@ -352,7 +353,7 @@ function downloadDataHandler() {
  * Get tile extra info handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
-function getDataTileExtraInfoHandler() {
+function getTileDataExtraInfoHandler() {
   return async (req, res) => {
     const id = req.params.id;
     const item = config.datas[id];
@@ -523,7 +524,7 @@ function calculateDataExtraInfoHandler() {
 }
 
 /**
- * Get data tile list handler
+ * Get tile data list handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function getDatasListHandler() {
@@ -771,7 +772,7 @@ export const serve_data = {
      *         description: Internal server error
      */
     app.get("/datas/:id/extra-info", calculateDataExtraInfoHandler());
-    app.post("/datas/:id/extra-info", getDataTileExtraInfoHandler());
+    app.post("/datas/:id/extra-info", getTileDataExtraInfoHandler());
 
     /**
      * @swagger
@@ -857,7 +858,7 @@ export const serve_data = {
      *   get:
      *     tags:
      *       - Data
-     *     summary: Get data tile
+     *     summary: Get tile data
      *     parameters:
      *       - in: path
      *         name: id
@@ -917,7 +918,7 @@ export const serve_data = {
      *       500:
      *         description: Internal server error
      */
-    app.get("/datas/:id/:z/:x/:y.:format", getDataTileHandler());
+    app.get("/datas/:id/:z/:x/:y.:format", getTileDataHandler());
 
     /* Serve data */
     if (process.env.SERVE_FRONT_PAGE !== "false") {
@@ -1043,9 +1044,7 @@ export const serve_data = {
               dataInfo.sourceType = "pmtiles";
 
               if (
-                ["https://", "http://"].some((scheme) =>
-                  item.pmtiles.startsWith(scheme),
-                )
+                HTTP_SCHEMES.some((scheme) => item.pmtiles.startsWith(scheme))
               ) {
                 /* Get PMTiles path */
                 dataInfo.path = item.pmtiles;

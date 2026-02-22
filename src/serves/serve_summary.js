@@ -1,8 +1,13 @@
 "use strict";
 
-import { getTileBounds, isExistFile, printLog } from "../utils/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
+import {
+  getTileBounds,
+  HTTP_SCHEMES,
+  isExistFile,
+  printLog,
+} from "../utils/index.js";
 import {
   countPostgreSQLTiles,
   getPostgreSQLSize,
@@ -286,9 +291,7 @@ function serveSummaryHandler() {
 
               case "pmtiles": {
                 if (
-                  !["https://", "http://"].some((scheme) =>
-                    item.path.startsWith(scheme),
-                  )
+                  !HTTP_SCHEMES.some((scheme) => item.path.startsWith(scheme))
                 ) {
                   result.datas.pmtiles.size += await getPMTilesSize(item.path);
                 }

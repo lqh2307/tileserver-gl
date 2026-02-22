@@ -10,11 +10,7 @@ import {
   FALLBACK_VECTOR_LAYERS,
   isFullTransparentImage,
   detectFormatAndHeaders,
-  handleTilesConcurrency,
-  createImageOutput,
-  getImageMetadata,
   getBBoxFromTiles,
-  BACKGROUND_COLOR,
   closePostgreSQL,
   openPostgreSQL,
   getDataFromURL,
@@ -224,15 +220,14 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
 
 /**
  * Delete a tile from PostgreSQL tiles table
- * @param {{ source: pg.Client, z: number, x: number, y: number }} option
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {{ source: pg.Client }} option
  * @returns {Promise<void>}
  */
-export async function removePostgreSQLTile(option) {
-  await option.source.query(POSTGRESQL_DELETE_TILE_QUERY, [
-    option.z,
-    option.x,
-    option.y,
-  ]);
+export async function removePostgreSQLTile(z, x, y, option) {
+  await option.source.query(POSTGRESQL_DELETE_TILE_QUERY, [z, x, y]);
 }
 
 /**
@@ -578,139 +573,14 @@ export async function countPostgreSQLTiles(uri) {
 }
 
 /**
- * Add PostgreSQL overviews (downsample to lower zoom levels)
- * @param {Database} source SQLite database instance
- * @param {number} concurrency Concurrency to generate overviews
- * @param {256|512} tileSize Tile size
- * @param {boolean} storeTransparent Is store transparent tile?
- * @returns {Promise<void>}
- */
-export async function addPostgreSQLOverviews(
-  source,
-  concurrency,
-  tileSize,
-  storeTransparent,
-) {
-  /* Get tile width & height */
-  const data = await source.query("SELECT tile_data FROM tiles LIMIT 1;");
-
-  if (!data?.rows?.length || !data.rows[0].tile_data) {
-    return;
-  }
-
-  const { width, height } = await getImageMetadata(data.rows[0].tile_data);
-
-  /* Get source width & height */
-  const metadata = await getPostgreSQLMetadata(source);
-
-  const { tileBounds } = getTileBounds({
-    bbox: metadata.bounds,
-    minZoom: metadata.maxzoom,
-    maxZoom: metadata.maxzoom,
-    scheme: "xyz",
-  });
-
-  let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
-  let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
-
-  const querySQL =
-    "SELECT tile_column, tile_row, tile_data FROM tiles WHERE zoom_level = $1 AND tile_column BETWEEN $2 AND $3 AND tile_row BETWEEN $4 AND $5;";
-
-  const createOption = {
-    width: width * 2,
-    height: height * 2,
-    channels: 4,
-    background: BACKGROUND_COLOR,
-  };
-
-  /* Create tile data handler function */
-  async function createTileData(z, x, y) {
-    const minX = x * 2;
-    const maxX = minX + 1;
-    const minY = y * 2;
-    const maxY = minY + 1;
-
-    const tiles = await source.query(querySQL, [z + 1, minX, maxX, minY, maxY]);
-
-    if (tiles.rows.length) {
-      // Create composites option
-      const compositesOption = [];
-
-      for (const tile of tiles.rows) {
-        if (!tile.tile_data) {
-          continue;
-        }
-
-        compositesOption.push({
-          limitInputPixels: false,
-          input: await createImageOutput({
-            data: tile.tile_data,
-          }),
-          left: (tile.tile_column - minX) * width,
-          top: (tile.tile_row - minY) * height,
-        });
-      }
-
-      if (compositesOption.length) {
-        // Create image
-        const image = await createImageOutput({
-          createOption: createOption,
-          compositesOption: compositesOption,
-          format: metadata.format,
-          width: width,
-          height: height,
-        });
-
-        await storePostgreSQLTileData({
-          source: source,
-          z: z,
-          x: x,
-          y: y,
-          data: image,
-          storeTransparent: storeTransparent,
-        });
-      }
-    }
-  }
-
-  /* Get delta z */
-  let deltaZ = 0;
-  const targetTileSize = Math.floor(tileSize * 0.95);
-
-  while (
-    deltaZ < metadata.maxzoom &&
-    (sourceWidth > targetTileSize || sourceheight > targetTileSize)
-  ) {
-    sourceWidth /= 2;
-    sourceheight /= 2;
-
-    deltaZ++;
-
-    const { tileBounds } = getTileBounds({
-      bbox: metadata.bounds,
-      minZoom: metadata.maxzoom - deltaZ,
-      maxZoom: metadata.maxzoom - deltaZ,
-      scheme: "xyz",
-    });
-
-    await handleTilesConcurrency(concurrency, createTileData, tileBounds);
-  }
-
-  /* Update minzoom */
-  await updatePostgreSQLMetadata(source, {
-    minzoom: metadata.maxzoom - deltaZ,
-  });
-}
-
-/**
- * Get and cache PostgreSQL data tile
+ * Get and cache PostgreSQL tile data
  * @param {string} id Data id
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @returns {Promise<object>}
  */
-export async function getAndCachePostgreSQLDataTile(id, z, x, y) {
+export async function getAndCachePostgreSQLTileData(id, z, x, y) {
   const item = config.datas[id];
   if (!item) {
     throw new Error(`Data id "${id}" does not exist`);

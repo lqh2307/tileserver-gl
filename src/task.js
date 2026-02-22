@@ -44,16 +44,13 @@ import {
   getStyle,
 } from "./resources/index.js";
 import {
-  handleTilesConcurrency,
   removeEmptyFolders,
-  handleConcurrency,
+  runAllWithLimit,
   getDataFromURL,
   getTileBounds,
   calculateMD5,
   printLog,
 } from "./utils/index.js";
-
-const BATCH_SIZE = 10000;
 
 /**
  * Run cleanup and seed tasks
@@ -283,7 +280,7 @@ export async function runTasks(opts) {
               }
 
               try {
-                await cleanUpDataTiles(
+                await cleanUpTileDatas(
                   seedDataItem.storeType,
                   id,
                   cleanUpDataItem.coverages,
@@ -541,7 +538,7 @@ export async function runTasks(opts) {
               }
 
               try {
-                await seedDataTiles(
+                await seedTileDatas(
                   id,
                   item.storeType,
                   item.metadata,
@@ -589,7 +586,7 @@ export async function runTasks(opts) {
 /*********************************** Seed *************************************/
 
 /**
- * Seed data tiles
+ * Seed tile datas
  * @param {string} id Cache data ID
  * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {object} metadata Metadata object
@@ -604,7 +601,7 @@ export async function runTasks(opts) {
  * @param {object} headers Headers
  * @returns {Promise<void>}
  */
-async function seedDataTiles(
+async function seedTileDatas(
   id,
   storeType,
   metadata,
@@ -656,10 +653,16 @@ async function seedDataTiles(
 
     printLog("info", log);
 
-    let downloadAndStoreDataTileFunc;
+    let targetTileExtraInfo;
+    let tileExtraInfo;
+    let storeTileDataFunc;
     let tileOption;
 
     switch (storeType) {
+      default: {
+        throw new Error(`Invalid store type "${storeType}"`);
+      }
+
       case "mbtiles": {
         const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
 
@@ -678,9 +681,6 @@ async function seedDataTiles(
         updateMBTilesMetadata(source, metadata);
 
         /* Get tile extra info */
-        let targetTileExtraInfo;
-        let tileExtraInfo;
-
         if (refreshTimestamp === true) {
           const hashURL = `${url.slice(
             0,
@@ -747,6 +747,7 @@ async function seedDataTiles(
           }
         }
 
+        /* Assign tile option */
         tileOption = {
           method: "GET",
           responseType: "arraybuffer",
@@ -759,47 +760,9 @@ async function seedDataTiles(
           decompress: false,
         };
 
-        /* Download and store data tile function */
-        downloadAndStoreDataTileFunc = async (z, x, y, tasks) => {
-          const tileName = `${z}/${x}/${y}`;
-
-          if (
-            (refreshTimestamp === true &&
-              tileExtraInfo[tileName] &&
-              tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-            (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
-          ) {
-            return;
-          }
-
-          const completeTasks = tasks.completeTasks;
-          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-          const targetURL = url
-            .replace("{z}", `${z}`)
-            .replace("{x}", `${x}`)
-            .replace("{y}", `${tmpY}`);
-
-          printLog(
-            "info",
-            `Downloading data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
-          );
-
-          try {
-            await storeMBtilesTileData(
-              z,
-              x,
-              tmpY,
-              await getDataFromURL(targetURL, tileOption),
-              tileOption,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to seed data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
-            );
-          }
-        };
+        /* Store tile data function */
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storeMBtilesTileData(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeMBTilesDB(source);
@@ -825,9 +788,6 @@ async function seedDataTiles(
         await updatePostgreSQLMetadata(source, metadata);
 
         /* Get tile extra info */
-        let targetTileExtraInfo;
-        let tileExtraInfo;
-
         if (refreshTimestamp === true) {
           const hashURL = `${url.slice(
             0,
@@ -894,6 +854,7 @@ async function seedDataTiles(
           }
         }
 
+        /* Assign tile option */
         tileOption = {
           method: "GET",
           responseType: "arraybuffer",
@@ -906,47 +867,9 @@ async function seedDataTiles(
           decompress: false,
         };
 
-        /* Download and store data tile function */
-        downloadAndStoreDataTileFunc = async (z, x, y, tasks) => {
-          const tileName = `${z}/${x}/${y}`;
-
-          if (
-            (refreshTimestamp === true &&
-              tileExtraInfo[tileName] &&
-              tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-            (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
-          ) {
-            return;
-          }
-
-          const completeTasks = tasks.completeTasks;
-          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-          const targetURL = url
-            .replace("{z}", `${z}`)
-            .replace("{x}", `${x}`)
-            .replace("{y}", `${tmpY}`);
-
-          printLog(
-            "info",
-            `Downloading data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
-          );
-
-          try {
-            await storePostgreSQLTileData(
-              z,
-              x,
-              tmpY,
-              await getDataFromURL(targetURL, tileOption),
-              tileOption,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to seed data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
-            );
-          }
-        };
+        /* Store tile data function */
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storePostgreSQLTileData(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => await closePostgreSQLDB(source);
@@ -973,9 +896,6 @@ async function seedDataTiles(
         updateXYZMetadata(source, metadata);
 
         /* Get tile extra info */
-        let targetTileExtraInfo;
-        let tileExtraInfo;
-
         if (refreshTimestamp === true) {
           const hashURL = `${url.slice(
             0,
@@ -1042,6 +962,7 @@ async function seedDataTiles(
           }
         }
 
+        /* Assign tile option */
         tileOption = {
           method: "GET",
           responseType: "arraybuffer",
@@ -1056,47 +977,8 @@ async function seedDataTiles(
           decompress: false,
         };
 
-        /* Download and store data tile function */
-        downloadAndStoreDataTileFunc = async (z, x, y, tasks) => {
-          const tileName = `${z}/${x}/${y}`;
-
-          if (
-            (refreshTimestamp === true &&
-              tileExtraInfo[tileName] &&
-              tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-            (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
-          ) {
-            return;
-          }
-
-          const completeTasks = tasks.completeTasks;
-          const tmpY = scheme === "tms" ? (1 << z) - 1 - y : y;
-
-          const targetURL = url
-            .replace("{z}", `${z}`)
-            .replace("{x}", `${x}`)
-            .replace("{y}", `${tmpY}`);
-
-          printLog(
-            "info",
-            `Downloading data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
-          );
-
-          try {
-            await storeXYZTileFile(
-              z,
-              x,
-              tmpY,
-              await getDataFromURL(targetURL, tileOption),
-              tileOption,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to seed data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
-            );
-          }
-        };
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storeXYZTileFile(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeXYZMD5DB(source);
@@ -1105,14 +987,64 @@ async function seedDataTiles(
       }
     }
 
-    /* Download data tiles */
-    printLog("info", "Downloading data tiles...");
+    /* Download and store tile data generator */
+    function* downloadAndStoreTileDataGenerator() {
+      let completeTasks = 0;
 
-    await handleTilesConcurrency(
-      concurrency,
-      downloadAndStoreDataTileFunc,
-      tileBounds,
-    );
+      for (const { z, x, y } of tileBounds) {
+        for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+          for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+            completeTasks++;
+
+            yield async () => {
+              const tileName = `${z}/${xCount}/${yCount}`;
+
+              if (
+                (refreshTimestamp === true &&
+                  tileExtraInfo[tileName] &&
+                  tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+                (refreshTimestamp &&
+                  tileExtraInfo[tileName] >= refreshTimestamp)
+              ) {
+                return;
+              }
+
+              const tmpY = scheme === "tms" ? (1 << z) - 1 - yCount : yCount;
+
+              const targetURL = url
+                .replace("{z}", `${z}`)
+                .replace("{x}", `${xCount}`)
+                .replace("{y}", `${tmpY}`);
+
+              printLog(
+                "info",
+                `Downloading data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
+              );
+
+              try {
+                await storeTileDataFunc(
+                  z,
+                  xCount,
+                  tmpY,
+                  await getDataFromURL(targetURL, tileOption),
+                  tileOption,
+                );
+              } catch (error) {
+                printLog(
+                  "error",
+                  `Failed to seed data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
+                );
+              }
+            };
+          }
+        }
+      }
+    }
+
+    /* Download and store tile datas */
+    printLog("info", "Downloading and storing tile datas...");
+
+    await runAllWithLimit(downloadAndStoreTileDataGenerator(), concurrency);
 
     printLog(
       "info",
@@ -1166,7 +1098,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
 
   printLog("info", log);
 
-  /* Download GeoJSON file */
+  /* Download and store GeoJSON file */
   const sourcePath = `${process.env.DATA_DIR}/caches/geojsons/${id}`;
   const filePath = `${sourcePath}/${id}.geojson`;
 
@@ -1179,65 +1111,73 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
     decompress: true,
   };
 
-  try {
-    let needDownload = false;
+  async function seedGeoJSONData() {
+    try {
+      let needDownload = false;
 
-    if (refreshTimestamp === true) {
-      try {
-        const [response, geoJSONData] = await Promise.all([
-          getDataFromURL(`${url.slice(0, url.indexOf(`/${id}.geojson`))}/md5`, {
-            method: "GET",
-            timeout: timeout,
-            responseType: "arraybuffer",
-            headers: headers,
-          }),
-          getGeoJSON(filePath),
-        ]);
+      if (refreshTimestamp === true) {
+        try {
+          const [response, geoJSONData] = await Promise.all([
+            getDataFromURL(
+              `${url.slice(0, url.indexOf(`/${id}.geojson`))}/md5`,
+              {
+                method: "GET",
+                timeout: timeout,
+                responseType: "arraybuffer",
+                headers: headers,
+                decompress: false,
+              },
+            ),
+            getGeoJSON(filePath),
+          ]);
 
-        if (
-          !response.headers["etag"] ||
-          response.headers["etag"] !== calculateMD5(geoJSONData)
-        ) {
-          needDownload = true;
+          if (
+            !response.headers["etag"] ||
+            response.headers["etag"] !== calculateMD5(geoJSONData)
+          ) {
+            needDownload = true;
+          }
+        } catch (error) {
+          if (error.message.includes("Not Found")) {
+            needDownload = true;
+          } else {
+            throw error;
+          }
         }
-      } catch (error) {
-        if (error.message.includes("Not Found")) {
-          needDownload = true;
-        } else {
-          throw error;
+      } else if (refreshTimestamp) {
+        try {
+          const created = await getGeoJSONCreated(filePath);
+
+          if (created === undefined || created < refreshTimestamp) {
+            needDownload = true;
+          }
+        } catch (error) {
+          if (error.message.includes("Not Found")) {
+            needDownload = true;
+          } else {
+            throw error;
+          }
         }
+      } else {
+        needDownload = true;
       }
-    } else if (refreshTimestamp) {
-      try {
-        const created = await getGeoJSONCreated(filePath);
 
-        if (created === undefined || created < refreshTimestamp) {
-          needDownload = true;
-        }
-      } catch (error) {
-        if (error.message.includes("Not Found")) {
-          needDownload = true;
-        } else {
-          throw error;
-        }
+      if (needDownload) {
+        printLog(
+          "info",
+          `Downloading geojson id "${id}" - File "${filePath}" - From "${url}"...`,
+        );
+
+        await storeGeoJSONFile(filePath, await getDataFromURL(url, option));
       }
-    } else {
-      needDownload = true;
+    } catch (error) {
+      printLog("error", `Failed to seed geojson id "${id}": ${error}`);
     }
-
-    printLog("info", "Downloading geojson...");
-
-    if (needDownload) {
-      printLog(
-        "info",
-        `Downloading geojson id "${id}" - File "${filePath}" - From "${url}"...`,
-      );
-
-      await storeGeoJSONFile(filePath, await getDataFromURL(url, option));
-    }
-  } catch (error) {
-    printLog("error", `Failed to seed geojson id "${id}": ${error}`);
   }
+
+  printLog("info", "Downloading and storing geojson...");
+
+  await seedGeoJSONData();
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.geojson$/);
@@ -1280,7 +1220,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
 
   printLog("info", log);
 
-  /* Download sprite files */
+  /* Download and store sprite files */
   const sourcePath = `${process.env.DATA_DIR}/caches/sprites/${id}`;
 
   const option = {
@@ -1339,7 +1279,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
     }
   }
 
-  printLog("info", "Downloading sprites...");
+  printLog("info", "Downloading and storing sprites...");
 
   await Promise.all(
     ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
@@ -1399,7 +1339,7 @@ async function seedFont(
 
   printLog("info", log);
 
-  /* Download font files */
+  /* Download and store font files */
   const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
 
   const option = {
@@ -1411,58 +1351,64 @@ async function seedFont(
     decompress: false,
   };
 
-  async function seedFontData(idx, ranges, tasks) {
-    const fileName = `${ranges[idx]}.pbf`;
-    const filePath = `${sourcePath}/${fileName}`;
-    const completeTasks = tasks.completeTasks;
+  /* Seed font data generator */
+  function* seedFontDataGenerator() {
+    for (let idx = 0; idx < total; idx++) {
+      yield async () => {
+        const rangeStart = idx * 256;
+        const rangeEnd = rangeStart + 255;
 
-    try {
-      let needDownload = false;
+        const fileName = `${rangeStart}-${rangeEnd}.pbf`;
+        const filePath = `${sourcePath}/${fileName}`;
 
-      if (refreshTimestamp) {
         try {
-          const created = await getFontCreated(filePath);
+          let needDownload = false;
 
-          if (created === undefined || created < refreshTimestamp) {
+          if (refreshTimestamp) {
+            try {
+              const created = await getFontCreated(filePath);
+
+              if (created === undefined || created < refreshTimestamp) {
+                needDownload = true;
+              }
+            } catch (error) {
+              if (error.message.includes("Not Found")) {
+                needDownload = true;
+              } else {
+                throw error;
+              }
+            }
+          } else {
             needDownload = true;
+          }
+
+          if (needDownload) {
+            const targetURL = url.replace("{range}.pbf", fileName);
+
+            printLog(
+              "info",
+              `Downloading font id "${id}" - Filename "${fileName}" - From "${targetURL}" - ${idx + 1}/${total}...`,
+            );
+
+            await storeFontFile(
+              filePath,
+              await getDataFromURL(targetURL, option),
+            );
           }
         } catch (error) {
-          if (error.message.includes("Not Found")) {
-            needDownload = true;
-          } else {
-            throw error;
-          }
+          printLog(
+            "error",
+            `Failed to seed font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}: ${error}`,
+          );
         }
-      } else {
-        needDownload = true;
-      }
-
-      if (needDownload) {
-        const targetURL = url.replace("{range}.pbf", `${ranges[idx]}.pbf`);
-
-        printLog(
-          "info",
-          `Downloading font id "${id}" - Filename "${fileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
-        );
-
-        await storeFontFile(filePath, await getDataFromURL(targetURL, option));
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to seed font id "${id}" - Filename "${fileName}" - ${completeTasks}/${total}: ${error}`,
-      );
+      };
     }
   }
 
-  printLog("info", "Downloading fonts...");
+  printLog("info", "Downloading and storing fonts...");
 
   // Batch run
-  await handleConcurrency(
-    concurrency,
-    seedFontData,
-    Array.from({ length: 256 }, (_, idx) => `${idx * 256}-${idx * 256 + 255}`),
-  );
+  await runAllWithLimit(seedFontDataGenerator(), concurrency);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.pbf$/);
@@ -1511,7 +1457,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 
   printLog("info", log);
 
-  /* Download styleJSON file */
+  /* Download and store styleJSON file */
   const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
   const filePath = `${sourcePath}/style.json`;
 
@@ -1573,25 +1519,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
       needDownload = true;
     }
 
-    if (refreshTimestamp) {
-      try {
-        const created = await getStyleCreated(filePath);
-
-        if (created === undefined || created < refreshTimestamp) {
-          needDownload = true;
-        }
-      } catch (error) {
-        if (error.message.includes("Not Found")) {
-          needDownload = true;
-        } else {
-          throw error;
-        }
-      }
-    } else {
-      needDownload = true;
-    }
-
-    printLog("info", "Downloading style...");
+    printLog("info", "Downloading and storing style...");
 
     if (needDownload) {
       printLog(
@@ -1617,14 +1545,14 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 /*********************************** Clean up *************************************/
 
 /**
- * Cleanup data tiles
+ * Cleanup tile datas
  * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {string} id Cleanup data ID
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
-async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
+async function cleanUpTileDatas(storeType, id, coverages, cleanUpBefore) {
   const startTime = Date.now();
 
   let source;
@@ -1632,12 +1560,9 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
   try {
     /* Calculate summary */
-    const concurrency = 256;
-
     const { total, tileBounds } = getTileBounds({ coverages: coverages });
 
     let log = `Cleaning up ${total} tiles of ${storeType} "${id}" with:`;
-    log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
@@ -1655,10 +1580,16 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
 
     printLog("info", log);
 
-    let removeDataTileFunc;
+    let tileExtraInfo;
+    let removeTileDataFunc;
     let compactDatabase;
+    let tileOption;
 
     switch (storeType) {
+      default: {
+        throw new Error(`Invalid store type "${storeType}"`);
+      }
+
       case "mbtiles": {
         const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
 
@@ -1672,8 +1603,6 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         );
 
         /* Get tile extra info */
-        let tileExtraInfo;
-
         if (cleanUpTimestamp) {
           try {
             printLog("info", `Get tile extra info from "${filePath}"...`);
@@ -1693,37 +1622,14 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           }
         }
 
-        const sql = source.prepare(MBTILES_DELETE_TILE_QUERY);
-
-        /* Remove data tile function */
-        removeDataTileFunc = async (z, x, y, tasks) => {
-          const tileName = `${z}/${x}/${y}`;
-
-          if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
-            return;
-          }
-
-          const completeTasks = tasks.completeTasks;
-
-          printLog(
-            "info",
-            `Removing data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
-          );
-
-          try {
-            removeMBTilesTile({
-              statement: sql,
-              z: z,
-              x: x,
-              y: y,
-            });
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to cleanup data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
-            );
-          }
+        /* Assign tile option */
+        tileOption = {
+          statement: source.prepare(MBTILES_DELETE_TILE_QUERY),
         };
+
+        /* Remove tile data function */
+        removeTileDataFunc = async (z, x, y) =>
+          removeMBTilesTile(z, x, y, tileOption);
 
         /* Compact database function */
         compactDatabase = async () => compactMBTiles(source);
@@ -1747,8 +1653,6 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         );
 
         /* Get tile extra info */
-        let tileExtraInfo;
-
         if (cleanUpTimestamp) {
           try {
             printLog("info", `Get tile extra info from "${filePath}"...`);
@@ -1768,35 +1672,14 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           }
         }
 
-        /* Remove data tile function */
-        removeDataTileFunc = async (z, x, y, tasks) => {
-          const tileName = `${z}/${x}/${y}`;
-
-          if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
-            return;
-          }
-
-          const completeTasks = tasks.completeTasks;
-
-          printLog(
-            "info",
-            `Removing data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
-          );
-
-          try {
-            await removePostgreSQLTile({
-              source: source,
-              z: z,
-              x: x,
-              y: y,
-            });
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to cleanup data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
-            );
-          }
+        /* Assign tile option */
+        tileOption = {
+          source: source,
         };
+
+        /* Remove tile data function */
+        removeTileDataFunc = async (z, x, y) =>
+          await removePostgreSQLTile(z, x, y, tileOption);
 
         /* Compact database function */
         compactDatabase = async () => {};
@@ -1821,8 +1704,6 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
         );
 
         /* Get tile extra info */
-        let tileExtraInfo;
-
         if (cleanUpTimestamp) {
           try {
             printLog("info", `Get tile extra info from "${filePath}"...`);
@@ -1842,42 +1723,17 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
           }
         }
 
-        /* Detect format tile */
         const format = await getXYZFormatFromTiles(sourcePath);
 
-        const sql = source.prepare(XYZ_DELETE_MD5_QUERY);
-
-        /* Remove data tile function */
-        removeDataTileFunc = async (z, x, y, tasks) => {
-          const tileName = `${z}/${x}/${y}`;
-
-          if (cleanUpTimestamp && tileExtraInfo[tileName] >= cleanUpTimestamp) {
-            return;
-          }
-
-          const completeTasks = tasks.completeTasks;
-
-          printLog(
-            "info",
-            `Removing data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
-          );
-
-          try {
-            await removeXYZTile({
-              sourcePath: sourcePath,
-              statement: sql,
-              z: z,
-              x: x,
-              y: y,
-              format: format,
-            });
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to cleanup data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
-            );
-          }
+        /* Assign tile option */
+        tileOption = {
+          sourcePath: sourcePath,
+          statement: source.prepare(XYZ_DELETE_MD5_QUERY),
         };
+
+        /* Remove tile data function */
+        removeTileDataFunc = async (z, x, y) =>
+          await removeXYZTile(z, x, y, tileOption);
 
         /* Compact database function */
         compactDatabase = async () => {
@@ -1895,10 +1751,48 @@ async function cleanUpDataTiles(storeType, id, coverages, cleanUpBefore) {
       }
     }
 
-    /* Remove data tiles */
-    printLog("info", "Removing data tiles...");
+    /* Remove tile data generator */
+    function* removeTileDataGenerator() {
+      let completeTasks = 0;
 
-    await handleTilesConcurrency(concurrency, removeDataTileFunc, tileBounds);
+      for (const { z, x, y } of tileBounds) {
+        for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+          for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+            completeTasks++;
+
+            yield async () => {
+              const tileName = `${z}/${xCount}/${yCount}`;
+
+              if (
+                cleanUpTimestamp &&
+                tileExtraInfo[tileName] >= cleanUpTimestamp
+              ) {
+                return;
+              }
+
+              printLog(
+                "info",
+                `Removing data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+              );
+
+              try {
+                await removeTileDataFunc(z, xCount, yCount, tileOption);
+              } catch (error) {
+                printLog(
+                  "error",
+                  `Failed to cleanup data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+                );
+              }
+            };
+          }
+        }
+      }
+    }
+
+    /* Remove tile datas */
+    printLog("info", "Removing tile datas...");
+
+    await runAllWithLimit(removeTileDataGenerator, os.cpus().length);
 
     /* Compact database */
     printLog("info", "Compacting database...");
@@ -2107,54 +2001,61 @@ async function cleanUpFont(id, cleanUpBefore) {
 
   printLog("info", log);
 
-  /* Remove font files */
   const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
 
-  async function cleanUpFontData(start, end) {
-    const range = `${start}-${end}`;
-    const filePath = `${sourcePath}/${range}.pbf`;
+  /* Remove font data generator */
+  function* removeFontDataGenerator() {
+    for (let idx = 0; idx < total; idx++) {
+      yield async () => {
+        const rangeStart = idx * 256;
+        const rangeEnd = rangeStart + 255;
 
-    try {
-      let needRemove = false;
+        const fileName = `${`${rangeStart}-${rangeEnd}`}.pbf`;
+        const filePath = `${sourcePath}/${fileName}`;
 
-      if (cleanUpTimestamp) {
         try {
-          const created = await getFontCreated(filePath);
+          let needRemove = false;
 
-          if (created === undefined || created < cleanUpTimestamp) {
+          if (cleanUpTimestamp) {
+            try {
+              const created = await getFontCreated(filePath);
+
+              if (created === undefined || created < cleanUpTimestamp) {
+                needRemove = true;
+              }
+            } catch (error) {
+              if (error.message.includes("Not Found")) {
+                needRemove = true;
+              } else {
+                throw error;
+              }
+            }
+          } else {
             needRemove = true;
+          }
+
+          if (needRemove) {
+            printLog(
+              "info",
+              `Removing font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}...`,
+            );
+
+            await removeFontFile(filePath);
           }
         } catch (error) {
-          if (error.message.includes("Not Found")) {
-            needRemove = true;
-          } else {
-            throw error;
-          }
+          printLog(
+            "error",
+            `Failed to cleanup font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}: ${error}`,
+          );
         }
-      } else {
-        needRemove = true;
-      }
-
-      if (needRemove) {
-        printLog("info", `Removing font id "${id}" - Range "${range}"...`);
-
-        await removeFontFile(filePath);
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to cleanup font id "${id}" -  Range "${range}": ${error}`,
-      );
+      };
     }
   }
 
+  /* Remove font files */
   printLog("info", "Removing fonts...");
 
-  await Promise.all(
-    Array.from({ length: total }, (_, i) =>
-      cleanUpFontData(i * 256, i * 256 + 255),
-    ),
-  );
+  await runAllWithLimit(removeFontDataGenerator(), os.cpus().length);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.pbf$/);

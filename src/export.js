@@ -3,8 +3,8 @@
 import { config } from "./configs/index.js";
 import path from "path";
 import {
-  handleTilesConcurrency,
   createFileWithLock,
+  runAllWithLimit,
   createFolders,
   getTileBounds,
   isLocalURL,
@@ -14,17 +14,19 @@ import {
   getPostgreSQLTileExtraInfoFromCoverages,
   getMBTilesTileExtraInfoFromCoverages,
   getXYZTileExtraInfoFromCoverages,
-  getAndCachePostgreSQLDataTile,
-  getAndCacheMBTilesDataTile,
+  getAndCachePostgreSQLTileData,
+  getAndCacheMBTilesTileData,
+  MBTILES_INSERT_TILE_QUERY,
   updatePostgreSQLMetadata,
   storePostgreSQLTileData,
-  getAndCacheXYZDataTile,
+  getAndCacheXYZTileData,
   getAndCacheDataGeoJSON,
   updateMBTilesMetadata,
   getAndCacheDataSprite,
   getAndCacheDataFonts,
   getRenderedStyleJSON,
   storeMBtilesTileData,
+  XYZ_INSERT_MD5_QUERY,
   updateXYZMetadata,
   closePostgreSQLDB,
   openPostgreSQLDB,
@@ -207,21 +209,24 @@ export async function exportAll(
             };
 
             if (exportData) {
-              await Promise.all(
-                Array.from({ length: 256 }, async (_, i) => {
-                  const fileName = `${i * 256}-${i * 256 + 255}.pbf`;
+              function* seedFontDataGenerator() {
+                for (let idx = 0; idx < 256; idx++) {
+                  yield async () => {
+                    const rangeStart = idx * 256;
+                    const rangeEnd = rangeStart + 255;
 
-                  const fontBuffer = await getAndCacheDataFonts(
-                    fontID,
-                    fileName,
-                  );
+                    const fileName = `${rangeStart}-${rangeEnd}.pbf`;
 
-                  await storeFontFile(
-                    `${dirPath}/caches/fonts/${fontFolder}/${fileName}`,
-                    fontBuffer,
-                  );
-                }),
-              );
+                    await storeFontFile(
+                      `${dirPath}/caches/fonts/${fontFolder}/${fileName}`,
+                      await getAndCacheDataFonts(fontID, fileName),
+                    );
+                  };
+                }
+              }
+
+              // Batch run
+              await runAllWithLimit(seedFontDataGenerator(), concurrency);
             }
           }
         }
@@ -433,7 +438,7 @@ export async function exportAll(
                 }
 
                 if (exportData) {
-                  await exportDataTiles(
+                  await exportTileDatas(
                     dataID,
                     data.sourceType,
                     storePath,
@@ -570,7 +575,7 @@ export async function exportAll(
         if (exportData) {
           storePath = `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`;
 
-          await exportDataTiles(
+          await exportTileDatas(
             dataID,
             data.sourceType,
             storePath,
@@ -699,18 +704,24 @@ export async function exportAll(
         };
 
         if (exportData) {
-          await Promise.all(
-            Array.from({ length: 256 }, async (_, i) => {
-              const fileName = `${i * 256}-${i * 256 + 255}.pbf`;
+          function* seedFontDataGenerator() {
+            for (let idx = 0; idx < 256; idx++) {
+              yield async () => {
+                const rangeStart = idx * 256;
+                const rangeEnd = rangeStart + 255;
 
-              const fontBuffer = await getAndCacheDataFonts(fontID, fileName);
+                const fileName = `${rangeStart}-${rangeEnd}.pbf`;
 
-              await storeFontFile(
-                `${dirPath}/caches/fonts/${fontFolder}/${fileName}`,
-                fontBuffer,
-              );
-            }),
-          );
+                await storeFontFile(
+                  `${dirPath}/caches/fonts/${fontFolder}/${fileName}`,
+                  await getAndCacheDataFonts(fontID, fileName),
+                );
+              };
+            }
+          }
+
+          // Batch run
+          await runAllWithLimit(seedFontDataGenerator(), concurrency);
         }
       }
     }
@@ -747,7 +758,7 @@ export async function exportAll(
 }
 
 /**
- * Export data tiles
+ * Export tile datas
  * @param {string} id Data ID
  * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {string} storePath Exported path
@@ -758,7 +769,7 @@ export async function exportAll(
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
-export async function exportDataTiles(
+export async function exportTileDatas(
   id,
   storeType,
   storePath,
@@ -807,8 +818,8 @@ export async function exportDataTiles(
     let targetTileExtraInfo;
     let tileExtraInfo;
     let getTileExtraInfo;
-    let getDataTileFunc;
-    let storeDataTileFunc;
+    let getTileDataFunc;
+    let storeTileDataFunc;
     let sqliteFilePath;
     let tileOption;
 
@@ -839,17 +850,19 @@ export async function exportDataTiles(
         updateMBTilesMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = () =>
+        getTileExtraInfo = async () =>
           getMBTilesTileExtraInfoFromCoverages(source, coverages, false);
 
+        /* Assign tile option */
         tileOption = {
-          source: source,
+          statement: source.prepare(MBTILES_INSERT_TILE_QUERY),
+          created: Date.now(),
           storeTransparent: storeTransparent,
         };
 
         /* Store data function */
-        storeDataTileFunc = (z, x, y, data) =>
-          storeMBtilesTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storeMBtilesTileData(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeMBTilesDB(source);
@@ -873,17 +886,23 @@ export async function exportDataTiles(
         await updatePostgreSQLMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = () =>
-          getPostgreSQLTileExtraInfoFromCoverages(source, coverages, true);
+        getTileExtraInfo = async () =>
+          await getPostgreSQLTileExtraInfoFromCoverages(
+            source,
+            coverages,
+            true,
+          );
 
+        /* Assign tile option */
         tileOption = {
           source: source,
+          created: Date.now(),
           storeTransparent: storeTransparent,
         };
 
         /* Store data function */
-        storeDataTileFunc = (z, x, y, data) =>
-          storePostgreSQLTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storePostgreSQLTileData(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => await closePostgreSQLDB(source);
@@ -909,19 +928,21 @@ export async function exportDataTiles(
         updateXYZMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = () =>
+        getTileExtraInfo = async () =>
           getXYZTileExtraInfoFromCoverages(source, coverages, true);
 
+        /* Assign tile option */
         tileOption = {
-          source: source,
+          statement: source.prepare(XYZ_INSERT_MD5_QUERY),
+          created: Date.now(),
           sourcePath: storePath,
           format: metadata.format,
           storeTransparent: storeTransparent,
         };
 
         /* Store data function */
-        storeDataTileFunc = (z, x, y, data) =>
-          storeXYZTileFile(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storeXYZTileFile(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeXYZMD5DB(source);
@@ -972,8 +993,8 @@ export async function exportDataTiles(
         }
 
         /* Get data function */
-        getDataTileFunc = async (z, x, y) => {
-          const tile = await getAndCacheMBTilesDataTile(id, z, x, y);
+        getTileDataFunc = async (z, x, y) => {
+          const tile = await getAndCacheMBTilesTileData(id, z, x, y);
 
           return tile.data;
         };
@@ -1022,8 +1043,8 @@ export async function exportDataTiles(
         }
 
         /* Get data function */
-        getDataTileFunc = async (z, x, y) => {
-          const tile = await getAndCachePostgreSQLDataTile(id, z, x, y);
+        getTileDataFunc = async (z, x, y) => {
+          const tile = await getAndCachePostgreSQLTileData(id, z, x, y);
 
           return tile.data;
         };
@@ -1072,8 +1093,8 @@ export async function exportDataTiles(
         }
 
         /* Get data function */
-        getDataTileFunc = async (z, x, y) => {
-          const tile = await getAndCacheXYZDataTile(id, z, x, y);
+        getTileDataFunc = async (z, x, y) => {
+          const tile = await getAndCacheXYZTileData(id, z, x, y);
 
           return tile.data;
         };
@@ -1082,45 +1103,56 @@ export async function exportDataTiles(
       }
     }
 
-    /* Export tile data function */
-    const exportDataTileFunc = async (z, x, y, tasks) => {
-      const tileName = `${z}/${x}/${y}`;
+    /* Export and store tile data generator */
+    function* exportAndStoreTileDataGenerator() {
+      let completeTasks = 0;
 
-      if (
-        (refreshTimestamp === true &&
-          tileExtraInfo[tileName] &&
-          tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-        (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp)
-      ) {
-        return;
+      for (const { z, x, y } of tileBounds) {
+        for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+          for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+            completeTasks++;
+
+            yield async () => {
+              const tileName = `${z}/${xCount}/${yCount}`;
+
+              if (
+                (refreshTimestamp === true &&
+                  tileExtraInfo[tileName] &&
+                  tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
+                (refreshTimestamp &&
+                  tileExtraInfo[tileName] >= refreshTimestamp)
+              ) {
+                return;
+              }
+
+              printLog(
+                "info",
+                `Exporting data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+              );
+
+              try {
+                await storeTileDataFunc(
+                  z,
+                  xCount,
+                  yCount,
+                  await getTileDataFunc(z, xCount, yCount),
+                );
+              } catch (error) {
+                printLog(
+                  "error",
+                  `Failed to export data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+                );
+              }
+            };
+          }
+        }
       }
+    }
 
-      const completeTasks = tasks.completeTasks;
+    /* Export and store tile datas */
+    printLog("info", "Exporting and storing tile datas...");
 
-      printLog(
-        "info",
-        `Exporting data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
-      );
-
-      try {
-        await storeDataTileFunc(z, x, y, await getDataTileFunc(z, x, y));
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to export data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
-        );
-      }
-    };
-
-    /* Export data tiles */
-    printLog("info", "Exporting data tiles...");
-
-    await handleTilesConcurrency(
-      concurrency,
-      exportDataTileFunc,
-      tileBounds,
-      item,
-    );
+    await runAllWithLimit(exportAndStoreTileDataGenerator(), concurrency, item);
 
     printLog(
       "info",

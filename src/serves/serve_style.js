@@ -291,7 +291,7 @@ function getStylesListHandler() {
  */
 function getRenderedTileHandler() {
   return async (req, res) => {
-    /* Check data tile format */
+    /* Check tile data format */
     if (!RASTER_TILE_FORMATS.has(req.params.format)) {
       return res
         .status(StatusCodes.BAD_REQUEST)
@@ -316,15 +316,17 @@ function getRenderedTileHandler() {
 
     /* Render tile */
     try {
-      const image = await renderImageTileData({
-        styleJSON: await getRenderedStyleJSON(item.path, id),
-        tileScale: +req.query.tileScale || 1,
-        tileSize: +req.query.tileSize || 256,
-        z: +req.params.z,
-        x: +req.params.x,
-        y: +req.params.y,
-        format: req.params.format,
-      });
+      const image = await renderImageTileData(
+        +req.params.z,
+        +req.params.x,
+        +req.params.y,
+        {
+          styleJSON: await getRenderedStyleJSON(item.path, id),
+          tileScale: +req.query.tileScale || 1,
+          tileSize: +req.query.tileSize || 256,
+          format: req.params.format,
+        },
+      );
 
       res.header(
         "content-type",

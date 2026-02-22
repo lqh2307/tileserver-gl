@@ -8,14 +8,10 @@ import {
   FALLBACK_VECTOR_LAYERS,
   isFullTransparentImage,
   detectFormatAndHeaders,
-  handleTilesConcurrency,
   closeSQLiteTransaction,
   openSQLiteTransaction,
-  createImageOutput,
   getCenterFromBBox,
-  getImageMetadata,
   getBBoxFromTiles,
-  BACKGROUND_COLOR,
   getDataFromURL,
   FALLBACK_BBOX,
   getTileBounds,
@@ -264,16 +260,19 @@ export function calculateMBTilesTileExtraInfo(source) {
 
 /**
  * Delete a tile from MBTiles tiles table
- * @param {{ statement: BetterSqlite3.Statement, source: Database, z: number, x: number, y: number }} option
+ * @param {number} z Zoom level
+ * @param {number} x X tile index
+ * @param {number} y Y tile index
+ * @param {{ statement: BetterSqlite3.Statement, source: Database }} option
  * @returns {void}
  */
-export function removeMBTilesTile(option) {
+export function removeMBTilesTile(z, x, y, option) {
   if (option.statement) {
-    option.statement.run([option.z, option.x, (1 << option.z) - 1 - option.y]);
+    option.statement.run([z, x, (1 << z) - 1 - y]);
   } else {
     option.source
       .prepare(MBTILES_DELETE_TILE_QUERY)
-      .run([option.z, option.x, (1 << option.z) - 1 - option.y]);
+      .run([z, x, (1 << z) - 1 - y]);
   }
 }
 
@@ -632,149 +631,14 @@ export async function getMBTilesSize(filePath) {
 }
 
 /**
- * Add MBTiles overviews (downsample to lower zoom levels)
- * @param {Database} source SQLite database instance
- * @param {number} concurrency Concurrency to generate overviews
- * @param {256|512} tileSize Tile size
- * @param {boolean} storeTransparent Is store transparent tile?
- * @returns {Promise<void>}
- */
-export async function addMBTilesOverviews(
-  source,
-  concurrency,
-  tileSize,
-  storeTransparent,
-) {
-  /* Get tile width & height */
-  const data = source.prepare("SELECT tile_data FROM tiles LIMIT 1;").get();
-
-  if (!data?.tile_data) {
-    return;
-  }
-
-  const { width, height } = await getImageMetadata(data.tile_data);
-
-  /* Get source width & height */
-  const metadata = await getMBTilesMetadata(source);
-
-  const { tileBounds } = getTileBounds({
-    bbox: metadata.bounds,
-    minZoom: metadata.maxzoom,
-    maxZoom: metadata.maxzoom,
-    scheme: "tms",
-  });
-
-  let sourceWidth = (tileBounds[0].x[1] - tileBounds[0].x[0] + 1) * tileSize;
-  let sourceheight = (tileBounds[0].y[1] - tileBounds[0].y[0] + 1) * tileSize;
-
-  const querySQL = source.prepare(
-    `
-    SELECT
-      tile_column, tile_row, tile_data
-    FROM
-      tiles
-    WHERE
-      zoom_level = ? AND tile_column BETWEEN ? AND ? AND tile_row BETWEEN ? AND ?;
-    `,
-  );
-
-  const insertSQL = source.prepare(MBTILES_INSERT_TILE_QUERY);
-
-  const createOption = {
-    width: width * 2,
-    height: height * 2,
-    channels: 4,
-    background: BACKGROUND_COLOR,
-  };
-
-  /* Create tile data handler function */
-  async function createTileData(z, x, y) {
-    const minX = x * 2;
-    const maxX = minX + 1;
-    const minY = y * 2;
-    const maxY = minY + 1;
-
-    const tiles = querySQL.all([z + 1, minX, maxX, minY, maxY]);
-
-    if (tiles.length) {
-      // Create composites option
-      const compositesOption = [];
-
-      for (const tile of tiles) {
-        if (!tile.tile_data) {
-          continue;
-        }
-
-        compositesOption.push({
-          limitInputPixels: false,
-          input: await createImageOutput({
-            data: tile.tile_data,
-          }),
-          left: (tile.tile_column - minX) * width,
-          top: (maxY - tile.tile_row) * height,
-        });
-      }
-
-      if (compositesOption.length) {
-        // Create image
-        const image = await createImageOutput({
-          createOption: createOption,
-          compositesOption: compositesOption,
-          format: metadata.format,
-          width: width,
-          height: height,
-        });
-
-        await storeMBtilesTileData({
-          statement: insertSQL,
-          z: z,
-          x: x,
-          y: y,
-          data: image,
-          storeTransparent: storeTransparent,
-        });
-      }
-    }
-  }
-
-  /* Get delta z */
-  let deltaZ = 0;
-  const targetTileSize = Math.floor(tileSize * 0.95);
-
-  while (
-    deltaZ < metadata.maxzoom &&
-    (sourceWidth > targetTileSize || sourceheight > targetTileSize)
-  ) {
-    sourceWidth /= 2;
-    sourceheight /= 2;
-
-    deltaZ++;
-
-    const { tileBounds } = getTileBounds({
-      bbox: metadata.bounds,
-      minZoom: metadata.maxzoom - deltaZ,
-      maxZoom: metadata.maxzoom - deltaZ,
-      scheme: "tms",
-    });
-
-    await handleTilesConcurrency(concurrency, createTileData, tileBounds);
-  }
-
-  /* Update minzoom */
-  updateMBTilesMetadata(source, {
-    minzoom: metadata.maxzoom - deltaZ,
-  });
-}
-
-/**
- * Get and cache MBTiles data tile
+ * Get and cache MBTiles tile data
  * @param {string} id Data id
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
  * @returns {Promise<object>}
  */
-export async function getAndCacheMBTilesDataTile(id, z, x, y) {
+export async function getAndCacheMBTilesTileData(id, z, x, y) {
   const item = config.datas[id];
   if (!item) {
     throw new Error(`Data id "${id}" does not exist`);

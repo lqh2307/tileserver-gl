@@ -9,28 +9,24 @@ import os from "os";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   getMBTilesTileExtraInfoFromCoverages,
-  calculatePostgreSQLTileExtraInfo,
   getXYZTileExtraInfoFromCoverages,
-  calculateMBTilesTileExtraInfo,
-  getAndCachePostgreSQLDataTile,
-  getAndCacheMBTilesDataTile,
-  calculateXYZTileExtraInfo,
+  getAndCachePostgreSQLTileData,
+  getAndCacheMBTilesTileData,
+  MBTILES_INSERT_TILE_QUERY,
   updatePostgreSQLMetadata,
   storePostgreSQLTileData,
   getAndCacheDataGeoJSON,
-  getAndCacheXYZDataTile,
-  addPostgreSQLOverviews,
+  getAndCacheXYZTileData,
   getAndCacheDataSprite,
   updateMBTilesMetadata,
   getAndCacheDataFonts,
   getRenderedStyleJSON,
   storeMBtilesTileData,
-  addMBTilesOverviews,
+  XYZ_INSERT_MD5_QUERY,
   closePostgreSQLDB,
   updateXYZMetadata,
   storeXYZTileFile,
   openPostgreSQLDB,
-  addXYZOverviews,
   getFallbackFont,
   closeMBTilesDB,
   getPMTilesTile,
@@ -40,14 +36,13 @@ import {
 } from "./resources/index.js";
 import {
   detectFormatAndHeaders,
-  handleTilesConcurrency,
   FALLBACK_TILE_DATA,
   lonLat4326ToXY3857,
   xy3857ToLonLat4326,
-  handleConcurrency,
   createImageOutput,
   getLonLatFromXYZ,
   BACKGROUND_COLOR,
+  runAllWithLimit,
   calculateSizes,
   getDataFromURL,
   base64ToBuffer,
@@ -181,12 +176,12 @@ function createRenderer(option) {
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getPMTilesTile(item.source, +z, +x, +y);
+            const tileData = await getPMTilesTile(item.source, +z, +x, +y);
 
             /* Unzip data */
-            data = dataTile.headers["content-encoding"]
-              ? await unzipAsync(dataTile.data)
-              : dataTile.data;
+            data = tileData.headers["content-encoding"]
+              ? await unzipAsync(tileData.data)
+              : tileData.data;
           } catch (error) {
             printLog(
               "warn",
@@ -209,7 +204,7 @@ function createRenderer(option) {
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getAndCacheMBTilesDataTile(
+            const tileData = await getAndCacheMBTilesTileData(
               parts[2],
               +z,
               +x,
@@ -217,9 +212,9 @@ function createRenderer(option) {
             );
 
             /* Unzip data */
-            data = dataTile.headers["content-encoding"]
-              ? await unzipAsync(dataTile.data)
-              : dataTile.data;
+            data = tileData.headers["content-encoding"]
+              ? await unzipAsync(tileData.data)
+              : tileData.data;
           } catch (error) {
             printLog(
               "warn",
@@ -242,12 +237,12 @@ function createRenderer(option) {
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getAndCacheXYZDataTile(parts[2], +z, +x, +y);
+            const tileData = await getAndCacheXYZTileData(parts[2], +z, +x, +y);
 
             /* Unzip data */
-            data = dataTile.headers["content-encoding"]
-              ? await unzipAsync(dataTile.data)
-              : dataTile.data;
+            data = tileData.headers["content-encoding"]
+              ? await unzipAsync(tileData.data)
+              : tileData.data;
           } catch (error) {
             printLog(
               "warn",
@@ -270,7 +265,7 @@ function createRenderer(option) {
           const item = config.datas[parts[2]];
 
           try {
-            const dataTile = await getAndCachePostgreSQLDataTile(
+            const tileData = await getAndCachePostgreSQLTileData(
               parts[2],
               +z,
               +x,
@@ -278,9 +273,9 @@ function createRenderer(option) {
             );
 
             /* Unzip data */
-            data = dataTile.headers["content-encoding"]
-              ? await unzipAsync(dataTile.data)
-              : dataTile.data;
+            data = tileData.headers["content-encoding"]
+              ? await unzipAsync(tileData.data)
+              : tileData.data;
           } catch (error) {
             printLog(
               "warn",
@@ -401,10 +396,13 @@ function createRenderer(option) {
 
 /**
  * Render image tile data
- * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, z: number, x: number, y: number, format: "jpeg"|"jpg"|"png"|"webp", grayscale: boolean, filePath: string }} option Option object
+ * @param {number} z Zoom level
+ * @param {number} x Tile column
+ * @param {number} y Tile row
+ * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp", grayscale: boolean, filePath: string }} option Option object
  * @returns {Promise<Buffer|string>}
  */
-export async function renderImageTileData(option) {
+export async function renderImageTileData(z, x, y, option) {
   const renderer = option.pool
     ? await option.pool.acquire()
     : createRenderer({
@@ -414,13 +412,13 @@ export async function renderImageTileData(option) {
       });
 
   return await new Promise((resolve, reject) => {
-    const isNeedHack = option.z === 0 && option.tileSize === 256;
+    const isNeedHack = z === 0 && option.tileSize === 256;
     const hackTileSize = isNeedHack ? option.tileSize * 2 : option.tileSize;
 
     renderer.render(
       {
-        zoom: option.z > 0 && option.tileSize === 256 ? option.z - 1 : option.z,
-        center: getLonLatFromXYZ(option.x, option.y, option.z, "center", "xyz"),
+        zoom: z > 0 && option.tileSize === 256 ? z - 1 : z,
+        center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
         width: hackTileSize,
         height: hackTileSize,
         pitch: option.pitch ?? 0,
@@ -551,47 +549,49 @@ export async function renderStyleJSON(option) {
     const pxStep = totalWidth / xSplits;
     const pyStep = totalHeight / ySplits;
 
+    // Create composite options
     const total = xSplits * ySplits;
     const compositesOption = Array(total);
 
-    async function createCompositeOption(idx) {
-      const xi = Math.floor(idx / ySplits);
-      const yi = idx % ySplits;
+    function* createCompositeOptionGenerator() {
+      for (let idx = 0; idx < total; idx++) {
+        yield async () => {
+          const xi = Math.floor(idx / ySplits);
+          const yi = idx % ySplits;
 
-      const subMinX = minX + xi * xStep;
-      const subMinY = minY + yi * yStep;
-      const subFilePath = `${dirPath}/${idx}.${option.format}`;
+          const subMinX = minX + xi * xStep;
+          const subMinY = minY + yi * yStep;
+          const subFilePath = `${dirPath}/${idx}.${option.format}`;
 
-      await renderImageStaticData({
-        styleJSON: option.styleJSON,
-        tileScale: option.tileScale,
-        tileSize: option.tileSize,
-        format: option.format,
-        pitch: option.pitch,
-        bearing: option.bearing,
-        bbox: [
-          ...xy3857ToLonLat4326(subMinX, subMinY),
-          ...xy3857ToLonLat4326(subMinX + xStep, subMinY + yStep),
-        ],
-        filePath: subFilePath,
-        zoom: option.zoom,
-      });
+          await renderImageStaticData({
+            styleJSON: option.styleJSON,
+            tileScale: option.tileScale,
+            tileSize: option.tileSize,
+            format: option.format,
+            pitch: option.pitch,
+            bearing: option.bearing,
+            bbox: [
+              ...xy3857ToLonLat4326(subMinX, subMinY),
+              ...xy3857ToLonLat4326(subMinX + xStep, subMinY + yStep),
+            ],
+            filePath: subFilePath,
+            zoom: option.zoom,
+          });
 
-      compositesOption[idx] = {
-        limitInputPixels: false,
-        input: subFilePath,
-        left: Math.round(xi * pxStep),
-        top: Math.round(totalHeight - (yi + 1) * pyStep),
-      };
+          compositesOption[idx] = {
+            limitInputPixels: false,
+            input: subFilePath,
+            left: Math.round(xi * pxStep),
+            top: Math.round(totalHeight - (yi + 1) * pyStep),
+          };
+        };
+      }
     }
 
     // Batch run
-    await handleConcurrency(
-      os.cpus().length,
-      createCompositeOption,
-      Array.from({ length: xSplits * ySplits }, (_, i) => i),
-    );
+    await runAllWithLimit(createCompositeOptionGenerator(), os.cpus().length);
 
+    // Create image output
     return await createImageOutput({
       createOption: {
         width: totalWidth,
@@ -610,7 +610,7 @@ export async function renderStyleJSON(option) {
 }
 
 /**
- * Render data tiles
+ * Render tile datas
  * @param {string} id Style ID
  * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {string} storePath Exported path
@@ -618,13 +618,12 @@ export async function renderStyleJSON(option) {
  * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?
- * @param {boolean} createOverview Is create overview?
  * @param {number} tileScale Tile scale
  * @param {256|512} tileSize Tile size
  * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
-export async function renderDataTiles(
+export async function renderTileDatas(
   id,
   storeType,
   storePath,
@@ -632,7 +631,6 @@ export async function renderDataTiles(
   maxRendererPoolSize,
   concurrency,
   storeTransparent,
-  createOverview,
   tileScale,
   tileSize,
   refreshBefore,
@@ -655,7 +653,6 @@ export async function renderDataTiles(
     log += `\n\tStore path: ${storePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
-    log += `\n\tCreate overview: ${createOverview}`;
     log += `\n\tFormat: ${metadata.format} - Tile scale: ${tileScale} - Tile size: ${tileSize}`;
     log += `\n\tBBox: ${JSON.stringify(metadata.bounds)}- Minzoom: ${metadata.minzoom} - Maxzoom: ${metadata.maxzoom}`;
 
@@ -679,10 +676,7 @@ export async function renderDataTiles(
     printLog("info", log);
 
     let tileExtraInfo;
-    let getDataTileFunc;
-    let storeDataTileFunc;
-    let createOverviewsFunc;
-    let calculateTileExtraInfo;
+    let storeTileDataFunc;
     let tileOption;
 
     const item = config.styles[id];
@@ -712,6 +706,10 @@ export async function renderDataTiles(
     }
 
     switch (storeType) {
+      default: {
+        throw new Error(`Invalid store type "${storeType}"`);
+      }
+
       case "mbtiles": {
         /* Create database */
         printLog("info", "Creating database...");
@@ -747,35 +745,21 @@ export async function renderDataTiles(
           }
         }
 
-        /* Get data function */
-        getDataTileFunc = (z, x, y) =>
-          renderImageTileData({
-            pool: pool,
-            styleJSON: styleJSON,
-            tileScale: tileScale,
-            tileSize: tileSize,
-            z: z,
-            x: x,
-            y: y,
-            format: metadata.format,
-          });
-
+        /* Assign tile option */
         tileOption = {
-          source: source,
+          statement: source.prepare(MBTILES_INSERT_TILE_QUERY),
+          created: Date.now(),
           storeTransparent: storeTransparent,
+          pool: pool,
+          styleJSON: styleJSON,
+          tileScale: tileScale,
+          tileSize: tileSize,
+          format: metadata.format,
         };
 
         /* Store data function */
-        storeDataTileFunc = (z, x, y, data) =>
-          storeMBtilesTileData(z, x, y, data, tileOption);
-
-        /* Add overviews function */
-        createOverviewsFunc = () =>
-          addMBTilesOverviews(source, concurrency, tileSize, storeTransparent);
-
-        /* Calculate extra info */
-        calculateTileExtraInfo = async () =>
-          calculateMBTilesTileExtraInfo(source);
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storeMBtilesTileData(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeMBTilesDB(source);
@@ -818,40 +802,20 @@ export async function renderDataTiles(
           }
         }
 
-        /* Get data function */
-        getDataTileFunc = (z, x, y) =>
-          renderImageTileData({
-            pool: pool,
-            styleJSON: styleJSON,
-            tileScale: tileScale,
-            tileSize: tileSize,
-            z: z,
-            x: x,
-            y: y,
-            format: metadata.format,
-          });
-
+        /* Assign tile option */
         tileOption = {
-          source: source,
+          created: Date.now(),
           storeTransparent: storeTransparent,
+          pool: pool,
+          styleJSON: styleJSON,
+          tileScale: tileScale,
+          tileSize: tileSize,
+          format: metadata.format,
         };
 
         /* Store data function */
-        storeDataTileFunc = (z, x, y, data) =>
-          storePostgreSQLTileData(z, x, y, data, tileOption);
-
-        /* Add overviews function */
-        createOverviewsFunc = () =>
-          addPostgreSQLOverviews(
-            source,
-            concurrency,
-            tileSize,
-            storeTransparent,
-          );
-
-        /* Calculate extra info */
-        calculateTileExtraInfo = async () =>
-          await calculatePostgreSQLTileExtraInfo(source);
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storePostgreSQLTileData(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => await closePostgreSQLDB(source);
@@ -896,43 +860,22 @@ export async function renderDataTiles(
           }
         }
 
-        /* Get data function */
-        getDataTileFunc = (z, x, y) =>
-          renderImageTileData({
-            pool: pool,
-            styleJSON: styleJSON,
-            tileScale: tileScale,
-            tileSize: tileSize,
-            z: z,
-            x: x,
-            y: y,
-            format: metadata.format,
-          });
-
+        /* Assign tile option */
         tileOption = {
-          source: source,
+          statement: source.prepare(XYZ_INSERT_MD5_QUERY),
+          created: Date.now(),
           sourcePath: storePath,
-          format: metadata.format,
           storeTransparent: storeTransparent,
+          pool: pool,
+          styleJSON: styleJSON,
+          tileScale: tileScale,
+          tileSize: tileSize,
+          format: metadata.format,
         };
 
         /* Store data function */
-        storeDataTileFunc = (z, x, y, data) =>
-          storeXYZTileFile(z, x, y, data, tileOption);
-
-        /* Add overviews function */
-        createOverviewsFunc = () =>
-          addXYZOverviews(
-            storePath,
-            source,
-            concurrency,
-            tileSize,
-            storeTransparent,
-          );
-
-        /* Calculate extra info */
-        calculateTileExtraInfo = async () =>
-          await calculateXYZTileExtraInfo(storePath, source);
+        storeTileDataFunc = async (z, x, y, data) =>
+          await storeXYZTileFile(z, x, y, data, tileOption);
 
         /* Close database function */
         closeDatabaseFunc = async () => closeXYZMD5DB(source);
@@ -941,69 +884,76 @@ export async function renderDataTiles(
       }
     }
 
-    /* Render data tile function */
-    const renderDataTileFunc = async (z, x, y, tasks) => {
-      const tileName = `${z}/${x}/${y}`;
+    /* Render and store tile data generator */
+    function* renderAndStoreTileDataGenerator() {
+      let completeTasks = 0;
 
-      const completeTasks = tasks.completeTasks;
+      for (const { z, x, y } of tileBounds) {
+        for (let xCount = x[0]; xCount <= x[1]; xCount++) {
+          for (let yCount = y[0]; yCount <= y[1]; yCount++) {
+            completeTasks++;
 
-      try {
-        if (refreshTimestamp === true) {
-          printLog(
-            "info",
-            `Rendering style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
-          );
+            yield async () => {
+              const tileName = `${z}/${xCount}/${yCount}`;
 
-          // Get data tile
-          const data = await getDataTileFunc(z, x, y);
+              try {
+                if (refreshTimestamp === true) {
+                  printLog(
+                    "info",
+                    `Rendering style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+                  );
 
-          if (tileExtraInfo[tileName] === calculateMD5(data)) {
-            return;
+                  // Get tile data
+                  const data = await renderImageTileData(
+                    z,
+                    xCount,
+                    yCount,
+                    tileOption,
+                  );
+
+                  if (tileExtraInfo[tileName] === calculateMD5(data)) {
+                    return;
+                  }
+
+                  // Store tile data
+                  await storeTileDataFunc(z, xCount, yCount, data);
+                } else {
+                  if (
+                    refreshTimestamp &&
+                    tileExtraInfo[tileName] >= refreshTimestamp
+                  ) {
+                    return;
+                  }
+
+                  printLog(
+                    "info",
+                    `Rendering style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+                  );
+
+                  // Store tile data
+                  await storeTileDataFunc(
+                    z,
+                    xCount,
+                    yCount,
+                    await renderImageTileData(z, xCount, yCount, tileOption),
+                  );
+                }
+              } catch (error) {
+                printLog(
+                  "error",
+                  `Failed to render style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+                );
+              }
+            };
           }
-
-          // Store data tile
-          await storeDataTileFunc(z, x, y, data);
-        } else {
-          if (refreshTimestamp && tileExtraInfo[tileName] >= refreshTimestamp) {
-            return;
-          }
-
-          printLog(
-            "info",
-            `Rendering style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
-          );
-
-          // Store data tile
-          await storeDataTileFunc(z, x, y, await getDataTileFunc(z, x, y));
         }
-      } catch (error) {
-        printLog(
-          "error",
-          `Failed to render style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
-        );
       }
-    };
-
-    /* Render data tiles */
-    printLog("info", "Rendering data tiles...");
-
-    await handleTilesConcurrency(
-      concurrency,
-      renderDataTileFunc,
-      tileBounds,
-      item,
-    );
-
-    /* Create overviews and calculate tile extra info */
-    if (createOverview) {
-      printLog("info", `Creating overviews...`);
-
-      await createOverviewsFunc(source, concurrency, tileSize);
-
-      printLog("info", `Calculating tile extra info...`);
-
-      await calculateTileExtraInfo(source);
     }
+
+    /* Render and store tile datas */
+    printLog("info", "Rendering and storing tile datas...");
+
+    await runAllWithLimit(renderAndStoreTileDataGenerator(), concurrency, item);
 
     printLog(
       "info",

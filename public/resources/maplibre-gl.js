@@ -1,4 +1,4 @@
-/* MapLibre GL JS v5.17.0 */ !(function (t, i) {
+/* MapLibre GL JS v5.18.0 */ !(function (t, i) {
   "object" == typeof exports && "undefined" != typeof module
     ? (module.exports = i())
     : "function" == typeof define && define.amd
@@ -17902,6 +17902,28 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         getTilePoint(t) {
           return this.canonical.getTilePoint(new uw(t.x - this.wrap, t.y));
         }
+        normalizeCoordinates(t, i, r = 8192) {
+          if (t >= 0 && t < r && i >= 0 && i < r)
+            return { tileID: this, x: t, y: i };
+          let a = Math.floor(t / r),
+            n = Math.floor(i / r),
+            s = this.canonical.z,
+            o = 1 << s,
+            l = this.canonical.y + n;
+          if (l < 0 || l >= o) return null;
+          let u = this.canonical.x + a,
+            h = this.wrap;
+          return (
+            u < 0
+              ? ((h -= Math.ceil(-u / o)), (u = ((u % o) + o) % o))
+              : u >= o && ((h += Math.floor(u / o)), (u %= o)),
+            {
+              tileID: new uS(this.overscaledZ, h, s, u, l),
+              x: t - a * r,
+              y: i - n * r,
+            }
+          );
+        }
       }
       function uI(t, i, r, a, n) {
         (t *= 2) < 0 && (t = -1 * t - 1);
@@ -18343,10 +18365,21 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
       }
       function u4(t, i, r) {
         let a = new BigInt64Array(r);
-        for (let n = 0; n < a.length; n++) a[n] = uU(t, i);
+        for (let n = 0; n < a.length; n++) a[n] = uN(t, i);
         return a;
       }
       function uN(t, i) {
+        let r = 0n,
+          a = 0,
+          n = i.get();
+        for (; n < t.length; ) {
+          let s = t[n++];
+          if (((r |= BigInt(127 & s) << BigInt(a)), !(128 & s))) break;
+          if ((a += 7) >= 64) throw Error("Varint too long");
+        }
+        return (i.set(n), r);
+      }
+      function uj(t, i) {
         let r, a;
         return (
           (a = t[i.get()]),
@@ -18404,43 +18437,40 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                           })((r |= (15 & (a = t[i.get()])) << 28), t, i))))
         );
       }
-      function uj(t, i, r, a) {
-        throw Error("FastPFor is not implemented yet.");
-      }
       function u6(t) {
         return (t >>> 1) ^ -(1 & t);
       }
       function uG(t) {
         return (t >> 1n) ^ -(1n & t);
       }
-      function uU(t, i) {
-        let r = 0n,
-          a = 0,
-          n = i.get();
-        for (; n < t.length; ) {
-          let s = t[n++];
-          if (((r |= BigInt(127 & s) << BigInt(a)), !(128 & s))) break;
-          if ((a += 7) >= 64) throw Error("Varint too long");
-        }
-        return (i.set(n), r);
+      function uU(t) {
+        return t % 2 == 1 ? -((t + 1) / 2) : t / 2;
       }
       function uq(t, i, r) {
-        let a = new Int32Array(r),
-          n = 0;
-        for (let s = 0; s < i; s++) {
-          let o = t[s];
-          (a.fill(t[s + i], n, n + o), (n += o));
+        if (void 0 === r) {
+          r = 0;
+          for (let a = 0; a < i; a++) r += t[a];
         }
-        return a;
+        let n = new Int32Array(r),
+          s = 0;
+        for (let o = 0; o < i; o++) {
+          let l = t[o];
+          (n.fill(t[o + i], s, s + l), (s += l));
+        }
+        return n;
       }
       function uZ(t, i, r) {
-        let a = new BigInt64Array(r),
-          n = 0;
-        for (let s = 0; s < i; s++) {
-          let o = Number(t[s]);
-          (a.fill(t[s + i], n, n + o), (n += o));
+        if (void 0 === r) {
+          r = 0;
+          for (let a = 0; a < i; a++) r += Number(t[a]);
         }
-        return a;
+        let n = new BigInt64Array(r),
+          s = 0;
+        for (let o = 0; o < i; o++) {
+          let l = Number(t[o]);
+          (n.fill(t[o + i], s, s + l), (s += l));
+        }
+        return n;
       }
       function u9(t, i, r) {
         let a = new Float64Array(r),
@@ -18462,26 +18492,6 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               (a = t[r + 3] += a));
         for (; r != t.length; ) ((t[r] += t[r - 1]), ++r);
       }
-      function u7(t) {
-        ((t[0] = (t[0] >>> 1) ^ -(1 & t[0])),
-          (t[1] = (t[1] >>> 1) ^ -(1 & t[1])));
-        let i = (t.length / 4) * 4,
-          r = 2;
-        if (i >= 4)
-          for (; r < i - 4; r += 4) {
-            let a = t[r],
-              n = t[r + 1],
-              s = t[r + 2],
-              o = t[r + 3];
-            ((t[r] = ((a >>> 1) ^ -(1 & a)) + t[r - 2]),
-              (t[r + 1] = ((n >>> 1) ^ -(1 & n)) + t[r - 1]),
-              (t[r + 2] = ((s >>> 1) ^ -(1 & s)) + t[r]),
-              (t[r + 3] = ((o >>> 1) ^ -(1 & o)) + t[r + 1]));
-          }
-        for (; r != t.length; r += 2)
-          ((t[r] = ((t[r] >>> 1) ^ -(1 & t[r])) + t[r - 2]),
-            (t[r + 1] = ((t[r + 1] >>> 1) ^ -(1 & t[r + 1])) + t[r - 1]));
-      }
       (((n = g || (g = {})).NONE = "NONE"),
         (n.DELTA = "DELTA"),
         (n.COMPONENTWISE_DELTA = "COMPONENTWISE_DELTA"),
@@ -18496,7 +18506,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         (o.DATA = "DATA"),
         (o.OFFSET = "OFFSET"),
         (o.LENGTH = "LENGTH"));
-      class uW {
+      class u7 {
         _dictionaryType;
         _offsetType;
         _lengthType;
@@ -18515,20 +18525,20 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this._lengthType;
         }
       }
-      function uH(t, i) {
+      function uW(t, i) {
         let r = (function (t, i) {
           let r = t[i.get()],
             a = Object.values($)[r >> 4],
             n = null;
           switch (a) {
             case $.DATA:
-              n = new uW(Object.values(x)[15 & r]);
+              n = new u7(Object.values(x)[15 & r]);
               break;
             case $.OFFSET:
-              n = new uW(null, Object.values(v)[15 & r]);
+              n = new u7(null, Object.values(v)[15 & r]);
               break;
             case $.LENGTH:
-              n = new uW(null, null, Object.values(_)[15 & r]);
+              n = new u7(null, null, Object.values(_)[15 & r]);
           }
           i.increment();
           let s = t[i.get()],
@@ -18607,7 +18617,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         (c[(c.SEQUENCE = 2)] = "SEQUENCE"),
         (c[(c.DICTIONARY = 3)] = "DICTIONARY"),
         (c[(c.FSST_DICTIONARY = 4)] = "FSST_DICTIONARY"));
-      class uX {
+      class uH {
         values;
         _size;
         constructor(t, i) {
@@ -18630,12 +18640,22 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this.values;
         }
       }
-      function uY(t, i, r, a, n) {
-        return (function (t, i, r) {
+      function uX(t, i, r) {
+        if (!i) return t;
+        let a = i.size(),
+          n = new t.constructor(a),
+          s = 0;
+        for (let o = 0; o < a; o++) n[o] = i.get(o) ? t[s++] : r;
+        return n;
+      }
+      function uY(t, i, r, a, n, s) {
+        return (function (t, i, r, a, n) {
           switch (i.logicalLevelTechnique1) {
             case g.DELTA:
-              return i.logicalLevelTechnique2 === g.RLE
-                ? (function (t, i, r) {
+              if (i.logicalLevelTechnique2 === g.RLE) {
+                let s = i;
+                if (!n)
+                  return (function (t, i, r) {
                     let a = new Int32Array(r),
                       n = 0,
                       s = 0;
@@ -18645,90 +18665,131 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                       for (let h = 0; h < l; h++) ((s += u), (a[n++] = s));
                     }
                     return a;
-                  })(t, i.runs, i.numRleValues)
-                : ((function (t) {
-                    t[0] = (t[0] >>> 1) ^ -(1 & t[0]);
-                    let i = (t.length / 4) * 4,
-                      r = 1;
-                    if (i >= 4)
-                      for (; r < i - 4; r += 4) {
-                        let a = t[r],
-                          n = t[r + 1],
-                          s = t[r + 2],
-                          o = t[r + 3];
-                        ((t[r] = ((a >>> 1) ^ -(1 & a)) + t[r - 1]),
-                          (t[r + 1] = ((n >>> 1) ^ -(1 & n)) + t[r]),
-                          (t[r + 2] = ((s >>> 1) ^ -(1 & s)) + t[r + 1]),
-                          (t[r + 3] = ((o >>> 1) ^ -(1 & o)) + t[r + 2]));
-                      }
-                    for (; r != t.length; ++r)
-                      t[r] = ((t[r] >>> 1) ^ -(1 & t[r])) + t[r - 1];
-                  })(t),
-                  t);
+                  })(t, s.runs, s.numRleValues);
+                t = uq(t, s.runs, s.numRleValues);
+              }
+              !(function (t) {
+                t[0] = u6(t[0]);
+                let i = (t.length / 4) * 4,
+                  r = 1;
+                if (i >= 4)
+                  for (; r < i - 4; r += 4) {
+                    let a = t[r + 1],
+                      n = t[r + 2],
+                      s = t[r + 3];
+                    ((t[r] = u6(t[r]) + t[r - 1]),
+                      (t[r + 1] = u6(a) + t[r]),
+                      (t[r + 2] = u6(n) + t[r + 1]),
+                      (t[r + 3] = u6(s) + t[r + 2]));
+                  }
+                for (; r != t.length; ++r) t[r] = u6(t[r]) + t[r - 1];
+              })(t);
+              break;
             case g.RLE:
-              var a, n, s;
-              return (
-                (a = t),
-                (n = i),
-                (s = r)
+              var o, l, u;
+              t =
+                ((o = t),
+                (l = i),
+                (u = r)
                   ? (function (t, i, r) {
-                      let a = new Int32Array(r),
-                        n = 0;
-                      for (let s = 0; s < i; s++) {
-                        let o = t[s],
-                          l = t[s + i];
-                        ((l = (l >>> 1) ^ -(1 & l)),
-                          a.fill(l, n, n + o),
-                          (n += o));
+                      if (void 0 === r) {
+                        r = 0;
+                        for (let a = 0; a < i; a++) r += t[a];
                       }
-                      return a;
-                    })(a, n.runs, n.numRleValues)
-                  : uq(a, n.runs, n.numRleValues)
-              );
+                      let n = new Int32Array(r),
+                        s = 0;
+                      for (let o = 0; o < i; o++) {
+                        let l = t[o],
+                          u = t[o + i];
+                        ((u = u6(u)), n.fill(u, s, s + l), (s += l));
+                      }
+                      return n;
+                    })(o, l.runs, l.numRleValues)
+                  : uq(o, l.runs, l.numRleValues));
+              break;
             case g.MORTON:
-              return (u5(t), t);
+              u5(t);
+              break;
             case g.COMPONENTWISE_DELTA:
-              return (u7(t), t);
+              !(function (t) {
+                if (t.length < 2) return;
+                ((t[0] = u6(t[0])), (t[1] = u6(t[1])));
+                let i = (t.length / 4) * 4,
+                  r = 2;
+                if (i >= 4)
+                  for (; r < i - 4; r += 4) {
+                    let a = t[r + 1],
+                      n = t[r + 2],
+                      s = t[r + 3];
+                    ((t[r] = u6(t[r]) + t[r - 2]),
+                      (t[r + 1] = u6(a) + t[r - 1]),
+                      (t[r + 2] = u6(n) + t[r]),
+                      (t[r + 3] = u6(s) + t[r + 1]));
+                  }
+                for (; r != t.length; r += 2)
+                  ((t[r] = u6(t[r]) + t[r - 2]),
+                    (t[r + 1] = u6(t[r + 1]) + t[r - 1]));
+              })(t);
+              break;
             case g.NONE:
-              return (
-                r &&
-                  (function (t) {
-                    for (let i = 0; i < t.length; i++) {
-                      let r = t[i];
-                      t[i] = (r >>> 1) ^ -(1 & r);
-                    }
-                  })(t),
-                t
-              );
+              r &&
+                (function (t) {
+                  for (let i = 0; i < t.length; i++) t[i] = u6(t[i]);
+                })(t);
+              break;
             default:
               throw Error(
                 `The specified Logical level technique is not supported: ${i.logicalLevelTechnique1}`,
               );
           }
-        })(uQ(t, i, r), r, a);
+          return n ? uX(t, n, 0) : t;
+        })(uQ(t, i, r), r, a, 0, s);
       }
       function uK(t, i, r) {
         return (function (t, i) {
           if (
             i.logicalLevelTechnique1 === g.DELTA &&
             i.logicalLevelTechnique2 === g.NONE
-          ) {
-            let r = (function (t) {
+          )
+            return (function (t) {
               let i = new Int32Array(t.length + 1);
               ((i[0] = 0), (i[1] = u6(t[0])));
-              let r = i[1],
-                a = 2;
-              for (; a != i.length; ++a) {
-                let n = t[a - 1];
-                ((r += (n >>> 1) ^ -(1 & n)), (i[a] = i[a - 1] + r));
-              }
-              return i;
+              let r = i[1];
+              for (let a = 2; a != i.length; ++a)
+                ((r += u6(t[a - 1])), (i[a] = i[a - 1] + r));
+              return new Uint32Array(i);
             })(t);
-            return r;
-          }
           if (
             i.logicalLevelTechnique1 === g.RLE &&
             i.logicalLevelTechnique2 === g.NONE
+          )
+            return (function (t, i, r) {
+              let a = new Int32Array(r + 1);
+              a[0] = 0;
+              let n = 1,
+                s = a[0];
+              for (let o = 0; o < i; o++) {
+                let l = t[o],
+                  u = t[o + i];
+                for (let h = n; h < n + l; h++) ((a[h] = u + s), (s = a[h]));
+                n += l;
+              }
+              return new Uint32Array(a);
+            })(t, i.runs, i.numRleValues);
+          if (
+            i.logicalLevelTechnique1 === g.NONE &&
+            i.logicalLevelTechnique2 === g.NONE
+          ) {
+            !(function (t) {
+              let i = 0;
+              for (let r = 0; r < t.length; r++) ((t[r] += i), (i = t[r]));
+            })(t);
+            let r = new Uint32Array(i.numValues + 1);
+            return ((r[0] = 0), r.set(t, 1), r);
+          }
+          if (
+            i.logicalLevelTechnique1 === g.DELTA &&
+            i.logicalLevelTechnique2 === g.RLE
           ) {
             let a = (function (t, i, r) {
               let a = new Int32Array(r + 1);
@@ -18738,43 +18799,13 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               for (let o = 0; o < i; o++) {
                 let l = t[o],
                   u = t[o + i];
+                u = u6(u);
                 for (let h = n; h < n + l; h++) ((a[h] = u + s), (s = a[h]));
                 n += l;
               }
-              return a;
+              return new Uint32Array(a);
             })(t, i.runs, i.numRleValues);
-            return a;
-          }
-          if (
-            i.logicalLevelTechnique1 === g.NONE &&
-            i.logicalLevelTechnique2 === g.NONE
-          ) {
-            !(function (t) {
-              let i = 0;
-              for (let r = 0; r < t.length; r++) ((t[r] += i), (i = t[r]));
-            })(t);
-            let n = new Int32Array(i.numValues + 1);
-            return ((n[0] = 0), n.set(t, 1), n);
-          }
-          if (
-            i.logicalLevelTechnique1 === g.DELTA &&
-            i.logicalLevelTechnique2 === g.RLE
-          ) {
-            let s = (function (t, i, r) {
-              let a = new Int32Array(r + 1);
-              a[0] = 0;
-              let n = 1,
-                s = a[0];
-              for (let o = 0; o < i; o++) {
-                let l = t[o],
-                  u = t[o + i];
-                u = (u >>> 1) ^ -(1 & u);
-                for (let h = n; h < n + l; h++) ((a[h] = u + s), (s = a[h]));
-                n += l;
-              }
-              return a;
-            })(t, i.runs, i.numRleValues);
-            return (u5(s), s);
+            return (u5(a), a);
           }
           throw Error(
             "Only delta encoding is supported for transforming length to offset streams yet.",
@@ -18783,7 +18814,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
       }
       function uQ(t, i, r) {
         let a = r.physicalLevelTechnique;
-        if (a === y.FAST_PFOR) return uj();
+        if (a === y.FAST_PFOR)
+          return (function () {
+            throw Error("FastPFor is not implemented yet.");
+          })();
         if (a === y.VARINT) return uV(t, i, r.numValues);
         if (a === y.NONE) {
           let n = i.get();
@@ -18820,12 +18854,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return [uG(t[2]), uG(t[3])];
         })(u4(t, i, r.numValues));
       }
-      function hi(t, i, r, a) {
-        return (function (t, i, r) {
+      function hi(t, i, r, a, n) {
+        return (function (t, i, r, a) {
           switch (i.logicalLevelTechnique1) {
             case g.DELTA:
-              return i.logicalLevelTechnique2 === g.RLE
-                ? (function (t, i, r) {
+              if (i.logicalLevelTechnique2 === g.RLE) {
+                let n = i;
+                if (!a)
+                  return (function (t, i, r) {
                     let a = new BigInt64Array(r),
                       n = 0,
                       s = 0n;
@@ -18835,63 +18871,61 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                       for (let h = 0; h < l; h++) ((s += u), (a[n++] = s));
                     }
                     return a;
-                  })(t, i.runs, i.numRleValues)
-                : ((function (t) {
-                    t[0] = (t[0] >> 1n) ^ -(1n & t[0]);
-                    let i = (t.length / 4) * 4,
-                      r = 1;
-                    if (i >= 4)
-                      for (; r < i - 4; r += 4) {
-                        let a = t[r],
-                          n = t[r + 1],
-                          s = t[r + 2],
-                          o = t[r + 3];
-                        ((t[r] = ((a >> 1n) ^ -(1n & a)) + t[r - 1]),
-                          (t[r + 1] = ((n >> 1n) ^ -(1n & n)) + t[r]),
-                          (t[r + 2] = ((s >> 1n) ^ -(1n & s)) + t[r + 1]),
-                          (t[r + 3] = ((o >> 1n) ^ -(1n & o)) + t[r + 2]));
-                      }
-                    for (; r != t.length; ++r)
-                      t[r] = ((t[r] >> 1n) ^ -(1n & t[r])) + t[r - 1];
-                  })(t),
-                  t);
+                  })(t, n.runs, n.numRleValues);
+                t = uZ(t, n.runs, n.numRleValues);
+              }
+              !(function (t) {
+                t[0] = uG(t[0]);
+                let i = (t.length / 4) * 4,
+                  r = 1;
+                if (i >= 4)
+                  for (; r < i - 4; r += 4) {
+                    let a = t[r + 1],
+                      n = t[r + 2],
+                      s = t[r + 3];
+                    ((t[r] = uG(t[r]) + t[r - 1]),
+                      (t[r + 1] = uG(a) + t[r]),
+                      (t[r + 2] = uG(n) + t[r + 1]),
+                      (t[r + 3] = uG(s) + t[r + 2]));
+                  }
+                for (; r != t.length; ++r) t[r] = uG(t[r]) + t[r - 1];
+              })(t);
+              break;
             case g.RLE:
-              var a, n, s;
-              return (
-                (a = t),
-                (n = i),
-                (s = r)
+              var s, o, l;
+              t =
+                ((s = t),
+                (o = i),
+                (l = r)
                   ? (function (t, i, r) {
-                      let a = new BigInt64Array(r),
-                        n = 0;
-                      for (let s = 0; s < i; s++) {
-                        let o = Number(t[s]),
-                          l = t[s + i];
-                        ((l = (l >> 1n) ^ -(1n & l)),
-                          a.fill(l, n, n + o),
-                          (n += o));
+                      if (void 0 === r) {
+                        r = 0;
+                        for (let a = 0; a < i; a++) r += Number(t[a]);
                       }
-                      return a;
-                    })(a, n.runs, n.numRleValues)
-                  : uZ(a, n.runs, n.numRleValues)
-              );
+                      let n = new BigInt64Array(r),
+                        s = 0;
+                      for (let o = 0; o < i; o++) {
+                        let l = Number(t[o]),
+                          u = t[o + i];
+                        ((u = uG(u)), n.fill(u, s, s + l), (s += l));
+                      }
+                      return n;
+                    })(s, o.runs, o.numRleValues)
+                  : uZ(s, o.runs, o.numRleValues));
+              break;
             case g.NONE:
-              return (
-                r &&
-                  (function (t) {
-                    for (let i = 0; i < t.length; i++) {
-                      let r = t[i];
-                      t[i] = (r >> 1n) ^ -(1n & r);
-                    }
-                  })(t),
-                t
-              );
+              r &&
+                (function (t) {
+                  for (let i = 0; i < t.length; i++) t[i] = uG(t[i]);
+                })(t);
+              break;
             default:
               throw Error(
                 `The specified Logical level technique is not supported: ${i.logicalLevelTechnique1}`,
               );
           }
-        })(u4(t, i, r.numValues), r, a);
+          return a ? uX(t, a, 0n) : t;
+        })(u4(t, i, r.numValues), r, a, n);
       }
       function hr(t, i, r, a) {
         var n, s;
@@ -18900,125 +18934,39 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           let l = o[0];
           return a ? uG(l) : l;
         }
-        return a ? ((n = o), uG(n[1])) : (s = o)[1];
+        return a ? uG((n = o)[1]) : (s = o)[1];
       }
-      function ha(t, i, r, a, n) {
-        return (function (t, i, r, a) {
-          switch (i.logicalLevelTechnique1) {
-            case g.DELTA:
-              return (
-                i.logicalLevelTechnique2 === g.RLE &&
-                  (t = uq(t, i.runs, i.numRleValues)),
-                (function (t, i) {
-                  let r = new Int32Array(t.size()),
-                    a = 0;
-                  t.get(0)
-                    ? ((r[0] = t.get(0) ? (i[0] >>> 1) ^ -(1 & i[0]) : 0),
-                      (a = 1))
-                    : (r[0] = 0);
-                  let n = 1;
-                  for (; n != r.length; ++n)
-                    r[n] = t.get(n)
-                      ? r[n - 1] + ((i[a] >>> 1) ^ -(1 & i[a++]))
-                      : r[n - 1];
-                  return r;
-                })(a, t)
-              );
-            case g.RLE:
-              return (function (t, i, r, a) {
-                let n = i;
-                return r
-                  ? (function (t, i, r) {
-                      let a = new Int32Array(t.size()),
-                        n = 0;
-                      for (let s = 0; s < r; s++) {
-                        let o = i[s],
-                          l = i[s + r];
-                        l = (l >>> 1) ^ -(1 & l);
-                        for (let u = n; u < n + o; u++)
-                          t.get(u) ? (a[u] = l) : ((a[u] = 0), n++);
-                        n += o;
-                      }
-                      return a;
-                    })(a, t, n.runs)
-                  : (function (t, i, r) {
-                      let a = new Int32Array(t.size()),
-                        n = 0;
-                      for (let s = 0; s < r; s++) {
-                        let o = i[s],
-                          l = i[s + r];
-                        for (let u = n; u < n + o; u++)
-                          t.get(u) ? (a[u] = l) : ((a[u] = 0), n++);
-                        n += o;
-                      }
-                      return a;
-                    })(a, t, n.runs);
-              })(t, i, r, a);
-            case g.MORTON:
-              return (u5(t), t);
-            case g.COMPONENTWISE_DELTA:
-              return (u7(t), t);
-            case g.NONE:
-              return (t = r
-                ? (function (t, i) {
-                    let r = new Int32Array(t.size()),
-                      a = 0,
-                      n = 0;
-                    for (; n != r.length; ++n)
-                      if (t.get(n)) {
-                        let s = i[a++];
-                        r[n] = (s >>> 1) ^ -(1 & s);
-                      } else r[n] = 0;
-                    return r;
-                  })(a, t)
-                : (function (t, i) {
-                    let r = new Int32Array(t.size()),
-                      a = 0,
-                      n = 0;
-                    for (; n != r.length; ++n) r[n] = t.get(n) ? i[a++] : 0;
-                    return r;
-                  })(a, t));
-            default:
-              throw Error(
-                "The specified Logical level technique is not supported",
-              );
-          }
-        })(
-          r.physicalLevelTechnique === y.FAST_PFOR
-            ? uj()
-            : uV(t, i, r.numValues),
-          r,
-          a,
-          n,
-        );
-      }
-      function hn(t, i, r, a) {
+      function ha(t, i, r, a) {
         let n = t.logicalLevelTechnique1;
         if (n === g.RLE) return 1 === t.runs ? b.CONST : b.FLAT;
-        let s = i instanceof uX ? i.size() : i;
-        if (n === g.DELTA && t.logicalLevelTechnique2 === g.RLE) {
-          let o = t.runs;
-          if (t.numRleValues !== s) return b.FLAT;
-          if (1 === o) return b.SEQUENCE;
-          if (2 === o) {
-            let l = a.get(),
-              u;
-            if (t.physicalLevelTechnique === y.VARINT) u = uV(r, a, 4);
-            else {
-              let h = a.get();
-              u = new Int32Array(r.buffer, r.byteOffset + h, 4);
-            }
-            if ((a.set(l), 2 === u[2] && 2 === u[3])) return b.SEQUENCE;
-          }
+        if (n !== g.DELTA || t.logicalLevelTechnique2 !== g.RLE)
+          return 1 === t.numValues ? b.CONST : b.FLAT;
+        let s = i instanceof uH ? i.size() : i;
+        if (t.numRleValues !== s) return b.FLAT;
+        if (1 === t.runs) return b.SEQUENCE;
+        if (2 !== t.runs) return 1 === t.numValues ? b.CONST : b.FLAT;
+        let o = a.get(),
+          l;
+        if (t.physicalLevelTechnique === y.VARINT) l = uV(r, a, 4);
+        else {
+          let u = a.get();
+          l = new Int32Array(r.buffer, r.byteOffset + u, 4);
         }
-        return 1 === t.numValues ? b.CONST : b.FLAT;
+        return (
+          a.set(o),
+          2 === l[2] && 2 === l[3]
+            ? b.SEQUENCE
+            : 1 === t.numValues
+              ? b.CONST
+              : b.FLAT
+        );
       }
-      class hs extends uL {
+      class hn extends uL {
         getValueFromBuffer(t) {
           return this.dataBuffer[t];
         }
       }
-      class ho extends uB {
+      class hs extends uB {
         constructor(t, i, r, a) {
           super(t, BigInt64Array.of(i), r, a);
         }
@@ -19026,7 +18974,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this.dataBuffer[0] + BigInt(t) * this.delta;
         }
       }
-      class hl {
+      class ho {
         _geometryOffsets;
         _partOffsets;
         _ringOffsets;
@@ -19045,10 +18993,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this._ringOffsets;
         }
       }
-      function hu(t, i, r) {
-        return { x: hh(t, i) - r, y: hh(t >> 1, i) - r };
+      function hl(t, i, r) {
+        return { x: hu(t, i) - r, y: hu(t >> 1, i) - r };
       }
-      function hh(t, i) {
+      function hu(t, i) {
         let r = 0;
         for (let a = 0; a < i; a++) r |= (t & (1 << (2 * a))) >> a;
         return r;
@@ -19065,7 +19013,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         ((f = P || (P = {}))[(f.MORTON = 0)] = "MORTON"),
         (f[(f.VEC_2 = 1)] = "VEC_2"),
         (f[(f.VEC_3 = 2)] = "VEC_3"));
-      class hc {
+      class hh {
         createPoint(t) {
           return [[t]];
         }
@@ -19085,13 +19033,13 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return t.flat();
         }
       }
-      function hd(t) {
+      function hc(t) {
         let i = Array(t.numGeometries),
           a = 1,
           n = 1,
           s = 1,
           o = 0,
-          l = new hc(),
+          l = new hh(),
           u = 0,
           h = 0,
           c = t.mortonSettings,
@@ -19111,7 +19059,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   b = new r($[_], $[_ + 1]);
                 i[o++] = l.createPoint(b);
               } else {
-                let T = hu($[g[h++]], c.numBits, c.coordinateShift),
+                let T = hl($[g[h++]], c.numBits, c.coordinateShift),
                   S = new r(T.x, T.y);
                 i[o++] = l.createPoint(S);
               }
@@ -19146,10 +19094,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               g && 0 !== g.length
                 ? ((L =
                     t.vertexBufferType === P.VEC_2
-                      ? hg($, g, h, F, !1)
-                      : hy($, g, h, F, !1, c)),
+                      ? h8($, g, h, F, !1)
+                      : hg($, g, h, F, !1, c)),
                   (h += F))
-                : ((L = h8($, u, F, !1)), (u += 2 * F)),
+                : ((L = hm($, u, F, !1)), (u += 2 * F)),
               (i[o++] = l.createLineString(L)),
               p && s++);
           } else if (v === w.POLYGON) {
@@ -19160,25 +19108,25 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             if ((n++, g && 0 !== g.length)) {
               let V =
                 t.vertexBufferType === P.VEC_2
-                  ? hf($, g, h, O)
-                  : hm($, g, h, O, 0, c);
+                  ? hp($, g, h, O)
+                  : hf($, g, h, O, 0, c);
               h += O;
               for (let N = 0; N < M.length; N++)
                 ((O = m[n] - m[n - 1]),
                   n++,
                   (M[N] =
                     t.vertexBufferType === P.VEC_2
-                      ? hf($, g, h, O)
-                      : hm($, g, h, O, 0, c)),
+                      ? hp($, g, h, O)
+                      : hf($, g, h, O, 0, c)),
                   (h += O));
               i[o++] = l.createPolygon(V, M);
             } else {
-              let j = hp($, u, O);
+              let j = hd($, u, O);
               u += 2 * O;
               for (let G = 0; G < M.length; G++)
                 ((O = m[n] - m[n - 1]),
                   n++,
-                  (M[G] = hp($, u, O)),
+                  (M[G] = hd($, u, O)),
                   (u += 2 * O));
               i[o++] = l.createPolygon(j, M);
             }
@@ -19193,8 +19141,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 (y ? ((W = m[n] - m[n - 1]), n++) : (W = f[a] - f[a - 1]), a++);
                 let H =
                   t.vertexBufferType === P.VEC_2
-                    ? hg($, g, h, W, !1)
-                    : hy($, g, h, W, !1, c);
+                    ? h8($, g, h, W, !1)
+                    : hg($, g, h, W, !1, c);
                 ((q[Z] = H), (h += W));
               }
               i[o++] = l.createMultiLineString(q);
@@ -19203,7 +19151,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 let Y = 0;
                 (y ? ((Y = m[n] - m[n - 1]), n++) : (Y = f[a] - f[a - 1]),
                   a++,
-                  (q[X] = h8($, u, Y, !1)),
+                  (q[X] = hm($, u, Y, !1)),
                   (u += 2 * Y));
               }
               i[o++] = l.createMultiLineString(q);
@@ -19226,16 +19174,16 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   ((J = m[n] - m[n - 1]), n++);
                   let er =
                     t.vertexBufferType === P.VEC_2
-                      ? hf($, g, h, J)
-                      : hm($, g, h, J, 0, c);
+                      ? hp($, g, h, J)
+                      : hf($, g, h, J, 0, c);
                   h += J;
                   for (let ea = 0; ea < ei.length; ea++)
                     ((J = m[n] - m[n - 1]),
                       n++,
                       (ei[ea] =
                         t.vertexBufferType === P.VEC_2
-                          ? hf($, g, h, J)
-                          : hm($, g, h, J, 0, c)),
+                          ? hp($, g, h, J)
+                          : hf($, g, h, J, 0, c)),
                       (h += J));
                   Q[ee] = l.createPolygon(er, ei);
                 }
@@ -19246,11 +19194,11 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   a++;
                   let eo = Array(es - 1);
                   ((J = m[n] - m[n - 1]), n++);
-                  let el = hp($, u, J);
+                  let el = hd($, u, J);
                   u += 2 * J;
                   for (let eu = 0; eu < eo.length; eu++) {
                     let eh = m[n] - m[n - 1];
-                    (n++, (eo[eu] = hp($, u, eh)), (u += 2 * eh));
+                    (n++, (eo[eu] = hd($, u, eh)), (u += 2 * eh));
                   }
                   Q[en] = l.createPolygon(el, eo);
                 }
@@ -19261,22 +19209,22 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         return i;
       }
-      function hp(t, i, r) {
-        return h8(t, i, r, !0);
+      function hd(t, i, r) {
+        return hm(t, i, r, !0);
       }
-      function hf(t, i, r, a) {
-        return hg(t, i, r, a, !0);
+      function hp(t, i, r, a) {
+        return h8(t, i, r, a, !0);
       }
-      function hm(t, i, r, a, n, s) {
-        return hy(t, i, r, a, !0, s);
+      function hf(t, i, r, a, n, s) {
+        return hg(t, i, r, a, !0, s);
       }
-      function h8(t, i, a, n) {
+      function hm(t, i, a, n) {
         let s = Array(n ? a + 1 : a);
         for (let o = 0; o < 2 * a; o += 2)
           s[o / 2] = new r(t[i + o], t[i + o + 1]);
         return (n && (s[s.length - 1] = s[0]), s);
       }
-      function hg(t, i, a, n, s) {
+      function h8(t, i, a, n, s) {
         let o = Array(s ? n + 1 : n);
         for (let l = 0; l < 2 * n; l += 2) {
           let u = 2 * i[a + l / 2];
@@ -19284,15 +19232,15 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         return (s && (o[o.length - 1] = o[0]), o);
       }
-      function hy(t, i, a, n, s, o) {
+      function hg(t, i, a, n, s, o) {
         let l = Array(s ? n + 1 : n);
         for (let u = 0; u < n; u++) {
-          let h = hu(t[i[a + u]], o.numBits, o.coordinateShift);
+          let h = hl(t[i[a + u]], o.numBits, o.coordinateShift);
           l[u] = new r(h.x, h.y);
         }
         return (s && (l[l.length - 1] = l[0]), l);
       }
-      class h$ {
+      class hy {
         _vertexBufferType;
         _topologyVector;
         _vertexOffsets;
@@ -19318,7 +19266,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this._vertexBuffer;
         }
         *[Symbol.iterator]() {
-          let t = hd(this),
+          let t = hc(this),
             i = 0;
           for (; i < this.numGeometries; )
             (yield { coordinates: t[i], type: this.geometryType(i) }, i++);
@@ -19329,7 +19277,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         getVertex(t) {
           if (this.vertexOffsets && this.mortonSettings) {
-            let i = hu(
+            let i = hl(
               this.vertexBuffer[this.vertexOffsets[t]],
               this.mortonSettings.numBits,
               this.mortonSettings.coordinateShift,
@@ -19340,13 +19288,13 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return [this.vertexBuffer[r], this.vertexBuffer[r + 1]];
         }
         getGeometries() {
-          return hd(this);
+          return hc(this);
         }
         get mortonSettings() {
           return this._mortonSettings;
         }
       }
-      class hx extends h$ {
+      class h$ extends hy {
         _numGeometries;
         _geometryType;
         constructor(t, i, r, a, n, s, o) {
@@ -19370,7 +19318,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return !0;
         }
       }
-      class hv extends h$ {
+      class hx extends hy {
         _geometryTypes;
         constructor(t, i, r, a, n, s) {
           (super(t, r, a, n, s), (this._geometryTypes = i));
@@ -19394,7 +19342,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return !1;
         }
       }
-      class h_ {
+      class hv {
         _triangleOffsets;
         _indexBuffer;
         _vertexBuffer;
@@ -19480,10 +19428,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return null;
         }
       }
-      function hb(t, i, r, a, n, s) {
-        return new hw(t, i, r, a, n, s);
+      function h_(t, i, r, a, n, s) {
+        return new hb(t, i, r, a, n, s);
       }
-      class hw extends h_ {
+      class hb extends hv {
         _numGeometries;
         _geometryType;
         constructor(t, i, r, a, n, s) {
@@ -19501,10 +19449,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return !0;
         }
       }
-      function h0(t, i, r, a, n) {
-        return new hT(t, i, r, a, n);
+      function hw(t, i, r, a, n) {
+        return new h0(t, i, r, a, n);
       }
-      class hT extends h_ {
+      class h0 extends hv {
         _geometryTypes;
         constructor(t, i, r, a, n) {
           (super(i, r, a, n), (this._geometryTypes = t));
@@ -19519,175 +19467,184 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return !1;
         }
       }
-      function hP(t, i, r, a, n) {
+      function hT(t, i, r, a, n) {
         var s, o, l, u, h, c, d, p, f, m, g, y, w, T, S, I, C, E, D, z;
-        let A = uH(t, r),
+        let A = uW(t, r),
           k = null,
           R = null,
           L = null,
-          F = null,
-          B = null,
-          M = null,
-          O = null,
-          V = null;
-        if (hn(A, a, t, r) === b.CONST) {
-          let N = uJ(t, r, A, !1);
+          F = null;
+        if (ha(A, a, t, r) === b.CONST) {
+          let B = uJ(t, r, A, !1),
+            M = null,
+            O = null,
+            V = null,
+            N = null;
           for (let j = 0; j < i - 1; j++) {
-            let G = uH(t, r);
+            let G = uW(t, r);
             switch (G.physicalStreamType) {
               case $.LENGTH:
                 switch (G.logicalStreamType.lengthType) {
                   case _.GEOMETRIES:
-                    k = uK(t, r, G);
+                    M = uK(t, r, G);
                     break;
                   case _.PARTS:
-                    R = uK(t, r, G);
+                    O = uK(t, r, G);
                     break;
                   case _.RINGS:
-                    L = uK(t, r, G);
+                    V = uK(t, r, G);
                     break;
                   case _.TRIANGLES:
-                    O = uK(t, r, G);
+                    N = uK(t, r, G);
                 }
                 break;
               case $.OFFSET:
                 switch (G.logicalStreamType.offsetType) {
                   case v.VERTEX:
-                    F = uY(t, r, G, !1);
+                    k = uY(t, r, G, !1);
                     break;
                   case v.INDEX:
-                    V = uY(t, r, G, !1);
+                    F = uY(t, r, G, !1);
                 }
                 break;
               case $.DATA:
                 x.VERTEX === G.logicalStreamType.dictionaryType
-                  ? (B = uY(t, r, G, !0))
-                  : ((M = {
+                  ? (R = uY(t, r, G, !0))
+                  : ((L = {
                       numBits: G.numBits,
                       coordinateShift: G.coordinateShift,
                     }),
-                    (B = uY(t, r, G, !1)));
+                    (R = uY(t, r, G, !1)));
             }
           }
-          return null !== V
-            ? null != k || null != R
-              ? hb(a, N, O, V, B, new hl(k, R, L))
-              : hb(a, N, O, V, B)
-            : null === M
+          return null !== F
+            ? null != M || null != O
+              ? h_(a, B, N, F, R, new ho(M, O, V))
+              : h_(a, B, N, F, R)
+            : null === L
               ? ((s = a),
-                (o = N),
-                (l = new hl(k, R, L)),
-                (u = F),
-                (h = B),
-                new hx(s, o, P.VEC_2, l, u, h))
+                (o = B),
+                (l = new ho(M, O, V)),
+                (u = k),
+                (h = R),
+                new h$(s, o, P.VEC_2, l, u, h))
               : ((c = a),
-                (d = N),
-                (p = new hl(k, R, L)),
-                (f = F),
-                (m = B),
-                (g = M),
-                new hx(c, d, P.MORTON, p, f, m, g));
+                (d = B),
+                (p = new ho(M, O, V)),
+                (f = k),
+                (m = R),
+                (g = L),
+                new h$(c, d, P.MORTON, p, f, m, g));
         }
-        let U = uY(t, r, A, !1);
-        for (let q = 0; q < i - 1; q++) {
-          let Z = uH(t, r);
-          switch (Z.physicalStreamType) {
+        let U = uY(t, r, A, !1),
+          q = null,
+          Z = null,
+          W = null,
+          H = null;
+        for (let X = 0; X < i - 1; X++) {
+          let Y = uW(t, r);
+          switch (Y.physicalStreamType) {
             case $.LENGTH:
-              switch (Z.logicalStreamType.lengthType) {
+              switch (Y.logicalStreamType.lengthType) {
                 case _.GEOMETRIES:
-                  k = uY(t, r, Z, !1);
+                  q = uY(t, r, Y, !1);
                   break;
                 case _.PARTS:
-                  R = uY(t, r, Z, !1);
+                  Z = uY(t, r, Y, !1);
                   break;
                 case _.RINGS:
-                  L = uY(t, r, Z, !1);
+                  W = uY(t, r, Y, !1);
                   break;
                 case _.TRIANGLES:
-                  O = uK(t, r, Z);
+                  H = uK(t, r, Y);
               }
               break;
             case $.OFFSET:
-              switch (Z.logicalStreamType.offsetType) {
+              switch (Y.logicalStreamType.offsetType) {
                 case v.VERTEX:
-                  F = uY(t, r, Z, !1);
+                  k = uY(t, r, Y, !1);
                   break;
                 case v.INDEX:
-                  V = uY(t, r, Z, !1);
+                  F = uY(t, r, Y, !1);
               }
               break;
             case $.DATA:
-              x.VERTEX === Z.logicalStreamType.dictionaryType
-                ? (B = uY(t, r, Z, !0))
-                : ((M = {
-                    numBits: Z.numBits,
-                    coordinateShift: Z.coordinateShift,
+              x.VERTEX === Y.logicalStreamType.dictionaryType
+                ? (R = uY(t, r, Y, !0))
+                : ((L = {
+                    numBits: Y.numBits,
+                    coordinateShift: Y.coordinateShift,
                   }),
-                  (B = uY(t, r, Z, !1)));
+                  (R = uY(t, r, Y, !1)));
           }
         }
-        return null !== V && null === R
-          ? h0(U, O, V, B)
-          : (null !== k
-              ? ((k = hS(U, k, 2)),
-                null !== R && null !== L
-                  ? ((R = hI(U, k, R, !1)),
-                    (L = (function (t, i, r, a) {
-                      let n = new Int32Array(r[r.length - 1] + 1),
-                        s = 0;
-                      n[0] = s;
-                      let o = 1,
-                        l = 1,
-                        u = 0;
-                      for (let h = 0; h < t.length; h++) {
-                        let c = t[h],
-                          d = i[h + 1] - i[h];
-                        if (0 !== c && 3 !== c)
-                          for (let p = 0; p < d; p++) {
-                            let f = r[o] - r[o - 1];
-                            o++;
-                            for (let m = 0; m < f; m++) s = n[l++] = s + a[u++];
-                          }
-                        else for (let g = 0; g < d; g++) ((n[l++] = ++s), o++);
-                      }
-                      return n;
-                    })(U, k, R, L)))
-                  : null !== R &&
-                    (R = (function (t, i, r) {
-                      let a = new Int32Array(i[i.length - 1] + 1),
-                        n = 0;
-                      a[0] = n;
-                      let s = 1,
-                        o = 0;
-                      for (let l = 0; l < t.length; l++) {
-                        let u = t[l],
-                          h = i[l + 1] - i[l];
-                        if (4 === u || 1 === u)
-                          for (let c = 0; c < h; c++) n = a[s++] = n + r[o++];
-                        else for (let d = 0; d < h; d++) a[s++] = ++n;
-                      }
-                      return a;
-                    })(U, k, R)))
-              : null !== R && null !== L
-                ? ((R = hS(U, R, 1)), (L = hI(U, R, L, !0)))
-                : null !== R && (R = hS(U, R, 0)),
-            null !== V
-              ? h0(U, O, V, B, new hl(k, R, L))
-              : null === M
+        let K = null,
+          Q = null,
+          J = null;
+        return (
+          null !== q
+            ? ((K = hP(U, q, 2)),
+              null !== Z && null !== W
+                ? ((Q = hS(U, K, Z, !1)),
+                  (J = (function (t, i, r, a) {
+                    let n = new Uint32Array(r[r.length - 1] + 1),
+                      s = 0;
+                    n[0] = s;
+                    let o = 1,
+                      l = 1,
+                      u = 0;
+                    for (let h = 0; h < t.length; h++) {
+                      let c = t[h],
+                        d = i[h + 1] - i[h];
+                      if (0 !== c && 3 !== c)
+                        for (let p = 0; p < d; p++) {
+                          let f = r[o] - r[o - 1];
+                          o++;
+                          for (let m = 0; m < f; m++) s = n[l++] = s + a[u++];
+                        }
+                      else for (let g = 0; g < d; g++) ((n[l++] = ++s), o++);
+                    }
+                    return n;
+                  })(U, K, Q, W)))
+                : null !== Z &&
+                  (Q = (function (t, i, r) {
+                    let a = new Uint32Array(i[i.length - 1] + 1),
+                      n = 0;
+                    a[0] = n;
+                    let s = 1,
+                      o = 0;
+                    for (let l = 0; l < t.length; l++) {
+                      let u = t[l],
+                        h = i[l + 1] - i[l];
+                      if (4 === u || 1 === u)
+                        for (let c = 0; c < h; c++) n = a[s++] = n + r[o++];
+                      else for (let d = 0; d < h; d++) a[s++] = ++n;
+                    }
+                    return a;
+                  })(U, K, Z)))
+            : null !== Z && null !== W
+              ? ((Q = hP(U, Z, 1)), (J = hS(U, Q, W, !0)))
+              : null !== Z && (Q = hP(U, Z, 0)),
+          null !== F && null === Q
+            ? hw(U, H, F, R)
+            : null !== F
+              ? hw(U, H, F, R, new ho(K, Q, J))
+              : null === L
                 ? ((y = U),
-                  (w = new hl(k, R, L)),
-                  (T = F),
-                  (S = B),
-                  new hv(P.VEC_2, y, w, T, S))
+                  (w = new ho(K, Q, J)),
+                  (T = k),
+                  (S = R),
+                  new hx(P.VEC_2, y, w, T, S))
                 : ((I = U),
-                  (C = new hl(k, R, L)),
-                  (E = F),
-                  (D = B),
-                  (z = M),
-                  new hv(P.MORTON, I, C, E, D, z)));
+                  (C = new ho(K, Q, J)),
+                  (E = k),
+                  (D = R),
+                  (z = L),
+                  new hx(P.MORTON, I, C, E, D, z))
+        );
       }
-      function hS(t, i, r) {
-        let a = new Int32Array(t.length + 1),
+      function hP(t, i, r) {
+        let a = new Uint32Array(t.length + 1),
           n = 0;
         a[0] = n;
         let s = 0;
@@ -19695,8 +19652,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           n = a[o + 1] = n + (t[o] > r ? i[s++] : 1);
         return a;
       }
-      function hI(t, i, r, a) {
-        let n = new Int32Array(i[i.length - 1] + 1),
+      function hS(t, i, r, a) {
+        let n = new Uint32Array(i[i.length - 1] + 1),
           s = 0;
         n[0] = s;
         let o = 1,
@@ -19710,7 +19667,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         return n;
       }
-      class hC extends uR {
+      class hI extends uR {
         dataVector;
         constructor(t, i, r) {
           (super(t, i.getBuffer(), r), (this.dataVector = i));
@@ -19719,12 +19676,12 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this.dataVector.get(t);
         }
       }
-      class hE extends uL {
+      class hC extends uL {
         getValueFromBuffer(t) {
           return this.dataBuffer[t];
         }
       }
-      class hD extends uR {
+      class hE extends uR {
         constructor(t, i, r) {
           super(t, BigInt64Array.of(i), r);
         }
@@ -19732,30 +19689,44 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this.dataBuffer[0];
         }
       }
-      function hz(t, i, r) {
-        return hA(t, Math.ceil(i / 8), r);
-      }
-      function hA(t, i, r) {
-        let a = new Uint8Array(i),
-          n = 0;
-        for (; n < i; ) {
-          let s = t[r.increment()];
-          if (s <= 127) {
-            let o = s + 3,
-              l = t[r.increment()],
-              u = n + o;
-            (a.fill(l, n, u), (n = u));
-          } else {
-            let h = 256 - s;
-            for (let c = 0; c < h; c++) a[n++] = t[r.increment()];
+      function hD(t, i, r, a, n) {
+        let s = (function (t, i, r, a) {
+          let n = new Uint8Array(i),
+            s = 0,
+            o = a.get() + r;
+          for (; s < i && !(a.get() >= o); ) {
+            let l = t[a.increment()];
+            if (l <= 127) {
+              let u = l + 3,
+                h = t[a.increment()],
+                c = Math.min(s + u, i);
+              (n.fill(h, s, c), (s = c));
+            } else {
+              let d = 256 - l;
+              for (let p = 0; p < d && s < i; p++) n[s++] = t[a.increment()];
+            }
           }
-        }
-        return a;
+          return (a.set(o), n);
+        })(t, Math.ceil(i / 8), r, a);
+        return n
+          ? (function (t, i, r) {
+              if (!r) return t;
+              let a = r.size(),
+                n = new uH(t, i),
+                s = new uH(new Uint8Array(Math.ceil(a / 8)), a),
+                o = 0;
+              for (let l = 0; l < a; l++) {
+                let u = !!r.get(l) && n.get(o++);
+                s.set(l, u);
+              }
+              return s.getBuffer();
+            })(s, i, n)
+          : s;
       }
-      let hk = new TextDecoder();
-      function hR(t, i, r) {
+      let hz = new TextDecoder();
+      function hA(t, i, r) {
         return r - i >= 12
-          ? hk.decode(t.subarray(i, r))
+          ? hz.decode(t.subarray(i, r))
           : (function (t, i, r) {
               let a = "",
                 n = i;
@@ -19809,27 +19780,27 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               return a;
             })(t, i, r);
       }
-      class hL extends uR {
+      class hk extends uR {
         offsetBuffer;
         constructor(t, i, r, a) {
           (super(t, r, a), (this.offsetBuffer = i));
         }
       }
-      class hF extends hL {
+      class hR extends hk {
         textEncoder;
         constructor(t, i, r, a) {
           (super(t, i, r, a ?? i.length - 1),
             (this.textEncoder = new TextEncoder()));
         }
         getValueFromBuffer(t) {
-          return hR(
+          return hA(
             this.dataBuffer,
             this.offsetBuffer[t],
             this.offsetBuffer[t + 1],
           );
         }
       }
-      class h1 extends hL {
+      class hL extends hk {
         indexBuffer;
         textEncoder;
         constructor(t, i, r, a, n) {
@@ -19840,14 +19811,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         getValueFromBuffer(t) {
           let i = this.indexBuffer[t];
-          return hR(
+          return hA(
             this.dataBuffer,
             this.offsetBuffer[i],
             this.offsetBuffer[i + 1],
           );
         }
       }
-      class hB extends hL {
+      class hF extends hk {
         indexBuffer;
         symbolOffsetBuffer;
         symbolTableBuffer;
@@ -19889,7 +19860,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               this.dataBuffer,
             )));
           let i = this.indexBuffer[t];
-          return hR(
+          return hA(
             this.decodedDictionary,
             this.offsetBuffer[i],
             this.offsetBuffer[i + 1],
@@ -19905,29 +19876,29 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return i;
         }
       }
-      function hM(t, i, r, a, n, s) {
+      function h1(t, i, r, a, n, s) {
         return "scalarType" === r.type
           ? (function (t, i, r, a, n, s) {
               let o = null,
                 l = 0;
               if (0 === t) return null;
               if (s.nullable) {
-                let u = uH(i, r);
+                let u = uW(i, r);
                 l = u.numValues;
                 let h = r.get(),
-                  c = hz(i, l, r);
-                (r.set(h + u.byteLength), (o = new uX(c, u.numValues)));
+                  c = hD(i, l, u.byteLength, r);
+                (r.set(h + u.byteLength), (o = new uH(c, u.numValues)));
               }
               let d = o ?? a;
               switch (n.physicalType) {
                 case 4:
                 case 3:
                   return (function (t, i, r, a, n) {
-                    let s = uH(t, i),
-                      o = hn(s, n, t, i),
+                    let s = uW(t, i),
+                      o = ha(s, n, t, i),
                       l = 3 === a.physicalType;
                     if (o === b.FLAT) {
-                      let u = h3(n) ? ha(t, i, s, l, n) : uY(t, i, s, l);
+                      let u = uY(t, i, s, l, 0, hB(n) ? n : void 0);
                       return new uF(r.name, u, n);
                     }
                     if (o === b.SEQUENCE) {
@@ -19951,19 +19922,23 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                       I = null,
                       C = null;
                     for (let E = 0; E < a; E++) {
-                      let D = uH(i, r);
+                      let D = uW(i, r);
                       if (0 !== D.byteLength)
                         switch (D.physicalStreamType) {
                           case $.PRESENT: {
-                            let z = hz(i, D.numValues, r);
-                            S = new uX(z, D.numValues);
+                            let z = hD(i, D.numValues, D.byteLength, r);
+                            S = new uH(z, D.numValues);
                             break;
                           }
                           case $.OFFSET:
-                            b =
-                              null != n || null != S
-                                ? ha(i, r, D, !1, n ?? S)
-                                : uY(i, r, D, !1);
+                            b = uY(
+                              i,
+                              r,
+                              D,
+                              !1,
+                              0,
+                              null != n || null != S ? (n ?? S) : void 0,
+                            );
                             break;
                           case $.LENGTH: {
                             let A = uK(i, r, D);
@@ -19994,7 +19969,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                       (h = w),
                       (c = T),
                       (d = n ?? S),
-                      (o ? new hB(s, l, u, h, c, o, d) : null) ??
+                      (o ? new hF(s, l, u, h, c, o, d) : null) ??
                         ((p = t),
                         (f = w),
                         (m = b),
@@ -20002,211 +19977,81 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                         (y = n ?? S),
                         f
                           ? y
-                            ? new h1(p, m, g, f, y)
-                            : new h1(p, m, g, f)
+                            ? new hL(p, m, g, f, y)
+                            : new hL(p, m, g, f)
                           : null) ??
                         (function (t, i, r, a, n) {
                           if (!i || !r) return null;
                           if (a)
                             return n
-                              ? new h1(t, a, i, r, n)
-                              : new h1(t, a, i, r);
+                              ? new hL(t, a, i, r, n)
+                              : new hL(t, a, i, r);
                           if (n && n.size() !== i.length - 1) {
                             let s = new Int32Array(n.size()),
                               o = 0;
                             for (let l = 0; l < n.size(); l++)
                               s[l] = n.get(l) ? o++ : 0;
-                            return new h1(t, s, i, r, n);
+                            return new hL(t, s, i, r, n);
                           }
-                          return n ? new hF(t, i, r, n) : new hF(t, i, r);
+                          return n ? new hR(t, i, r, n) : new hR(t, i, r);
                         })(t, I, C, b, n ?? S)
                     );
                   })(s.name, i, r, s.nullable ? t - 1 : t, o);
                 case 0:
                   return (function (t, i, r, a, n) {
-                    let s = uH(t, i),
+                    let s = uW(t, i),
                       o = s.numValues,
                       l = i.get(),
-                      u = h3(n)
-                        ? (function (t, i, r, a) {
-                            let n = hA(t, Math.ceil(i / 8), r),
-                              s = new uX(n, i),
-                              o = a.size(),
-                              l = new uX(new Uint8Array(o), o),
-                              u = 0;
-                            for (let h = 0; h < a.size(); h++) {
-                              let c = !!a.get(h) && s.get(u++);
-                              l.set(h, c);
-                            }
-                            return l.getBuffer();
-                          })(t, o, i, n)
-                        : hz(t, o, i);
+                      u = hB(n) ? n : void 0,
+                      h = hD(t, o, s.byteLength, i, u);
                     i.set(l + s.byteLength);
-                    let h = new uX(u, o);
-                    return new hC(r.name, h, n);
+                    let c = new uH(h, o);
+                    return new hI(r.name, c, n);
                   })(i, r, s, 0, d);
                 case 6:
                 case 5:
                   return (function (t, i, r, a, n) {
-                    let s = uH(t, i),
-                      o = hn(s, a, t, i),
+                    let s = uW(t, i),
+                      o = ha(s, a, t, i),
                       l = 5 === n.physicalType;
                     if (o === b.FLAT) {
-                      var u, h, c, d, p;
-                      let f = h3(a)
-                        ? ((u = t),
-                          (h = i),
-                          (c = s),
-                          (d = l),
-                          (p = a),
-                          (function (t, i, r, a) {
-                            switch (i.logicalLevelTechnique1) {
-                              case g.DELTA:
-                                return (
-                                  i.logicalLevelTechnique2 === g.RLE &&
-                                    (t = uZ(t, i.runs, i.numRleValues)),
-                                  (function (t, i) {
-                                    let r = new BigInt64Array(t.size()),
-                                      a = 0;
-                                    t.get(0)
-                                      ? ((r[0] = t.get(0)
-                                          ? (i[0] >> 1n) ^ -(1n & i[0])
-                                          : 0n),
-                                        (a = 1))
-                                      : (r[0] = 0n);
-                                    let n = 1;
-                                    for (; n != r.length; ++n)
-                                      r[n] = t.get(n)
-                                        ? r[n - 1] +
-                                          ((i[a] >> 1n) ^ -(1n & i[a++]))
-                                        : r[n - 1];
-                                    return r;
-                                  })(a, t)
-                                );
-                              case g.RLE:
-                                return (function (t, i, r, a) {
-                                  let n = i;
-                                  return r
-                                    ? (function (t, i, r) {
-                                        let a = new BigInt64Array(t.size()),
-                                          n = 0;
-                                        for (let s = 0; s < r; s++) {
-                                          let o = Number(i[s]),
-                                            l = i[s + r];
-                                          l = (l >> 1n) ^ -(1n & l);
-                                          for (let u = n; u < n + o; u++)
-                                            t.get(u)
-                                              ? (a[u] = l)
-                                              : ((a[u] = 0n), n++);
-                                          n += o;
-                                        }
-                                        return a;
-                                      })(a, t, n.runs)
-                                    : (function (t, i, r) {
-                                        let a = new BigInt64Array(t.size()),
-                                          n = 0;
-                                        for (let s = 0; s < r; s++) {
-                                          let o = Number(i[s]),
-                                            l = i[s + r];
-                                          for (let u = n; u < n + o; u++)
-                                            t.get(u)
-                                              ? (a[u] = l)
-                                              : ((a[u] = 0n), n++);
-                                          n += o;
-                                        }
-                                        return a;
-                                      })(a, t, n.runs);
-                                })(t, i, r, a);
-                              case g.NONE:
-                                return (t = r
-                                  ? (function (t, i) {
-                                      let r = new BigInt64Array(t.size()),
-                                        a = 0,
-                                        n = 0;
-                                      for (; n != r.length; ++n)
-                                        if (t.get(n)) {
-                                          let s = i[a++];
-                                          r[n] = (s >> 1n) ^ -(1n & s);
-                                        } else r[n] = 0n;
-                                      return r;
-                                    })(a, t)
-                                  : (function (t, i) {
-                                      let r = new BigInt64Array(t.size()),
-                                        a = 0,
-                                        n = 0;
-                                      for (; n != r.length; ++n)
-                                        r[n] = t.get(n) ? i[a++] : 0n;
-                                      return r;
-                                    })(a, t));
-                              default:
-                                throw Error(
-                                  "The specified Logical level technique is not supported",
-                                );
-                            }
-                          })(u4(u, h, c.numValues), c, d, p))
-                        : hi(t, i, s, l);
-                      return new hs(r.name, f, a);
+                      let u = hi(t, i, s, l, hB(a) ? a : void 0);
+                      return new hn(r.name, u, a);
                     }
                     if (o === b.SEQUENCE) {
-                      let m = ht(t, i, s);
-                      return new ho(r.name, m[0], m[1], s.numRleValues);
+                      let h = ht(t, i, s);
+                      return new hs(r.name, h[0], h[1], s.numRleValues);
                     }
                     {
-                      let y = hr(t, i, s, l);
-                      return new hD(r.name, y, a);
+                      let c = hr(t, i, s, l);
+                      return new hE(r.name, c, a);
                     }
                   })(i, r, s, d, n);
                 case 7:
                   return (function (t, i, r, a) {
-                    let n = uH(t, i),
-                      s = h3(a)
-                        ? (function (t, i, r, a) {
-                            let n = i.get(),
-                              s = n + a * Float32Array.BYTES_PER_ELEMENT,
-                              o = new Uint8Array(t.subarray(n, s)).buffer,
-                              l = new Float32Array(o);
-                            i.set(s);
-                            let u = r.size(),
-                              h = new Float32Array(u),
-                              c = 0;
-                            for (let d = 0; d < u; d++)
-                              h[d] = r.get(d) ? l[c++] : 0;
-                            return h;
-                          })(t, i, a, n.numValues)
-                        : (function (t, i, r) {
-                            let a = i.get(),
-                              n = a + r * Float32Array.BYTES_PER_ELEMENT,
-                              s = new Uint8Array(t.subarray(a, n)).buffer,
-                              o = new Float32Array(s);
-                            return (i.set(n), o);
-                          })(t, i, n.numValues);
-                    return new hE(r.name, s, a);
+                    let n = uW(t, i),
+                      s = hB(a) ? a : void 0,
+                      o = (function (t, i, r, a) {
+                        let n = i.get(),
+                          s = n + r * Float32Array.BYTES_PER_ELEMENT,
+                          o = new Uint8Array(t.subarray(n, s)).buffer,
+                          l = new Float32Array(o);
+                        return (i.set(s), a ? uX(l, a, 0) : l);
+                      })(t, i, n.numValues, s);
+                    return new hC(r.name, o, a);
                   })(i, r, s, d);
                 case 8:
                   return (function (t, i, r, a) {
-                    let n = uH(t, i),
-                      s = h3(a)
-                        ? (function (t, i, r, a) {
-                            let n = i.get(),
-                              s = n + a * Float64Array.BYTES_PER_ELEMENT,
-                              o = new Uint8Array(t.subarray(n, s)).buffer,
-                              l = new Float64Array(o);
-                            i.set(s);
-                            let u = r.size(),
-                              h = new Float64Array(u),
-                              c = 0;
-                            for (let d = 0; d < u; d++)
-                              h[d] = r.get(d) ? l[c++] : 0;
-                            return h;
-                          })(t, i, a, n.numValues)
-                        : (function (t, i, r) {
-                            let a = i.get(),
-                              n = a + r * Float64Array.BYTES_PER_ELEMENT,
-                              s = new Uint8Array(t.subarray(a, n)).buffer,
-                              o = new Float64Array(s);
-                            return (i.set(n), o);
-                          })(t, i, n.numValues);
-                    return new u1(r.name, s, a);
+                    let n = uW(t, i),
+                      s = hB(a) ? a : void 0,
+                      o = (function (t, i, r, a) {
+                        let n = i.get(),
+                          s = n + r * Float64Array.BYTES_PER_ELEMENT,
+                          o = new Uint8Array(t.subarray(n, s)).buffer,
+                          l = new Float64Array(o);
+                        return (i.set(s), a ? uX(l, a, 0) : l);
+                      })(t, i, n.numValues, s);
+                    return new u1(r.name, o, a);
                   })(i, r, s, d);
                 default:
                   throw Error(
@@ -20214,7 +20059,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   );
               }
             })(a, t, i, n, r.scalarType, r)
-          : 1 != a
+          : 0 === a
             ? null
             : (function (t, i, r, a) {
                 let n = null,
@@ -20223,7 +20068,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   l = null,
                   u = !1;
                 for (; !u; ) {
-                  let h = uH(t, i);
+                  let h = uW(t, i);
                   switch (h.physicalStreamType) {
                     case $.LENGTH:
                       _.DICTIONARY === h.logicalStreamType.lengthType
@@ -20245,7 +20090,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 for (let f of c) {
                   let m = uV(t, i, 1)[0];
                   if (0 == m) continue;
-                  let g = `${r.name}${"default" === f.name ? "" : ":" + f.name}`;
+                  let g = f.name ? `${r.name}${f.name}` : r.name;
                   if (
                     2 !== m ||
                     "scalarField" !== f.type ||
@@ -20254,24 +20099,128 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                     throw Error(
                       "Currently only optional string fields are implemented for a struct.",
                     );
-                  let y = uH(t, i),
-                    v = hz(t, y.numValues, i),
-                    b = uH(t, i),
-                    w =
+                  let y = uW(t, i),
+                    v = hD(t, y.numValues, y.byteLength, i),
+                    b = uW(t, i),
+                    w = uY(
+                      t,
+                      i,
+                      b,
+                      !1,
+                      0,
                       b.decompressedCount !== a
-                        ? ha(t, i, b, !1, new uX(v, y.numValues))
-                        : uY(t, i, b, !1);
+                        ? new uH(v, y.numValues)
+                        : void 0,
+                    );
                   d[p++] = l
-                    ? new hB(g, w, n, s, o, l, new uX(v, y.numValues))
-                    : new h1(g, w, n, s, new uX(v, y.numValues));
+                    ? new hF(g, w, n, s, o, l, new uH(v, y.numValues))
+                    : new hL(g, w, n, s, new uH(v, y.numValues));
                 }
                 return d;
               })(t, i, r, n);
       }
+      function hB(t) {
+        return t instanceof uH;
+      }
+      function hM(t) {
+        switch (t) {
+          case 0:
+          case 1:
+          case 2:
+          case 3: {
+            let i = {};
+            ((i.nullable = !!(1 & t)), (i.columnScope = 0));
+            let r = {};
+            return (
+              (r.physicalType = t > 1 ? 6 : 4),
+              (r.type = "physicalType"),
+              (i.scalarType = r),
+              (i.type = "scalarType"),
+              i
+            );
+          }
+          case 4: {
+            let a = { nullable: !1, columnScope: 0 };
+            return (
+              (a.type = "complexType"),
+              (a.complexType = { type: "physicalType", physicalType: 0 }),
+              a
+            );
+          }
+          case 30: {
+            let n = { nullable: !1, columnScope: 0 };
+            return (
+              (n.type = "complexType"),
+              (n.complexType = { type: "physicalType", physicalType: 1 }),
+              n
+            );
+          }
+          default:
+            return (function (t) {
+              let i = null;
+              switch (t) {
+                case 10:
+                case 11:
+                  i = 0;
+                  break;
+                case 12:
+                case 13:
+                  i = 1;
+                  break;
+                case 14:
+                case 15:
+                  i = 2;
+                  break;
+                case 16:
+                case 17:
+                  i = 3;
+                  break;
+                case 18:
+                case 19:
+                  i = 4;
+                  break;
+                case 20:
+                case 21:
+                  i = 5;
+                  break;
+                case 22:
+                case 23:
+                  i = 6;
+                  break;
+                case 24:
+                case 25:
+                  i = 7;
+                  break;
+                case 26:
+                case 27:
+                  i = 8;
+                  break;
+                case 28:
+                case 29:
+                  i = 9;
+                  break;
+                default:
+                  return null;
+              }
+              let r = {};
+              ((r.nullable = !!(1 & t)), (r.columnScope = 0));
+              let a = { type: "physicalType" };
+              return (
+                (a.physicalType = i),
+                (r.type = "scalarType"),
+                (r.scalarType = a),
+                r
+              );
+            })(t);
+        }
+      }
       function h3(t) {
-        return t instanceof uX;
+        return t >= 10;
       }
       function h2(t) {
+        return 30 === t;
+      }
+      function hO(t) {
         if ("id" === t.name) return !1;
         if ("scalarType" === t.type) {
           let i = t.scalarType;
@@ -20308,166 +20257,70 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           !1
         );
       }
-      let hO = new TextDecoder();
-      function hV(t, i) {
+      let hV = new TextDecoder();
+      function h4(t, i) {
         let r = uV(t, i, 1)[0];
         if (0 === r) return "";
         let a = i.get(),
           n = t.subarray(a, a + r);
-        return (i.add(r), hO.decode(n));
-      }
-      function h4(t, i) {
-        let r = uV(t, i, 1)[0] >>> 0,
-          a = !!(4 & r),
-          n = uV(t, i, 1)[0] >>> 0,
-          s = {};
-        if ((1 & r && (s.nullable = !0), 2 & r)) {
-          let o = {};
-          if (
-            (a
-              ? ((o.type = "logicalType"), (o.logicalType = n))
-              : ((o.type = "physicalType"), (o.physicalType = n)),
-            8 & r)
-          ) {
-            let l = uV(t, i, 1)[0] >>> 0;
-            o.children = Array(l);
-            for (let u = 0; u < l; u++) o.children[u] = h4(t, i);
-          }
-          ((s.type = "complexField"), (s.complexField = o));
-        } else {
-          let h = {};
-          (a
-            ? ((h.type = "logicalType"), (h.logicalType = n))
-            : ((h.type = "physicalType"), (h.physicalType = n)),
-            (s.type = "scalarField"),
-            (s.scalarField = h));
-        }
-        return s;
+        return (i.add(r), hV.decode(n));
       }
       function hN(t, i) {
-        var r, a;
-        let n = uV(t, i, 1)[0] >>> 0,
-          s = (function (t) {
-            switch (t) {
-              case 0:
-              case 1:
-              case 2:
-              case 3: {
-                let i = {};
-                ((i.nullable = !!(1 & t)), (i.columnScope = 0));
-                let r = {};
-                return (
-                  (r.physicalType = t > 1 ? 6 : 4),
-                  (r.type = "physicalType"),
-                  (i.scalarType = r),
-                  (i.type = "scalarType"),
-                  i
-                );
-              }
-              case 4: {
-                let a = { nullable: !1, columnScope: 0 };
-                return (
-                  (a.type = "complexType"),
-                  (a.complexType = { type: "physicalType", physicalType: 0 }),
-                  a
-                );
-              }
-              case 30: {
-                let n = { nullable: !1, columnScope: 0 };
-                return (
-                  (n.type = "complexType"),
-                  (n.complexType = { type: "physicalType", physicalType: 1 }),
-                  n
-                );
-              }
-              default:
-                return (function (t) {
-                  let i = null;
-                  switch (t) {
-                    case 10:
-                    case 11:
-                      i = 0;
-                      break;
-                    case 12:
-                    case 13:
-                      i = 1;
-                      break;
-                    case 14:
-                    case 15:
-                      i = 2;
-                      break;
-                    case 16:
-                    case 17:
-                      i = 3;
-                      break;
-                    case 18:
-                    case 19:
-                      i = 4;
-                      break;
-                    case 20:
-                    case 21:
-                      i = 5;
-                      break;
-                    case 22:
-                    case 23:
-                      i = 6;
-                      break;
-                    case 24:
-                    case 25:
-                      i = 7;
-                      break;
-                    case 26:
-                    case 27:
-                      i = 8;
-                      break;
-                    case 28:
-                    case 29:
-                      i = 9;
-                      break;
-                    default:
-                      return null;
-                  }
-                  let r = {};
-                  ((r.nullable = !!(1 & t)), (r.columnScope = 0));
-                  let a = { type: "physicalType" };
-                  return (
-                    (a.physicalType = i),
-                    (r.type = "scalarType"),
-                    (r.scalarType = a),
-                    r
-                  );
-                })(t);
-            }
-          })(n);
-        if (!s) throw Error(`Unsupported column type code: ${n}`);
-        if (
-          ((r = n) >= 10
-            ? (s.name = hV(t, i))
-            : n >= 0 && n <= 3
-              ? (s.name = "id")
-              : 4 === n && (s.name = "geometry"),
-          30 === n)
-        ) {
-          let o = uV(t, i, 1)[0] >>> 0,
-            l = s.complexType;
-          l.children = Array(o);
-          for (let u = 0; u < o; u++) l.children[u] = h4(t, i);
+        var r;
+        let a = uV(t, i, 1)[0] >>> 0;
+        if (a < 10 || a > 30)
+          throw Error(
+            `Unsupported field type code ${a}. Supported: 10-29(scalars), 30(STRUCT)`,
+          );
+        let n = hM(a);
+        if ((h3(a) && (n.name = h4(t, i)), h2(a))) {
+          let s = uV(t, i, 1)[0] >>> 0;
+          n.complexType.children = Array(s);
+          for (let o = 0; o < s; o++) n.complexType.children[o] = hN(t, i);
         }
-        return s;
+        return {
+          name: (r = n).name,
+          nullable: r.nullable,
+          scalarField: r.scalarType,
+          complexField: r.complexType,
+          type: "scalarType" === r.type ? "scalarField" : "complexField",
+        };
       }
       function hj(t, i) {
+        let r = uV(t, i, 1)[0] >>> 0,
+          a = hM(r);
+        if (!a)
+          throw Error(
+            `Unsupported column type code ${r}. Supported: 0-3(ID), 4(GEOMETRY), 10-29(scalars), 30(STRUCT)`,
+          );
+        if (
+          (h3(r)
+            ? (a.name = h4(t, i))
+            : r >= 0 && r <= 3
+              ? (a.name = "id")
+              : 4 === r && (a.name = "geometry"),
+          h2(r))
+        ) {
+          let n = uV(t, i, 1)[0] >>> 0,
+            s = a.complexType;
+          s.children = Array(n);
+          for (let o = 0; o < n; o++) s.children[o] = hN(t, i);
+        }
+        return a;
+      }
+      function h6(t, i) {
         let r = { featureTables: [] },
           a = {};
-        a.name = hV(t, i);
+        a.name = h4(t, i);
         let n = uV(t, i, 1)[0] >>> 0,
           s = uV(t, i, 1)[0] >>> 0;
         a.columns = Array(s);
-        for (let o = 0; o < s; o++) a.columns[o] = hN(t, i);
+        for (let o = 0; o < s; o++) a.columns[o] = hj(t, i);
         return (r.featureTables.push(a), [r, n]);
       }
-      function h6(t, i, r, a, n, s, o = !1) {
+      function hG(t, i, r, a, n, s, o = !1) {
         let l = i.scalarType.physicalType,
-          u = hn(n, s, t, r);
+          u = ha(n, s, t, r);
         if (4 === l)
           switch (u) {
             case b.FLAT: {
@@ -20487,68 +20340,40 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           switch (u) {
             case b.FLAT: {
               if (o) {
-                let p = (function (t, i, r, a) {
-                  let n = (function (t, i, r) {
-                    let a = new Float64Array(i);
-                    for (let n = 0; n < i; n++) a[n] = uN(t, r);
+                let p = (function (t, i, r) {
+                  let a = (function (t, i, r) {
+                    let a = new Float64Array(r);
+                    for (let n = 0; n < r; n++) a[n] = uj(t, i);
                     return a;
-                  })(t, r.numValues, i);
-                  return (function (t, i, r) {
+                  })(t, i, r.numValues);
+                  return (function (t, i) {
                     switch (i.logicalLevelTechnique1) {
                       case g.DELTA:
                         return (
                           i.logicalLevelTechnique2 === g.RLE &&
                             (t = u9(t, i.runs, i.numRleValues)),
                           (function (t) {
-                            t[0] = t[0] % 2 == 1 ? -((t[0] + 1) / 2) : t[0] / 2;
+                            t[0] = uU(t[0]);
                             let i = (t.length / 4) * 4,
                               r = 1;
                             if (i >= 4)
                               for (; r < i - 4; r += 4) {
-                                let a = t[r],
-                                  n = t[r + 1],
-                                  s = t[r + 2],
-                                  o = t[r + 3];
-                                ((t[r] =
-                                  (a % 2 == 1 ? -((a + 1) / 2) : a / 2) +
-                                  t[r - 1]),
-                                  (t[r + 1] =
-                                    (n % 2 == 1 ? -((n + 1) / 2) : n / 2) +
-                                    t[r]),
-                                  (t[r + 2] =
-                                    (s % 2 == 1 ? -((s + 1) / 2) : s / 2) +
-                                    t[r + 1]),
-                                  (t[r + 3] =
-                                    (o % 2 == 1 ? -((o + 1) / 2) : o / 2) +
-                                    t[r + 2]));
+                                let a = t[r + 1],
+                                  n = t[r + 2],
+                                  s = t[r + 3];
+                                ((t[r] = uU(t[r]) + t[r - 1]),
+                                  (t[r + 1] = uU(a) + t[r]),
+                                  (t[r + 2] = uU(n) + t[r + 1]),
+                                  (t[r + 3] = uU(s) + t[r + 2]));
                               }
                             for (; r != t.length; ++r)
-                              t[r] =
-                                (t[r] % 2 == 1 ? -((t[r] + 1) / 2) : t[r] / 2) +
-                                t[r - 1];
+                              t[r] = uU(t[r]) + t[r - 1];
                           })(t),
                           t
                         );
                       case g.RLE:
-                        var a, n, s;
-                        return (
-                          (a = t),
-                          (n = i),
-                          (s = r)
-                            ? (function (t, i, r) {
-                                let a = new Float64Array(r),
-                                  n = 0;
-                                for (let s = 0; s < i; s++) {
-                                  let o = t[s],
-                                    l = t[s + i];
-                                  ((l = l % 2 == 1 ? -((l + 1) / 2) : l / 2),
-                                    a.fill(l, n, n + o),
-                                    (n += o));
-                                }
-                                return a;
-                              })(a, n.runs, n.numRleValues)
-                            : u9(a, n.runs, n.numRleValues)
-                        );
+                        var r, a;
+                        return ((r = t), u9(r, (a = i).runs, a.numRleValues));
                       case g.NONE:
                         return t;
                       default:
@@ -20556,25 +20381,25 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                           `The specified Logical level technique is not supported: ${i.logicalLevelTechnique1}`,
                         );
                     }
-                  })(n, r, a);
-                })(t, r, n, !1);
+                  })(a, r);
+                })(t, r, n);
                 return new u1(a, p, s);
               }
               let f = hi(t, r, n, !1);
-              return new hs(a, f, s);
+              return new hn(a, f, s);
             }
             case b.SEQUENCE: {
               let m = ht(t, r, n);
-              return new ho(a, m[0], m[1], n.numRleValues);
+              return new hs(a, m[0], m[1], n.numRleValues);
             }
             case b.CONST: {
               let y = hr(t, r, n, !1);
-              return new hD(a, y, s);
+              return new hE(a, y, s);
             }
           }
         throw Error("Vector type not supported for id column.");
       }
-      class hG {
+      class hU {
         constructor(t, i) {
           var r;
           switch (
@@ -20611,7 +20436,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return t;
         }
       }
-      class hU {
+      class hq {
         constructor(t) {
           ((this.features = []),
             (this.featureTable = t),
@@ -20622,10 +20447,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             (this.length = this.features.length));
         }
         feature(t) {
-          return new hG(this.features[t], this.extent);
+          return new hU(this.features[t], this.extent);
         }
       }
-      class hq {
+      class hZ {
         constructor(t) {
           this.layers = {};
           let i = (function (t, i, r = !0) {
@@ -20640,7 +20465,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 a.set(o);
                 continue;
               }
-              let l = hj(t, a),
+              let l = h6(t, a),
                 u = l[1],
                 h = l[0].featureTables[0],
                 c = null,
@@ -20652,25 +20477,25 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 if ("id" === g) {
                   let y = null;
                   if (m.nullable) {
-                    let $ = uH(t, a),
+                    let $ = uW(t, a),
                       x = a.get(),
-                      v = hz(t, $.numValues, a);
-                    (a.set(x + $.byteLength), (y = new uX(v, $.numValues)));
+                      v = hD(t, $.numValues, $.byteLength, a);
+                    (a.set(x + $.byteLength), (y = new uH(v, $.numValues)));
                   }
-                  let _ = uH(t, a);
+                  let _ = uW(t, a);
                   ((f = _.decompressedCount),
-                    (c = h6(t, m, a, g, _, y ?? f, r)));
+                    (c = hG(t, m, a, g, _, y ?? f, r)));
                 } else if ("geometry" === g) {
                   let b = uV(t, a, 1)[0];
                   if (0 === f) {
                     let w = a.get();
-                    ((f = uH(t, a).decompressedCount), a.set(w));
+                    ((f = uW(t, a).decompressedCount), a.set(w));
                   }
-                  d = hP(t, b, a, f);
+                  d = hT(t, b, a, f);
                 } else {
-                  let T = h2(m) ? uV(t, a, 1)[0] : 1;
-                  if (0 === T && "scalarType" === m.type) continue;
-                  let P = hM(t, a, m, T, f);
+                  let T = hO(m) ? uV(t, a, 1)[0] : 1;
+                  if (0 === T) continue;
+                  let P = h1(t, a, m, T, f);
                   if (P) {
                     if (Array.isArray(P)) for (let S of P) p.push(S);
                     else p.push(P);
@@ -20684,12 +20509,12 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           })(new Uint8Array(t));
           this.layers = i.reduce(
             (t, i) =>
-              Object.assign(Object.assign({}, t), { [i.name]: new hU(i) }),
+              Object.assign(Object.assign({}, t), { [i.name]: new hq(i) }),
             {},
           );
         }
       }
-      class hZ {
+      class h9 {
         constructor(t, i) {
           ((this.feature = t),
             (this.type = t.type),
@@ -20714,28 +20539,28 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return t;
         }
       }
-      let h9 = "_geojsonTileLayer";
-      function h5(t, i) {
+      let h5 = "_geojsonTileLayer";
+      function h7(t, i) {
         (i.writeVarintField(15, t.version || 1),
           i.writeStringField(1, t.name || ""),
           i.writeVarintField(5, t.extent || 4096));
         let r = { keys: [], values: [], keycache: {}, valuecache: {} };
         for (let a = 0; a < t.length; a++)
-          ((r.feature = t.feature(a)), i.writeMessage(2, h7, r));
+          ((r.feature = t.feature(a)), i.writeMessage(2, hW, r));
         let n = r.keys;
         for (let s of n) i.writeStringField(3, s);
         let o = r.values;
-        for (let l of o) i.writeMessage(4, hK, l);
+        for (let l of o) i.writeMessage(4, hQ, l);
       }
-      function h7(t, i) {
+      function hW(t, i) {
         if (!t.feature) return;
         let r = t.feature;
         (void 0 !== r.id && i.writeVarintField(1, r.id),
-          i.writeMessage(2, hW, t),
+          i.writeMessage(2, hH, t),
           i.writeVarintField(3, r.type),
-          i.writeMessage(4, hY, r));
+          i.writeMessage(4, hK, r));
       }
-      function hW(t, i) {
+      function hH(t, i) {
         for (let r in t.feature?.properties) {
           let a = t.feature.properties[r],
             n = t.keycache[r];
@@ -20756,31 +20581,31 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             i.writeVarint(o));
         }
       }
-      function hH(t, i) {
+      function hX(t, i) {
         return (i << 3) + (7 & t);
       }
-      function hX(t) {
+      function hY(t) {
         return (t << 1) ^ (t >> 31);
       }
-      function hY(t, i) {
+      function hK(t, i) {
         let r = t.loadGeometry(),
           a = t.type,
           n = 0,
           s = 0;
         for (let o of r) {
           let l = 1;
-          (1 === a && (l = o.length), i.writeVarint(hH(1, l)));
+          (1 === a && (l = o.length), i.writeVarint(hX(1, l)));
           let u = 3 === a ? o.length - 1 : o.length;
           for (let h = 0; h < u; h++) {
-            1 === h && 1 !== a && i.writeVarint(hH(2, u - 1));
+            1 === h && 1 !== a && i.writeVarint(hX(2, u - 1));
             let c = o[h].x - n,
               d = o[h].y - s;
-            (i.writeVarint(hX(c)), i.writeVarint(hX(d)), (n += c), (s += d));
+            (i.writeVarint(hY(c)), i.writeVarint(hY(d)), (n += c), (s += d));
           }
-          3 === t.type && i.writeVarint(hH(7, 1));
+          3 === t.type && i.writeVarint(hX(7, 1));
         }
       }
-      function hK(t, i) {
+      function hQ(t, i) {
         let r = typeof t;
         "string" === r
           ? i.writeStringField(1, t)
@@ -20793,7 +20618,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   ? i.writeSVarintField(6, t)
                   : i.writeVarintField(5, t));
       }
-      class hQ {
+      class hJ {
         constructor(t, i) {
           ((this.tileID = t),
             (this.x = t.canonical.x),
@@ -20831,9 +20656,9 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               ((this.vtLayers =
                 "mlt" !== this.encoding
                   ? new oY(new lz(this.rawTileData)).layers
-                  : new hq(this.rawTileData).layers),
+                  : new hZ(this.rawTileData).layers),
               (this.sourceLayerCoder = new uA(
-                this.vtLayers ? Object.keys(this.vtLayers).sort() : [h9],
+                this.vtLayers ? Object.keys(this.vtLayers).sort() : [h5],
               ))),
             this.vtLayers
           );
@@ -20867,7 +20692,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 })(t.cameraQueryGeometry, i - h, a - h, n + h, s + h),
             );
           for (let m of f) d.push(m);
-          d.sort(ce);
+          d.sort(ct);
           let g = {},
             y;
           for (let $ = 0; $ < d.length; $++) {
@@ -20929,10 +20754,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             let x = l[$];
             if (!x) continue;
             let v = {};
-            g && h && (v = h.getState(x.sourceLayer || h9, g));
+            g && h && (v = h.getState(x.sourceLayer || h5, g));
             let _ = ei({}, u[$]);
-            ((_.paint = hJ(_.paint, x.paint, f, v, o)),
-              (_.layout = hJ(_.layout, x.layout, f, v, o)));
+            ((_.paint = ce(_.paint, x.paint, f, v, o)),
+              (_.layout = ce(_.layout, x.layout, f, v, o)));
             let b = !c || c(f, x, v);
             if (!b) continue;
             let w = new uk(f, this.z, this.x, this.y, g);
@@ -20976,16 +20801,16 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           );
         }
       }
-      function hJ(t, i, r, a, n) {
+      function ce(t, i, r, a, n) {
         return ea(t, (t, s) => {
           let o = i instanceof nr ? i.get(s) : null;
           return o && o.evaluate ? o.evaluate(r, a, n) : o;
         });
       }
-      function ce(t, i) {
+      function ct(t, i) {
         return i - t;
       }
-      function ct(t, i, a, n, s) {
+      function ci(t, i, a, n, s) {
         let o = [];
         for (let l = 0; l < t.length; l++) {
           let u = t[l],
@@ -21043,7 +20868,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         return o;
       }
-      function ci(t, i, r, a, n) {
+      function cr(t, i, r, a, n) {
         switch (i) {
           case 1:
             return (function (t, i, r, a) {
@@ -21056,14 +20881,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               return n;
             })(t, r, a, n);
           case 2:
-            return ca(t, r, a, n, !1);
+            return cn(t, r, a, n, !1);
           case 3:
-            return ca(t, r, a, n, !0);
+            return cn(t, r, a, n, !0);
         }
         return [];
       }
-      function cr(t, i, a, n, s) {
-        let o = 0 === n ? cn : cs,
+      function ca(t, i, a, n, s) {
+        let o = 0 === n ? cs : co,
           l = [],
           u = [];
         for (let h = 0; h < t.length - 1; h++) {
@@ -21093,30 +20918,30 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           u
         );
       }
-      function ca(t, i, r, a, n) {
+      function cn(t, i, r, a, n) {
         let s = [];
         for (let o of t) {
-          let l = cr(o, i, r, a, n);
+          let l = ca(o, i, r, a, n);
           l.length > 0 && s.push(...l);
         }
         return s;
       }
-      function cn(t, i, a) {
+      function cs(t, i, a) {
         return new r(a, t.y + ((a - t.x) / (i.x - t.x)) * (i.y - t.y));
       }
-      function cs(t, i, a) {
+      function co(t, i, a) {
         return new r(t.x + ((a - t.y) / (i.y - t.y)) * (i.x - t.x), a);
       }
-      aL("FeatureIndex", hQ, { omit: ["rawTileData", "sourceLayerCoder"] });
-      class co extends r {
+      aL("FeatureIndex", hJ, { omit: ["rawTileData", "sourceLayerCoder"] });
+      class cl extends r {
         constructor(t, i, r, a) {
           (super(t, i), (this.angle = r), void 0 !== a && (this.segment = a));
         }
         clone() {
-          return new co(this.x, this.y, this.angle, this.segment);
+          return new cl(this.x, this.y, this.angle, this.segment);
         }
       }
-      function cl(t, i, r, a, n) {
+      function cu(t, i, r, a, n) {
         if (void 0 === i.segment || 0 === r) return !0;
         let s = i,
           o = i.segment + 1,
@@ -21145,22 +20970,22 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         return !0;
       }
-      function cu(t) {
+      function ch(t) {
         let i = 0;
         for (let r = 0; r < t.length - 1; r++) i += t[r].dist(t[r + 1]);
         return i;
       }
-      function ch(t, i, r) {
+      function cc(t, i, r) {
         return t ? 0.6 * i * r : 0;
       }
-      function cc(t, i) {
+      function cd(t, i) {
         return Math.max(t ? t.right - t.left : 0, i ? i.right - i.left : 0);
       }
-      function cd(t, i, r, a, n, s) {
-        let o = ch(r, n, s),
-          l = cc(r, a) * s,
+      function cp(t, i, r, a, n, s) {
+        let o = cc(r, n, s),
+          l = cd(r, a) * s,
           u = 0,
-          h = cu(t) / 2;
+          h = ch(t) / 2;
         for (let c = 0; c < t.length - 1; c++) {
           let d = t[c],
             p = t[c + 1],
@@ -21169,22 +20994,22 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             let m = (h - u) / f,
               g = im.number(d.x, p.x, m),
               y = im.number(d.y, p.y, m),
-              $ = new co(g, y, p.angleTo(d), c);
-            return ($._round(), !o || cl(t, $, l, o, i) ? $ : void 0);
+              $ = new cl(g, y, p.angleTo(d), c);
+            return ($._round(), !o || cu(t, $, l, o, i) ? $ : void 0);
           }
           u += f;
         }
       }
-      function cp(t, i, r, a, n, s, o, l, u) {
-        let h = ch(a, s, o),
-          c = cc(a, n),
+      function cf(t, i, r, a, n, s, o, l, u) {
+        let h = cc(a, s, o),
+          c = cd(a, n),
           d = c * o,
           p = 0 === t[0].x || t[0].x === u || 0 === t[0].y || t[0].y === u;
         return (
           i - d < i / 4 && (i = d + i / 4),
           (function t(i, r, a, n, s, o, l, u, h) {
             let c = o / 2,
-              d = cu(i),
+              d = ch(i),
               p = 0,
               f = r - a,
               m = [];
@@ -21206,8 +21031,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   f - c >= 0 &&
                   f + c <= d
                 ) {
-                  let T = new co(b, w, v, g);
-                  (T._round(), (n && !cl(i, T, o, n, s)) || m.push(T));
+                  let T = new cl(b, w, v, g);
+                  (T._round(), (n && !cu(i, T, o, n, s)) || m.push(T));
                 }
               }
               p += x;
@@ -21229,7 +21054,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           )
         );
       }
-      function cf(t, i, a, n) {
+      function cm(t, i, a, n) {
         let s = [],
           o = t.image,
           l = o.pixelRatio,
@@ -21256,10 +21081,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             C = I[2] - I[0],
             E = I[3] - I[1];
           ((o.textFitWidth || o.textFitHeight) && (c = lX(t)),
-            (x = cm(d, 0, I[0])),
-            (_ = cm(p, 0, I[1])),
-            (v = cm(d, I[0], I[2])),
-            (b = cm(p, I[1], I[3])),
+            (x = c8(d, 0, I[0])),
+            (_ = c8(p, 0, I[1])),
+            (v = c8(d, I[0], I[2])),
+            (b = c8(p, I[1], I[3])),
             (w = I[0] - x),
             (P = I[1] - _),
             (T = C - v),
@@ -21390,8 +21215,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             };
           };
         if (n && (o.stretchX || o.stretchY)) {
-          let L = c8(d, y, m),
-            F = c8(p, $, g);
+          let L = cg(d, y, m),
+            F = cg(p, $, g);
           for (let B = 0; B < L.length - 1; B++) {
             let M = L[B],
               O = L[B + 1];
@@ -21409,13 +21234,13 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           );
         return s;
       }
-      function cm(t, i, r) {
+      function c8(t, i, r) {
         let a = 0;
         for (let n of t)
           a += Math.max(i, Math.min(r, n[1])) - Math.max(i, Math.min(r, n[0]));
         return a;
       }
-      function c8(t, i, r) {
+      function cg(t, i, r) {
         let a = [{ fixed: -1, stretch: 0 }];
         for (let [n, s] of t) {
           let o = a[a.length - 1];
@@ -21424,14 +21249,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         return (a.push({ fixed: i + 1, stretch: r }), a);
       }
-      function cg(t, i, r, a) {
+      function cy(t, i, r, a) {
         return (t / i) * r + a;
       }
-      function cy(t, i, r, a) {
+      function c$(t, i, r, a) {
         return t - (i * r) / a;
       }
-      aL("Anchor", co);
-      class c$ {
+      aL("Anchor", cl);
+      class cx {
         constructor(t, i, a, n, s, o, l, u, h, c) {
           var d;
           if (((this.boxStartIndex = t.length), h)) {
@@ -21479,7 +21304,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           this.boxEndIndex = t.length;
         }
       }
-      class cx {
+      class cv {
         constructor(t = [], i = (t, i) => (t < i ? -1 : t > i ? 1 : 0)) {
           if (
             ((this.data = t),
@@ -21528,15 +21353,15 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           i[t] = n;
         }
       }
-      function cv(t, i = 1, a = !1) {
+      function c_(t, i = 1, a = !1) {
         let n = uz.fromPoints(t[0]),
           s = Math.min(n.width(), n.height()),
           o = s / 2,
-          l = new cx([], c_),
+          l = new cv([], cb),
           { minX: u, minY: h, maxX: c, maxY: d } = n;
         if (0 === s) return new r(u, h);
         for (let p = u; p < c; p += s)
-          for (let f = h; f < d; f += s) l.push(new cb(p + o, f + o, o, t));
+          for (let f = h; f < d; f += s) l.push(new cw(p + o, f + o, o, t));
         let m = (function (t) {
             let i = 0,
               r = 0,
@@ -21548,7 +21373,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 c = u.x * h.y - h.x * u.y;
               ((r += (u.x + h.x) * c), (a += (u.y + h.y) * c), (i += 3 * c));
             }
-            return new cb(r / i, a / i, 0, t);
+            return new cw(r / i, a / i, 0, t);
           })(t),
           g = l.length;
         for (; l.length; ) {
@@ -21563,10 +21388,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               )),
             y.max - m.d <= i ||
               ((o = y.h / 2),
-              l.push(new cb(y.p.x - o, y.p.y - o, o, t)),
-              l.push(new cb(y.p.x + o, y.p.y - o, o, t)),
-              l.push(new cb(y.p.x - o, y.p.y + o, o, t)),
-              l.push(new cb(y.p.x + o, y.p.y + o, o, t)),
+              l.push(new cw(y.p.x - o, y.p.y - o, o, t)),
+              l.push(new cw(y.p.x + o, y.p.y - o, o, t)),
+              l.push(new cw(y.p.x - o, y.p.y + o, o, t)),
+              l.push(new cw(y.p.x + o, y.p.y + o, o, t)),
               (g += 4)));
         }
         return (
@@ -21576,10 +21401,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           m.p
         );
       }
-      function c_(t, i) {
+      function cb(t, i) {
         return i.max - t.max;
       }
-      function cb(t, i, a, n) {
+      function cw(t, i, a, n) {
         ((this.p = new r(t, i)),
           (this.h = a),
           (this.d = (function (t, i) {
@@ -21610,9 +21435,9 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         (S[(S["top-right"] = 7)] = "top-right"),
         (S[(S["bottom-left"] = 8)] = "bottom-left"),
         (S[(S["bottom-right"] = 9)] = "bottom-right"));
-      let cw = Number.POSITIVE_INFINITY;
-      function c0(t, i) {
-        return i[1] !== cw
+      let c0 = Number.POSITIVE_INFINITY;
+      function cT(t, i) {
+        return i[1] !== c0
           ? (function (t, i, r) {
               let a = 0,
                 n = 0;
@@ -21678,7 +21503,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               return [r, a];
             })(t, i[0]);
       }
-      function cT(t, i, r) {
+      function cP(t, i, r) {
         var a;
         let n = t.layout,
           s =
@@ -21703,18 +21528,18 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           let p;
           p =
             void 0 !== t._unevaluatedLayout.getValue("text-radial-offset")
-              ? [24 * n.get("text-radial-offset").evaluate(i, {}, r), cw]
+              ? [24 * n.get("text-radial-offset").evaluate(i, {}, r), c0]
               : n
                   .get("text-offset")
                   .evaluate(i, {}, r)
                   .map((t) => 24 * t);
           let f = [];
-          for (let m of d) f.push(m, c0(m, p));
+          for (let m of d) f.push(m, cT(m, p));
           return new t2(f);
         }
         return null;
       }
-      function cP(t) {
+      function cS(t) {
         switch (t) {
           case "right":
           case "top-right":
@@ -21727,12 +21552,12 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         return "center";
       }
-      function cS(i, r, a, n, s, o, l, u, h, c, d, p) {
+      function cI(i, r, a, n, s, o, l, u, h, c, d, p) {
         let f = o.textMaxSize.evaluate(r, {});
         void 0 === f && (f = l);
         let m = i.layers[0].layout,
           g = m.get("icon-offset").evaluate(r, {}, d),
-          y = cC(a.horizontal),
+          y = cE(a.horizontal),
           $ = l / 24,
           x = i.tilePixelRatio * $,
           v = (i.tilePixelRatio * f) / 24,
@@ -21809,15 +21634,15 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   O = su("");
                 if (i.allowVerticalPlacement && n.vertical) {
                   let V = u.layout.get("text-rotate").evaluate(b, {}, P) + 90;
-                  ((D = new c$(h, r, c, d, p, n.vertical, f, m, g, V)),
-                    l && (z = new c$(h, r, c, d, p, l, $, x, g, V)));
+                  ((D = new cx(h, r, c, d, p, n.vertical, f, m, g, V)),
+                    l && (z = new cx(h, r, c, d, p, l, $, x, g, V)));
                 }
                 if (s) {
                   let N = u.layout.get("icon-rotate").evaluate(b, {}),
                     j = "none" !== u.layout.get("icon-text-fit"),
-                    G = cf(s, N, T, j),
-                    U = l ? cf(l, N, T, j) : void 0;
-                  ((E = new c$(h, r, c, d, p, s, $, x, !1, N)),
+                    G = cm(s, N, T, j),
+                    U = l ? cm(l, N, T, j) : void 0;
+                  ((E = new cx(h, r, c, d, p, s, $, x, !1, N)),
                     (A = 4 * G.length));
                   let q = i.iconSizeData,
                     Z = null;
@@ -21876,11 +21701,11 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   if (!C) {
                     O = su(X.text);
                     let Y = u.layout.get("text-rotate").evaluate(b, {}, P);
-                    C = new c$(h, r, c, d, p, X, f, m, g, Y);
+                    C = new cx(h, r, c, d, p, X, f, m, g, Y);
                   }
                   let K = 1 === X.positionedLines.length;
                   if (
-                    ((R += cI(
+                    ((R += cC(
                       i,
                       r,
                       X,
@@ -21902,7 +21727,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                     break;
                 }
                 n.vertical &&
-                  (L += cI(
+                  (L += cC(
                     i,
                     r,
                     n.vertical,
@@ -21942,7 +21767,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                     ),
                   void 0 !== b.sortKey &&
                     i.addToSortKeyRanges(i.symbolInstances.length, b.sortKey));
-                let eh = cT(u, b, P),
+                let eh = cP(u, b, P),
                   [ec, ed] = (function (i, r) {
                     let a = i.length,
                       n = null == r ? void 0 : r.values;
@@ -22012,33 +21837,33 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               );
           };
         if ("line" === C)
-          for (let R of ct(r.geometry, 0, 0, 8192, 8192)) {
+          for (let R of ci(r.geometry, 0, 0, 8192, 8192)) {
             let L = oV(R, A),
-              F = cp(L, b, P, a.vertical || y, n, 24, v, i.overscaling, 8192);
-            for (let B of F) (y && cE(i, y.text, E, B)) || k(L, B);
+              F = cf(L, b, P, a.vertical || y, n, 24, v, i.overscaling, 8192);
+            for (let B of F) (y && cD(i, y.text, E, B)) || k(L, B);
           }
         else if ("line-center" === C) {
           for (let M of r.geometry)
             if (M.length > 1) {
               let O = oV(M, A),
-                V = cd(O, P, a.vertical || y, n, 24, v);
+                V = cp(O, P, a.vertical || y, n, 24, v);
               V && k(O, V);
             }
         } else if ("Polygon" === r.type)
           for (let N of iZ(r.geometry, 0)) {
-            let j = cv(N, 16);
-            k(oV(N[0], A, !0), new co(j.x, j.y, 0));
+            let j = c_(N, 16);
+            k(oV(N[0], A, !0), new cl(j.x, j.y, 0));
           }
         else if ("LineString" === r.type)
           for (let G of r.geometry) {
             let U = oV(G, A);
-            k(U, new co(U[0].x, U[0].y, 0));
+            k(U, new cl(U[0].x, U[0].y, 0));
           }
         else if ("Point" === r.type)
           for (let q of r.geometry)
-            for (let Z of q) k([Z], new co(Z.x, Z.y, 0));
+            for (let Z of q) k([Z], new cl(Z.x, Z.y, 0));
       }
-      function cI(t, i, a, n, s, o, l, u, h, c, d, p, f, m, g) {
+      function cC(t, i, a, n, s, o, l, u, h, c, d, p, f, m, g) {
         let y = (function (t, i, a, n, s, o, l, u) {
             let h =
                 (n.layout.get("text-rotate").evaluate(o, {}) * Math.PI) / 180,
@@ -22151,11 +21976,11 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           p[v] = t.text.placedSymbolArray.length - 1;
         return 4 * y.length;
       }
-      function cC(t) {
+      function cE(t) {
         for (let i in t) return t[i];
         return null;
       }
-      function cE(t, i, r, a) {
+      function cD(t, i, r, a) {
         let n = t.compareText;
         if (i in n) {
           let s = n[i];
@@ -22164,7 +21989,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         } else n[i] = [];
         return (n[i].push(a), !1);
       }
-      let cD = [
+      let cz = [
         Int8Array,
         Uint8Array,
         Uint8ClampedArray,
@@ -22175,7 +22000,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         Float32Array,
         Float64Array,
       ];
-      class cz {
+      class cA {
         static from(t) {
           if (!(t instanceof ArrayBuffer))
             throw Error("Data must be an instance of ArrayBuffer.");
@@ -22184,11 +22009,11 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             throw Error("Data does not appear to be in a KDBush format.");
           let a = r >> 4;
           if (1 !== a) throw Error(`Got v${a} data when expected v1.`);
-          let n = cD[15 & r];
+          let n = cz[15 & r];
           if (!n) throw Error("Unrecognized array type.");
           let [s] = new Uint16Array(t, 2, 1),
             [o] = new Uint32Array(t, 4, 1);
-          return new cz(o, s, n, t);
+          return new cA(o, s, n, t);
         }
         constructor(t, i = 64, r = Float64Array, a) {
           if (isNaN(t) || t < 0)
@@ -22197,7 +22022,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             (this.nodeSize = Math.min(Math.max(+i, 2), 65535)),
             (this.ArrayType = r),
             (this.IndexArrayType = t < 65536 ? Uint16Array : Uint32Array));
-          let n = cD.indexOf(this.ArrayType),
+          let n = cz.indexOf(this.ArrayType),
             s = 2 * t * this.ArrayType.BYTES_PER_ELEMENT,
             o = t * this.IndexArrayType.BYTES_PER_ELEMENT,
             l = (8 - (o % 8)) % 8;
@@ -22258,13 +22083,13 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                     f = n,
                     m = s;
                   for (
-                    cA(i, r, n, a), r[2 * s + o] > p && cA(i, r, n, s);
+                    ck(i, r, n, a), r[2 * s + o] > p && ck(i, r, n, s);
                     f < m;
                   ) {
-                    for (cA(i, r, f, m), f++, m--; r[2 * f + o] < p; ) f++;
+                    for (ck(i, r, f, m), f++, m--; r[2 * f + o] < p; ) f++;
                     for (; r[2 * m + o] > p; ) m--;
                   }
-                  (r[2 * n + o] === p ? cA(i, r, n, m) : cA(i, r, ++m, s),
+                  (r[2 * n + o] === p ? ck(i, r, n, m) : ck(i, r, ++m, s),
                     m <= a && (n = m + 1),
                     a <= m && (s = m - 1));
                 }
@@ -22318,13 +22143,13 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               d = o.pop() || 0;
             if (c - d <= s) {
               for (let p = d; p <= c; p++)
-                cR(n[2 * p], n[2 * p + 1], t, i) <= u && l.push(a[p]);
+                cL(n[2 * p], n[2 * p + 1], t, i) <= u && l.push(a[p]);
               continue;
             }
             let f = (d + c) >> 1,
               m = n[2 * f],
               g = n[2 * f + 1];
-            (cR(m, g, t, i) <= u && l.push(a[f]),
+            (cL(m, g, t, i) <= u && l.push(a[f]),
               (0 === h ? t - r <= m : i - r <= g) &&
                 (o.push(d), o.push(f - 1), o.push(1 - h)),
               (0 === h ? t + r >= m : i + r >= g) &&
@@ -22333,14 +22158,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return l;
         }
       }
-      function cA(t, i, r, a) {
-        (ck(t, r, a), ck(i, 2 * r, 2 * a), ck(i, 2 * r + 1, 2 * a + 1));
+      function ck(t, i, r, a) {
+        (cR(t, r, a), cR(i, 2 * r, 2 * a), cR(i, 2 * r + 1, 2 * a + 1));
       }
-      function ck(t, i, r) {
+      function cR(t, i, r) {
         let a = t[i];
         ((t[i] = t[r]), (t[r] = a));
       }
-      function cR(t, i, r, a) {
+      function cL(t, i, r, a) {
         let n = t - r,
           s = i - a;
         return n * n + s * s;
@@ -22349,11 +22174,11 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         ((I = t.cI || (t.cI = {})).create = "create"),
         (I.load = "load"),
         (I.fullLoad = "fullLoad"));
-      let cL = null,
-        cF = [],
-        c1 = 1e3 / 60,
-        cB = "loadTime",
-        cM = "fullLoadTime";
+      let cF = null,
+        c1 = [],
+        cB = 1e3 / 60,
+        cM = "loadTime",
+        c3 = "fullLoadTime";
       ((t.$ = A),
         (t.A = R),
         (t.B = aA),
@@ -22930,7 +22755,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           let c = (u * (t.y - a.y) - l * (t.x - a.x)) / h;
           return new r(t.x + c * o, t.y + c * s);
         }),
-        (t.aJ = ct),
+        (t.aJ = ci),
         (t.aK = sk),
         (t.aL = function (t) {
           let i = 1 / 0,
@@ -22963,9 +22788,9 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return [n ? r[0] : H(i, r[0], t.zoom), n ? r[1] : H(i, r[1], t.zoom)];
         }),
         (t.aQ = lQ),
-        (t.aR = cP),
+        (t.aR = cS),
         (t.aS = lU),
-        (t.aT = cz),
+        (t.aT = cA),
         (t.aU = n8),
         (t.aV = o3),
         (t.aW = n9),
@@ -22999,7 +22824,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }),
         (t.ag = n2),
         (t.ah = un),
-        (t.ai = h9),
+        (t.ai = h5),
         (t.aj = rZ),
         (t.ak = sD),
         (t.al = uk),
@@ -23868,27 +23693,21 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         (t.c = e0),
         (t.c$ = class {
           constructor(t) {
-            ((this._marks = {
-              start: [t.url, "start"].join("#"),
-              end: [t.url, "end"].join("#"),
-              measure: t.url.toString(),
-            }),
-              performance.mark(this._marks.start));
+            ((this.start = `${t}#start`),
+              (this.end = `${t}#end`),
+              (this.measure = t),
+              performance.mark(this.start));
           }
           finish() {
-            performance.mark(this._marks.end);
-            let t = performance.getEntriesByName(this._marks.measure);
+            performance.mark(this.end);
+            let t = performance.getEntriesByName(this.measure);
             return (
               0 === t.length &&
-                (performance.measure(
-                  this._marks.measure,
-                  this._marks.start,
-                  this._marks.end,
-                ),
-                (t = performance.getEntriesByName(this._marks.measure)),
-                performance.clearMarks(this._marks.start),
-                performance.clearMarks(this._marks.end),
-                performance.clearMeasures(this._marks.measure)),
+                (performance.measure(this.measure, this.start, this.end),
+                (t = performance.getEntriesByName(this.measure)),
+                performance.clearMarks(this.start),
+                performance.clearMarks(this.end),
+                performance.clearMeasures(this.measure)),
               t
             );
           }
@@ -24071,34 +23890,36 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           mark(t) {
             performance.mark(t);
           },
-          frame(t) {
-            let i = t;
-            (null != cL && cF.push(i - cL), (cL = i));
+          recordStartOfFrameAt(t) {
+            (null != cF && c1.push(t - cF), (cF = t));
           },
-          clearMetrics() {
-            for (let i in ((cL = null),
-            (cF = []),
-            performance.clearMeasures(cB),
-            performance.clearMeasures(cM),
+          resetRuntimeMetrics() {
+            ((cF = null), (c1 = []));
+          },
+          clearInitializationMetrics() {
+            for (let i in (performance.clearMeasures(cM),
+            performance.clearMeasures(c3),
             t.cI))
               performance.clearMarks(t.cI[i]);
           },
+          remove() {
+            (this.resetRuntimeMetrics(), this.clearInitializationMetrics());
+          },
           getPerformanceMetrics() {
-            (performance.measure(cB, t.cI.create, t.cI.load),
-              performance.measure(cM, t.cI.create, t.cI.fullLoad));
-            let i = performance.getEntriesByName(cB)[0].duration,
-              r = performance.getEntriesByName(cM)[0].duration,
-              a = cF.length,
-              n = 1 / (cF.reduce((t, i) => t + i, 0) / a / 1e3),
-              s = cF
-                .filter((t) => t > c1)
-                .reduce((t, i) => t + (i - c1) / c1, 0);
+            (performance.measure(cM, t.cI.create, t.cI.load),
+              performance.measure(c3, t.cI.create, t.cI.fullLoad));
+            let i = performance.getEntriesByName(cM)[0].duration,
+              r = performance.getEntriesByName(c3)[0].duration,
+              a = c1.length;
             return {
-              loadTime: i,
-              fullLoadTime: r,
-              fps: n,
-              percentDroppedFrames: (s / (a + s)) * 100,
-              totalFrames: a,
+              loadTimeMs: i,
+              fullLoadTimeMs: r,
+              averageFramesPerSecond:
+                1 / (c1.reduce((t, i) => t + i, 0) / a / 1e3),
+              virtualDroppedFramesCount: c1
+                .filter((t) => t > cB)
+                .reduce((t, i) => t + (i - cB) / cB, 0),
+              totalFramesCount: a,
             };
           },
         }),
@@ -24123,7 +23944,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }),
         (t.cN = aL),
         (t.cO = uA),
-        (t.cP = hQ),
+        (t.cP = hJ),
         (t.cQ = l6),
         (t.cR = function (i) {
           var r;
@@ -24181,13 +24002,13 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   n.get("text-letter-spacing").evaluate(g, {}, i.canonical),
                 I = a6(P) ? S : 0,
                 C = n.get("text-anchor").evaluate(g, {}, i.canonical),
-                E = cT(a, g, i.canonical);
+                E = cP(a, g, i.canonical);
               if (!E) {
                 let D = n
                   .get("text-radial-offset")
                   .evaluate(g, {}, i.canonical);
                 T = D
-                  ? c0(C, [24 * D, cw])
+                  ? cT(C, [24 * D, c0])
                   : n
                       .get("text-offset")
                       .evaluate(g, {}, i.canonical)
@@ -24225,7 +24046,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 let R = new Set();
                 if ("auto" === z)
                   for (let L = 0; L < E.values.length; L += 2)
-                    R.add(cP(E.values[L]));
+                    R.add(cS(E.values[L]));
                 else R.add(z);
                 let F = !1;
                 for (let B of R)
@@ -24256,7 +24077,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   }
                 k();
               } else {
-                "auto" === z && (z = cP(C));
+                "auto" === z && (z = cS(C));
                 let O = lG(
                   b,
                   i.glyphMap,
@@ -24318,11 +24139,11 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   0 !== n.get("icon-rotate").constantOr(1)) &&
                   (i.bucket.iconsNeedLinear = !0));
             }
-            let j = cC(_.horizontal) || _.vertical;
+            let j = cE(_.horizontal) || _.vertical;
             ((r = i.bucket).iconsInText ||
               (r.iconsInText = !!j && j.iconsInText),
               (j || w) &&
-                cS(
+                cI(
                   i.bucket,
                   g,
                   _,
@@ -24346,14 +24167,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           let i = new lz();
           return (
             (function (t, i) {
-              for (let r in t.layers) i.writeMessage(3, h5, t.layers[r]);
+              for (let r in t.layers) i.writeMessage(3, h7, t.layers[r]);
             })(t, i),
             i.finish()
           );
         }),
         (t.cW = function (t, i, r, a, n, s) {
-          let o = ci(t, i, r, n, 0);
-          return ci(o, i, a, s, 1);
+          let o = cr(t, i, r, n, 0);
+          return cr(o, i, a, s, 1);
         }),
         (t.cX = class {
           constructor(t) {
@@ -24380,7 +24201,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }),
         (t.cY = oY),
         (t.cZ = lz),
-        (t.c_ = hq),
+        (t.c_ = hZ),
         (t.ca = class extends nE {}),
         (t.cb = l_),
         (t.cc = class extends nz {}),
@@ -24552,15 +24373,15 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         (t.d2 = a),
         (t.d3 = class {
           constructor(t, i) {
-            ((this.layers = { [h9]: this }),
-              (this.name = h9),
+            ((this.layers = { [h5]: this }),
+              (this.name = h5),
               (this.version = i ? i.version : 1),
               (this.extent = i ? i.extent : 4096),
               (this.length = t.length),
               (this.features = t));
           }
           feature(t) {
-            return new hZ(this.features[t], this.extent);
+            return new h9(this.features[t], this.extent);
           }
         }),
         (t.d4 = rO),
@@ -24894,6 +24715,45 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         for (let s of i) s.recalculate(n, a);
       }
       class s {
+        constructor() {
+          ((this.loading = {}), (this.loaded = {}), (this.parsing = {}));
+        }
+        startLoading(t, i) {
+          this.loading[t] = i;
+        }
+        finishLoading(t) {
+          delete this.loading[t];
+        }
+        abort(t) {
+          let i = this.loading[t];
+          (null == i ? void 0 : i.abort) &&
+            (i.abort.abort(), delete this.loading[t]);
+        }
+        setParsing(t, i) {
+          this.parsing[t] = i;
+        }
+        consumeParsing(t) {
+          let i = this.parsing[t];
+          if (i) return (delete this.parsing[t], i);
+        }
+        clearParsing(t) {
+          delete this.parsing[t];
+        }
+        markLoaded(t, i) {
+          this.loaded[t] = i;
+        }
+        getLoaded(t) {
+          let i = this.loaded[t];
+          if (i) return i;
+        }
+        removeLoaded(t) {
+          delete this.loaded[t];
+        }
+        clearLoaded() {
+          this.loaded = {};
+        }
+      }
+      class o {
         constructor(t, i, r, a, n) {
           ((this.type = t),
             (this.properties = r || {}),
@@ -24905,7 +24765,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this.pointsArray.map((i) => i.map((i) => new t.P(i.x, i.y)));
         }
       }
-      class o {
+      class l {
         constructor(t, i, r) {
           ((this.version = 2),
             (this._myFeatures = t),
@@ -24917,7 +24777,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this._myFeatures[t];
         }
       }
-      class l {
+      class u {
         constructor() {
           this.layers = {};
         }
@@ -24925,7 +24785,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           this.layers[t.name] = t;
         }
       }
-      function u(i) {
+      function h(i) {
         let r = t.cV(i);
         return (
           (0 === r.byteOffset && r.byteLength === r.buffer.byteLength) ||
@@ -24933,30 +24793,28 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           { vectorTile: i, rawData: r.buffer }
         );
       }
-      function h(i, r, a) {
+      function c(i, r, a) {
         let { extent: n } = i,
-          l = Math.pow(2, a.z - r.z),
-          u = (a.x - r.x * l) * n,
-          h = (a.y - r.y * l) * n,
+          s = Math.pow(2, a.z - r.z),
+          u = (a.x - r.x * s) * n,
+          h = (a.y - r.y * s) * n,
           c = [];
         for (let d = 0; d < i.length; d++) {
           let p = i.feature(d),
             f = p.loadGeometry();
           for (let m of f)
-            for (let g of m) ((g.x = g.x * l - u), (g.y = g.y * l - h));
+            for (let g of m) ((g.x = g.x * s - u), (g.y = g.y * s - h));
           0 !== (f = t.cW(f, p.type, -128, -128, n + 128, n + 128)).length &&
-            c.push(new s(p.type, f, p.properties, p.id, n));
+            c.push(new o(p.type, f, p.properties, p.id, n));
         }
-        return new o(c, i.name, n);
+        return new l(c, i.name, n);
       }
-      class c {
+      class d {
         constructor(i, r, a) {
           ((this.actor = i),
             (this.layerIndex = r),
             (this.availableImages = a),
-            (this.fetching = {}),
-            (this.loading = {}),
-            (this.loaded = {}),
+            (this.tileState = new s()),
             (this.overzoomedTileResultCache = new t.cX(1e3)));
         }
         loadVectorTile(i, r) {
@@ -24986,143 +24844,129 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         loadTile(i) {
           return t._(this, void 0, void 0, function* () {
-            let { uid: r, overzoomParameters: n } = i;
-            n && (i.request = n.overzoomRequest);
-            let s =
-                !!(i && i.request && i.request.collectResourceTiming) &&
-                new t.c$(i.request),
-              o = new a(i);
-            this.loading[r] = o;
-            let l = new AbortController();
-            o.abort = l;
+            let { uid: t, overzoomParameters: r } = i;
+            r && (i.request = r.overzoomRequest);
+            let n = this._startRequestTiming(i),
+              s = new a(i);
+            this.tileState.startLoading(t, s);
+            let o = new AbortController();
+            s.abort = o;
             try {
-              let u = yield this.loadVectorTile(i, l);
-              if ((delete this.loading[r], !u)) return null;
-              if (n) {
-                let h = this._getOverzoomTile(i, u.vectorTile);
-                ((u.rawData = h.rawData), (u.vectorTile = h.vectorTile));
-              }
-              let c = u.rawData,
-                d = {};
-              (u.expires && (d.expires = u.expires),
-                u.cacheControl && (d.cacheControl = u.cacheControl));
-              let p = {};
-              if (s) {
-                let f = s.finish();
-                f && (p.resourceTiming = JSON.parse(JSON.stringify(f)));
-              }
-              o.vectorTile = u.vectorTile;
-              let m = o.parse(
-                u.vectorTile,
-                this.layerIndex,
-                this.availableImages,
-                this.actor,
-                i.subdivisionGranularity,
-              );
-              ((this.loaded[r] = o),
-                (this.fetching[r] = {
-                  rawTileData: c,
-                  cacheControl: d,
-                  resourceTiming: p,
-                }));
+              let l = yield this.loadVectorTile(i, o);
+              if ((this.tileState.finishLoading(t), !l)) return null;
+              let { vectorTile: u, rawData: h } = l;
+              r &&
+                ({ vectorTile: u, rawData: h } = this._getOverzoomTile(
+                  i,
+                  l.vectorTile,
+                ));
+              let c = this._getExpiryData(l),
+                d = this._finishRequestTiming(n);
+              ((s.vectorTile = u), this.tileState.markLoaded(t, s));
+              let p = { rawData: h, cacheControl: c, resourceTiming: d };
+              this.tileState.setParsing(t, p);
               try {
-                let g = yield m;
-                return t.e(
-                  { rawTileData: c.slice(0), encoding: i.encoding },
-                  g,
-                  d,
-                  p,
-                );
+                return yield this._parseWorkerTile(s, i, p);
               } finally {
-                delete this.fetching[r];
+                this.tileState.clearParsing(t);
               }
-            } catch (y) {
+            } catch (f) {
               throw (
-                delete this.loading[r],
-                (o.status = "done"),
-                (this.loaded[r] = o),
-                y
+                this.tileState.finishLoading(t),
+                (s.status = "done"),
+                this.tileState.markLoaded(t, s),
+                f
               );
             }
           });
+        }
+        _parseWorkerTile(i, r, a) {
+          return t._(this, void 0, void 0, function* () {
+            let n = yield i.parse(
+              i.vectorTile,
+              this.layerIndex,
+              this.availableImages,
+              this.actor,
+              r.subdivisionGranularity,
+            );
+            if (a) {
+              let { rawData: s, cacheControl: o, resourceTiming: l } = a;
+              n = t.e(
+                { rawTileData: s.slice(0), encoding: r.encoding },
+                n,
+                o,
+                l,
+              );
+            }
+            return n;
+          });
+        }
+        _getExpiryData(t) {
+          let { expires: i, cacheControl: r } = t,
+            a = {};
+          return (i && (a.expires = i), r && (a.cacheControl = r), a);
+        }
+        _startRequestTiming(i) {
+          var r;
+          if (
+            null === (r = i.request) || void 0 === r
+              ? void 0
+              : r.collectResourceTiming
+          )
+            return new t.c$(i.request.url);
+        }
+        _finishRequestTiming(t) {
+          let i = null == t ? void 0 : t.finish();
+          return i ? { resourceTiming: JSON.parse(JSON.stringify(i)) } : {};
         }
         _getOverzoomTile(t, i) {
           let { tileID: r, source: a, overzoomParameters: n } = t,
             { maxZoomTileID: s } = n,
             o = `${s.key}_${r.key}`,
-            c = this.overzoomedTileResultCache.get(o);
-          if (c) return c;
-          let d = new l(),
+            l = this.overzoomedTileResultCache.get(o);
+          if (l) return l;
+          let d = new u(),
             p = this.layerIndex.familiesBySource[a];
           for (let f in p) {
             let m = i.layers[f];
             if (!m) continue;
-            let g = h(m, s, r.canonical);
+            let g = c(m, s, r.canonical);
             g.length > 0 && d.addLayer(g);
           }
-          let y = u(d);
+          let y = h(d);
           return (this.overzoomedTileResultCache.set(o, y), y);
         }
         reloadTile(i) {
           return t._(this, void 0, void 0, function* () {
-            let r = i.uid;
-            if (!this.loaded || !this.loaded[r])
+            let t = i.uid,
+              r = this.tileState.getLoaded(t);
+            if (!r)
               throw Error(
                 "Should not be trying to reload a tile that was never loaded or has been removed",
               );
-            let a = this.loaded[r];
             if (
-              ((a.showCollisionBoxes = i.showCollisionBoxes),
-              "parsing" === a.status)
+              ((r.showCollisionBoxes = i.showCollisionBoxes),
+              "parsing" === r.status)
             ) {
-              let n = yield a.parse(
-                  a.vectorTile,
-                  this.layerIndex,
-                  this.availableImages,
-                  this.actor,
-                  i.subdivisionGranularity,
-                ),
-                s;
-              if (this.fetching[r]) {
-                let {
-                  rawTileData: o,
-                  cacheControl: l,
-                  resourceTiming: u,
-                } = this.fetching[r];
-                (delete this.fetching[r],
-                  (s = t.e(
-                    { rawTileData: o.slice(0), encoding: i.encoding },
-                    n,
-                    l,
-                    u,
-                  )));
-              } else s = n;
-              return s;
+              let a = this.tileState.consumeParsing(t);
+              return yield this._parseWorkerTile(r, i, a);
             }
-            if ("done" === a.status && a.vectorTile)
-              return a.parse(
-                a.vectorTile,
-                this.layerIndex,
-                this.availableImages,
-                this.actor,
-                i.subdivisionGranularity,
-              );
+            if ("done" === r.status && r.vectorTile)
+              return yield this._parseWorkerTile(r, i);
           });
         }
         abortTile(i) {
           return t._(this, void 0, void 0, function* () {
-            let t = this.loading,
-              r = i.uid;
-            t && t[r] && t[r].abort && (t[r].abort.abort(), delete t[r]);
+            this.tileState.abort(i.uid);
           });
         }
         removeTile(i) {
           return t._(this, void 0, void 0, function* () {
-            this.loaded && this.loaded[i.uid] && delete this.loaded[i.uid];
+            this.tileState.removeLoaded(i.uid);
           });
         }
       }
-      class d {
+      class p {
         constructor() {
           this.loaded = {};
         }
@@ -25152,11 +24996,11 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           i && i[r] && delete i[r];
         }
       }
-      var p,
-        f,
+      var f,
         m,
-        g = (function () {
-          if (m) return f;
+        g,
+        y = (function () {
+          if (g) return m;
           function t(t, r) {
             if (0 !== t.length) {
               i(t[0], r);
@@ -25177,8 +25021,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             r + a >= 0 != !!i && t.reverse();
           }
           return (
-            (m = 1),
-            (f = function i(r, a) {
+            (g = 1),
+            (m = function i(r, a) {
               var n,
                 s = r && r.type;
               if ("FeatureCollection" === s)
@@ -25194,10 +25038,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             })
           );
         })(),
-        y = t.d2(g);
-      let $ =
-        Math.fround || ((p = new Float32Array(1)), (t) => ((p[0] = +t), p[0]));
-      class x {
+        $ = t.d2(y);
+      let x =
+        Math.fround || ((f = new Float32Array(1)), (t) => ((f[0] = +t), f[0]));
+      class v {
         constructor(t) {
           ((this.options = Object.assign(
             Object.create({
@@ -25228,8 +25072,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             let l = t[o];
             if (!l.geometry) continue;
             let [u, h] = l.geometry.coordinates,
-              c = $(b(u)),
-              d = $(w(h));
+              c = x(w(u)),
+              d = x(T(h));
             (s.push(c, d, 1 / 0, o, -1, 1), this.options.reduce && s.push(0));
           }
           let p = (this.trees[a + 1] = this._createTree(s));
@@ -25259,13 +25103,13 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             return o.concat(l);
           }
           let u = this.trees[this._limitZoom(i)],
-            h = u.range(b(r), w(s), b(n), w(a)),
+            h = u.range(w(r), T(s), w(n), T(a)),
             c = u.data,
             d = [];
           for (let p of h) {
             let f = this.stride * p;
             d.push(
-              c[f + 5] > 1 ? v(c, f, this.clusterProps) : this.points[c[f + 3]],
+              c[f + 5] > 1 ? _(c, f, this.clusterProps) : this.points[c[f + 3]],
             );
           }
           return d;
@@ -25287,7 +25131,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             s[c + 4] === t &&
               u.push(
                 s[c + 5] > 1
-                  ? v(s, c, this.clusterProps)
+                  ? _(s, c, this.clusterProps)
                   : this.points[s[c + 3]],
               );
           }
@@ -25380,12 +25224,12 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               c,
               d;
             if (u)
-              ((h = _(i, l, this.clusterProps)), (c = i[l]), (d = i[l + 1]));
+              ((h = b(i, l, this.clusterProps)), (c = i[l]), (d = i[l + 1]));
             else {
               let p = this.points[i[l + 3]];
               h = p.properties;
               let [f, m] = p.geometry.coordinates;
-              ((c = b(f)), (d = w(m)));
+              ((c = w(f)), (d = T(m)));
             }
             let g = {
                 type: 1,
@@ -25484,12 +25328,12 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return r && s === n ? Object.assign({}, s) : s;
         }
       }
-      function v(t, i, r) {
+      function _(t, i, r) {
         var a, n;
         return {
           type: "Feature",
           id: t[i + 3],
-          properties: _(t, i, r),
+          properties: b(t, i, r),
           geometry: {
             type: "Point",
             coordinates: [
@@ -25502,7 +25346,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           },
         };
       }
-      function _(t, i, r) {
+      function b(t, i, r) {
         let a = t[i + 5],
           n =
             a >= 1e4
@@ -25519,15 +25363,15 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           point_count_abbreviated: n,
         });
       }
-      function b(t) {
+      function w(t) {
         return t / 360 + 0.5;
       }
-      function w(t) {
+      function T(t) {
         let i = Math.sin((t * Math.PI) / 180),
           r = 0.5 - (0.25 * Math.log((1 + i) / (1 - i))) / Math.PI;
         return r < 0 ? 0 : r > 1 ? 1 : r;
       }
-      function T(t, i, r, a, n, s) {
+      function P(t, i, r, a, n, s) {
         let o = n - r,
           l = s - a;
         if (0 !== o || 0 !== l) {
@@ -25536,7 +25380,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         return (o = t - r) * o + (l = i - a) * l;
       }
-      function P(t, i, r, a) {
+      function S(t, i, r, a) {
         let n = { type: i, geom: r },
           s = {
             id: null == t ? null : t,
@@ -25552,46 +25396,46 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           case "Point":
           case "MultiPoint":
           case "LineString":
-            S(s, n.geom);
+            I(s, n.geom);
             break;
           case "Polygon":
-            S(s, n.geom[0]);
+            I(s, n.geom[0]);
             break;
           case "MultiLineString":
-            for (let o of n.geom) S(s, o);
+            for (let o of n.geom) I(s, o);
             break;
           case "MultiPolygon":
-            for (let l of n.geom) S(s, l[0]);
+            for (let l of n.geom) I(s, l[0]);
         }
         return s;
       }
-      function S(t, i) {
+      function I(t, i) {
         for (let r = 0; r < i.length; r += 3)
           ((t.minX = Math.min(t.minX, i[r])),
             (t.minY = Math.min(t.minY, i[r + 1])),
             (t.maxX = Math.max(t.maxX, i[r])),
             (t.maxY = Math.max(t.maxY, i[r + 1])));
       }
-      function I(t, i) {
+      function C(t, i) {
         let r = [];
         switch (t.type) {
           case "FeatureCollection":
             for (let a = 0; a < t.features.length; a++)
-              C(r, t.features[a], i, a);
+              E(r, t.features[a], i, a);
             break;
           case "Feature":
-            C(r, t, i);
+            E(r, t, i);
             break;
           default:
-            C(r, { geometry: t, properties: void 0 }, i);
+            E(r, { geometry: t, properties: void 0 }, i);
         }
         return r;
       }
-      function C(t, i, r, a) {
+      function E(t, i, r, a) {
         if (!i.geometry) return;
         if ("GeometryCollection" === i.geometry.type) {
           for (let n of i.geometry.geometries)
-            C(t, { id: i.id, geometry: n, properties: i.properties }, r, a);
+            E(t, { id: i.id, geometry: n, properties: i.properties }, r, a);
           return;
         }
         let s = i.geometry.coordinates;
@@ -25607,65 +25451,65 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           case "Point": {
             let u = [];
             return (
-              E(i.geometry.coordinates, u),
-              void t.push(P(l, i.geometry.type, u, i.properties))
+              D(i.geometry.coordinates, u),
+              void t.push(S(l, i.geometry.type, u, i.properties))
             );
           }
           case "MultiPoint": {
             let h = [];
-            for (let c of i.geometry.coordinates) E(c, h);
-            return void t.push(P(l, i.geometry.type, h, i.properties));
+            for (let c of i.geometry.coordinates) D(c, h);
+            return void t.push(S(l, i.geometry.type, h, i.properties));
           }
           case "LineString": {
             let d = [];
             return (
-              D(i.geometry.coordinates, d, o, !1),
-              void t.push(P(l, i.geometry.type, d, i.properties))
+              z(i.geometry.coordinates, d, o, !1),
+              void t.push(S(l, i.geometry.type, d, i.properties))
             );
           }
           case "MultiLineString": {
             if (r.lineMetrics) {
               for (let p of i.geometry.coordinates) {
                 let f = [];
-                (D(p, f, o, !1), t.push(P(l, "LineString", f, i.properties)));
+                (z(p, f, o, !1), t.push(S(l, "LineString", f, i.properties)));
               }
               return;
             }
             let m = [];
             return (
-              z(i.geometry.coordinates, m, o, !1),
-              void t.push(P(l, i.geometry.type, m, i.properties))
+              A(i.geometry.coordinates, m, o, !1),
+              void t.push(S(l, i.geometry.type, m, i.properties))
             );
           }
           case "Polygon": {
             let g = [];
             return (
-              z(i.geometry.coordinates, g, o, !0),
-              void t.push(P(l, i.geometry.type, g, i.properties))
+              A(i.geometry.coordinates, g, o, !0),
+              void t.push(S(l, i.geometry.type, g, i.properties))
             );
           }
           case "MultiPolygon": {
             let y = [];
             for (let $ of i.geometry.coordinates) {
               let x = [];
-              (z($, x, o, !0), y.push(x));
+              (A($, x, o, !0), y.push(x));
             }
-            return void t.push(P(l, i.geometry.type, y, i.properties));
+            return void t.push(S(l, i.geometry.type, y, i.properties));
           }
           default:
             throw Error("Input data is not a valid GeoJSON object.");
         }
       }
-      function E(t, i) {
-        i.push(A(t[0]), k(t[1]), 0);
+      function D(t, i) {
+        i.push(k(t[0]), R(t[1]), 0);
       }
-      function D(t, i, r, a) {
+      function z(t, i, r, a) {
         let n,
           s,
           o = 0;
         for (let l = 0; l < t.length; l++) {
-          let u = A(t[l][0]),
-            h = k(t[l][1]);
+          let u = k(t[l][0]),
+            h = R(t[l][1]);
           (i.push(u, h, 0),
             l > 0 &&
               (o += a
@@ -25687,7 +25531,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 d = i[a],
                 p = i[a + 1];
               for (let f = r + 3; f < a; f += 3) {
-                let m = T(i[f], i[f + 1], h, c, d, p);
+                let m = P(i[f], i[f + 1], h, c, d, p);
                 if (m > s) ((l = f), (s = m));
                 else if (m === s) {
                   let g = Math.abs(f - o);
@@ -25704,21 +25548,21 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           (i.start = 0),
           (i.end = i.size));
       }
-      function z(t, i, r, a) {
+      function A(t, i, r, a) {
         for (let n = 0; n < t.length; n++) {
           let s = [];
-          (D(t[n], s, r, a), i.push(s));
+          (z(t[n], s, r, a), i.push(s));
         }
       }
-      function A(t) {
+      function k(t) {
         return t / 360 + 0.5;
       }
-      function k(t) {
+      function R(t) {
         let i = Math.sin((t * Math.PI) / 180),
           r = 0.5 - (0.25 * Math.log((1 + i) / (1 - i))) / Math.PI;
         return r < 0 ? 0 : r > 1 ? 1 : r;
       }
-      function R(t, i, r, a, n, s, o, l) {
+      function L(t, i, r, a, n, s, o, l) {
         if (((a /= i), s >= (r /= i) && o < a)) return t;
         if (o < r || s >= a) return null;
         let u = [];
@@ -25731,66 +25575,66 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               case "Point":
               case "MultiPoint": {
                 let p = [];
-                if ((L(h.geometry, p, r, a, n), !p.length)) continue;
+                if ((F(h.geometry, p, r, a, n), !p.length)) continue;
                 u.push(
-                  P(h.id, 3 === p.length ? "Point" : "MultiPoint", p, h.tags),
+                  S(h.id, 3 === p.length ? "Point" : "MultiPoint", p, h.tags),
                 );
                 continue;
               }
               case "LineString": {
                 let f = [];
-                if ((F(h.geometry, f, r, a, n, !1, l.lineMetrics), !f.length))
+                if ((B(h.geometry, f, r, a, n, !1, l.lineMetrics), !f.length))
                   continue;
                 if (l.lineMetrics) {
-                  for (let m of f) u.push(P(h.id, h.type, m, h.tags));
+                  for (let m of f) u.push(S(h.id, h.type, m, h.tags));
                   continue;
                 }
                 if (f.length > 1) {
-                  u.push(P(h.id, "MultiLineString", f, h.tags));
+                  u.push(S(h.id, "MultiLineString", f, h.tags));
                   continue;
                 }
-                u.push(P(h.id, h.type, f[0], h.tags));
+                u.push(S(h.id, h.type, f[0], h.tags));
                 continue;
               }
               case "MultiLineString": {
                 let g = [];
-                if ((M(h.geometry, g, r, a, n, !1), !g.length)) continue;
+                if ((O(h.geometry, g, r, a, n, !1), !g.length)) continue;
                 if (1 === g.length) {
-                  u.push(P(h.id, "LineString", g[0], h.tags));
+                  u.push(S(h.id, "LineString", g[0], h.tags));
                   continue;
                 }
-                u.push(P(h.id, h.type, g, h.tags));
+                u.push(S(h.id, h.type, g, h.tags));
                 continue;
               }
               case "Polygon": {
                 let y = [];
-                if ((M(h.geometry, y, r, a, n, !0), !y.length)) continue;
-                u.push(P(h.id, h.type, y, h.tags));
+                if ((O(h.geometry, y, r, a, n, !0), !y.length)) continue;
+                u.push(S(h.id, h.type, y, h.tags));
                 continue;
               }
               case "MultiPolygon": {
                 let $ = [];
                 for (let x of h.geometry) {
                   let v = [];
-                  (M(x, v, r, a, n, !0), v.length && $.push(v));
+                  (O(x, v, r, a, n, !0), v.length && $.push(v));
                 }
                 if (!$.length) continue;
-                u.push(P(h.id, h.type, $, h.tags));
+                u.push(S(h.id, h.type, $, h.tags));
                 continue;
               }
             }
         }
         return u.length ? u : null;
       }
-      function L(t, i, r, a, n) {
+      function F(t, i, r, a, n) {
         for (let s = 0; s < t.length; s += 3) {
           let o = t[s + n];
-          o >= r && o <= a && O(i, t[s], t[s + 1], t[s + 2]);
+          o >= r && o <= a && V(i, t[s], t[s + 1], t[s + 2]);
         }
       }
-      function F(t, i, r, a, n, s, o) {
-        let l = B(t),
-          u = 0 === n ? V : N,
+      function B(t, i, r, a, n, s, o) {
+        let l = M(t),
+          u = 0 === n ? N : j,
           h,
           c,
           d = t.start;
@@ -25809,87 +25653,87 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               : x > a
                 ? v < a &&
                   ((c = u(l, f, m, y, $, a)), o && (l.start = d + h * c))
-                : O(l, f, m, g),
+                : V(l, f, m, g),
             v < r && x >= r && ((c = u(l, f, m, y, $, r)), (_ = !0)),
             v > a && x <= a && ((c = u(l, f, m, y, $, a)), (_ = !0)),
-            !s && _ && (o && (l.end = d + h * c), i.push(l), (l = B(t))),
+            !s && _ && (o && (l.end = d + h * c), i.push(l), (l = M(t))),
             o && (d += h));
         }
         let b = t.length - 3,
           w = t[b],
           T = t[b + 1],
           P = 0 === n ? w : T;
-        (P >= r && P <= a && O(l, w, T, t[b + 2]),
+        (P >= r && P <= a && V(l, w, T, t[b + 2]),
           (b = l.length - 3),
           s &&
             b >= 3 &&
             (l[b] !== l[0] || l[b + 1] !== l[1]) &&
-            O(l, l[0], l[1], l[2]),
+            V(l, l[0], l[1], l[2]),
           l.length && i.push(l));
       }
-      function B(t) {
+      function M(t) {
         let i = [];
         return ((i.size = t.size), (i.start = t.start), (i.end = t.end), i);
       }
-      function M(t, i, r, a, n, s) {
-        for (let o of t) F(o, i, r, a, n, s, !1);
+      function O(t, i, r, a, n, s) {
+        for (let o of t) B(o, i, r, a, n, s, !1);
       }
-      function O(t, i, r, a) {
+      function V(t, i, r, a) {
         t.push(i, r, a);
       }
-      function V(t, i, r, a, n, s) {
-        let o = (s - i) / (a - i);
-        return (O(t, s, r + (n - r) * o, 1), o);
-      }
       function N(t, i, r, a, n, s) {
-        let o = (s - r) / (n - r);
-        return (O(t, i + (a - i) * o, s, 1), o);
+        let o = (s - i) / (a - i);
+        return (V(t, s, r + (n - r) * o, 1), o);
       }
-      function j(t, i) {
+      function j(t, i, r, a, n, s) {
+        let o = (s - r) / (n - r);
+        return (V(t, i + (a - i) * o, s, 1), o);
+      }
+      function G(t, i) {
         let r = i.buffer / i.extent,
           a = t,
-          n = R(t, 1, -1 - r, r, 0, -1, 2, i),
-          s = R(t, 1, 1 - r, 2 + r, 0, -1, 2, i);
+          n = L(t, 1, -1 - r, r, 0, -1, 2, i),
+          s = L(t, 1, 1 - r, 2 + r, 0, -1, 2, i);
         return (
           (n || s) &&
-            ((a = R(t, 1, -r, 1 + r, 0, -1, 2, i) || []),
-            n && (a = G(n, 1).concat(a)),
-            s && (a = a.concat(G(s, -1)))),
+            ((a = L(t, 1, -r, 1 + r, 0, -1, 2, i) || []),
+            n && (a = U(n, 1).concat(a)),
+            s && (a = a.concat(U(s, -1)))),
           a
         );
       }
-      function G(t, i) {
+      function U(t, i) {
         let r = [];
         for (let a of t)
           switch (a.type) {
             case "Point":
             case "MultiPoint":
             case "LineString": {
-              let n = U(a.geometry, i);
-              r.push(P(a.id, a.type, n, a.tags));
+              let n = q(a.geometry, i);
+              r.push(S(a.id, a.type, n, a.tags));
               continue;
             }
             case "MultiLineString":
             case "Polygon": {
               let s = [];
-              for (let o of a.geometry) s.push(U(o, i));
-              r.push(P(a.id, a.type, s, a.tags));
+              for (let o of a.geometry) s.push(q(o, i));
+              r.push(S(a.id, a.type, s, a.tags));
               continue;
             }
             case "MultiPolygon": {
               let l = [];
               for (let u of a.geometry) {
                 let h = [];
-                for (let c of u) h.push(U(c, i));
+                for (let c of u) h.push(q(c, i));
                 l.push(h);
               }
-              r.push(P(a.id, a.type, l, a.tags));
+              r.push(S(a.id, a.type, l, a.tags));
               continue;
             }
           }
         return r;
       }
-      function U(t, i) {
+      function q(t, i) {
         let r = [];
         ((r.size = t.size),
           void 0 !== t.start && ((r.start = t.start), (r.end = t.end)));
@@ -25897,7 +25741,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           r.push(t[a] + i, t[a + 1], t[a + 2]);
         return r;
       }
-      function q(t, i) {
+      function Z(t, i) {
         if (t.transformed) return t;
         let r = 1 << t.z,
           a = t.x,
@@ -25906,7 +25750,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           if (1 === s.type) {
             let o = [];
             for (let l = 0; l < s.geometry.length; l += 2)
-              o.push(Z(s.geometry[l], s.geometry[l + 1], i, r, a, n));
+              o.push(W(s.geometry[l], s.geometry[l + 1], i, r, a, n));
             s.geometry = o;
             continue;
           }
@@ -25914,17 +25758,17 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           for (let h of s.geometry) {
             let c = [];
             for (let d = 0; d < h.length; d += 2)
-              c.push(Z(h[d], h[d + 1], i, r, a, n));
+              c.push(W(h[d], h[d + 1], i, r, a, n));
             u.push(c);
           }
           s.geometry = u;
         }
         return ((t.transformed = !0), t);
       }
-      function Z(t, i, r, a, n, s) {
+      function W(t, i, r, a, n, s) {
         return [Math.round(r * (t * a - n)), Math.round(r * (i * a - s))];
       }
-      function W(t, i, r, a, n) {
+      function H(t, i, r, a, n) {
         let s = i === n.maxZoom ? 0 : n.tolerance / ((1 << i) * n.extent),
           o = {
             features: [],
@@ -25941,10 +25785,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             maxX: -1,
             maxY: 0,
           };
-        for (let l of t) H(o, l, s, n);
+        for (let l of t) X(o, l, s, n);
         return o;
       }
-      function H(t, i, r, a) {
+      function X(t, i, r, a) {
         ((t.minX = Math.min(t.minX, i.minX)),
           (t.minY = Math.min(t.minY, i.minY)),
           (t.maxX = Math.max(t.maxX, i.maxX)),
@@ -25965,7 +25809,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           }
           case "LineString": {
             let u = [];
-            if ((X(u, i.geometry, t, r, !1, !1), !u.length)) return;
+            if ((Y(u, i.geometry, t, r, !1, !1), !u.length)) return;
             if (a.lineMetrics) {
               for (let h in ((s = {}), i.tags)) s[h] = i.tags[h];
               ((s.mapbox_clip_start = i.geometry.start / i.geometry.size),
@@ -25978,7 +25822,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           case "Polygon": {
             let c = [];
             for (let d = 0; d < i.geometry.length; d++)
-              X(c, i.geometry[d], t, r, "Polygon" === i.type, 0 === d);
+              Y(c, i.geometry[d], t, r, "Polygon" === i.type, 0 === d);
             if (!c.length) return;
             n = { type: "Polygon" === i.type ? 3 : 2, tags: s, geometry: c };
             break;
@@ -25987,7 +25831,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             let p = [];
             for (let f = 0; f < i.geometry.length; f++) {
               let m = i.geometry[f];
-              for (let g = 0; g < m.length; g++) X(p, m[g], t, r, !0, 0 === g);
+              for (let g = 0; g < m.length; g++) Y(p, m[g], t, r, !0, 0 === g);
             }
             if (!p.length) return;
             n = { type: 3, tags: s, geometry: p };
@@ -25995,7 +25839,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         (null !== i.id && (n.id = i.id), t.features.push(n));
       }
-      function X(t, i, r, a, n, s) {
+      function Y(t, i, r, a, n, s) {
         let o = a * a;
         if (a > 0 && i.size < (n ? o : a))
           return void (r.numPoints += i.length / 3);
@@ -26021,14 +25865,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           })(l, s),
           t.push(l));
       }
-      function Y(t, i, r) {
+      function K(t, i, r) {
         let a = !!i.newGeometry,
           n =
             i.removeAllProperties ||
             i.removeProperties?.length > 0 ||
             i.addOrUpdateProperties?.length > 0;
         if (a) {
-          let s = I(
+          let s = C(
             {
               type: "FeatureCollection",
               features: [
@@ -26036,21 +25880,21 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                   type: "Feature",
                   id: t.id,
                   geometry: i.newGeometry,
-                  properties: n ? K(t.tags, i) : t.tags,
+                  properties: n ? Q(t.tags, i) : t.tags,
                 },
               ],
             },
             r,
           );
-          return (s = j(s, r))[0];
+          return (s = G(s, r))[0];
         }
         if (n) {
           let o = { ...t };
-          return ((o.tags = K(o.tags, i)), o);
+          return ((o.tags = Q(o.tags, i)), o);
         }
         return null;
       }
-      function K(t, i) {
+      function Q(t, i) {
         if (i.removeAllProperties) return {};
         let r = { ...(t || {}) };
         if (i.removeProperties) for (let a of i.removeProperties) delete r[a];
@@ -26058,7 +25902,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           for (let { key: n, value: s } of i.addOrUpdateProperties) r[n] = s;
         return r;
       }
-      let Q = {
+      let J = {
         maxZoom: 14,
         indexMaxZoom: 5,
         indexMaxPoints: 1e5,
@@ -26071,7 +25915,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         updateable: !1,
         debug: 0,
       };
-      class J {
+      class ee {
         options;
         tiles;
         tileCoords;
@@ -26079,7 +25923,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         total = 0;
         source;
         constructor(t, i) {
-          let r = (i = this.options = Object.assign({}, Q, i)).debug;
+          let r = (i = this.options = Object.assign({}, J, i)).debug;
           if (
             (r && console.time("preprocess data"),
             i.maxZoom < 0 || i.maxZoom > 24)
@@ -26087,7 +25931,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             throw Error("maxZoom should be in the 0-24 range");
           if (i.promoteId && i.generateId)
             throw Error("promoteId and generateId cannot be used together.");
-          let a = I(t, i);
+          let a = C(t, i);
           ((this.tiles = {}),
             (this.tileCoords = []),
             r &&
@@ -26100,7 +25944,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               console.time("generate tiles"),
               (this.stats = {}),
               (this.total = 0)),
-            (a = j(a, i)).length && this.splitTile(a, 0, 0, 0),
+            (a = G(a, i)).length && this.splitTile(a, 0, 0, 0),
             i.updateable && (this.source = a),
             r &&
               (a.length &&
@@ -26123,12 +25967,12 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           for (; l.length; ) {
             ((a = l.pop()), (r = l.pop()), (i = l.pop()), (t = l.pop()));
             let c = 1 << i,
-              d = ee(i, r, a),
+              d = et(i, r, a),
               p = this.tiles[d];
             if (
               !p &&
               (h > 1 && console.time("creation"),
-              (p = this.tiles[d] = W(t, i, r, a, u)),
+              (p = this.tiles[d] = H(t, i, r, a, u)),
               this.tileCoords.push({ z: i, x: r, y: a, id: d }),
               h)
             ) {
@@ -26166,14 +26010,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               _ = null,
               b = null,
               w = null,
-              T = R(t, c, r - g, r + $, 0, p.minX, p.maxX, u),
-              P = R(t, c, r + y, r + x, 0, p.minX, p.maxX, u);
+              T = L(t, c, r - g, r + $, 0, p.minX, p.maxX, u),
+              P = L(t, c, r + y, r + x, 0, p.minX, p.maxX, u);
             (T &&
-              ((v = R(T, c, a - g, a + $, 1, p.minY, p.maxY, u)),
-              (_ = R(T, c, a + y, a + x, 1, p.minY, p.maxY, u))),
+              ((v = L(T, c, a - g, a + $, 1, p.minY, p.maxY, u)),
+              (_ = L(T, c, a + y, a + x, 1, p.minY, p.maxY, u))),
               P &&
-                ((b = R(P, c, a - g, a + $, 1, p.minY, p.maxY, u)),
-                (w = R(P, c, a + y, a + x, 1, p.minY, p.maxY, u))),
+                ((b = L(P, c, a - g, a + $, 1, p.minY, p.maxY, u)),
+                (w = L(P, c, a + y, a + x, 1, p.minY, p.maxY, u))),
               h > 1 && console.timeEnd("clipping"),
               l.push(v || [], i + 1, 2 * r, 2 * a),
               l.push(_ || [], i + 1, 2 * r, 2 * a + 1),
@@ -26187,22 +26031,22 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             { extent: n, debug: s } = a;
           if (t < 0 || t > 24) return null;
           let o = 1 << t,
-            l = ee(t, (i = (i + o) & (o - 1)), r);
-          if (this.tiles[l]) return q(this.tiles[l], n);
+            l = et(t, (i = (i + o) & (o - 1)), r);
+          if (this.tiles[l]) return Z(this.tiles[l], n);
           s > 1 && console.log("drilling down to z%d-%d-%d", t, i, r);
           let u,
             h = t,
             c = i,
             d = r;
           for (; !u && h > 0; )
-            (h--, (c >>= 1), (d >>= 1), (u = this.tiles[ee(h, c, d)]));
+            (h--, (c >>= 1), (d >>= 1), (u = this.tiles[et(h, c, d)]));
           return u?.source
             ? (s > 1 &&
                 (console.log("found parent tile z%d-%d-%d", h, c, d),
                 console.time("drilling down")),
               this.splitTile(u.source, h, c, d, t, i, r),
               s > 1 && console.timeEnd("drilling down"),
-              this.tiles[l] ? q(this.tiles[l], n) : null)
+              this.tiles[l] ? Z(this.tiles[l], n) : null)
             : null;
         }
         invalidateTiles(t) {
@@ -26286,14 +26130,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 t = t.filter((t) => !h.has(t.id));
               }
               if (n.add.size) {
-                let c = I(
+                let c = C(
                   {
                     type: "FeatureCollection",
                     features: Array.from(n.add.values()),
                   },
                   r,
                 );
-                ((c = j(c, r)), s.push(...c), t.push(...c));
+                ((c = G(c, r)), s.push(...c), t.push(...c));
               }
             }
             if (n.update.size)
@@ -26301,7 +26145,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 let f = t.findIndex((t) => t.id === d);
                 if (-1 === f) continue;
                 let m = t[f],
-                  g = Y(m, p, r);
+                  g = K(m, p, r);
                 g && (s.push(m, g), (t[f] = g));
               }
             return { affected: s, source: t };
@@ -26313,9 +26157,9 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             this.invalidateTiles(a),
             r > 1 && console.timeEnd("invalidating"));
           let [s, o, l] = [0, 0, 0],
-            u = W(this.source, s, o, l, this.options);
+            u = H(this.source, s, o, l, this.options);
           u.source = this.source;
-          let h = ee(s, o, l);
+          let h = et(s, o, l);
           if (
             ((this.tiles[h] = u),
             this.tileCoords.push({ z: s, x: o, y: l, id: h }),
@@ -26326,10 +26170,10 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           }
         }
       }
-      function ee(t, i, r) {
+      function et(t, i, r) {
         return 32 * ((1 << t) * r + i) + t;
       }
-      class et extends c {
+      class ei {
         constructor(
           i,
           r,
@@ -26337,7 +26181,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           n = function i(r, a) {
             var n, s;
             return a.cluster
-              ? new x(
+              ? new v(
                   (function ({ superclusterOptions: i, clusterProperties: r }) {
                     if (!r || !i) return i;
                     let a = {},
@@ -26371,29 +26215,97 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                     );
                   })(a),
                 ).load(r.features)
-              : ((n = r), (s = a.geojsonVtOptions), new J(n, s));
+              : ((n = r), (s = a.geojsonVtOptions), new ee(n, s));
           },
         ) {
-          (super(i, r, a),
-            (this._dataUpdateable = new Map()),
+          ((this._dataUpdateable = new Map()),
+            (this.actor = i),
+            (this.layerIndex = r),
+            (this.availableImages = a),
+            (this.tileState = new s()),
             (this._createGeoJSONIndex = n));
         }
-        loadVectorTile(i, r) {
+        loadVectorTile(i) {
+          if (!this._geoJSONIndex)
+            throw Error("Unable to parse the data into a cluster or geojson");
+          let { z: r, x: a, y: n } = i.tileID.canonical,
+            s = this._geoJSONIndex.getTile(r, a, n);
+          return s
+            ? h(new t.d3(s.features, { version: 2, extent: t.a5 }))
+            : null;
+        }
+        loadTile(i) {
           return t._(this, void 0, void 0, function* () {
-            let r = i.tileID.canonical;
-            if (!this._geoJSONIndex)
-              throw Error("Unable to parse the data into a cluster or geojson");
-            let a = this._geoJSONIndex.getTile(r.z, r.x, r.y);
-            return a
-              ? u(new t.d3(a.features, { version: 2, extent: t.a5 }))
-              : null;
+            let { uid: t } = i,
+              r = new a(i);
+            r.abort = new AbortController();
+            try {
+              let n = this.loadVectorTile(i);
+              if (!n) return null;
+              let { vectorTile: s, rawData: o } = n;
+              ((r.vectorTile = s), this.tileState.markLoaded(t, r));
+              let l = { rawData: o };
+              this.tileState.setParsing(t, l);
+              try {
+                return yield this._parseWorkerTile(r, i, l);
+              } finally {
+                this.tileState.clearParsing(t);
+              }
+            } catch (u) {
+              throw ((r.status = "done"), this.tileState.markLoaded(t, r), u);
+            }
+          });
+        }
+        _reloadLoadedTile(i) {
+          return t._(this, void 0, void 0, function* () {
+            let t = i.uid,
+              r = this.tileState.getLoaded(t);
+            if (!r)
+              throw Error(
+                "Should not be trying to reload a tile that was never loaded or has been removed",
+              );
+            if (
+              ((r.showCollisionBoxes = i.showCollisionBoxes),
+              "parsing" === r.status)
+            ) {
+              let a = this.tileState.consumeParsing(t);
+              return yield this._parseWorkerTile(r, i, a);
+            }
+            if ("done" === r.status && r.vectorTile)
+              return yield this._parseWorkerTile(r, i);
+          });
+        }
+        _parseWorkerTile(i, r, a) {
+          return t._(this, void 0, void 0, function* () {
+            let n = yield i.parse(
+              i.vectorTile,
+              this.layerIndex,
+              this.availableImages,
+              this.actor,
+              r.subdivisionGranularity,
+            );
+            if (a) {
+              let { rawData: s } = a;
+              n = t.e({ rawTileData: s.slice(0) }, n);
+            }
+            return n;
+          });
+        }
+        abortTile(i) {
+          return t._(this, void 0, void 0, function* () {
+            this.tileState.abort(i.uid);
+          });
+        }
+        removeTile(i) {
+          return t._(this, void 0, void 0, function* () {
+            this.tileState.removeLoaded(i.uid);
           });
         }
         loadData(i) {
           return t._(this, void 0, void 0, function* () {
             var r;
             null === (r = this._pendingRequest) || void 0 === r || r.abort();
-            let a = this._startPerformance(i);
+            let a = this._startRequestTiming(i);
             this._pendingRequest = new AbortController();
             try {
               (!this._pendingData || i.request || i.data || i.dataDiff) &&
@@ -26403,11 +26315,11 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 ));
               let n = yield this._pendingData;
               ((this._geoJSONIndex = this._createGeoJSONIndex(n, i)),
-                (this.loaded = {}));
+                this.tileState.clearLoaded());
               let s = {};
               return (
                 i.request && (s.data = n),
-                this._finishPerformance(a, i, s),
+                this._finishRequestTiming(a, i, s),
                 s
               );
             } catch (o) {
@@ -26417,21 +26329,19 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             }
           });
         }
-        _startPerformance(i) {
+        _startRequestTiming(i) {
           var r;
           if (
-            null === (r = null == i ? void 0 : i.request) || void 0 === r
+            null === (r = i.request) || void 0 === r
               ? void 0
               : r.collectResourceTiming
           )
-            return new t.c$(i.request);
+            return new t.c$(i.request.url);
         }
-        _finishPerformance(t, i, r) {
-          if (!t) return;
-          let a = t.finish();
+        _finishRequestTiming(t, i, r) {
+          let a = null == t ? void 0 : t.finish();
           a &&
-            ((r.resourceTiming = {}),
-            (r.resourceTiming[i.source] = JSON.parse(JSON.stringify(a))));
+            (r.resourceTiming = { [i.source]: JSON.parse(JSON.stringify(a)) });
         }
         getData() {
           return t._(this, void 0, void 0, function* () {
@@ -26439,8 +26349,9 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           });
         }
         reloadTile(t) {
-          let i = this.loaded;
-          return i && i[t.uid] ? super.reloadTile(t) : this.loadTile(t);
+          return this.tileState.getLoaded(t.uid)
+            ? this._reloadLoadedTile(t)
+            : this.loadTile(t);
         }
         loadAndProcessGeoJSON(i, r) {
           return t._(this, void 0, void 0, function* () {
@@ -26463,7 +26374,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 `Input data given to '${i.source}' is not a valid GeoJSON object.`,
               );
             return (
-              y(t, !0),
+              $(t, !0),
               i.filter && (t = this._filterGeoJSON(t, i.filter)),
               t
             );
@@ -26504,7 +26415,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         }
         removeSource(i) {
           return t._(this, void 0, void 0, function* () {
-            this._pendingRequest && this._pendingRequest.abort();
+            var t;
+            null === (t = this._pendingRequest) || void 0 === t || t.abort();
           });
         }
         getClusterExpansionZoom(t) {
@@ -26517,7 +26429,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return this._geoJSONIndex.getLeaves(t.clusterId, t.limit, t.offset);
         }
       }
-      class ei {
+      class er {
         constructor(i) {
           ((this.self = i),
             (this.actor = new t.L(i)),
@@ -26691,14 +26603,14 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             };
             switch (i) {
               case "vector":
-                this.workerSources[t][i][r] = new c(
+                this.workerSources[t][i][r] = new d(
                   a,
                   this._getLayerIndex(t),
                   this._getAvailableImages(t),
                 );
                 break;
               case "geojson":
-                this.workerSources[t][i][r] = new et(
+                this.workerSources[t][i][r] = new ei(
                   a,
                   this._getLayerIndex(t),
                   this._getAvailableImages(t),
@@ -26719,12 +26631,12 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
           return (
             this.demWorkerSources[t] || (this.demWorkerSources[t] = {}),
             this.demWorkerSources[t][i] ||
-              (this.demWorkerSources[t][i] = new d()),
+              (this.demWorkerSources[t][i] = new p()),
             this.demWorkerSources[t][i]
           );
         }
       }
-      return (t.i(self) && (self.worker = new ei(self)), ei);
+      return (t.i(self) && (self.worker = new er(self)), er);
     }),
     r("index", ["exports", "./shared"], function (t, i) {
       var r,
@@ -26732,7 +26644,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
         n,
         s,
         o,
-        l = "5.17.0";
+        l = "5.18.0";
       function u() {
         var t = new i.A(4);
         return (
@@ -28121,8 +28033,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             s = i.W(this.getEast(), -180, 180),
             o = i.W(t.getWest(), -180, 180),
             l = i.W(t.getEast(), -180, 180),
-            u = n >= s,
-            h = o >= l;
+            u = n > s,
+            h = o > l;
           return (
             !(!u || !h) ||
             (u ? l >= n || o <= s : h ? s >= o || n <= l : o <= s && l >= n)
@@ -29549,7 +29461,7 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
             (this.hasRTLText = !1),
             (this.dependencies = {}),
             (this.rtt = []),
-            (this.rttCoords = {}),
+            (this.rttFingerprint = {}),
             (this.expiredRequestCount = 0),
             (this.state = "loading"));
         }
@@ -30199,7 +30111,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
               constructor() {
                 ((this.state = {}),
                   (this.stateChanges = {}),
-                  (this.deletedStates = {}));
+                  (this.deletedStates = {}),
+                  (this.revision = 0));
               }
               updateState(t, r, a) {
                 let n = String(r);
@@ -30292,7 +30205,8 @@ Use an identity property function instead: \`{ "type": "identity", "property": $
                 }
                 ((this.stateChanges = {}),
                   (this.deletedStates = {}),
-                  0 !== Object.keys(a).length && t.setFeatureState(a, r));
+                  0 !== Object.keys(a).length &&
+                    (this.revision++, t.setFeatureState(a, r)));
               }
             })()),
             (this._didEmitContent = !1),
@@ -38979,12 +38893,15 @@ uniform ${r} ${a} u_${n};
             : t.projection;
         }
         setProjection(t) {
-          if ((this._checkLoaded(), this.projection)) {
+          if (
+            (this._checkLoaded(),
+            (this.stylesheet.projection = t),
+            this.projection)
+          ) {
             if (this.projection.name === t.type) return;
             (this.projection.destroy(), delete this.projection);
           }
-          ((this.stylesheet.projection = t),
-            this._setProjectionInternal(t.type));
+          this._setProjectionInternal(t.type);
         }
         getSky() {
           var t;
@@ -46301,25 +46218,26 @@ ${l.shaderPreludeCode.vertexSource}`,
         }
         getDEMElevation(t, r, a, n = i.a5) {
           var s;
-          if (!(r >= 0 && r < n && a >= 0 && a < n)) return 0;
-          let o = this.getTerrainData(t),
-            l = null === (s = o.tile) || void 0 === s ? void 0 : s.dem;
-          if (!l) return 0;
-          let u = i.cD(
+          let o = t.normalizeCoordinates(r, a, n);
+          if (!o) return 0;
+          let l = this.getTerrainData(o.tileID),
+            u = null === (s = l.tile) || void 0 === s ? void 0 : s.dem;
+          if (!u) return 0;
+          let h = i.cD(
               [],
-              [(r / n) * i.a5, (a / n) * i.a5],
-              o.u_terrain_matrix,
+              [(o.x / n) * i.a5, (o.y / n) * i.a5],
+              l.u_terrain_matrix,
             ),
-            h = [u[0] * l.dim, u[1] * l.dim],
-            c = Math.floor(h[0]),
-            d = Math.floor(h[1]),
-            p = h[0] - c,
-            f = h[1] - d;
+            c = [h[0] * u.dim, h[1] * u.dim],
+            d = Math.floor(c[0]),
+            p = Math.floor(c[1]),
+            f = c[0] - d,
+            m = c[1] - p;
           return (
-            l.get(c, d) * (1 - p) * (1 - f) +
-            l.get(c + 1, d) * p * (1 - f) +
-            l.get(c, d + 1) * (1 - p) * f +
-            l.get(c + 1, d + 1) * p * f
+            u.get(d, p) * (1 - f) * (1 - m) +
+            u.get(d + 1, p) * f * (1 - m) +
+            u.get(d, p + 1) * (1 - f) * m +
+            u.get(d + 1, p + 1) * f * m
           );
         }
         getElevationForLngLatZoom(t, r) {
@@ -46732,7 +46650,8 @@ ${l.shaderPreludeCode.vertexSource}`,
             .texture;
         }
         prepareForRender(t, i) {
-          for (let r in ((this._stacks = []),
+          var r, a;
+          for (let n in ((this._stacks = []),
           (this._prevType = null),
           (this._rttTiles = []),
           (this._renderableTiles =
@@ -46742,33 +46661,42 @@ ${l.shaderPreludeCode.vertexSource}`,
           )),
           (this._coordsAscending = {}),
           t.tileManagers)) {
-            this._coordsAscending[r] = {};
-            let a = t.tileManagers[r].getVisibleCoordinates(),
-              n = t.tileManagers[r].getSource(),
-              s = n instanceof ei ? n.terrainTileRanges : null;
-            for (let o of a) {
-              let l = this.terrain.tileManager.getTerrainCoords(o, s);
-              for (let u in l)
-                (this._coordsAscending[r][u] ||
-                  (this._coordsAscending[r][u] = []),
-                  this._coordsAscending[r][u].push(l[u]));
+            this._coordsAscending[n] = {};
+            let s = t.tileManagers[n].getVisibleCoordinates(),
+              o = t.tileManagers[n].getSource(),
+              l = o instanceof ei ? o.terrainTileRanges : null;
+            for (let u of s) {
+              let h = this.terrain.tileManager.getTerrainCoords(u, l);
+              for (let c in h)
+                (this._coordsAscending[n][c] ||
+                  (this._coordsAscending[n][c] = []),
+                  this._coordsAscending[n][c].push(h[c]));
             }
           }
-          for (let h of ((this._coordsAscendingStr = {}), t._order)) {
-            let c = t._layers[h],
-              d = c.source;
-            if (ar[c.type] && !this._coordsAscendingStr[d])
-              for (let p in ((this._coordsAscendingStr[d] = {}),
-              this._coordsAscending[d]))
-                this._coordsAscendingStr[d][p] = this._coordsAscending[d][p]
+          for (let d of ((this._rttFingerprints = {}), t._order)) {
+            let p = t._layers[d],
+              f = p.source;
+            if (ar[p.type] && !this._rttFingerprints[f]) {
+              this._rttFingerprints[f] = {};
+              let m =
+                null !==
+                  (a =
+                    null === (r = t.tileManagers[f]) || void 0 === r
+                      ? void 0
+                      : r.getState().revision) && void 0 !== a
+                  ? a
+                  : 0;
+              for (let g in this._coordsAscending[f])
+                this._rttFingerprints[f][g] = `${this._coordsAscending[f][g]
                   .map((t) => t.key)
                   .sort()
-                  .join();
+                  .join()}#${m}`;
+            }
           }
-          for (let f of this._renderableTiles)
-            for (let m in this._coordsAscendingStr) {
-              let g = this._coordsAscendingStr[m][f.tileID.key];
-              g && g !== f.rttCoords[m] && (f.rtt = []);
+          for (let y of this._renderableTiles)
+            for (let $ in this._rttFingerprints) {
+              let x = this._rttFingerprints[$][y.tileID.key];
+              x && x !== y.rttFingerprint[$] && (y.rtt = []);
             }
         }
         renderLayer(t, r) {
@@ -46824,8 +46752,8 @@ ${l.shaderPreludeCode.vertexSource}`,
                   s._renderTileClippingMasks(f, m, !0),
                   s.renderLayer(s, s.style.tileManagers[f.source], f, m, a),
                   f.source &&
-                    (h.rttCoords[f.source] =
-                      this._coordsAscendingStr[f.source][h.tileID.key]));
+                    (h.rttFingerprint[f.source] =
+                      this._rttFingerprints[f.source][h.tileID.key]));
               }
             }
             return (
@@ -47118,6 +47046,9 @@ ${l.shaderPreludeCode.vertexSource}`,
         constructor(t) {
           if (
             (super(),
+            (this._onClick = (t) => {
+              this.fire(new i.l("click", { originalEvent: t }));
+            }),
             (this._onKeyPress = (t) => {
               let i = t.code,
                 r = t.charCode || t.keyCode;
@@ -47327,6 +47258,7 @@ ${l.shaderPreludeCode.vertexSource}`,
               t.preventDefault();
             }),
             ac(this._element, this._anchor, "marker"),
+            this._element.addEventListener("click", this._onClick),
             t && t.className)
           )
             for (let x of t.className.split(" "))
@@ -47601,6 +47533,7 @@ ${l.shaderPreludeCode.vertexSource}`,
       }
       let ag = l;
       ((t.AJAXError = i.cJ),
+        (t.EXTENT = i.a5),
         (t.Event = i.l),
         (t.Evented = i.E),
         (t.LngLat = i.V),
@@ -47619,14 +47552,13 @@ ${l.shaderPreludeCode.vertexSource}`,
         (t.EdgeInsets = tf),
         (t.FullscreenControl = class extends i.E {
           constructor(t = {}) {
+            var r;
             (super(),
               (this._onFullscreenChange = () => {
                 var t;
                 let i =
                   window.document.fullscreenElement ||
-                  window.document.mozFullScreenElement ||
-                  window.document.webkitFullscreenElement ||
-                  window.document.msFullscreenElement;
+                  window.document.webkitFullscreenElement;
                 for (
                   ;
                   null === (t = null == i ? void 0 : i.shadowRoot) ||
@@ -47644,6 +47576,7 @@ ${l.shaderPreludeCode.vertexSource}`,
                   : this._requestFullscreen();
               }),
               (this._fullscreen = !1),
+              (this._pseudo = null !== (r = t.pseudo) && void 0 !== r && r),
               t &&
                 t.container &&
                 (t.container instanceof HTMLElement
@@ -47732,26 +47665,22 @@ ${l.shaderPreludeCode.vertexSource}`,
                     this._map.cooperativeGestures.enable()));
           }
           _exitFullscreen() {
-            window.document.exitFullscreen
-              ? window.document.exitFullscreen()
-              : window.document.mozCancelFullScreen
-                ? window.document.mozCancelFullScreen()
-                : window.document.msExitFullscreen
-                  ? window.document.msExitFullscreen()
-                  : window.document.webkitCancelFullScreen
-                    ? window.document.webkitCancelFullScreen()
-                    : this._togglePseudoFullScreen();
+            this._pseudo
+              ? this._togglePseudoFullScreen()
+              : window.document.exitFullscreen
+                ? window.document.exitFullscreen()
+                : window.document.webkitCancelFullScreen
+                  ? window.document.webkitCancelFullScreen()
+                  : this._togglePseudoFullScreen();
           }
           _requestFullscreen() {
-            this._container.requestFullscreen
-              ? this._container.requestFullscreen()
-              : this._container.mozRequestFullScreen
-                ? this._container.mozRequestFullScreen()
-                : this._container.msRequestFullscreen
-                  ? this._container.msRequestFullscreen()
-                  : this._container.webkitRequestFullscreen
-                    ? this._container.webkitRequestFullscreen()
-                    : this._togglePseudoFullScreen();
+            this._pseudo
+              ? this._togglePseudoFullScreen()
+              : this._container.requestFullscreen
+                ? this._container.requestFullscreen()
+                : this._container.webkitRequestFullscreen
+                  ? this._container.webkitRequestFullscreen()
+                  : this._togglePseudoFullScreen();
           }
           _togglePseudoFullScreen() {
             (this._container.classList.toggle("maplibregl-pseudo-fullscreen"),
@@ -48283,12 +48212,14 @@ ${l.shaderPreludeCode.vertexSource}`,
               ),
               this._updateGlobeIcon(),
               this._map.on("styledata", this._updateGlobeIcon),
+              this._map.on("projectiontransition", this._updateGlobeIcon),
               this._container
             );
           }
           onRemove() {
             (g.remove(this._container),
               this._map.off("styledata", this._updateGlobeIcon),
+              this._map.off("projectiontransition", this._updateGlobeIcon),
               this._globeButton.removeEventListener(
                 "click",
                 this._toggleProjection,
@@ -48385,26 +48316,33 @@ ${l.shaderPreludeCode.vertexSource}`,
               (this._mapId = i.af()),
               (this._lostContextStyle = { style: null, images: null }),
               (this._contextLost = (t) => {
-                for (let r of (t.preventDefault(),
-                this._frameRequest &&
-                  (this._frameRequest.abort(), (this._frameRequest = null)),
-                this.painter.destroy(),
-                Object.values(this.style._layers)))
-                  if (
-                    ("custom" === r.type &&
-                      console.warn(
-                        `Custom layer with id '${r.id}' cannot be restored after WebGL context loss. You will need to re-add it manually after context restoration.`,
-                      ),
-                    r._listeners)
-                  )
-                    for (let [a] of Object.entries(r._listeners))
-                      console.warn(
-                        `Custom layer with id '${r.id}' had event listeners for event '${a}' which cannot be restored after WebGL context loss. You will need to re-add them manually after context restoration.`,
-                      );
-                ((this._lostContextStyle = this._getStyleAndImages()),
-                  this.style.destroy(),
-                  (this.style = null),
-                  this.fire(new i.l("webglcontextlost", { originalEvent: t })));
+                if (
+                  (t.preventDefault(),
+                  this._frameRequest &&
+                    (this._frameRequest.abort(), (this._frameRequest = null)),
+                  this.painter.destroy(),
+                  (this._lostContextStyle = this._getStyleAndImages()),
+                  this.style)
+                ) {
+                  for (let r of Object.values(this.style._layers))
+                    if (
+                      ("custom" === r.type &&
+                        console.warn(
+                          `Custom layer with id '${r.id}' cannot be restored after WebGL context loss. You will need to re-add it manually after context restoration.`,
+                        ),
+                      r._listeners)
+                    )
+                      for (let [a] of Object.entries(r._listeners))
+                        console.warn(
+                          `Custom layer with id '${r.id}' had event listeners for event '${a}' which cannot be restored after WebGL context loss. You will need to re-add them manually after context restoration.`,
+                        );
+                  (this.style.destroy(),
+                    (this.style = null),
+                    this.fire(
+                      new i.l("webglcontextlost", { originalEvent: t }),
+                    ));
+                } else
+                  this.fire(new i.l("webglcontextlost", { originalEvent: t }));
               }),
               (this._contextRestored = (t) => {
                 (this._lostContextStyle.style &&
@@ -48462,7 +48400,8 @@ ${l.shaderPreludeCode.vertexSource}`,
                     "LogoControl.Title": "MapLibre logo",
                     "Map.Title": "Map",
                     "Marker.Title": "Map marker",
-                    "NavigationControl.ResetBearing": "Reset bearing to north",
+                    "NavigationControl.ResetBearing":
+                      "Drag to rotate map, click to reset north",
                     "NavigationControl.ZoomIn": "Zoom in",
                     "NavigationControl.ZoomOut": "Zoom out",
                     "Popup.Close": "Close popup",
@@ -50428,7 +50367,7 @@ ${l.shaderPreludeCode.vertexSource}`,
                 !1,
               ),
               this._container.classList.remove("maplibregl-map"),
-              i.cH.clearMetrics(),
+              i.cH.remove(),
               (this._removed = !0),
               this.fire(new i.l("remove")));
           }
@@ -50439,7 +50378,7 @@ ${l.shaderPreludeCode.vertexSource}`,
               p.frame(
                 this._frameRequest,
                 (t) => {
-                  (i.cH.frame(t), (this._frameRequest = null));
+                  (i.cH.recordStartOfFrameAt(t), (this._frameRequest = null));
                   try {
                     this._render(t);
                   } catch (r) {
