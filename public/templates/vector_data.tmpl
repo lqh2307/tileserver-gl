@@ -138,7 +138,7 @@
 
         map.addControl(inspect);
 
-        map.on("load", () => {
+        map.once("idle", () => {
           const layerList = document.getElementById("layerList");
 
           for (const source in inspect.sources) {

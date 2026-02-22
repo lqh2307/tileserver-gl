@@ -106,7 +106,7 @@
 
         map.addControl(inspect);
 
-        map.on("load", () => {
+        map.once("idle", () => {
           const item = document.createElement("div");
 
           const layerColor = inspect.assignLayerColor(layer);
@@ -271,7 +271,7 @@
 
         map.addControl(inspect);
 
-        map.on("load", () => {
+        map.once("idle", () => {
           for (const layer in jsonResponse.geojsons) {
             const item = document.createElement("div");
 
