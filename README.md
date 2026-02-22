@@ -69,7 +69,7 @@ apt-get -y install \
 Install nodejs:
 
 ```bash
-export NODEJS_VERSION=24.13.0
+export NODEJS_VERSION=24.13.1
 
 wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
 tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
