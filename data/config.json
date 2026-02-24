@@ -9,9 +9,17 @@
     "process": 1,
     "thread": 8
   },
-  "styles": {},
+  "styles": {
+    "asia_full": {
+      "style": "asia_full/style.json"
+    }
+  },
   "geojsons": {},
-  "datas": {},
+  "datas": {
+    "asia_full": {
+      "mbtiles": "asia_full/asia_full.mbtiles"
+    }
+  },
   "sprites": {},
   "fonts": {}
 }

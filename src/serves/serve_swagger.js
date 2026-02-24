@@ -28,7 +28,7 @@ function serveSwagger() {
             description: "Tile server",
           },
         ],
-        apis: ["src/*.js"],
+        apis: ["src/**/*.js"],
       }),
     )(req, res, next);
   };

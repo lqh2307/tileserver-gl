@@ -1,0 +1,52 @@
+{
+	"id": "asia_full",
+	"version": 8,
+	"name": "Asia Full",
+	"center": [
+		105.870278,
+		21.135278
+	],
+	"zoom": 5,
+	"sources": {
+		"asia_full": {
+			"type": "raster",
+			"url": "mbtiles://asia_full",
+			"tileSize": 256
+		}
+	},
+	"layers": [
+		{
+			"id": "background",
+			"type": "background",
+			"minzoom": 0,
+			"maxzoom": 22,
+			"filter": [
+				"all"
+			],
+			"layout": {
+				"visibility": "visible"
+			},
+			"paint": {
+				"background-color": "hsl(205, 56%, 73%)",
+				"background-opacity": 1
+			}
+		},
+		{
+			"id": "asia_full",
+			"type": "raster",
+			"source": "asia_full",
+			"minzoom": 0,
+			"maxzoom": 22,
+			"filter": [
+				"all"
+			],
+			"layout": {
+				"visibility": "visible"
+			},
+			"paint": {
+				"raster-fade-duration": 0,
+				"raster-resampling": "nearest"
+			}
+		}
+	]
+}

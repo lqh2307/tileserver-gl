@@ -378,9 +378,9 @@ export const serve_render = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
+     *           schema:
+     *             type: object
+     *             example: {}
      *       description: Add frame options
      *     responses:
      *       201:
@@ -417,9 +417,9 @@ export const serve_render = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
+     *           schema:
+     *             type: object
+     *             example: {}
      *       description: Render styleJSON options
      *     responses:
      *       201:
@@ -456,21 +456,21 @@ export const serve_render = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *                 type: object
-     *                 properties:
-     *                   content:
-     *                     type: string
-     *                   width:
-     *                     type: number
-     *                   height:
-     *                     type: number
-     *                   format:
-     *                    type: string
-     *                    enum: [jpeg, jpg, png, webp]
-     *                   base64:
-     *                    type: boolean
-     *               example: {}
+     *           schema:
+     *             type: object
+     *             properties:
+     *               content:
+     *                 type: string
+     *               width:
+     *                 type: number
+     *               height:
+     *                 type: number
+     *               format:
+     *                 type: string
+     *                 enum: [jpeg, jpg, png, webp]
+     *               base64:
+     *                 type: boolean
+     *             example: {}
      *       description: Render SVG options
      *     responses:
      *       201:
@@ -507,9 +507,9 @@ export const serve_render = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
+     *           schema:
+     *             type: object
+     *             example: {}
      *       description: Render high quality PDF options
      *     responses:
      *       201:
@@ -546,9 +546,9 @@ export const serve_render = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
+     *           schema:
+     *             type: object
+     *             example: {}
      *       description: Render PDF options
      *     responses:
      *       201:

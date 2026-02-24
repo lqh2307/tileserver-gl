@@ -26,7 +26,7 @@
     ]
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-style-spec": "24.4.1",
+    "@maplibre/maplibre-gl-style-spec": "24.5.0",
     "@maplibre/maplibre-gl-native": "6.3.0",
     "@socket.io/cluster-adapter": "0.3.0",
     "swagger-ui-express": "5.0.1",
@@ -60,7 +60,7 @@
     "lint-staged": "16.2.7",
     "prettier": "3.8.1",
     "globals": "17.3.0",
-    "eslint": "10.0.1",
+    "eslint": "10.0.2",
     "husky": "9.1.7"
   },
   "engines": {
