@@ -161,9 +161,9 @@ export const serve_task = {
      *         description: Server is starting up
      *         content:
      *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
+     *           schema:
+     *             type: string
+     *             example: Starting...
      *       500:
      *         description: Internal server error
      */
@@ -190,9 +190,9 @@ export const serve_task = {
      *         description: Server is starting up
      *         content:
      *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
+     *           schema:
+     *             type: string
+     *             example: Starting...
      *       500:
      *         description: Internal server error
      */

@@ -603,7 +603,7 @@ export const serve_common = {
      *         description: Config
      *         content:
      *           application/json:
-     *             schema:
+     *           schema:
      *               type: object
      *       404:
      *         description: Not found
@@ -639,9 +639,9 @@ export const serve_common = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
+     *           schema:
+     *             type: object
+     *             example: {}
      *       description: Update config object
      *     responses:
      *       200:
@@ -686,9 +686,9 @@ export const serve_common = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
+     *           schema:
+     *             type: object
+     *             example: {}
      *       description: Delete config object
      *     responses:
      *       200:

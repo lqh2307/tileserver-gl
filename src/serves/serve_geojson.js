@@ -435,8 +435,8 @@ export const serve_geojson = {
      *         description: List of all GeoJSON groups
      *         content:
      *           application/json:
-     *             schema:
-     *               type: array
+     *           schema:
+     *             type: array
      *               items:
      *                 type: object
      *                 properties:

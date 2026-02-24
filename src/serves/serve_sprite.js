@@ -142,12 +142,12 @@ export const serve_sprite = {
      *                     type: array
      *                     items:
      *                       type: string
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
+     *       200:
+     *         description: List of sprites
      *         content:
-     *           text/plain:
+     *           application/json:
+     *           schema:
+     *             type: array
      *             schema:
      *               type: string
      *               example: Starting...

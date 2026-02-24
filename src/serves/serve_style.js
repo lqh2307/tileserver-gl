@@ -520,8 +520,8 @@ export const serve_style = {
      *         description: List of all styles
      *         content:
      *           application/json:
-     *             schema:
-     *               type: array
+     *           schema:
+     *             type: array
      *               items:
      *                 type: object
      *                 properties:
@@ -582,8 +582,8 @@ export const serve_style = {
        *         description: StyleJSON
        *         content:
        *           application/json:
-       *             schema:
-       *               type: object
+       *           schema:
+       *             type: object
        *       404:
        *         description: Not found
        *       503:

@@ -608,8 +608,8 @@ export const serve_data = {
      *         description: List of all datas
      *         content:
      *           application/json:
-     *             schema:
-     *               type: array
+     *           schema:
+     *             type: array
      *               items:
      *                 type: object
      *                 properties:

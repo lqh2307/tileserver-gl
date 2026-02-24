@@ -410,8 +410,8 @@ export const serve_summary = {
      *         description: Summary
      *         content:
      *           application/json:
-     *             schema:
-     *               type: object
+     *           schema:
+     *             type: object
      *       404:
      *         description: Not found
      *       503:
