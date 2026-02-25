@@ -9,8 +9,10 @@ import {
 } from "../resources/index.js";
 import {
   detectFormatAndHeaders,
+  calculateMD5OfFiles,
   getRequestHost,
   gzipAsync,
+  findFiles,
   printLog,
 } from "../utils/index.js";
 
@@ -46,6 +48,46 @@ function getFontHandler() {
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get font MD5 handler
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
+ */
+function getFontMD5Handler() {
+  return async (req, res) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.fonts[id];
+
+      /* Check font is used? */
+      if (!item) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Font id "${id}" does not exist`);
+      }
+
+      /* Calculate MD5 and Add to header */
+      res.set({
+        etag: await calculateMD5OfFiles(
+          await findFiles(item.path, /^\d{1,5}-\d{1,5}\.pbf$/, false, true),
+        ),
+      });
+
+      return res.status(StatusCodes.OK).send();
+    } catch (error) {
+      printLog("error", `Failed to get md5 of font id "${id}": ${error}`);
+
+      if (error.message.includes("Not Found")) {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
     }
   };
 }
@@ -174,6 +216,41 @@ export const serve_font = {
      *         description: Internal server error
      */
     app.get("/fonts/fonts.json", getFontsListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Font
+     *     description: Font related endpoints
+     * /fonts/{id}/md5:
+     *   get:
+     *     tags:
+     *       - Font
+     *     summary: Get font md5
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the font
+     *     responses:
+     *       200:
+     *         description: Font md5
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/fonts/:id/md5", getFontMD5Handler());
 
     /**
      * @swagger

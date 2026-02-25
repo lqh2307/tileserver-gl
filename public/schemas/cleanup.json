@@ -142,6 +142,10 @@
                 "required": ["day"]
               }
             ]
+          },
+          "concurrency": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       }
@@ -206,6 +210,10 @@
                 "required": ["day"]
               }
             ]
+          },
+          "concurrency": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       }

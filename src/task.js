@@ -40,15 +40,13 @@ import {
   storeFontFile,
   openXYZMD5DB,
   compactXYZ,
-  getGeoJSON,
-  getStyle,
 } from "./resources/index.js";
 import {
+  calculateMD5OfFile,
   removeEmptyFolders,
   runAllWithLimit,
   getDataFromURL,
   getTileBounds,
-  calculateMD5,
   printLog,
 } from "./utils/index.js";
 
@@ -144,6 +142,7 @@ export async function runTasks(opts) {
                 await cleanUpFont(
                   id,
                   item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
+                  item.concurrency || os.cpus().length,
                 );
               } catch (error) {
                 printLog(
@@ -286,6 +285,7 @@ export async function runTasks(opts) {
                   cleanUpDataItem.coverages,
                   cleanUpDataItem.cleanUpBefore?.time ??
                     cleanUpDataItem.cleanUpBefore?.day,
+                  cleanUpDataItem.concurrency || os.cpus().length,
                 );
               } catch (error) {
                 printLog(
@@ -1117,7 +1117,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
 
       if (refreshTimestamp === true) {
         try {
-          const [response, geoJSONData] = await Promise.all([
+          const [response, md5] = await Promise.all([
             getDataFromURL(
               `${url.slice(0, url.indexOf(`/${id}.geojson`))}/md5`,
               {
@@ -1128,13 +1128,10 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
                 decompress: false,
               },
             ),
-            getGeoJSON(filePath),
+            calculateMD5OfFile(filePath),
           ]);
 
-          if (
-            !response.headers["etag"] ||
-            response.headers["etag"] !== calculateMD5(geoJSONData)
-          ) {
+          if (!response.headers["etag"] || response.headers["etag"] !== md5) {
             needDownload = true;
           }
         } catch (error) {
@@ -1475,7 +1472,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 
     if (refreshTimestamp === true) {
       try {
-        const [response, styleData] = await Promise.all([
+        const [response, md5] = await Promise.all([
           getDataFromURL(
             `${url.slice(0, url.indexOf(`/${id}/style.json?raw=true`))}/md5`,
             {
@@ -1485,13 +1482,10 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
               headers: headers,
             },
           ),
-          getStyle(filePath),
+          calculateMD5OfFile(filePath),
         ]);
 
-        if (
-          !response.headers["etag"] ||
-          response.headers["etag"] !== calculateMD5(styleData)
-        ) {
+        if (!response.headers["etag"] || response.headers["etag"] !== md5) {
           needDownload = true;
         }
       } catch (error) {
@@ -1550,9 +1544,16 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
  * @param {string} id Cleanup data ID
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
+ * @param {number} concurrency Concurrency for removing tile data
  * @returns {Promise<void>}
  */
-async function cleanUpTileDatas(storeType, id, coverages, cleanUpBefore) {
+async function cleanUpTileDatas(
+  storeType,
+  id,
+  coverages,
+  cleanUpBefore,
+  concurrency,
+) {
   const startTime = Date.now();
 
   let source;
@@ -1563,6 +1564,7 @@ async function cleanUpTileDatas(storeType, id, coverages, cleanUpBefore) {
     const { total, tileBounds } = getTileBounds({ coverages: coverages });
 
     let log = `Cleaning up ${total} tiles of ${storeType} "${id}" with:`;
+    log += `\n\tConcurrency: ${concurrency}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let cleanUpTimestamp;
@@ -1792,7 +1794,7 @@ async function cleanUpTileDatas(storeType, id, coverages, cleanUpBefore) {
     /* Remove tile datas */
     printLog("info", "Removing tile datas...");
 
-    await runAllWithLimit(removeTileDataGenerator, os.cpus().length);
+    await runAllWithLimit(removeTileDataGenerator, concurrency);
 
     /* Compact database */
     printLog("info", "Compacting database...");
@@ -1977,14 +1979,16 @@ async function cleanUpSprite(id, cleanUpBefore) {
  * Cleanup font
  * @param {string} id Cleanup font ID
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
+ * @param {number} concurrency Concurrency for removing font files
  * @returns {Promise<void>}
  */
-async function cleanUpFont(id, cleanUpBefore) {
+async function cleanUpFont(id, cleanUpBefore, concurrency) {
   const startTime = Date.now();
 
   const total = 256;
 
   let log = `Cleaning up ${total} fonts of font id "${id}" with:`;
+  log += `\n\tConcurrency: ${concurrency}`;
 
   let cleanUpTimestamp;
   if (typeof cleanUpBefore === "string") {
@@ -2055,7 +2059,7 @@ async function cleanUpFont(id, cleanUpBefore) {
   /* Remove font files */
   printLog("info", "Removing fonts...");
 
-  await runAllWithLimit(removeFontDataGenerator(), os.cpus().length);
+  await runAllWithLimit(removeFontDataGenerator(), concurrency);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.pbf$/);

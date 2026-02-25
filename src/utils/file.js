@@ -51,6 +51,46 @@ export async function calculateMD5OfFile(filePath) {
 }
 
 /**
+ * Calculate MD5 hash of files
+ * @param {string[]} filePaths The data file paths
+ * @returns {Promise<string>} The MD5 hash
+ */
+export async function calculateMD5OfFiles(filePaths) {
+  if (!filePaths.length) {
+    throw new Error("Not Found");
+  }
+
+  const hash = crypto.createHash("md5");
+
+  let foundAtLeastOne = false;
+
+  for (const filePath of filePaths) {
+    try {
+      await new Promise((resolve, reject) => {
+        createReadStream(filePath)
+          .on("error", reject)
+          .on("data", (chunk) => hash.update(chunk))
+          .on("end", resolve);
+      });
+
+      foundAtLeastOne = true;
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  if (!foundAtLeastOne) {
+    throw new Error("Not Found");
+  }
+
+  return hash.digest("hex");
+}
+
+/**
  * Convert buffer to base64
  * @param {Buffer} buffer Input data
  * @param {format} format Data format

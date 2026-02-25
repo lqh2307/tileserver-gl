@@ -9,6 +9,7 @@ import {
 } from "../resources/index.js";
 import {
   detectContentTypeFromFormat,
+  calculateMD5OfFiles,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -23,6 +24,15 @@ function getSpriteHandler() {
     const id = req.params.id;
 
     try {
+      const item = config.sprites[id];
+
+      /* Check sprite is used? */
+      if (!item) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Sprite id "${id}" does not exist`);
+      }
+
       /* Check sprite format? */
       if (!SPRITE_FORMATS.has(req.params.format)) {
         return res
@@ -51,6 +61,49 @@ function getSpriteHandler() {
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .send("Internal server error");
+    }
+  };
+}
+
+/**
+ * Get sprite MD5 handler
+ * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
+ */
+function getSpriteMD5Handler() {
+  return async (req, res) => {
+    const id = req.params.id;
+
+    try {
+      const item = config.sprites[id];
+
+      /* Check sprite is used? */
+      if (!item) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .send(`Sprite id "${id}" does not exist`);
+      }
+
+      /* Calculate MD5 and Add to header */
+      res.set({
+        etag: await calculateMD5OfFiles([
+          `${item.path}/sprite.json`,
+          `${item.path}/sprite.png`,
+          `${item.path}/sprite@2x.json`,
+          `${item.path}/sprite@2x.png`,
+        ]),
+      });
+
+      return res.status(StatusCodes.OK).send();
+    } catch (error) {
+      printLog("error", `Failed to get md5 of sprite id "${id}": ${error}`);
+
+      if (error.message.includes("Not Found")) {
+        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+      } else {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Internal server error");
+      }
     }
   };
 }
@@ -155,6 +208,41 @@ export const serve_sprite = {
      *         description: Internal server error
      */
     app.get("/sprites/sprites.json", getSpritesListHandler());
+
+    /**
+     * @swagger
+     * tags:
+     *   - name: Sprite
+     *     description: Sprite related endpoints
+     * /sprites/{id}/md5:
+     *   get:
+     *     tags:
+     *       - Sprite
+     *     summary: Get sprite md5
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: string
+     *           example: id
+     *         required: true
+     *         description: ID of the sprite
+     *     responses:
+     *       200:
+     *         description: Sprite md5
+     *       404:
+     *         description: Not found
+     *       503:
+     *         description: Server is starting up
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: Starting...
+     *       500:
+     *         description: Internal server error
+     */
+    app.get("/sprites/:id/md5", getSpriteMD5Handler());
 
     /**
      * @swagger
