@@ -7,11 +7,11 @@ import path from "path";
 import {
   validateAndGetGeometryTypes,
   getAndCacheDataGeoJSON,
+  getGeoJSONMD5,
   getGeoJSON,
 } from "../resources/index.js";
 import {
   compileHandleBarsTemplate,
-  calculateMD5OfFile,
   getRequestHost,
   isExistFile,
   getFileSize,
@@ -278,7 +278,7 @@ function getGeoJSONMD5Handler() {
 
       /* Calculate MD5 and Add to header */
       res.set({
-        etag: await calculateMD5OfFile(geoJSONLayer.path),
+        etag: await getGeoJSONMD5(geoJSONLayer.path),
       });
 
       return res.status(StatusCodes.OK).send();

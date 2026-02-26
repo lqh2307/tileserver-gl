@@ -1,14 +1,17 @@
 "use strict";
 
-import { readFile, stat } from "node:fs/promises";
 import { config } from "../configs/index.js";
+import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import cluster from "cluster";
 import {
+  calculateMD5OfFiles,
   removeFileWithLock,
   createFileWithLock,
   getDataFromURL,
+  getFileCreated,
   getFileSize,
+  unzipAsync,
   findFiles,
   printLog,
 } from "../utils/index.js";
@@ -58,21 +61,27 @@ export async function storeFontFile(filePath, data) {
 
 /**
  * Get created time of font file
- * @param {string} filePath Font file path to get
+ * @param {string} pbfDirPath PBF font dir path to get
  * @returns {Promise<number>}
  */
-export async function getFontCreated(filePath) {
-  try {
-    const stats = await stat(filePath);
+export async function getFontCreated(pbfDirPath) {
+  return await getFileCreated(pbfDirPath);
+}
 
-    return stats.ctimeMs;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("Not Found");
-    }
+/**
+ * Get MD5 of font
+ * @param {string} pbfDirPath PBF font dir path to get
+ * @returns {Promise<string>}
+ */
+export async function getFontMD5(pbfDirPath) {
+  return await calculateMD5OfFiles(
+    Array.from({ length: 256 }, (_, idx) => {
+      const rangeStart = idx * 256;
+      const rangeEnd = rangeStart + 255;
 
-    throw error;
-  }
+      return `${pbfDirPath}/${rangeStart}-${rangeEnd}.pbf`;
+    }),
+  );
 }
 
 /**
@@ -82,7 +91,17 @@ export async function getFontCreated(filePath) {
  */
 export async function getFont(filePath) {
   try {
-    return await readFile(filePath);
+    const data = await readFile(filePath);
+
+    /* Unzip */
+    if (
+      (data[0] === 0x78 && data[1] === 0x9c) ||
+      (data[0] === 0x1f && data[1] === 0x8b)
+    ) {
+      return await unzipAsync(data);
+    }
+
+    return data;
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error("Not Found");
@@ -237,7 +256,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
               responseType: "arraybuffer",
               timeout: 30000, // 30 seconds
               headers: item.headers,
-              decompress: false,
+              decompress: true,
             });
 
             /* Cache */

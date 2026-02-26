@@ -1,13 +1,15 @@
 "use strict";
 
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
-import { readFile, stat } from "node:fs/promises";
 import { config } from "../configs/index.js";
+import { readFile } from "node:fs/promises";
 import { createCache } from "cache-manager";
 import {
   removeFileWithLock,
   createFileWithLock,
+  calculateMD5OfFile,
   getDataFromURL,
+  getFileCreated,
   HTTP_SCHEMES,
   getFileSize,
   isLocalURL,
@@ -184,17 +186,16 @@ export async function getRenderedStyleJSON(filePath, id) {
  * @returns {Promise<number>}
  */
 export async function getStyleCreated(filePath) {
-  try {
-    const stats = await stat(filePath);
+  return await getFileCreated(filePath);
+}
 
-    return stats.ctimeMs;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("Not Found");
-    }
-
-    throw error;
-  }
+/**
+ * Get MD5 of Style
+ * @param {string} filePath Style file path to get
+ * @returns {Promise<string>}
+ */
+export async function getStyleMD5(filePath) {
+  return await calculateMD5OfFile(filePath);
 }
 
 /**

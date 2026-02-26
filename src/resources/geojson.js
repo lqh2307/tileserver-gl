@@ -1,11 +1,13 @@
 "use strict";
 
-import { readFile, stat } from "node:fs/promises";
 import { config } from "../configs/index.js";
+import { readFile } from "node:fs/promises";
 import {
   removeFileWithLock,
   createFileWithLock,
+  calculateMD5OfFile,
   getDataFromURL,
+  getFileCreated,
   getFileSize,
   printLog,
 } from "../utils/index.js";
@@ -61,17 +63,16 @@ export async function getGeoJSON(filePath) {
  * @returns {Promise<number>}
  */
 export async function getGeoJSONCreated(filePath) {
-  try {
-    const stats = await stat(filePath);
+  return await getFileCreated(filePath);
+}
 
-    return stats.ctimeMs;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("Not Found");
-    }
-
-    throw error;
-  }
+/**
+ * Get MD5 of GeoJSON
+ * @param {string} filePath GeoJSON file path to get
+ * @returns {Promise<string>}
+ */
+export async function getGeoJSONMD5(filePath) {
+  return await calculateMD5OfFile(filePath);
 }
 
 /**

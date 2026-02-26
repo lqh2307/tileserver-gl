@@ -1,12 +1,14 @@
 "use strict";
 
-import { readFile, stat } from "node:fs/promises";
 import { config } from "../configs/index.js";
+import { readFile } from "node:fs/promises";
 import {
+  calculateMD5OfFiles,
   removeFileWithLock,
   createFileWithLock,
   getImageMetadata,
   getDataFromURL,
+  getFileCreated,
   getJSONSchema,
   validateJSON,
   getFileSize,
@@ -46,21 +48,25 @@ export async function storeSpriteFile(filePath, data) {
 
 /**
  * Get created time of sprite file
- * @param {string} filePath Sprite file path to get
+ * @param {string} spriteDirPath Sprite dir path to get
  * @returns {Promise<number>}
  */
-export async function getSpriteCreated(filePath) {
-  try {
-    const stats = await stat(filePath);
+export async function getSpriteCreated(spriteDirPath) {
+  return await getFileCreated(spriteDirPath);
+}
 
-    return stats.ctimeMs;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      throw new Error("Not Found");
-    }
-
-    throw error;
-  }
+/**
+ * Get MD5 of sprite
+ * @param {string} spriteDirPath Sprite dir path to get
+ * @returns {Promise<string>}
+ */
+export async function getSpriteMD5(spriteDirPath) {
+  return await calculateMD5OfFiles([
+    `${spriteDirPath}/sprite.json`,
+    `${spriteDirPath}/sprite.png`,
+    `${spriteDirPath}/sprite@2x.json`,
+    `${spriteDirPath}/sprite@2x.png`,
+  ]);
 }
 
 /**

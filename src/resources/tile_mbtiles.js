@@ -10,6 +10,7 @@ import {
   detectFormatAndHeaders,
   closeSQLiteTransaction,
   openSQLiteTransaction,
+  calculateMD5OfFile,
   getCenterFromBBox,
   getBBoxFromTiles,
   getDataFromURL,
@@ -694,4 +695,13 @@ export async function getAndCacheMBTilesTileData(id, z, x, y) {
 
     throw error;
   }
+}
+
+/**
+ * Get MD5 of MBTiles
+ * @param {string} filePath MBTiles file path to get
+ * @returns {Promise<string>}
+ */
+export async function getMBTilesMD5(filePath) {
+  return await calculateMD5OfFile(filePath);
 }

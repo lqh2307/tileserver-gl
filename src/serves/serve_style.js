@@ -7,6 +7,7 @@ import {
   getAndCacheDataStyleJSON,
   getRenderedStyleJSON,
   validateStyle,
+  getStyleMD5,
   getStyle,
 } from "../resources/index.js";
 import {
@@ -14,7 +15,6 @@ import {
   compileHandleBarsTemplate,
   RASTER_TILE_FORMATS,
   createTileMetadata,
-  calculateMD5OfFile,
   getXYZFromLonLatZ,
   getRequestHost,
   TILE_SIZES,
@@ -424,7 +424,7 @@ function getStyleMD5Handler() {
 
       /* Calculate MD5 and Add to header */
       res.set({
-        etag: await calculateMD5OfFile(item.path),
+        etag: await getStyleMD5(item.path),
       });
 
       return res.status(StatusCodes.OK).send();

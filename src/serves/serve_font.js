@@ -5,14 +5,13 @@ import { StatusCodes } from "http-status-codes";
 import {
   getAndCacheDataFonts,
   validatePBFFont,
+  getFontMD5,
   getFont,
 } from "../resources/index.js";
 import {
   detectFormatAndHeaders,
-  calculateMD5OfFiles,
   getRequestHost,
   gzipAsync,
-  findFiles,
   printLog,
 } from "../utils/index.js";
 
@@ -72,9 +71,7 @@ function getFontMD5Handler() {
 
       /* Calculate MD5 and Add to header */
       res.set({
-        etag: await calculateMD5OfFiles(
-          await findFiles(item.path, /^\d{1,5}-\d{1,5}\.pbf$/, false, true),
-        ),
+        etag: await getFontMD5(item.path),
       });
 
       return res.status(StatusCodes.OK).send();

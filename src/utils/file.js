@@ -32,15 +32,18 @@ export function calculateMD5(buffer) {
  * @returns {Promise<string>} The MD5 hash
  */
 export async function calculateMD5OfFile(filePath) {
-  try {
-    return new Promise((resolve, reject) => {
-      const hash = crypto.createHash("md5");
+  const hash = crypto.createHash("md5");
 
-      createReadStream(filePath)
-        .on("error", reject)
-        .on("data", (chunk) => hash.update(chunk))
-        .on("end", () => resolve(hash.digest("hex")));
+  try {
+    await new Promise((resolve, reject) => {
+      const stream = createReadStream(filePath);
+
+      stream.on("error", reject);
+      stream.on("data", (chunk) => hash.update(chunk));
+      stream.on("end", resolve);
     });
+
+    return hash.digest("hex");
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error("Not Found");
@@ -56,10 +59,6 @@ export async function calculateMD5OfFile(filePath) {
  * @returns {Promise<string>} The MD5 hash
  */
 export async function calculateMD5OfFiles(filePaths) {
-  if (!filePaths.length) {
-    throw new Error("Not Found");
-  }
-
   const hash = crypto.createHash("md5");
 
   let foundAtLeastOne = false;
@@ -88,6 +87,29 @@ export async function calculateMD5OfFiles(filePaths) {
   }
 
   return hash.digest("hex");
+}
+
+/**
+ * Get created time of filde or folder
+ * @param {string} fileOrFolderPath File or fodler path to get
+ * @returns {Promise<number>}
+ */
+export async function getFileCreated(fileOrFolderPath) {
+  try {
+    const stats = await stat(fileOrFolderPath);
+
+    if (stats.birthtimeMs && stats.birthtimeMs !== stats.ctimeMs) {
+      return stats.birthtimeMs;
+    }
+
+    return stats.ctimeMs;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error("Not Found");
+    }
+
+    throw error;
+  }
 }
 
 /**

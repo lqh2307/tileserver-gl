@@ -387,6 +387,9 @@
               "day": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "md5": {
+                "type": "boolean"
               }
             },
             "anyOf": [
@@ -395,6 +398,9 @@
               },
               {
                 "required": ["day"]
+              },
+              {
+                "required": ["md5"]
               }
             ]
           },
@@ -438,6 +444,9 @@
               "day": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "md5": {
+                "type": "boolean"
               }
             },
             "anyOf": [
@@ -446,6 +455,9 @@
               },
               {
                 "required": ["day"]
+              },
+              {
+                "required": ["md5"]
               }
             ]
           },

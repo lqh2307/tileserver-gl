@@ -9,7 +9,6 @@ import {
   compileHandleBarsTemplate,
   validateTileMetadata,
   createTileMetadata,
-  calculateMD5OfFile,
   getXYZFromLonLatZ,
   ALL_TILE_FORMATS,
   getRequestHost,
@@ -38,6 +37,7 @@ import {
   openPostgreSQLDB,
   getXYZMetadata,
   getPMTilesTile,
+  getMBTilesMD5,
   openMBTilesDB,
   openXYZMD5DB,
   openPMTiles,
@@ -249,7 +249,7 @@ function getDataMD5Handler() {
 
       switch (item.sourceType) {
         case "mbtiles": {
-          md5 = await calculateMD5OfFile(item.path);
+          md5 = await getMBTilesMD5(item.path);
 
           break;
         }

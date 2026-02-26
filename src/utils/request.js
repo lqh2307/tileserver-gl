@@ -40,7 +40,7 @@ export async function requestToURL(url, options) {
       error.statusCode = error.response.status;
       error.message = `Status code: ${error.response.status} - ${error.statusCode === StatusCodes.NO_CONTENT ? "Not Found" : error.response.statusText}`;
     } else if (error.request) {
-      error.message = "No response received";
+      error.message = `No response received: ${error.message}`;
     }
 
     throw error;

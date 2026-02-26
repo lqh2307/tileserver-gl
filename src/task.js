@@ -38,15 +38,19 @@ import {
   closeXYZMD5DB,
   openMBTilesDB,
   storeFontFile,
+  getGeoJSONMD5,
   openXYZMD5DB,
+  getSpriteMD5,
+  getStyleMD5,
   compactXYZ,
+  getFontMD5,
 } from "./resources/index.js";
 import {
-  calculateMD5OfFile,
   removeEmptyFolders,
   runAllWithLimit,
   getDataFromURL,
   getTileBounds,
+  requestToURL,
   printLog,
 } from "./utils/index.js";
 
@@ -1044,6 +1048,7 @@ async function seedTileDatas(
     /* Download and store tile datas */
     printLog("info", "Downloading and storing tile datas...");
 
+    // Batch run
     await runAllWithLimit(downloadAndStoreTileDataGenerator(), concurrency);
 
     printLog(
@@ -1102,79 +1107,78 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
   const sourcePath = `${process.env.DATA_DIR}/caches/geojsons/${id}`;
   const filePath = `${sourcePath}/${id}.geojson`;
 
-  const option = {
-    method: "GET",
-    responseType: "arraybuffer",
-    maxTry: maxTry,
-    timeout: timeout,
-    headers: headers,
-    decompress: true,
-  };
+  printLog("info", "Get extra info...");
 
-  async function seedGeoJSONData() {
+  let needDownload = false;
+
+  if (refreshTimestamp === true) {
     try {
-      let needDownload = false;
+      const [response, md5] = await Promise.all([
+        requestToURL(`${url.slice(0, url.indexOf(".geojson"))}/md5`, {
+          method: "GET",
+          timeout: timeout,
+          responseType: "arraybuffer",
+          headers: headers,
+          decompress: false,
+        }),
+        getGeoJSONMD5(filePath),
+      ]);
 
-      if (refreshTimestamp === true) {
-        try {
-          const [response, md5] = await Promise.all([
-            getDataFromURL(
-              `${url.slice(0, url.indexOf(`/${id}.geojson`))}/md5`,
-              {
-                method: "GET",
-                timeout: timeout,
-                responseType: "arraybuffer",
-                headers: headers,
-                decompress: false,
-              },
-            ),
-            calculateMD5OfFile(filePath),
-          ]);
-
-          if (!response.headers["etag"] || response.headers["etag"] !== md5) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message.includes("Not Found")) {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else if (refreshTimestamp) {
-        try {
-          const created = await getGeoJSONCreated(filePath);
-
-          if (created === undefined || created < refreshTimestamp) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message.includes("Not Found")) {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
+      if (!response.headers["etag"] || response.headers["etag"] !== md5) {
         needDownload = true;
       }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needDownload = true;
+      } else {
+        throw error;
+      }
+    }
+  } else if (refreshTimestamp) {
+    try {
+      const created = await getGeoJSONCreated(filePath);
 
-      if (needDownload) {
+      if (created === undefined || created < refreshTimestamp) {
+        needDownload = true;
+      }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needDownload = true;
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    needDownload = true;
+  }
+
+  printLog("info", "Downloading and storing geojson...");
+
+  if (needDownload) {
+    const option = {
+      method: "GET",
+      responseType: "arraybuffer",
+      maxTry: maxTry,
+      timeout: timeout,
+      headers: headers,
+      decompress: true,
+    };
+
+    async function seedGeoJSONData() {
+      try {
         printLog(
           "info",
           `Downloading geojson id "${id}" - File "${filePath}" - From "${url}"...`,
         );
 
         await storeGeoJSONFile(filePath, await getDataFromURL(url, option));
+      } catch (error) {
+        printLog("error", `Failed to seed geojson id "${id}": ${error}`);
       }
-    } catch (error) {
-      printLog("error", `Failed to seed geojson id "${id}": ${error}`);
     }
+
+    await seedGeoJSONData();
   }
-
-  printLog("info", "Downloading and storing geojson...");
-
-  await seedGeoJSONData();
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.geojson$/);
@@ -1213,6 +1217,10 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
+  } else if (refreshBefore === true) {
+    refreshTimestamp = true;
+
+    log += `\n\tRefresh before: Check MD5`;
   }
 
   printLog("info", log);
@@ -1220,39 +1228,64 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
   /* Download and store sprite files */
   const sourcePath = `${process.env.DATA_DIR}/caches/sprites/${id}`;
 
-  const option = {
-    method: "GET",
-    responseType: "arraybuffer",
-    maxTry: maxTry,
-    timeout: timeout,
-    headers: headers,
-  };
+  printLog("info", "Get extra info...");
 
-  async function seedSpriteData(fileName) {
-    const filePath = `${sourcePath}/${fileName}`;
+  let needDownload = false;
 
+  if (refreshTimestamp === true) {
     try {
-      let needDownload = false;
+      const [response, md5] = await Promise.all([
+        requestToURL(`${url.slice(0, url.indexOf("/{name}"))}/md5`, {
+          method: "GET",
+          timeout: timeout,
+          responseType: "arraybuffer",
+          headers: headers,
+          decompress: false,
+        }),
+        getSpriteMD5(sourcePath),
+      ]);
 
-      if (refreshTimestamp) {
-        try {
-          const created = await getSpriteCreated(filePath);
-
-          if (created === undefined || created < refreshTimestamp) {
-            needDownload = true;
-          }
-        } catch (error) {
-          if (error.message.includes("Not Found")) {
-            needDownload = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
+      if (!response.headers["etag"] || response.headers["etag"] !== md5) {
         needDownload = true;
       }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needDownload = true;
+      } else {
+        throw error;
+      }
+    }
+  } else if (refreshTimestamp) {
+    try {
+      const created = await getSpriteCreated(sourcePath);
 
-      if (needDownload) {
+      if (created === undefined || created < refreshTimestamp) {
+        needDownload = true;
+      }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needDownload = true;
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    needDownload = true;
+  }
+
+  printLog("info", "Downloading and storing sprites...");
+
+  if (needDownload) {
+    const option = {
+      method: "GET",
+      responseType: "arraybuffer",
+      maxTry: maxTry,
+      timeout: timeout,
+      headers: headers,
+    };
+
+    async function seedSpriteData(fileName) {
+      try {
         const targetURL = url.replace("{name}", `${fileName}`);
 
         printLog(
@@ -1261,28 +1294,26 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
         );
 
         await storeSpriteFile(
-          filePath,
+          `${sourcePath}/${fileName}`,
           await getDataFromURL(targetURL, {
             ...option,
             decompress: fileName.endsWith(".json") ? true : false,
           }),
         );
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to seed sprite id "${id}" - File "${fileName}": ${error}`,
+        );
       }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to seed sprite id "${id}" - File "${fileName}": ${error}`,
-      );
     }
+
+    await Promise.all(
+      ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
+        seedSpriteData,
+      ),
+    );
   }
-
-  printLog("info", "Downloading and storing sprites...");
-
-  await Promise.all(
-    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-      seedSpriteData,
-    ),
-  );
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.(json|png)$/);
@@ -1332,6 +1363,10 @@ async function seedFont(
     refreshTimestamp = now.setDate(now.getDate() - refreshBefore);
 
     log += `\n\tOld than: ${refreshBefore} days`;
+  } else if (refreshBefore === true) {
+    refreshTimestamp = true;
+
+    log += `\n\tRefresh before: Check MD5`;
   }
 
   printLog("info", log);
@@ -1339,47 +1374,73 @@ async function seedFont(
   /* Download and store font files */
   const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
 
-  const option = {
-    method: "GET",
-    responseType: "arraybuffer",
-    maxTry: maxTry,
-    timeout: timeout,
-    headers: headers,
-    decompress: false,
-  };
+  printLog("info", "Get extra info...");
 
-  /* Seed font data generator */
-  function* seedFontDataGenerator() {
-    for (let idx = 0; idx < total; idx++) {
-      yield async () => {
-        const rangeStart = idx * 256;
-        const rangeEnd = rangeStart + 255;
+  let needDownload = false;
 
-        const fileName = `${rangeStart}-${rangeEnd}.pbf`;
-        const filePath = `${sourcePath}/${fileName}`;
+  if (refreshTimestamp === true) {
+    try {
+      const [response, md5] = await Promise.all([
+        requestToURL(`${url.slice(0, url.indexOf("/{range}.pbf"))}/md5`, {
+          method: "GET",
+          timeout: timeout,
+          responseType: "arraybuffer",
+          headers: headers,
+          decompress: false,
+        }),
+        getFontMD5(sourcePath),
+      ]);
 
-        try {
-          let needDownload = false;
+      if (!response.headers["etag"] || response.headers["etag"] !== md5) {
+        needDownload = true;
+      }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needDownload = true;
+      } else {
+        throw error;
+      }
+    }
+  } else if (refreshTimestamp) {
+    try {
+      const created = await getFontCreated(sourcePath);
 
-          if (refreshTimestamp) {
-            try {
-              const created = await getFontCreated(filePath);
+      if (created === undefined || created < refreshTimestamp) {
+        needDownload = true;
+      }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needDownload = true;
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    needDownload = true;
+  }
 
-              if (created === undefined || created < refreshTimestamp) {
-                needDownload = true;
-              }
-            } catch (error) {
-              if (error.message.includes("Not Found")) {
-                needDownload = true;
-              } else {
-                throw error;
-              }
-            }
-          } else {
-            needDownload = true;
-          }
+  printLog("info", "Downloading and storing fonts...");
 
-          if (needDownload) {
+  if (needDownload) {
+    const option = {
+      method: "GET",
+      responseType: "arraybuffer",
+      maxTry: maxTry,
+      timeout: timeout,
+      headers: headers,
+      decompress: true,
+    };
+
+    /* Seed font data generator */
+    function* seedFontDataGenerator() {
+      for (let idx = 0; idx < total; idx++) {
+        yield async () => {
+          const rangeStart = idx * 256;
+          const rangeEnd = rangeStart + 255;
+
+          const fileName = `${rangeStart}-${rangeEnd}.pbf`;
+
+          try {
             const targetURL = url.replace("{range}.pbf", fileName);
 
             printLog(
@@ -1388,24 +1449,22 @@ async function seedFont(
             );
 
             await storeFontFile(
-              filePath,
+              `${sourcePath}/${fileName}`,
               await getDataFromURL(targetURL, option),
             );
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to seed font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}: ${error}`,
+            );
           }
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to seed font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}: ${error}`,
-          );
-        }
-      };
+        };
+      }
     }
+
+    // Batch run
+    await runAllWithLimit(seedFontDataGenerator(), concurrency);
   }
-
-  printLog("info", "Downloading and storing fonts...");
-
-  // Batch run
-  await runAllWithLimit(seedFontDataGenerator(), concurrency);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.pbf$/);
@@ -1458,73 +1517,76 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
   const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
   const filePath = `${sourcePath}/style.json`;
 
-  const option = {
-    method: "GET",
-    responseType: "arraybuffer",
-    maxTry: maxTry,
-    timeout: timeout,
-    headers: headers,
-    decompress: true,
-  };
+  printLog("info", "Get extra info...");
 
-  try {
-    let needDownload = false;
+  let needDownload = false;
 
-    if (refreshTimestamp === true) {
-      try {
-        const [response, md5] = await Promise.all([
-          getDataFromURL(
-            `${url.slice(0, url.indexOf(`/${id}/style.json?raw=true`))}/md5`,
-            {
-              method: "GET",
-              timeout: timeout,
-              responseType: "arraybuffer",
-              headers: headers,
-            },
-          ),
-          calculateMD5OfFile(filePath),
-        ]);
+  if (refreshTimestamp === true) {
+    try {
+      const [response, md5] = await Promise.all([
+        requestToURL(`${url.slice(0, url.indexOf("/style.json"))}/md5`, {
+          method: "GET",
+          timeout: timeout,
+          responseType: "arraybuffer",
+          headers: headers,
+        }),
+        getStyleMD5(filePath),
+      ]);
 
-        if (!response.headers["etag"] || response.headers["etag"] !== md5) {
-          needDownload = true;
-        }
-      } catch (error) {
-        if (error.message.includes("Not Found")) {
-          needDownload = true;
-        } else {
-          throw error;
-        }
+      if (!response.headers["etag"] || response.headers["etag"] !== md5) {
+        needDownload = true;
       }
-    } else if (refreshTimestamp) {
-      try {
-        const created = await getStyleCreated(filePath);
-
-        if (created === undefined || created < refreshTimestamp) {
-          needDownload = true;
-        }
-      } catch (error) {
-        if (error.message.includes("Not Found")) {
-          needDownload = true;
-        } else {
-          throw error;
-        }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needDownload = true;
+      } else {
+        throw error;
       }
-    } else {
-      needDownload = true;
+    }
+  } else if (refreshTimestamp) {
+    try {
+      const created = await getStyleCreated(filePath);
+
+      if (created === undefined || created < refreshTimestamp) {
+        needDownload = true;
+      }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needDownload = true;
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    needDownload = true;
+  }
+
+  printLog("info", "Downloading and storing style...");
+
+  if (needDownload) {
+    const option = {
+      method: "GET",
+      responseType: "arraybuffer",
+      maxTry: maxTry,
+      timeout: timeout,
+      headers: headers,
+      decompress: true,
+    };
+
+    async function seedStyleData() {
+      try {
+        printLog(
+          "info",
+          `Downloading style id "${id}" - File "${filePath}" - From "${url}"...`,
+        );
+
+        await storeStyleFile(filePath, await getDataFromURL(url, option));
+      } catch (error) {
+        printLog("error", `Failed to seed style id "${id}": ${error}`);
+      }
     }
 
-    printLog("info", "Downloading and storing style...");
-
-    if (needDownload) {
-      printLog(
-        "info",
-        `Downloading style id "${id}" - File "${filePath}" - From "${url}"...`,
-      );
-
-      await storeStyleFile(filePath, await getDataFromURL(url, option));
-    }
-  } catch (error) {
-    printLog("error", `Failed to seed style id "${id}": ${error}`);
+    await seedStyleData();
   }
 
   /* Remove parent folders if empty */
@@ -1794,6 +1856,7 @@ async function cleanUpTileDatas(
     /* Remove tile datas */
     printLog("info", "Removing tile datas...");
 
+    // Batch run
     await runAllWithLimit(removeTileDataGenerator, concurrency);
 
     /* Compact database */
@@ -2059,6 +2122,7 @@ async function cleanUpFont(id, cleanUpBefore, concurrency) {
   /* Remove font files */
   printLog("info", "Removing fonts...");
 
+  // Batch run
   await runAllWithLimit(removeFontDataGenerator(), concurrency);
 
   /* Remove parent folders if empty */

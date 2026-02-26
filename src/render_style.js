@@ -121,14 +121,8 @@ function createRenderer(option) {
           const parts = decodeURIComponent(req.url).split("/");
 
           try {
+            // Always uncompress
             data = await getAndCacheDataFonts(parts[2], parts[3]);
-
-            /* Unzip data */
-            const headers = detectFormatAndHeaders(data).headers;
-
-            if (headers["content-encoding"]) {
-              data = await unzipAsync(data);
-            }
           } catch (error) {
             printLog(
               "error",

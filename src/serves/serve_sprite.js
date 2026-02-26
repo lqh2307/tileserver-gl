@@ -6,10 +6,10 @@ import {
   getAndCacheDataSprite,
   SPRITE_FORMATS,
   validateSprite,
+  getSpriteMD5,
 } from "../resources/index.js";
 import {
   detectContentTypeFromFormat,
-  calculateMD5OfFiles,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -85,12 +85,7 @@ function getSpriteMD5Handler() {
 
       /* Calculate MD5 and Add to header */
       res.set({
-        etag: await calculateMD5OfFiles([
-          `${item.path}/sprite.json`,
-          `${item.path}/sprite.png`,
-          `${item.path}/sprite@2x.json`,
-          `${item.path}/sprite@2x.png`,
-        ]),
+        etag: await getSpriteMD5(item.path),
       });
 
       return res.status(StatusCodes.OK).send();
