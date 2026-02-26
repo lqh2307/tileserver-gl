@@ -1046,7 +1046,7 @@ async function seedTileDatas(
     }
 
     /* Download and store tile datas */
-    printLog("info", "Downloading and storing tile datas...");
+    printLog("info", "Downloading and storing tiles...");
 
     // Batch run
     await runAllWithLimit(downloadAndStoreTileDataGenerator(), concurrency);
@@ -1164,7 +1164,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
       decompress: true,
     };
 
-    async function seedGeoJSONData() {
+    async function downloadAndStoreGeoJSONData() {
       try {
         printLog(
           "info",
@@ -1177,7 +1177,7 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
       }
     }
 
-    await seedGeoJSONData();
+    await downloadAndStoreGeoJSONData();
   }
 
   /* Remove parent folders if empty */
@@ -1284,7 +1284,7 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
       headers: headers,
     };
 
-    async function seedSpriteData(fileName) {
+    async function downloadAndStoreSpriteData(fileName) {
       try {
         const targetURL = url.replace("{name}", `${fileName}`);
 
@@ -1308,9 +1308,10 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
       }
     }
 
+    // Batch run
     await Promise.all(
       ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-        seedSpriteData,
+        downloadAndStoreSpriteData,
       ),
     );
   }
@@ -1432,7 +1433,7 @@ async function seedFont(
     };
 
     /* Seed font data generator */
-    function* seedFontDataGenerator() {
+    function* downloadAndStoreFontDataGenerator() {
       for (let idx = 0; idx < total; idx++) {
         yield async () => {
           const rangeStart = idx * 256;
@@ -1463,7 +1464,7 @@ async function seedFont(
     }
 
     // Batch run
-    await runAllWithLimit(seedFontDataGenerator(), concurrency);
+    await runAllWithLimit(downloadAndStoreFontDataGenerator(), concurrency);
   }
 
   /* Remove parent folders if empty */
@@ -1513,7 +1514,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 
   printLog("info", log);
 
-  /* Download and store styleJSON file */
+  /* Download and store StyleJSON file */
   const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
   const filePath = `${sourcePath}/style.json`;
 
@@ -1573,7 +1574,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
       decompress: true,
     };
 
-    async function seedStyleData() {
+    async function downloadAndStoreStyleData() {
       try {
         printLog(
           "info",
@@ -1586,7 +1587,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
       }
     }
 
-    await seedStyleData();
+    await downloadAndStoreStyleData();
   }
 
   /* Remove parent folders if empty */
@@ -1854,7 +1855,7 @@ async function cleanUpTileDatas(
     }
 
     /* Remove tile datas */
-    printLog("info", "Removing tile datas...");
+    printLog("info", "Removing tiles...");
 
     // Batch run
     await runAllWithLimit(removeTileDataGenerator, concurrency);
@@ -1910,36 +1911,40 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
   const sourcePath = `${process.env.DATA_DIR}/caches/geojsons/${id}`;
   const filePath = `${sourcePath}/${id}.geojson`;
 
-  try {
-    let needRemove = false;
+  printLog("info", "Get extra info...");
 
-    if (cleanUpTimestamp) {
-      try {
-        const created = await getGeoJSONCreated(filePath);
+  let needRemove = false;
 
-        if (created === undefined || created < cleanUpTimestamp) {
-          needRemove = true;
-        }
-      } catch (error) {
-        if (error.message.includes("Not Found")) {
-          needRemove = true;
-        } else {
-          throw error;
-        }
+  if (cleanUpTimestamp) {
+    try {
+      const created = await getGeoJSONCreated(filePath);
+
+      if (created === undefined || created < cleanUpTimestamp) {
+        needRemove = true;
       }
-    } else {
-      needRemove = true;
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needRemove = true;
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    needRemove = true;
+  }
+
+  if (needRemove) {
+    async function removeGeoJSONData() {
+      try {
+        printLog("info", `Removing geojson id "${id}" - File "${filePath}"...`);
+
+        await removeGeoJSONFile(filePath);
+      } catch (error) {
+        printLog("error", `Failed to cleanup geojson id "${id}": ${error}`);
+      }
     }
 
-    printLog("info", "Removing geojson...");
-
-    if (needRemove) {
-      printLog("info", `Removing geojson id "${id}" - File "${filePath}"...`);
-
-      await removeGeoJSONFile(filePath);
-    }
-  } catch (error) {
-    printLog("error", `Failed to cleanup geojson id "${id}": ${error}`);
+    await removeGeoJSONData();
   }
 
   /* Remove parent folders if empty */
@@ -1982,50 +1987,51 @@ async function cleanUpSprite(id, cleanUpBefore) {
   /* Remove sprite files */
   const sourcePath = `${process.env.DATA_DIR}/caches/sprites/${id}`;
 
-  async function cleanUpSpriteData(fileName) {
-    const filePath = `${sourcePath}/${fileName}`;
+  printLog("info", "Get extra info...");
 
+  let needRemove = false;
+
+  if (cleanUpTimestamp) {
     try {
-      let needRemove = false;
+      const created = await getSpriteCreated(sourcePath);
 
-      if (cleanUpTimestamp) {
-        try {
-          const created = await getSpriteCreated(filePath);
-
-          if (created === undefined || created < cleanUpTimestamp) {
-            needRemove = true;
-          }
-        } catch (error) {
-          if (error.message.includes("Not Found")) {
-            needRemove = true;
-          } else {
-            throw error;
-          }
-        }
-      } else {
+      if (created === undefined || created < cleanUpTimestamp) {
         needRemove = true;
       }
-
-      if (needRemove) {
-        printLog("info", `Removing sprite id "${id}" - File "${fileName}"...`);
-
-        await removeSpriteFile(filePath);
-      }
     } catch (error) {
-      printLog(
-        "error",
-        `Failed to cleanup sprite id "${id}" - File "${fileName}": ${error}`,
-      );
+      if (error.message.includes("Not Found")) {
+        needRemove = true;
+      } else {
+        throw error;
+      }
     }
+  } else {
+    needRemove = true;
   }
 
   printLog("info", "Removing sprites...");
 
-  await Promise.all(
-    ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-      cleanUpSpriteData,
-    ),
-  );
+  if (needRemove) {
+    async function removeSpriteData(fileName) {
+      try {
+        printLog("info", `Removing sprite id "${id}" - File "${fileName}"...`);
+
+        await removeSpriteFile(`${sourcePath}/${fileName}`);
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to cleanup sprite id "${id}" - File "${fileName}": ${error}`,
+        );
+      }
+    }
+
+    // Batch run
+    await Promise.all(
+      ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
+        removeSpriteData,
+      ),
+    );
+  }
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.(json|png)$/);
@@ -2068,62 +2074,63 @@ async function cleanUpFont(id, cleanUpBefore, concurrency) {
 
   printLog("info", log);
 
+  /* Remove font files */
   const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
 
-  /* Remove font data generator */
-  function* removeFontDataGenerator() {
-    for (let idx = 0; idx < total; idx++) {
-      yield async () => {
-        const rangeStart = idx * 256;
-        const rangeEnd = rangeStart + 255;
+  printLog("info", "Get extra info...");
 
-        const fileName = `${`${rangeStart}-${rangeEnd}`}.pbf`;
-        const filePath = `${sourcePath}/${fileName}`;
+  let needRemove = false;
 
-        try {
-          let needRemove = false;
+  if (cleanUpTimestamp) {
+    try {
+      const created = await getFontCreated(sourcePath);
 
-          if (cleanUpTimestamp) {
-            try {
-              const created = await getFontCreated(filePath);
+      if (created === undefined || created < cleanUpTimestamp) {
+        needRemove = true;
+      }
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needRemove = true;
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    needRemove = true;
+  }
 
-              if (created === undefined || created < cleanUpTimestamp) {
-                needRemove = true;
-              }
-            } catch (error) {
-              if (error.message.includes("Not Found")) {
-                needRemove = true;
-              } else {
-                throw error;
-              }
-            }
-          } else {
-            needRemove = true;
-          }
+  printLog("info", "Removing fonts...");
 
-          if (needRemove) {
+  if (needRemove) {
+    /* Remove font data generator */
+    function* removeFontDataGenerator() {
+      for (let idx = 0; idx < total; idx++) {
+        yield async () => {
+          const rangeStart = idx * 256;
+          const rangeEnd = rangeStart + 255;
+
+          const fileName = `${`${rangeStart}-${rangeEnd}`}.pbf`;
+
+          try {
             printLog(
               "info",
               `Removing font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}...`,
             );
 
-            await removeFontFile(filePath);
+            await removeFontFile(`${sourcePath}/${fileName}`);
+          } catch (error) {
+            printLog(
+              "error",
+              `Failed to cleanup font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}: ${error}`,
+            );
           }
-        } catch (error) {
-          printLog(
-            "error",
-            `Failed to cleanup font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}: ${error}`,
-          );
-        }
-      };
+        };
+      }
     }
+
+    // Batch run
+    await runAllWithLimit(removeFontDataGenerator(), concurrency);
   }
-
-  /* Remove font files */
-  printLog("info", "Removing fonts...");
-
-  // Batch run
-  await runAllWithLimit(removeFontDataGenerator(), concurrency);
 
   /* Remove parent folders if empty */
   await removeEmptyFolders(sourcePath, /^.*\.pbf$/);
@@ -2162,40 +2169,46 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
   printLog("info", log);
 
-  /* Remove style.json file */
+  /* Remove StyleJSON file */
   const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
   const filePath = `${sourcePath}/style.json`;
 
-  try {
-    let needRemove = false;
+  printLog("info", "Get extra info...");
 
-    if (cleanUpTimestamp) {
-      try {
-        const created = await getStyleCreated(filePath);
+  let needRemove = false;
 
-        if (created === undefined || created < cleanUpTimestamp) {
-          needRemove = true;
-        }
-      } catch (error) {
-        if (error.message.includes("Not Found")) {
-          needRemove = true;
-        } else {
-          throw error;
-        }
+  if (cleanUpTimestamp) {
+    try {
+      const created = await getStyleCreated(filePath);
+
+      if (created === undefined || created < cleanUpTimestamp) {
+        needRemove = true;
       }
-    } else {
-      needRemove = true;
+    } catch (error) {
+      if (error.message.includes("Not Found")) {
+        needRemove = true;
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    needRemove = true;
+  }
+
+  printLog("info", "Removing style...");
+
+  if (needRemove) {
+    async function removeStyleData() {
+      try {
+        printLog("info", `Removing style id "${id}" - File "${filePath}"...`);
+
+        await removeStyleFile(filePath);
+      } catch (error) {
+        printLog("error", `Failed to cleanup style id "${id}": ${error}`);
+      }
     }
 
-    printLog("info", "Removing style...");
-
-    if (needRemove) {
-      printLog("info", `Removing style id "${id}" - File "${filePath}"...`);
-
-      await removeStyleFile(filePath);
-    }
-  } catch (error) {
-    printLog("error", `Failed to cleanup style id "${id}": ${error}`);
+    await removeStyleData();
   }
 
   /* Remove parent folders if empty */
