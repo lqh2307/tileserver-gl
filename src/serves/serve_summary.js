@@ -84,6 +84,7 @@ function serveSummaryHandler() {
               case "mbtiles": {
                 const expect = getTileBounds({
                   coverages: item.coverages,
+                  limitedBBox: item.metadata.bounds,
                   scheme: "tms",
                 }).total;
 
@@ -111,6 +112,7 @@ function serveSummaryHandler() {
               case "xyz": {
                 const expect = getTileBounds({
                   coverages: item.coverages,
+                  limitedBBox: item.metadata.bounds,
                 }).total;
 
                 try {
@@ -137,6 +139,7 @@ function serveSummaryHandler() {
               case "pg": {
                 const expect = getTileBounds({
                   coverages: item.coverages,
+                  limitedBBox: item.metadata.bounds,
                 }).total;
 
                 result.datas[id] = {

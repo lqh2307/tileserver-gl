@@ -311,7 +311,7 @@ export function getTileBounds(options) {
   let tileBounds = [];
 
   if (options.coverages) {
-    tileBounds = options.coverages.map((coverage, idx) => {
+    for (const coverage of options.coverages) {
       let bbox = coverage.circle
         ? getBBoxFromCircle(coverage.circle.center, coverage.circle.radius)
         : coverage.bbox;
@@ -320,6 +320,8 @@ export function getTileBounds(options) {
         const intersecBBox = getIntersectBBox(bbox, options.limitedBBox);
         if (intersecBBox) {
           bbox = intersecBBox;
+        } else {
+          continue;
         }
       }
 
@@ -338,7 +340,7 @@ export function getTileBounds(options) {
         options.scheme,
       );
 
-      realBBox = idx === 0 ? _bbox : getCoverBBox(realBBox, _bbox);
+      realBBox = realBBox ? getCoverBBox(realBBox, _bbox) : _bbox;
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
 
@@ -349,15 +351,15 @@ export function getTileBounds(options) {
         bbox: bbox,
       });
 
-      return {
+      tileBounds.push({
         realBBox: _bbox,
         bbox: bbox,
         total: _total,
         z: coverage.zoom,
         x: [xMin, xMax],
         y: [yMin, yMax],
-      };
-    });
+      });
+    }
   } else {
     for (let zoom = options.minZoom; zoom <= options.maxZoom; zoom++) {
       let bbox = options.bbox;
@@ -366,6 +368,8 @@ export function getTileBounds(options) {
         const intersecBBox = getIntersectBBox(bbox, options.limitedBBox);
         if (intersecBBox) {
           bbox = intersecBBox;
+        } else {
+          continue;
         }
       }
 
@@ -384,8 +388,7 @@ export function getTileBounds(options) {
         options.scheme,
       );
 
-      realBBox =
-        zoom === options.minZoom ? _bbox : getCoverBBox(realBBox, _bbox);
+      realBBox = realBBox ? getCoverBBox(realBBox, _bbox) : _bbox;
 
       const _total = (xMax - xMin + 1) * (yMax - yMin + 1);
 

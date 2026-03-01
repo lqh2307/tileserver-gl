@@ -286,6 +286,7 @@ export async function runTasks(opts) {
                 await cleanUpTileDatas(
                   seedDataItem.storeType,
                   id,
+                  seedDataItem.message,
                   cleanUpDataItem.coverages,
                   cleanUpDataItem.cleanUpBefore?.time ??
                     cleanUpDataItem.cleanUpBefore?.day,
@@ -626,8 +627,9 @@ async function seedTileDatas(
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBounds({
+    const { total, targetCoverages } = getTileBounds({
       coverages: coverages,
+      limitedBBox: metadata.bounds,
     });
 
     let log = `Seeding ${total} tiles of ${storeType} "${id}" with:`;
@@ -636,7 +638,7 @@ async function seedTileDatas(
     )} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
     log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
     if (typeof refreshBefore === "string") {
@@ -700,18 +702,19 @@ async function seedTileDatas(
             targetTileExtraInfo = await getDataFromURL(hashURL, {
               method: "POST",
               timeout: 3600000, // 1 hours
-              body: coverages,
+              body: targetCoverages,
               responseType: "json",
               headers: {
                 ...(headers ?? {}),
                 "content-type": "application/json",
               },
+              maxTry: maxTry,
               decompress: true,
             });
 
             tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               false,
             );
           } catch (error) {
@@ -738,7 +741,7 @@ async function seedTileDatas(
 
             tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               true,
             );
           } catch (error) {
@@ -807,18 +810,19 @@ async function seedTileDatas(
             targetTileExtraInfo = await getDataFromURL(hashURL, {
               method: "POST",
               timeout: 3600000, // 1 hours
-              body: coverages,
+              body: targetCoverages,
               responseType: "json",
               headers: {
                 ...(headers ?? {}),
                 "content-type": "application/json",
               },
+              maxTry: maxTry,
               decompress: true,
             });
 
             tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               false,
             );
           } catch (error) {
@@ -845,7 +849,7 @@ async function seedTileDatas(
 
             tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               true,
             );
           } catch (error) {
@@ -915,18 +919,19 @@ async function seedTileDatas(
             targetTileExtraInfo = await getDataFromURL(hashURL, {
               method: "POST",
               timeout: 3600000, // 1 hours
-              body: coverages,
+              body: targetCoverages,
               responseType: "json",
               headers: {
                 ...(headers ?? {}),
                 "content-type": "application/json",
               },
+              maxTry: maxTry,
               decompress: true,
             });
 
             tileExtraInfo = getXYZTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               false,
             );
           } catch (error) {
@@ -953,7 +958,7 @@ async function seedTileDatas(
 
             tileExtraInfo = getXYZTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               true,
             );
           } catch (error) {
@@ -995,7 +1000,7 @@ async function seedTileDatas(
     function* downloadAndStoreTileDataGenerator() {
       let completeTasks = 0;
 
-      for (const { z, x, y } of tileBounds) {
+      for (const { z, x, y } of targetCoverages) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
@@ -1605,6 +1610,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
  * Cleanup tile datas
  * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {string} id Cleanup data ID
+ * @param {object} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @param {number} concurrency Concurrency for removing tile data
@@ -1613,6 +1619,7 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
 async function cleanUpTileDatas(
   storeType,
   id,
+  metadata,
   coverages,
   cleanUpBefore,
   concurrency,
@@ -1624,11 +1631,14 @@ async function cleanUpTileDatas(
 
   try {
     /* Calculate summary */
-    const { total, tileBounds } = getTileBounds({ coverages: coverages });
+    const { total, targetCoverages } = getTileBounds({
+      coverages: coverages,
+      limitedBBox: metadata.bounds,
+    });
 
     let log = `Cleaning up ${total} tiles of ${storeType} "${id}" with:`;
     log += `\n\tConcurrency: ${concurrency}`;
-    log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
+    log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
     if (typeof cleanUpBefore === "string") {
@@ -1674,7 +1684,7 @@ async function cleanUpTileDatas(
 
             tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               true,
             );
           } catch (error) {
@@ -1724,7 +1734,7 @@ async function cleanUpTileDatas(
 
             tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               true,
             );
           } catch (error) {
@@ -1775,7 +1785,7 @@ async function cleanUpTileDatas(
 
             tileExtraInfo = getXYZTileExtraInfoFromCoverages(
               source,
-              coverages,
+              targetCoverages,
               true,
             );
           } catch (error) {
@@ -1820,7 +1830,7 @@ async function cleanUpTileDatas(
     function* removeTileDataGenerator() {
       let completeTasks = 0;
 
-      for (const { z, x, y } of tileBounds) {
+      for (const { z, x, y } of targetCoverages) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;

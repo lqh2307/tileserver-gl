@@ -1020,6 +1020,7 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
+                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                   ...(item.tilejson ?? {}),
                 });
@@ -1105,6 +1106,7 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
+                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                   ...(item.tilejson ?? {}),
                 });
@@ -1161,6 +1163,7 @@ export const serve_data = {
                   ...cacheSource.metadata,
                   cacheCoverages: getTileBounds({
                     coverages: cacheSource.coverages,
+                    limitedBBox: cacheSource.metadata.bounds,
                   }).targetCoverages,
                   ...(item.tilejson ?? {}),
                 });
