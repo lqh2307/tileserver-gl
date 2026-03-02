@@ -627,7 +627,7 @@ async function seedTileDatas(
 
   try {
     /* Calculate summary */
-    const { total, targetCoverages } = getTileBounds({
+    const { total, targetCoverages, tileBounds } = getTileBounds({
       coverages: coverages,
       limitedBBox: metadata.bounds,
     });
@@ -1000,7 +1000,7 @@ async function seedTileDatas(
     function* downloadAndStoreTileDataGenerator() {
       let completeTasks = 0;
 
-      for (const { z, x, y } of targetCoverages) {
+      for (const { z, x, y } of tileBounds) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
@@ -1631,7 +1631,7 @@ async function cleanUpTileDatas(
 
   try {
     /* Calculate summary */
-    const { total, targetCoverages } = getTileBounds({
+    const { total, targetCoverages, tileBounds } = getTileBounds({
       coverages: coverages,
       limitedBBox: metadata.bounds,
     });
@@ -1830,7 +1830,7 @@ async function cleanUpTileDatas(
     function* removeTileDataGenerator() {
       let completeTasks = 0;
 
-      for (const { z, x, y } of targetCoverages) {
+      for (const { z, x, y } of tileBounds) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
