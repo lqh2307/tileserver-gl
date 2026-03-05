@@ -72,7 +72,7 @@ export async function getStyle(filePath) {
  * @param {string} id Style id (For cache)
  * @returns {Promise<object>}
  */
-export async function getRenderedStyleJSON(filePath, id) {
+export async function getRenderedStyleJSON(filePath, id = "") {
   return await renderedStyleJSONCaches.wrap(id, async () => {
     try {
       const styleJSON = JSON.parse(await readFile(filePath));
