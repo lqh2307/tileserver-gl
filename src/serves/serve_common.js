@@ -1,6 +1,8 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
+import { rm } from "node:fs/promises";
+import path from "node:path";
 import {
   updateConfigFile,
   readConfigFile,
@@ -193,7 +195,7 @@ function serveConfigUpdateHandler() {
     }
 
     try {
-      const config = readConfigFile(type, true);
+      const configJSON = readConfigFile(type, true);
 
       if (!req.body.styles) {
         printLog("info", `No styles to update in ${type}. Skipping...`);
@@ -203,7 +205,7 @@ function serveConfigUpdateHandler() {
         printLog("info", `Updating ${ids.length} styles in ${type}...`);
 
         ids.map((id) => {
-          config.styles[id] = req.body.styles[id];
+          configJSON.styles[id] = req.body.styles[id];
         });
       }
 
@@ -215,7 +217,7 @@ function serveConfigUpdateHandler() {
         printLog("info", `Updating ${ids.length} GeoJSONs in ${type}...`);
 
         ids.map((id) => {
-          config.geojsons[id] = req.body.geojsons[id];
+          configJSON.geojsons[id] = req.body.geojsons[id];
         });
       }
 
@@ -227,7 +229,7 @@ function serveConfigUpdateHandler() {
         printLog("info", `Updating ${ids.length} datas in ${type}...`);
 
         ids.map((id) => {
-          config.datas[id] = req.body.datas[id];
+          configJSON.datas[id] = req.body.datas[id];
         });
       }
 
@@ -239,7 +241,7 @@ function serveConfigUpdateHandler() {
         printLog("info", `Updating ${ids.length} sprites in ${type}...`);
 
         ids.map((id) => {
-          config.sprites[id] = req.body.sprites[id];
+          configJSON.sprites[id] = req.body.sprites[id];
         });
       }
 
@@ -251,11 +253,11 @@ function serveConfigUpdateHandler() {
         printLog("info", `Updating ${ids.length} fonts in ${type}...`);
 
         ids.map((id) => {
-          config.fonts[id] = req.body.fonts[id];
+          configJSON.fonts[id] = req.body.fonts[id];
         });
       }
 
-      await updateConfigFile(type, config, 60000);
+      await updateConfigFile(type, configJSON, 60000);
 
       if (req.query.restart === "true") {
         setTimeout(
@@ -295,7 +297,7 @@ function serveConfigDeleteHandler() {
     }
 
     try {
-      const config = readConfigFile(type, true);
+      const configJSON = readConfigFile(type, true);
 
       if (!req.body.styles) {
         printLog("info", `No styles to remove in ${type}. Skipping...`);
@@ -305,7 +307,15 @@ function serveConfigDeleteHandler() {
         printLog("info", `Removing ${ids.length} styles in ${type}...`);
 
         ids.map((id) => {
-          delete config.styles[id];
+          delete configJSON.styles[id];
+
+          const style = config.styles[id];
+          if (style) {
+            rm(path.dirname(style.path), {
+              recursive: true,
+              force: true,
+            });
+          }
         });
       }
 
@@ -317,7 +327,16 @@ function serveConfigDeleteHandler() {
         printLog("info", `Removing ${ids.length} GeoJSONs in ${type}...`);
 
         ids.map((id) => {
-          delete config.geojsons[id];
+          delete configJSON.geojsons[id];
+
+          Object.values(config.geojsons[id] ?? {}).forEach((geojson) => {
+            if (geojson) {
+              rm(path.dirname(geojson.path), {
+                recursive: true,
+                force: true,
+              });
+            }
+          });
         });
       }
 
@@ -329,7 +348,15 @@ function serveConfigDeleteHandler() {
         printLog("info", `Removing ${ids.length} datas in ${type}...`);
 
         ids.map((id) => {
-          delete config.datas[id];
+          delete configJSON.datas[id];
+
+          const data = config.datas[id];
+          if (data) {
+            rm(path.dirname(data.path), {
+              recursive: true,
+              force: true,
+            });
+          }
         });
       }
 
@@ -341,7 +368,15 @@ function serveConfigDeleteHandler() {
         printLog("info", `Removing ${ids.length} sprites in ${type}...`);
 
         ids.map((id) => {
-          delete config.sprites[id];
+          delete configJSON.sprites[id];
+
+          const sprite = config.sprites[id];
+          if (sprite) {
+            rm(sprite.path, {
+              recursive: true,
+              force: true,
+            });
+          }
         });
       }
 
@@ -353,11 +388,19 @@ function serveConfigDeleteHandler() {
         printLog("info", `Removing ${ids.length} fonts in ${type}...`);
 
         ids.map((id) => {
-          delete config.fonts[id];
+          delete configJSON.fonts[id];
+
+          const font = config.fonts[id];
+          if (font) {
+            rm(font.path, {
+              recursive: true,
+              force: true,
+            });
+          }
         });
       }
 
-      await updateConfigFile(type, config, 60000);
+      await updateConfigFile(type, configJSON, 60000);
 
       if (req.query.restart === "true") {
         setTimeout(

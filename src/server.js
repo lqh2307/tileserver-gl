@@ -6,9 +6,9 @@ import { loggerMiddleware } from "./middlewares/index.js";
 import { setupMaster } from "@socket.io/sticky";
 import { Worker } from "node:worker_threads";
 import { config } from "./configs/index.js";
-import cluster from "cluster";
+import cluster from "node:cluster";
 import express from "express";
-import http from "http";
+import http from "node:http";
 import cors from "cors";
 import {
   serve_prometheus,

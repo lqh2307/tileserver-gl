@@ -3,7 +3,7 @@
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
-import cluster from "cluster";
+import cluster from "node:cluster";
 import {
   calculateMD5OfFiles,
   removeFileWithLock,

@@ -1,7 +1,7 @@
 "use strict";
 
 import { config } from "./configs/index.js";
-import path from "path";
+import path from "node:path";
 import {
   createFileWithLock,
   runAllWithLimit,

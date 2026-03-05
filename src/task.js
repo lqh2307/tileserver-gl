@@ -1,7 +1,7 @@
 "use strict";
 
 import { cleanUp, seed } from "./configs/index.js";
-import os from "os";
+import os from "node:os";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   getMBTilesTileExtraInfoFromCoverages,

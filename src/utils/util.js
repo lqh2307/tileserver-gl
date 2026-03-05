@@ -1,8 +1,8 @@
 "use strict";
 
 import { readFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { printLog } from "./logger.js";
-import { spawn } from "child_process";
 import mime from "mime";
 
 /**

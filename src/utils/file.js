@@ -2,11 +2,11 @@
 
 import { delay, detectContentTypeFromFormat } from "./util.js";
 import { createReadStream, createWriteStream } from "node:fs";
+import crypto from "node:crypto";
 import archiver from "archiver";
 import path from "node:path";
-import crypto from "crypto";
-import zlib from "zlib";
-import util from "util";
+import zlib from "node:zlib";
+import util from "node:util";
 import {
   writeFile,
   readdir,

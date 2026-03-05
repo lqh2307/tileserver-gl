@@ -4,7 +4,7 @@ import { createAdapter } from "@socket.io/cluster-adapter";
 import { setupWorker } from "@socket.io/sticky";
 import { printLog } from "./logger.js";
 import { Server } from "socket.io";
-import cluster from "cluster";
+import cluster from "node:cluster";
 
 let socketServer;
 

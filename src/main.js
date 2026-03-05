@@ -2,10 +2,10 @@
 
 import { removeOldLocks, printLog } from "./utils/index.js";
 import { validateConfig, config } from "./configs/index.js";
+import cluster from "node:cluster";
 import chokidar from "chokidar";
-import cluster from "cluster";
 import cron from "node-cron";
-import os from "os";
+import os from "node:os";
 import {
   cancelTaskInWorker,
   startTaskInWorker,

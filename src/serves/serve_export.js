@@ -5,7 +5,7 @@ import { exportTileDatas, exportAll } from "../export.js";
 import { renderTileDatas } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
-import os from "os";
+import os from "node:os";
 
 /**
  * Export all handler

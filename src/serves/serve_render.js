@@ -3,12 +3,12 @@
 import { getRenderedStyleJSON } from "../resources/style.js";
 import { renderStyleJSON } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
+import { readFile, rm } from "node:fs/promises";
 import { config } from "../configs/index.js";
-import { readFile, rm } from "fs/promises";
-import { createReadStream } from "fs";
-import { Readable } from "stream";
+import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import { nanoid } from "nanoid";
-import path from "path";
+import path from "node:path";
 import {
   detectContentTypeFromFormat,
   renderImageToHighQualityPDF,

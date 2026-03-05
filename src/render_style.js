@@ -4,8 +4,8 @@ import mlgl from "@maplibre/maplibre-gl-native";
 import { config } from "./configs/index.js";
 import { createPool } from "generic-pool";
 import { nanoid } from "nanoid";
-import path from "path";
-import os from "os";
+import path from "node:path";
+import os from "node:os";
 import {
   getPostgreSQLTileExtraInfoFromCoverages,
   getMBTilesTileExtraInfoFromCoverages,

@@ -2,8 +2,8 @@
 
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { createReadStream } from "fs";
-import path from "path";
+import { createReadStream } from "node:fs";
+import path from "node:path";
 import {
   validateAndGetGeometryTypes,
   getAndCacheDataGeoJSON,
