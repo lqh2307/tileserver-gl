@@ -173,8 +173,53 @@ export async function exportAll(
           );
         }
 
+        const renderedStyleJSON = await getRenderedStyleJSON(style.path);
+
+        // Get sprite
+        if (renderedStyleJSON.sprite?.startsWith("sprites://")) {
+          const spriteID = renderedStyleJSON.sprite.split("/")[2];
+
+          const spriteFolder = `${spriteID}_cache`;
+
+          configObj.sprites[spriteID] = {
+            sprite: spriteFolder,
+            cache: {
+              store: true,
+              forward: true,
+            },
+          };
+
+          seedObj.sprites[spriteFolder] = {
+            url: `${parentServerHost}/sprites/${spriteID}/{name}`,
+            refreshBefore: {
+              md5: true,
+            },
+            timeout: timeout,
+            maxTry: maxTry,
+            skip: false,
+          };
+
+          if (exportData) {
+            const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
+              getAndCacheDataSprite(spriteID, "sprite.json"),
+              getAndCacheDataSprite(spriteID, "sprite.png"),
+            ]);
+
+            await Promise.all([
+              storeSpriteFile(
+                `${dirPath}/caches/sprites/${spriteFolder}/sprite.json`,
+                spriteJSONBuffer,
+              ),
+              storeSpriteFile(
+                `${dirPath}/caches/sprites/${spriteFolder}/sprite.png`,
+                spritePNGBuffer,
+              ),
+            ]);
+          }
+        }
+
         // Get font
-        if (renderedStyleJSON.sprite.startsWith("fonts://")) {
+        if (renderedStyleJSON.glyphs?.startsWith("fonts://")) {
           const fonts = [];
 
           for (const layer of renderedStyleJSON.layers) {
@@ -231,52 +276,7 @@ export async function exportAll(
           }
         }
 
-        // Get sprite
-        if (renderedStyleJSON.sprite.startsWith("sprites://")) {
-          const spriteID = renderedStyleJSON.sprite.split("/")[2];
-
-          const spriteFolder = `${spriteID}_cache`;
-
-          configObj.sprites[spriteID] = {
-            sprite: spriteFolder,
-            cache: {
-              store: true,
-              forward: true,
-            },
-          };
-
-          seedObj.sprites[spriteFolder] = {
-            url: `${parentServerHost}/sprites/${spriteID}/{name}`,
-            refreshBefore: {
-              md5: true,
-            },
-            timeout: timeout,
-            maxTry: maxTry,
-            skip: false,
-          };
-
-          if (exportData) {
-            const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
-              getAndCacheDataSprite(spriteID, "sprite.json"),
-              getAndCacheDataSprite(spriteID, "sprite.png"),
-            ]);
-
-            await Promise.all([
-              storeSpriteFile(
-                `${dirPath}/caches/sprites/${spriteFolder}/sprite.json`,
-                spriteJSONBuffer,
-              ),
-              storeSpriteFile(
-                `${dirPath}/caches/sprites/${spriteFolder}/sprite.png`,
-                spritePNGBuffer,
-              ),
-            ]);
-          }
-        }
-
         // Get source
-        const renderedStyleJSON = await getRenderedStyleJSON(style.path);
-
         for (const sourceName of Object.keys(renderedStyleJSON.sources)) {
           // Get geojson source
           const source = renderedStyleJSON.sources[sourceName];
