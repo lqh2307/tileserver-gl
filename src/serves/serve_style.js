@@ -118,7 +118,7 @@ function getStyleHandler() {
         const requestHost = getRequestHost(req);
 
         /* Fix sprite url */
-        if (styleJSON.sprite !== undefined) {
+        if (styleJSON.sprite) {
           if (styleJSON.sprite.startsWith("sprites://")) {
             styleJSON.sprite = styleJSON.sprite.replace(
               "sprites://",
@@ -128,7 +128,7 @@ function getStyleHandler() {
         }
 
         /* Fix font url */
-        if (styleJSON.glyphs !== undefined) {
+        if (styleJSON.glyphs) {
           if (styleJSON.glyphs.startsWith("fonts://")) {
             styleJSON.glyphs = styleJSON.glyphs.replace(
               "fonts://",
@@ -143,7 +143,7 @@ function getStyleHandler() {
             const source = styleJSON.sources[id];
 
             // Fix geoJSON URL
-            if (source.data !== undefined) {
+            if (source.data) {
               if (isLocalURL(source.data)) {
                 const parts = source.data.split("/");
 
@@ -152,7 +152,7 @@ function getStyleHandler() {
             }
 
             // Fix tileJSON URL
-            if (source.url !== undefined) {
+            if (source.url) {
               if (isLocalURL(source.url)) {
                 const sourceID = source.url.split("/")[2];
 
@@ -161,7 +161,7 @@ function getStyleHandler() {
             }
 
             // Fix tileJSON URLs
-            if (source.urls !== undefined) {
+            if (source.urls) {
               const urls = new Set(
                 source.urls.map((url) => {
                   if (isLocalURL(url)) {
@@ -178,7 +178,7 @@ function getStyleHandler() {
             }
 
             // Fix tile URL
-            if (source.tiles !== undefined) {
+            if (source.tiles) {
               const tiles = new Set(
                 source.tiles.map((tile) => {
                   if (isLocalURL(tile)) {
@@ -321,7 +321,7 @@ function getRenderedTileHandler() {
         +req.params.x,
         +req.params.y,
         {
-          styleJSON: await getRenderedStyleJSON(item.path, id),
+          styleJSON: await getRenderedStyleJSON(item.path),
           tileScale: +req.query.tileScale || 1,
           tileSize: +req.query.tileSize || 256,
           format: req.params.format,

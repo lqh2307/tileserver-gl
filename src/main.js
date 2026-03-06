@@ -109,7 +109,7 @@ async function startClusterServer() {
     }
 
     /* Setup task cron */
-    if (configOptions.taskSchedule !== undefined) {
+    if (configOptions.taskSchedule) {
       printLog(
         "info",
         `Schedule run seed and cleanup tasks at: "${configOptions.taskSchedule}"`,
@@ -138,7 +138,7 @@ async function startClusterServer() {
     }
 
     /* Setup task cron */
-    if (configOptions.restartSchedule !== undefined) {
+    if (configOptions.restartSchedule) {
       printLog(
         "info",
         `Schedule restart server at: "${configOptions.restartSchedule}"`,

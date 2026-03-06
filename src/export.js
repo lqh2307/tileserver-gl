@@ -223,10 +223,7 @@ export async function exportAll(
           const fonts = [];
 
           for (const layer of renderedStyleJSON.layers) {
-            if (
-              layer.layout !== undefined &&
-              layer.layout["text-font"] !== undefined
-            ) {
+            if (layer.layout?.["text-font"]) {
               fonts.push(...layer.layout["text-font"]);
             }
           }
@@ -281,7 +278,7 @@ export async function exportAll(
           // Get geojson source
           const source = renderedStyleJSON.sources[sourceName];
 
-          if (source.data !== undefined) {
+          if (source.data) {
             if (isLocalURL(source.data)) {
               const parts = source.data.split("/");
 
@@ -322,7 +319,7 @@ export async function exportAll(
           }
 
           // Get tile source
-          if (source.tiles !== undefined) {
+          if (source.tiles) {
             for (const tile of source.tiles) {
               if (isLocalURL(tile)) {
                 const dataID = tile.split("/")[2];
