@@ -188,29 +188,45 @@ export async function getXYZFormatFromTiles(sourcePath) {
  * @returns {Object<string, string>} Extra info object
  */
 export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
-  const { tileBounds } = getTileBounds({ coverages: coverages });
-
-  let query = "";
-  const extraInfoType = isCreated ? "created" : "hash";
-
-  tileBounds.forEach((tileBound, idx) => {
-    if (idx) {
-      query += " UNION ALL ";
-    }
-
-    query += `SELECT zoom_level, tile_column, tile_row, ${extraInfoType} FROM md5s WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
+  const { tileBounds } = getTileBounds({
+    coverages: coverages,
   });
 
-  query += ";";
+  const extraInfoType = isCreated ? "created" : "hash";
+
+  const querySQL = source.prepare(
+    `
+      SELECT
+        tile_column, tile_row, ${extraInfoType}
+      FROM
+        md5s
+      WHERE
+        zoom_level = ?
+      AND
+        tile_column BETWEEN ? AND ?
+      AND
+        tile_row BETWEEN ? AND ?;
+    `,
+  );
 
   const result = {};
-  const rows = source.prepare(query).all();
 
-  rows.forEach((row) => {
-    if (row[extraInfoType]) {
-      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] =
-        row[extraInfoType];
-    }
+  tileBounds.forEach((tileBound) => {
+    const rows = querySQL.all(
+      tileBound.z,
+      tileBound.x[0],
+      tileBound.x[1],
+      tileBound.y[0],
+      tileBound.y[1],
+    );
+
+    rows.forEach((row) => {
+      if (row[extraInfoType]) {
+        // XYZ
+        result[`${tileBound.z}/${row.tile_column}/${row.tile_row}`] =
+          row[extraInfoType];
+      }
+    });
   });
 
   return result;

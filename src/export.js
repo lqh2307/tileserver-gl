@@ -46,28 +46,17 @@ import {
  * Export all
  * @param {string} dirPath Exported dir path
  * @param {object} options Export object
- * @param {number} concurrency Concurrency
- * @param {boolean} storeTransparent Is store transparent tile?
- * @param {string} parentServerHost Parent server host
- * @param {boolean} exportData Is export data?
- * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
-export async function exportAll(
-  dirPath,
-  options,
-  concurrency,
-  storeTransparent,
-  parentServerHost,
-  exportData,
-  refreshBefore,
-) {
+export async function exportAll(dirPath, options) {
   const startTime = Date.now();
 
   try {
-    concurrency = concurrency || 256;
+    const concurrency = options.concurrency || 256;
     const timeout = 300000; // 5 minutes
     const maxTry = 5;
+    const parentServerHost =
+      options.parentServerHost || "http://localhost:8080";
 
     let log = `Exporting all with:`;
     log += `\n\tDirectory path: ${dirPath}`;
@@ -156,15 +145,13 @@ export async function exportAll(
             center: style.center,
           },
           url: `${parentServerHost}/styles/${styleID}/style.json?raw=true`,
-          refreshBefore: {
-            md5: true,
-          },
+          refreshBefore: options.refreshBefore,
           timeout: timeout,
           maxTry: maxTry,
           skip: false,
         };
 
-        if (exportData) {
+        if (options.exportData) {
           const styleBuffer = await getStyle(style.path);
 
           await storeStyleFile(
@@ -191,15 +178,13 @@ export async function exportAll(
 
           seedObj.sprites[spriteFolder] = {
             url: `${parentServerHost}/sprites/${spriteID}/{name}`,
-            refreshBefore: {
-              md5: true,
-            },
+            refreshBefore: options.refreshBefore,
             timeout: timeout,
             maxTry: maxTry,
             skip: false,
           };
 
-          if (exportData) {
+          if (options.exportData) {
             const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
               getAndCacheDataSprite(spriteID, "sprite.json"),
               getAndCacheDataSprite(spriteID, "sprite.png"),
@@ -241,16 +226,14 @@ export async function exportAll(
 
             seedObj.fonts[fontFolder] = {
               url: `${parentServerHost}/fonts/${fontID}/{range}.pbf`,
-              refreshBefore: {
-                md5: true,
-              },
+              refreshBefore: options.refreshBefore,
               timeout: timeout,
               concurrency: concurrency,
               maxTry: maxTry,
               skip: false,
             };
 
-            if (exportData) {
+            if (options.exportData) {
               function* seedFontDataGenerator() {
                 for (let idx = 0; idx < 256; idx++) {
                   yield async () => {
@@ -296,15 +279,13 @@ export async function exportAll(
 
               seedObj.geojsons[geojsonFolder] = {
                 url: `${parentServerHost}/geojsons/${parts[2]}/${parts[3]}.geojson`,
-                refreshBefore: {
-                  md5: true,
-                },
+                refreshBefore: options.refreshBefore,
                 timeout: timeout,
                 maxTry: maxTry,
                 skip: false,
               };
 
-              if (exportData) {
+              if (options.exportData) {
                 const geoJSONBuffer = await getAndCacheDataGeoJSON(
                   parts[2],
                   parts[3],
@@ -350,9 +331,7 @@ export async function exportAll(
                       metadata: data.tileJSON,
                       url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
-                      refreshBefore: {
-                        md5: true,
-                      },
+                      refreshBefore: options.refreshBefore,
                       coverages: coverages,
                       timeout: timeout,
                       concurrency: concurrency,
@@ -362,7 +341,7 @@ export async function exportAll(
                       skip: false,
                     };
 
-                    if (exportData) {
+                    if (options.exportData) {
                       storePath = `${dirPath}/caches/datas/xyzs/${dataFolder}`;
                     }
 
@@ -382,9 +361,7 @@ export async function exportAll(
                       metadata: data.tileJSON,
                       url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
-                      refreshBefore: {
-                        md5: true,
-                      },
+                      refreshBefore: options.refreshBefore,
                       coverages: coverages,
                       timeout: timeout,
                       concurrency: concurrency,
@@ -394,7 +371,7 @@ export async function exportAll(
                       skip: false,
                     };
 
-                    if (exportData) {
+                    if (options.exportData) {
                       storePath = `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`;
                     }
 
@@ -414,9 +391,7 @@ export async function exportAll(
                       metadata: data.tileJSON,
                       url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
-                      refreshBefore: {
-                        md5: true,
-                      },
+                      refreshBefore: options.refreshBefore,
                       coverages: coverages,
                       timeout: timeout,
                       concurrency: concurrency,
@@ -426,7 +401,7 @@ export async function exportAll(
                       skip: false,
                     };
 
-                    if (exportData) {
+                    if (options.exportData) {
                       storePath = `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`;
                     }
 
@@ -434,7 +409,7 @@ export async function exportAll(
                   }
                 }
 
-                if (exportData) {
+                if (options.exportData) {
                   await exportTileDatas(
                     dataID,
                     data.sourceType,
@@ -442,8 +417,10 @@ export async function exportAll(
                     data.tileJSON,
                     coverages,
                     concurrency,
-                    storeTransparent,
-                    refreshBefore,
+                    options.storeTransparent,
+                    options.refreshBefore?.time ||
+                      options.refreshBefore?.day ||
+                      options.refreshBefore?.md5,
                   );
                 }
               }
@@ -485,9 +462,7 @@ export async function exportAll(
               metadata: data.tileJSON,
               url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
-              refreshBefore: {
-                md5: true,
-              },
+              refreshBefore: options.refreshBefore,
               coverages: coverages,
               timeout: timeout,
               concurrency: concurrency,
@@ -497,7 +472,7 @@ export async function exportAll(
               skip: false,
             };
 
-            if (exportData) {
+            if (options.exportData) {
               storePath = `${dirPath}/caches/datas/xyzs/${dataFolder}`;
             }
 
@@ -517,9 +492,7 @@ export async function exportAll(
               metadata: data.tileJSON,
               url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
-              refreshBefore: {
-                md5: true,
-              },
+              refreshBefore: options.refreshBefore,
               coverages: coverages,
               timeout: timeout,
               concurrency: concurrency,
@@ -529,7 +502,7 @@ export async function exportAll(
               skip: false,
             };
 
-            if (exportData) {
+            if (options.exportData) {
               storePath = `${dirPath}/caches/datas/mbtiles/${dataFolder}/${dataFolder}.mbtiles`;
             }
 
@@ -549,9 +522,7 @@ export async function exportAll(
               metadata: data.tileJSON,
               url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
-              refreshBefore: {
-                md5: true,
-              },
+              refreshBefore: options.refreshBefore,
               coverages: coverages,
               timeout: timeout,
               concurrency: concurrency,
@@ -561,7 +532,7 @@ export async function exportAll(
               skip: false,
             };
 
-            if (exportData) {
+            if (options.exportData) {
               storePath = `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`;
             }
 
@@ -569,7 +540,7 @@ export async function exportAll(
           }
         }
 
-        if (exportData) {
+        if (options.exportData) {
           storePath = `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`;
 
           await exportTileDatas(
@@ -579,8 +550,10 @@ export async function exportAll(
             data.tileJSON,
             coverages,
             concurrency,
-            storeTransparent,
-            refreshBefore,
+            options.storeTransparent,
+            options.refreshBefore?.time ||
+              options.refreshBefore?.day ||
+              options.refreshBefore?.md5,
           );
         }
       }
@@ -607,15 +580,13 @@ export async function exportAll(
 
           seedObj.geojsons[geojsonFolder] = {
             url: `${parentServerHost}/geojsons/${group}/${layer}.geojson`,
-            refreshBefore: {
-              md5: true,
-            },
+            refreshBefore: options.refreshBefore,
             timeout: timeout,
             maxTry: maxTry,
             skip: false,
           };
 
-          if (exportData) {
+          if (options.exportData) {
             const geoJSONBuffer = await getAndCacheDataGeoJSON(group, layer);
 
             await storeGeoJSONFile(
@@ -645,15 +616,13 @@ export async function exportAll(
 
         seedObj.sprites[spriteFolder] = {
           url: `${parentServerHost}/sprites/${spriteID}/{name}`,
-          refreshBefore: {
-            md5: true,
-          },
+          refreshBefore: options.refreshBefore,
           timeout: timeout,
           maxTry: maxTry,
           skip: false,
         };
 
-        if (exportData) {
+        if (options.exportData) {
           const [spriteJSONBuffer, spritePNGBuffer] = await Promise.all([
             getAndCacheDataSprite(spriteID, "sprite.json"),
             getAndCacheDataSprite(spriteID, "sprite.png"),
@@ -691,16 +660,14 @@ export async function exportAll(
 
         seedObj.fonts[fontFolder] = {
           url: `${parentServerHost}/fonts/${fontID}/{range}.pbf`,
-          refreshBefore: {
-            md5: true,
-          },
+          refreshBefore: options.refreshBefore,
           timeout: timeout,
           concurrency: concurrency,
           maxTry: maxTry,
           skip: false,
         };
 
-        if (exportData) {
+        if (options.exportData) {
           function* seedFontDataGenerator() {
             for (let idx = 0; idx < 256; idx++) {
               yield async () => {

@@ -156,30 +156,47 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
   coverages,
   isCreated,
 ) {
-  const { tileBounds } = getTileBounds({ coverages: coverages });
+  const { tileBounds } = getTileBounds({
+    coverages: coverages,
+  });
 
-  let query = "";
   const extraInfoType = isCreated ? "created" : "hash";
 
-  tileBounds.forEach((tileBound, idx) => {
-    if (idx) {
-      query += " UNION ALL ";
-    }
-
-    query += `SELECT zoom_level, tile_column, tile_row, ${extraInfoType} FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
-  });
-
-  query += ";";
+  const querySQL = source.prepare(
+    `
+      SELECT
+        tile_column, tile_row, ${extraInfoType}
+      FROM
+        md5s
+      WHERE
+        zoom_level = $1
+      AND
+        tile_column BETWEEN $2 AND $3
+      AND
+        tile_row BETWEEN $4 AND $5;
+    `,
+  );
 
   const result = {};
-  const data = await source.query(query);
 
-  data.rows.forEach((row) => {
-    if (row[extraInfoType]) {
-      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] =
-        row[extraInfoType];
-    }
-  });
+  for (const tileBound of tileBounds) {
+    const data = await source.query(
+      querySQL,
+      tileBound.z,
+      tileBound.x[0],
+      tileBound.x[1],
+      tileBound.y[0],
+      tileBound.y[1],
+    );
+
+    data.rows.forEach((row) => {
+      if (row[extraInfoType]) {
+        // XYZ
+        result[`${tileBound.z}/${row.tile_column}/${row.tile_row}`] =
+          row[extraInfoType];
+      }
+    });
+  }
 
   return result;
 }

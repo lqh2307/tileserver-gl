@@ -170,31 +170,43 @@ export function getMBTilesTileExtraInfoFromCoverages(
     scheme: "tms",
   });
 
-  let query = "";
   const extraInfoType = isCreated ? "created" : "hash";
 
-  tileBounds.forEach((tileBound, idx) => {
-    if (idx) {
-      query += " UNION ALL ";
-    }
-
-    query += `SELECT zoom_level, tile_column, tile_row, ${extraInfoType} FROM tiles WHERE zoom_level = ${tileBound.z} AND tile_column BETWEEN ${tileBound.x[0]} AND ${tileBound.x[1]} AND tile_row BETWEEN ${tileBound.y[0]} AND ${tileBound.y[1]}`;
-  });
-
-  query += ";";
+  const querySQL = source.prepare(
+    `
+      SELECT
+        tile_column, tile_row, ${extraInfoType}
+      FROM
+        tiles
+      WHERE
+        zoom_level = ?
+      AND
+        tile_column BETWEEN ? AND ?
+      AND
+        tile_row BETWEEN ? AND ?;
+    `,
+  );
 
   const result = {};
-  const rows = source.prepare(query).all();
 
-  rows.forEach((row) => {
-    if (row[extraInfoType]) {
-      // TMS -> XYZ
-      result[
-        `${row.zoom_level}/${row.tile_column}/${
-          (1 << row.zoom_level) - 1 - row.tile_row
-        }`
-      ] = row[extraInfoType];
-    }
+  tileBounds.forEach((tileBound) => {
+    const rows = querySQL.all(
+      tileBound.z,
+      tileBound.x[0],
+      tileBound.x[1],
+      tileBound.y[0],
+      tileBound.y[1],
+    );
+
+    const maxRow = (1 << tileBound.z) - 1;
+
+    rows.forEach((row) => {
+      if (row[extraInfoType]) {
+        // TMS -> XYZ
+        result[`${tileBound.z}/${row.tile_column}/${maxRow - row.tile_row}`] =
+          row[extraInfoType];
+      }
+    });
   });
 
   return result;
