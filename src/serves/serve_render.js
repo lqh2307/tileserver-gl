@@ -85,7 +85,12 @@ function renderStyleJSONHandler() {
           rm(path.dirname(filePath), {
             force: true,
             recursive: true,
-          });
+          }).catch((error) =>
+            printLog(
+              "warn",
+              `Failed to remove path "${filePath}": ${error}. Skipping...`,
+            ),
+          );
         });
     } catch (error) {
       printLog("error", `Failed to render styleJSON: ${error}`);
