@@ -27,7 +27,7 @@
     ]
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-native": "6.3.0",
+    "@maplibre/maplibre-gl-native": "6.4.0",
     "@maplibre/maplibre-gl-style-spec": "24.6.0",
     "@socket.io/cluster-adapter": "0.3.0",
     "@socket.io/sticky": "1.0.4",
