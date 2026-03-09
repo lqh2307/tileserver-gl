@@ -2,7 +2,7 @@
 
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import path from "node:path";
 import {
   validateAndGetGeometryTypes,
@@ -13,8 +13,6 @@ import {
 import {
   compileHandleBarsTemplate,
   getRequestHost,
-  isExistFile,
-  getFileSize,
   gzipAsync,
   printLog,
 } from "../utils/index.js";
@@ -218,6 +216,7 @@ function getGeoJSONHandler() {
       let geoJSON = await getAndCacheDataGeoJSON(id, req.params.layer);
 
       const headers = {
+        "content-disposition": `attachment; filename="${path.basename(geoJSONLayer.path)}"`,
         "content-type": "application/json",
       };
 
@@ -227,9 +226,17 @@ function getGeoJSONHandler() {
         headers["content-encoding"] = "gzip";
       }
 
+      headers["content-length"] = geoJSON.length;
+
       res.set(headers);
 
-      return res.status(StatusCodes.OK).send(geoJSON);
+      await new Promise((resolve, reject) => {
+        const readStream = Readable.from(geoJSONLayer.path);
+
+        readStream.pipe(res);
+
+        readStream.on("error", reject).on("end", resolve);
+      });
     } catch (error) {
       printLog(
         "error",
@@ -286,71 +293,6 @@ function getGeoJSONMD5Handler() {
       printLog(
         "error",
         `Failed to get md5 of GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`,
-      );
-
-      if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
-      } else {
-        return res
-          .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .send("Internal server error");
-      }
-    }
-  };
-}
-
-/**
- * Download geoJSON handler
- * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
- */
-function downloadGeoJSONHandler() {
-  return async (req, res) => {
-    const id = req.params.id;
-
-    try {
-      const item = config.geojsons[id];
-
-      /* Check GeoJSON is used? */
-      if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`GeoJSON group id "${id}" does not exist`);
-      }
-
-      const geoJSONLayer = item[req.params.layer];
-
-      /* Check GeoJSON layer is used? */
-      if (!geoJSONLayer) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(
-            `GeoJSON layer "${req.params.layer}" of group id "${id}" does not exist`,
-          );
-      }
-
-      if (await isExistFile(geoJSONLayer.path)) {
-        const fileName = path.basename(geoJSONLayer.path);
-
-        res.set({
-          "content-length": await getFileSize(geoJSONLayer.path),
-          "content-disposition": `attachment; filename="${fileName}"`,
-          "content-type": "application/json",
-        });
-
-        const readStream = createReadStream(geoJSONLayer.path);
-
-        readStream.pipe(res);
-
-        readStream.on("error", (error) => {
-          throw error;
-        });
-      } else {
-        throw new Error("Not Found");
-      }
-    } catch (error) {
-      printLog(
-        "error",
-        `Failed to get GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`,
       );
 
       if (error.message.includes("Not Found")) {
@@ -642,53 +584,6 @@ export const serve_geojson = {
      *         description: Internal server error
      */
     app.get("/geojsons/:id/:layer/md5", getGeoJSONMD5Handler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: GeoJSON
-     *     description: GeoJSON related endpoints
-     * /geojsons/{id}/{layer}/download:
-     *   get:
-     *     tags:
-     *       - GeoJSON
-     *     summary: Download geoJSON file
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         schema:
-     *           type: string
-     *           example: id
-     *         required: true
-     *         description: ID of the GeoJSON
-     *       - in: path
-     *         name: layer
-     *         schema:
-     *           type: string
-     *           example: layer
-     *         required: true
-     *         description: Layer of the GeoJSON
-     *     responses:
-     *       200:
-     *         description: GeoJSON file
-     *         content:
-     *           application/octet-stream:
-     *             schema:
-     *               type: string
-     *               format: binary
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/geojsons/:id/:layer/download", downloadGeoJSONHandler());
 
     /* Serve GeoJSON */
     if (process.env.SERVE_FRONT_PAGE !== "false") {

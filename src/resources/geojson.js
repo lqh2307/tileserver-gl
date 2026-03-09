@@ -261,7 +261,7 @@ export async function validateAndGetGeometryTypes(data) {
  * Get and cache data GeoJSON
  * @param {string} id GeoJSON group id
  * @param {string} layer GeoJSON group layer
- * @returns {Promise<object>}
+ * @returns {Promise<Buffer>}
  */
 export async function getAndCacheDataGeoJSON(id, layer) {
   const item = config.geojsons[id]?.[layer];

@@ -36,11 +36,10 @@ export async function calculateMD5OfFile(filePath) {
 
   try {
     await new Promise((resolve, reject) => {
-      const stream = createReadStream(filePath);
-
-      stream.on("error", reject);
-      stream.on("data", (chunk) => hash.update(chunk));
-      stream.on("end", resolve);
+      createReadStream(filePath)
+        .on("error", reject)
+        .on("data", (chunk) => hash.update(chunk))
+        .on("end", resolve);
     });
 
     return hash.digest("hex");

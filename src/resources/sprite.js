@@ -149,7 +149,7 @@ export async function validateSprite(spriteDirPath) {
  * Get and cache data Sprite
  * @param {string} id Sprite id
  * @param {string} fileName Sprite file name
- * @returns {Promise<object>}
+ * @returns {Promise<Buffer>}
  */
 export async function getAndCacheDataSprite(id, fileName) {
   const item = config.sprites[id];

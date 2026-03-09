@@ -696,7 +696,7 @@ export async function getXYZSize(sourcePath) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<object>}
+ * @returns {Promise<Buffer>}
  */
 export async function getAndCacheXYZTileData(id, z, x, y) {
   const item = config.datas[id];

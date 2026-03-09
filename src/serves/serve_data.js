@@ -3,6 +3,7 @@
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import path from "node:path";
 import {
   detectContentTypeFromFormat,
@@ -325,12 +326,12 @@ function downloadDataHandler() {
           "content-type": detectContentTypeFromFormat(item.tileJSON.format),
         });
 
-        const readStream = createReadStream(item.path);
+        await new Promise((resolve, reject) => {
+          const readStream = createReadStream(item.path);
 
-        readStream.pipe(res);
+          readStream.pipe(res);
 
-        readStream.on("error", (error) => {
-          throw error;
+          readStream.on("error", reject).on("end", resolve);
         });
       } else {
         throw new Error("Not Found");
@@ -431,9 +432,17 @@ function getTileDataExtraInfoHandler() {
         headers["content-encoding"] = "gzip";
       }
 
+      headers["content-length"] = extraInfo.length;
+
       res.set(headers);
 
-      return res.status(StatusCodes.CREATED).send(extraInfo);
+      await new Promise((resolve, reject) => {
+        const readStream = Readable.from(extraInfo);
+
+        readStream.pipe(res);
+
+        readStream.on("error", reject).on("end", resolve);
+      });
     } catch (error) {
       printLog(
         "error",

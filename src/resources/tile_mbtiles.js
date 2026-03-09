@@ -649,7 +649,7 @@ export async function getMBTilesSize(filePath) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<object>}
+ * @returns {Promise<Buffer>}
  */
 export async function getAndCacheMBTilesTileData(id, z, x, y) {
   const item = config.datas[id];

@@ -220,7 +220,7 @@ export async function getPBFFontSize(pbfDirPath) {
  * Get and cache data Fonts
  * @param {string} ids Font ids
  * @param {string} fileName Font file name
- * @returns {Promise<object>}
+ * @returns {Promise<Buffer>}
  */
 export async function getAndCacheDataFonts(ids, fileName) {
   /* Get font datas */

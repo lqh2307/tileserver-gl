@@ -347,7 +347,7 @@ export async function validateStyle(data) {
 /**
  * Get and cache data StyleJSON
  * @param {string} id StyleJSON id
- * @returns {Promise<object>}
+ * @returns {Promise<Buffer>}
  */
 export async function getAndCacheDataStyleJSON(id) {
   const item = config.styles[id];

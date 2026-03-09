@@ -138,6 +138,7 @@ function addFrameHandler() {
 
       if (req.body.output.base64) {
         image = bufferToBase64(image, req.body.output.format);
+
         res.set({
           "content-length": image.length,
           "content-type": "text/plain",
@@ -150,12 +151,12 @@ function addFrameHandler() {
         });
       }
 
-      const readStream = Readable.from(image);
+      await new Promise((resolve, reject) => {
+        const readStream = Readable.from(image);
 
-      readStream.pipe(res);
+        readStream.pipe(res);
 
-      readStream.on("error", (error) => {
-        throw error;
+        readStream.on("error", reject).on("end", resolve);
       });
     } catch (error) {
       printLog("error", `Failed to add frame: ${error}`);
@@ -210,12 +211,12 @@ function renderSVGHandler() {
         });
       }
 
-      const readStream = Readable.from(image);
+      await new Promise((resolve, reject) => {
+        const readStream = Readable.from(image);
 
-      readStream.pipe(res);
+        readStream.pipe(res);
 
-      readStream.on("error", (error) => {
-        throw error;
+        readStream.on("error", reject).on("end", resolve);
       });
     } catch (error) {
       printLog("error", `Failed to render SVG: ${error}`);
@@ -261,6 +262,7 @@ function renderPDFHandler() {
 
       if (req.body.output.base64) {
         image = bufferToBase64(image, req.body.output.format);
+
         res.set({
           "content-length": image.length,
           "content-type": "text/plain",
@@ -273,12 +275,12 @@ function renderPDFHandler() {
         });
       }
 
-      const readStream = Readable.from(image);
+      await new Promise((resolve, reject) => {
+        const readStream = Readable.from(image);
 
-      readStream.pipe(res);
+        readStream.pipe(res);
 
-      readStream.on("error", (error) => {
-        throw error;
+        readStream.on("error", reject).on("end", resolve);
       });
     } catch (error) {
       printLog("error", `Failed to render PDF: ${error}`);
@@ -327,6 +329,7 @@ function renderHighQualityPDFHandler() {
 
       if (req.body.output.base64) {
         image = bufferToBase64(image, req.body.output.format);
+
         res.set({
           "content-length": image.length,
           "content-type": "text/plain",
@@ -339,12 +342,12 @@ function renderHighQualityPDFHandler() {
         });
       }
 
-      const readStream = Readable.from(image);
+      await new Promise((resolve, reject) => {
+        const readStream = Readable.from(image);
 
-      readStream.pipe(res);
+        readStream.pipe(res);
 
-      readStream.on("error", (error) => {
-        throw error;
+        readStream.on("error", reject).on("end", resolve);
       });
     } catch (error) {
       printLog("error", `Failed to render high quality PDF: ${error}`);
