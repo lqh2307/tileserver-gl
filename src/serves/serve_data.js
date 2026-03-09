@@ -2,11 +2,7 @@
 
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { createReadStream } from "node:fs";
-import { Readable } from "node:stream";
-import path from "node:path";
 import {
-  detectContentTypeFromFormat,
   compileHandleBarsTemplate,
   validateTileMetadata,
   createTileMetadata,
@@ -17,8 +13,6 @@ import {
   getJSONSchema,
   validateJSON,
   HTTP_SCHEMES,
-  getFileSize,
-  isExistFile,
   gzipAsync,
   printLog,
 } from "../utils/index.js";
@@ -300,57 +294,6 @@ function getDataMD5Handler() {
 }
 
 /**
- * Download data handler
- * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
- */
-function downloadDataHandler() {
-  return async (req, res) => {
-    const id = req.params.id;
-
-    try {
-      const item = config.datas[id];
-
-      /* Check data is used? */
-      if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Data id "${id}" does not exist`);
-      }
-
-      if (await isExistFile(item.path)) {
-        const fileName = path.basename(item.path);
-
-        res.set({
-          "content-length": await getFileSize(item.path),
-          "content-disposition": `attachment; filename="${fileName}"`,
-          "content-type": detectContentTypeFromFormat(item.tileJSON.format),
-        });
-
-        await new Promise((resolve, reject) => {
-          const readStream = createReadStream(item.path);
-
-          readStream.pipe(res);
-
-          readStream.on("error", reject).on("end", resolve);
-        });
-      } else {
-        throw new Error("Not Found");
-      }
-    } catch (error) {
-      printLog("error", `Failed to get data id "${id}": ${error}`);
-
-      if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
-      } else {
-        return res
-          .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .send("Internal server error");
-      }
-    }
-  };
-}
-
-/**
  * Get tile extra info handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
@@ -423,6 +366,7 @@ function getTileDataExtraInfoHandler() {
       }
 
       const headers = {
+        // "content-disposition": `attachment; filename="extra-info.json"`,
         "content-type": "application/json",
       };
 
@@ -432,17 +376,9 @@ function getTileDataExtraInfoHandler() {
         headers["content-encoding"] = "gzip";
       }
 
-      headers["content-length"] = extraInfo.length;
-
       res.set(headers);
 
-      await new Promise((resolve, reject) => {
-        const readStream = Readable.from(extraInfo);
-
-        readStream.pipe(res);
-
-        readStream.on("error", reject).on("end", resolve);
-      });
+      return res.status(StatusCodes.OK).send(extraInfo);
     } catch (error) {
       printLog(
         "error",
@@ -817,46 +753,6 @@ export const serve_data = {
      *         description: Internal server error
      */
     app.get("/datas/:id/md5", getDataMD5Handler());
-
-    /**
-     * @swagger
-     * tags:
-     *   - name: Data
-     *     description: Data related endpoints
-     * /datas/{id}/download:
-     *   get:
-     *     tags:
-     *       - Data
-     *     summary: Download data file
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         schema:
-     *           type: string
-     *           example: id
-     *         required: true
-     *         description: ID of the data
-     *     responses:
-     *       200:
-     *         description: Data file
-     *         content:
-     *           application/octet-stream:
-     *             schema:
-     *               type: string
-     *               format: binary
-     *       404:
-     *         description: Not found
-     *       503:
-     *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
-     *       500:
-     *         description: Internal server error
-     */
-    app.get("/datas/:id/download", downloadDataHandler());
 
     /**
      * @swagger

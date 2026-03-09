@@ -2,8 +2,7 @@
 
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { Readable } from "node:stream";
-import path from "node:path";
+// import path from "node:path";
 import {
   validateAndGetGeometryTypes,
   getAndCacheDataGeoJSON,
@@ -216,7 +215,7 @@ function getGeoJSONHandler() {
       let geoJSON = await getAndCacheDataGeoJSON(id, req.params.layer);
 
       const headers = {
-        "content-disposition": `attachment; filename="${path.basename(geoJSONLayer.path)}"`,
+        // "content-disposition": `attachment; filename="${path.basename(geoJSONLayer.path)}"`,
         "content-type": "application/json",
       };
 
@@ -226,17 +225,9 @@ function getGeoJSONHandler() {
         headers["content-encoding"] = "gzip";
       }
 
-      headers["content-length"] = geoJSON.length;
-
       res.set(headers);
 
-      await new Promise((resolve, reject) => {
-        const readStream = Readable.from(geoJSONLayer.path);
-
-        readStream.pipe(res);
-
-        readStream.on("error", reject).on("end", resolve);
-      });
+      return res.status(StatusCodes.OK).send(geoJSON);
     } catch (error) {
       printLog(
         "error",

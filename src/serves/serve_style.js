@@ -3,8 +3,7 @@
 import { renderImageTileData } from "../render_style.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { Readable } from "node:stream";
-import path from "node:path";
+// import path from "node:path";
 import {
   getAndCacheDataStyleJSON,
   getRenderedStyleJSON,
@@ -203,7 +202,7 @@ function getStyleHandler() {
       }
 
       const headers = {
-        "content-disposition": `attachment; filename="${path.basename(item.path)}"`,
+        // "content-disposition": `attachment; filename="${path.basename(item.path)}"`,
         "content-type": "application/json",
       };
 
@@ -215,17 +214,9 @@ function getStyleHandler() {
         headers["content-encoding"] = "gzip";
       }
 
-      headers["content-length"] = styleJSON.length;
-
       res.set(headers);
 
-      await new Promise((resolve, reject) => {
-        const readStream = Readable.from(styleJSON);
-
-        readStream.pipe(res);
-
-        readStream.on("error", reject).on("end", resolve);
-      });
+      return res.status(StatusCodes.OK).send(styleJSON);
     } catch (error) {
       printLog("error", `Failed to get style id "${id}": ${error}`);
 

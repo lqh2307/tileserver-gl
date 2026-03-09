@@ -5,9 +5,7 @@ import { renderStyleJSON } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { readFile, rm } from "node:fs/promises";
 import { config } from "../configs/index.js";
-import { createReadStream } from "node:fs";
-import { Readable } from "node:stream";
-import { nanoid } from "nanoid";
+// import { nanoid } from "nanoid";
 import path from "node:path";
 import {
   detectContentTypeFromFormat,
@@ -19,7 +17,6 @@ import {
   bufferToBase64,
   getJSONSchema,
   validateJSON,
-  getFileSize,
   printLog,
 } from "../utils/index.js";
 
@@ -54,34 +51,8 @@ function renderStyleJSONHandler() {
 
       const filePath = await renderStyleJSON(req.body);
 
-      let readStream;
-
-      if (req.body.base64) {
-        const image = bufferToBase64(await readFile(filePath), req.body.format);
-
-        res.set({
-          "content-length": image.length,
-          "content-type": "text/plain",
-        });
-
-        readStream = Readable.from(image);
-      } else {
-        res.set({
-          "content-length": await getFileSize(filePath),
-          "content-disposition": `attachment; filename="${path.basename(filePath)}"`,
-          "content-type": detectContentTypeFromFormat(req.body.format),
-        });
-
-        readStream = createReadStream(filePath);
-      }
-
-      readStream.pipe(res);
-
-      readStream
-        .on("error", (error) => {
-          throw error;
-        })
-        .on("close", () => {
+      setTimeout(
+        () =>
           rm(path.dirname(filePath), {
             force: true,
             recursive: true,
@@ -90,8 +61,26 @@ function renderStyleJSONHandler() {
               "warn",
               `Failed to remove path "${filePath}": ${error}. Skipping...`,
             ),
-          );
+          ),
+        0,
+      );
+
+      let image = await readFile(filePath);
+
+      if (req.body.base64) {
+        image = bufferToBase64(image, req.body.format);
+
+        res.set({
+          "content-type": "text/plain",
         });
+      } else {
+        res.set({
+          // "content-disposition": `attachment; filename="${path.basename(filePath)}"`,
+          "content-type": detectContentTypeFromFormat(req.body.format),
+        });
+      }
+
+      return res.status(StatusCodes.OK).send(image);
     } catch (error) {
       printLog("error", `Failed to render styleJSON: ${error}`);
 
@@ -140,24 +129,16 @@ function addFrameHandler() {
         image = bufferToBase64(image, req.body.output.format);
 
         res.set({
-          "content-length": image.length,
           "content-type": "text/plain",
         });
       } else {
         res.set({
-          "content-length": image.length,
-          "content-disposition": `attachment; filename="${`${nanoid()}.${req.body.output.format}`}"`,
+          // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
           "content-type": detectContentTypeFromFormat(req.body.output.format),
         });
       }
 
-      await new Promise((resolve, reject) => {
-        const readStream = Readable.from(image);
-
-        readStream.pipe(res);
-
-        readStream.on("error", reject).on("end", resolve);
-      });
+      return res.status(StatusCodes.OK).send(image);
     } catch (error) {
       printLog("error", `Failed to add frame: ${error}`);
 
@@ -200,24 +181,16 @@ function renderSVGHandler() {
         image = bufferToBase64(image, req.body.format);
 
         res.set({
-          "content-length": image.length,
           "content-type": "text/plain",
         });
       } else {
         res.set({
-          "content-length": image.length,
-          "content-disposition": `attachment; filename="${`${nanoid()}.${req.body.format}`}"`,
+          // "content-disposition": `attachment; filename="${nanoid()}.${req.body.format}"`,
           "content-type": detectContentTypeFromFormat(req.body.format),
         });
       }
 
-      await new Promise((resolve, reject) => {
-        const readStream = Readable.from(image);
-
-        readStream.pipe(res);
-
-        readStream.on("error", reject).on("end", resolve);
-      });
+      return res.status(StatusCodes.OK).send(image);
     } catch (error) {
       printLog("error", `Failed to render SVG: ${error}`);
 
@@ -264,24 +237,16 @@ function renderPDFHandler() {
         image = bufferToBase64(image, req.body.output.format);
 
         res.set({
-          "content-length": image.length,
           "content-type": "text/plain",
         });
       } else {
         res.set({
-          "content-length": image.length,
-          "content-disposition": `attachment; filename="${`${nanoid()}.${req.body.output.format}`}"`,
+          // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
           "content-type": detectContentTypeFromFormat(req.body.output.format),
         });
       }
 
-      await new Promise((resolve, reject) => {
-        const readStream = Readable.from(image);
-
-        readStream.pipe(res);
-
-        readStream.on("error", reject).on("end", resolve);
-      });
+      return res.status(StatusCodes.OK).send(image);
     } catch (error) {
       printLog("error", `Failed to render PDF: ${error}`);
 
@@ -331,24 +296,16 @@ function renderHighQualityPDFHandler() {
         image = bufferToBase64(image, req.body.output.format);
 
         res.set({
-          "content-length": image.length,
           "content-type": "text/plain",
         });
       } else {
         res.set({
-          "content-length": image.length,
-          "content-disposition": `attachment; filename="${`${nanoid()}.${req.body.output.format}`}"`,
+          // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
           "content-type": detectContentTypeFromFormat(req.body.output.format),
         });
       }
 
-      await new Promise((resolve, reject) => {
-        const readStream = Readable.from(image);
-
-        readStream.pipe(res);
-
-        readStream.on("error", reject).on("end", resolve);
-      });
+      return res.status(StatusCodes.OK).send(image);
     } catch (error) {
       printLog("error", `Failed to render high quality PDF: ${error}`);
 
