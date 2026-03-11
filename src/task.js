@@ -145,8 +145,9 @@ export async function runTasks(opts) {
               try {
                 await cleanUpFont(
                   id,
-                  item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                   item.concurrency || os.cpus().length,
+                  item.skipWhenError,
+                  item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
@@ -286,11 +287,12 @@ export async function runTasks(opts) {
                 await cleanUpTileDatas(
                   seedDataItem.storeType,
                   id,
-                  seedDataItem.message,
+                  seedDataItem.metadata,
                   cleanUpDataItem.coverages,
+                  cleanUpDataItem.concurrency || os.cpus().length,
+                  cleanUpDataItem.skipWhenError,
                   cleanUpDataItem.cleanUpBefore?.time ??
                     cleanUpDataItem.cleanUpBefore?.day,
-                  cleanUpDataItem.concurrency || os.cpus().length,
                 );
               } catch (error) {
                 printLog(
@@ -339,10 +341,10 @@ export async function runTasks(opts) {
                   item.url,
                   item.maxTry || 5,
                   item.timeout ?? 60000,
+                  item.headers,
                   item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                  item.headers,
                 );
               } catch (error) {
                 printLog(
@@ -392,10 +394,11 @@ export async function runTasks(opts) {
                   item.concurrency || os.cpus().length,
                   item.maxTry || 5,
                   item.timeout ?? 60000,
+                  item.headers,
+                  item.skipWhenError,
                   item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                  item.headers,
                 );
               } catch (error) {
                 printLog(
@@ -444,10 +447,10 @@ export async function runTasks(opts) {
                   item.url,
                   item.maxTry || 5,
                   item.timeout ?? 60000,
+                  item.headers,
                   item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                  item.headers,
                 );
               } catch (error) {
                 printLog(
@@ -496,10 +499,10 @@ export async function runTasks(opts) {
                   item.url,
                   item.maxTry || 5,
                   item.timeout ?? 60000,
+                  item.headers,
                   item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                  item.headers,
                 );
               } catch (error) {
                 printLog(
@@ -554,10 +557,11 @@ export async function runTasks(opts) {
                   item.maxTry || 5,
                   item.timeout ?? 60000,
                   item.storeTransparent ?? true,
+                  item.headers,
+                  item.skipWhenError,
                   item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                  item.headers,
                 );
               } catch (error) {
                 printLog(
@@ -602,8 +606,9 @@ export async function runTasks(opts) {
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
  * @param {boolean} storeTransparent Is store transparent tile?
- * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @param {object} headers Headers
+ * @param {object} skipWhenError Skip when error
+ * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
  * @returns {Promise<void>}
  */
 async function seedTileDatas(
@@ -617,8 +622,9 @@ async function seedTileDatas(
   maxTry,
   timeout,
   storeTransparent,
-  refreshBefore,
   headers,
+  skipWhenError,
+  refreshBefore,
 ) {
   const startTime = Date.now();
 
@@ -637,7 +643,7 @@ async function seedTileDatas(
       headers,
     )} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
+    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout} - Skip when error: ${JSON.stringify(skipWhenError)}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
@@ -1000,10 +1006,21 @@ async function seedTileDatas(
     function* downloadAndStoreTileDataGenerator() {
       let completeTasks = 0;
 
+      if (skipWhenError) {
+        skipWhenError.errCount = 0;
+        skipWhenError.skipLoop = 0;
+      }
+
       for (const { z, x, y } of tileBounds) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
+
+            if (skipWhenError && skipWhenError.skipLoop > 0) {
+              skipWhenError.skipLoop--;
+
+              continue;
+            }
 
             yield async () => {
               const tileName = `${z}/${xCount}/${yCount}`;
@@ -1038,11 +1055,30 @@ async function seedTileDatas(
                   await getDataFromURL(targetURL, tileOption),
                   tileOption,
                 );
+
+                if (skipWhenError) {
+                  skipWhenError.errCount = 0;
+                }
               } catch (error) {
                 printLog(
                   "error",
                   `Failed to seed data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
                 );
+
+                if (skipWhenError) {
+                  skipWhenError.errCount++;
+
+                  if (skipWhenError.errCount >= skipWhenError.count) {
+                    skipWhenError.skipLoop = skipWhenError.skip;
+
+                    printLog(
+                      "warn",
+                      `Encountered ${skipWhenError.errCount} errors. Skipping download next ${skipWhenError.skipLoop} tiles...`,
+                    );
+
+                    skipWhenError.errCount = 0;
+                  }
+                }
               }
             };
           }
@@ -1078,11 +1114,11 @@ async function seedTileDatas(
  * @param {string} url GeoJSON URL
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
  * @param {object} headers Headers
+ * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
  * @returns {Promise<void>}
  */
-async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
+async function seedGeoJSON(id, url, maxTry, timeout, headers, refreshBefore) {
   const startTime = Date.now();
 
   let log = `Seeding geojson id "${id}" with:`;
@@ -1200,11 +1236,11 @@ async function seedGeoJSON(id, url, maxTry, timeout, refreshBefore, headers) {
  * @param {string} url Sprite URL
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
  * @param {object} headers Headers
+ * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
  * @returns {Promise<void>}
  */
-async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
+async function seedSprite(id, url, maxTry, timeout, headers, refreshBefore) {
   const startTime = Date.now();
 
   let log = `Seeding sprite id "${id}" with:`;
@@ -1337,8 +1373,9 @@ async function seedSprite(id, url, maxTry, timeout, refreshBefore, headers) {
  * @param {number} concurrency Concurrency
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
  * @param {object} headers Headers
+ * @param {object} skipWhenError Skip when error
+ * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
  * @returns {Promise<void>}
  */
 async function seedFont(
@@ -1347,8 +1384,9 @@ async function seedFont(
   concurrency,
   maxTry,
   timeout,
-  refreshBefore,
   headers,
+  skipWhenError,
+  refreshBefore,
 ) {
   const startTime = Date.now();
 
@@ -1356,7 +1394,7 @@ async function seedFont(
 
   let log = `Seeding ${total} fonts of font id "${id}" with:`;
   log += `\n\tURL: ${url} - Header: ${JSON.stringify(headers)}`;
-  log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout}`;
+  log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout} - Skip when error: ${JSON.stringify(skipWhenError)}`;
 
   let refreshTimestamp;
   if (typeof refreshBefore === "string") {
@@ -1439,7 +1477,22 @@ async function seedFont(
 
     /* Seed font data generator */
     function* downloadAndStoreFontDataGenerator() {
+      let completeTasks = 0;
+
+      if (skipWhenError) {
+        skipWhenError.errCount = 0;
+        skipWhenError.skipLoop = 0;
+      }
+
       for (let idx = 0; idx < total; idx++) {
+        completeTasks++;
+
+        if (skipWhenError && skipWhenError.skipLoop > 0) {
+          skipWhenError.skipLoop--;
+
+          continue;
+        }
+
         yield async () => {
           const rangeStart = idx * 256;
           const rangeEnd = rangeStart + 255;
@@ -1451,18 +1504,37 @@ async function seedFont(
 
             printLog(
               "info",
-              `Downloading font id "${id}" - Filename "${fileName}" - From "${targetURL}" - ${idx + 1}/${total}...`,
+              `Downloading font id "${id}" - Filename "${fileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
             );
 
             await storeFontFile(
               `${sourcePath}/${fileName}`,
               await getDataFromURL(targetURL, option),
             );
+
+            if (skipWhenError) {
+              skipWhenError.errCount = 0;
+            }
           } catch (error) {
             printLog(
               "error",
-              `Failed to seed font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}: ${error}`,
+              `Failed to seed font id "${id}" - Filename "${fileName}" - ${completeTasks}/${total}: ${error}`,
             );
+
+            if (skipWhenError) {
+              skipWhenError.errCount++;
+
+              if (skipWhenError.errCount >= skipWhenError.count) {
+                skipWhenError.skipLoop = skipWhenError.skip;
+
+                printLog(
+                  "warn",
+                  `Encountered ${skipWhenError.errCount} errors. Skipping download next ${skipWhenError.skipLoop} tiles...`,
+                );
+
+                skipWhenError.errCount = 0;
+              }
+            }
           }
         };
       }
@@ -1489,11 +1561,11 @@ async function seedFont(
  * @param {string} url Style URL
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} timeout Timeout in milliseconds
- * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
  * @param {object} headers Headers
+ * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
  * @returns {Promise<void>}
  */
-async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
+async function seedStyle(id, url, maxTry, timeout, headers, refreshBefore) {
   const startTime = Date.now();
 
   let log = `Seeding style id "${id}" with:`;
@@ -1612,8 +1684,9 @@ async function seedStyle(id, url, maxTry, timeout, refreshBefore, headers) {
  * @param {string} id Cleanup data ID
  * @param {object} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @param {number} concurrency Concurrency for removing tile data
+ * @param {object} skipWhenError Skip when error
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
 async function cleanUpTileDatas(
@@ -1621,8 +1694,9 @@ async function cleanUpTileDatas(
   id,
   metadata,
   coverages,
-  cleanUpBefore,
   concurrency,
+  skipWhenError,
+  cleanUpBefore,
 ) {
   const startTime = Date.now();
 
@@ -1637,7 +1711,7 @@ async function cleanUpTileDatas(
     });
 
     let log = `Cleaning up ${total} tiles of ${storeType} "${id}" with:`;
-    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tConcurrency: ${concurrency} - Skip when error: ${JSON.stringify(skipWhenError)}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
@@ -1830,10 +1904,21 @@ async function cleanUpTileDatas(
     function* removeTileDataGenerator() {
       let completeTasks = 0;
 
+      if (skipWhenError) {
+        skipWhenError.errCount = 0;
+        skipWhenError.skipLoop = 0;
+      }
+
       for (const { z, x, y } of tileBounds) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
+
+            if (skipWhenError && skipWhenError.skipLoop > 0) {
+              skipWhenError.skipLoop--;
+
+              continue;
+            }
 
             yield async () => {
               const tileName = `${z}/${xCount}/${yCount}`;
@@ -1852,11 +1937,30 @@ async function cleanUpTileDatas(
 
               try {
                 await removeTileDataFunc(z, xCount, yCount, tileOption);
+
+                if (skipWhenError) {
+                  skipWhenError.errCount = 0;
+                }
               } catch (error) {
                 printLog(
                   "error",
                   `Failed to cleanup data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
                 );
+
+                if (skipWhenError) {
+                  skipWhenError.errCount++;
+
+                  if (skipWhenError.errCount >= skipWhenError.count) {
+                    skipWhenError.skipLoop = skipWhenError.skip;
+
+                    printLog(
+                      "warn",
+                      `Encountered ${skipWhenError.errCount} errors. Skipping download next ${skipWhenError.skipLoop} tiles...`,
+                    );
+
+                    skipWhenError.errCount = 0;
+                  }
+                }
               }
             };
           }
@@ -2057,17 +2161,18 @@ async function cleanUpSprite(id, cleanUpBefore) {
 /**
  * Cleanup font
  * @param {string} id Cleanup font ID
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @param {number} concurrency Concurrency for removing font files
+ * @param {object} skipWhenError Skip when error
+ * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
  * @returns {Promise<void>}
  */
-async function cleanUpFont(id, cleanUpBefore, concurrency) {
+async function cleanUpFont(id, concurrency, skipWhenError, cleanUpBefore) {
   const startTime = Date.now();
 
   const total = 256;
 
   let log = `Cleaning up ${total} fonts of font id "${id}" with:`;
-  log += `\n\tConcurrency: ${concurrency}`;
+  log += `\n\tConcurrency: ${concurrency} - Skip when error: ${JSON.stringify(skipWhenError)}`;
 
   let cleanUpTimestamp;
   if (typeof cleanUpBefore === "string") {
@@ -2114,7 +2219,22 @@ async function cleanUpFont(id, cleanUpBefore, concurrency) {
   if (needRemove) {
     /* Remove font data generator */
     function* removeFontDataGenerator() {
+      let completeTasks = 0;
+
+      if (skipWhenError) {
+        skipWhenError.errCount = 0;
+        skipWhenError.skipLoop = 0;
+      }
+
       for (let idx = 0; idx < total; idx++) {
+        completeTasks++;
+
+        if (skipWhenError && skipWhenError.skipLoop > 0) {
+          skipWhenError.skipLoop--;
+
+          continue;
+        }
+
         yield async () => {
           const rangeStart = idx * 256;
           const rangeEnd = rangeStart + 255;
@@ -2124,15 +2244,34 @@ async function cleanUpFont(id, cleanUpBefore, concurrency) {
           try {
             printLog(
               "info",
-              `Removing font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}...`,
+              `Removing font id "${id}" - Filename "${fileName}" - ${completeTasks}/${total}...`,
             );
 
             await removeFontFile(`${sourcePath}/${fileName}`);
+
+            if (skipWhenError) {
+              skipWhenError.errCount = 0;
+            }
           } catch (error) {
             printLog(
               "error",
-              `Failed to cleanup font id "${id}" - Filename "${fileName}" - ${idx + 1}/${total}: ${error}`,
+              `Failed to cleanup font id "${id}" - Filename "${fileName}" - ${completeTasks}/${total}: ${error}`,
             );
+
+            if (skipWhenError) {
+              skipWhenError.errCount++;
+
+              if (skipWhenError.errCount >= skipWhenError.count) {
+                skipWhenError.skipLoop = skipWhenError.skip;
+
+                printLog(
+                  "warn",
+                  `Encountered ${skipWhenError.errCount} errors. Skipping download next ${skipWhenError.skipLoop} tiles...`,
+                );
+
+                skipWhenError.errCount = 0;
+              }
+            }
           }
         };
       }

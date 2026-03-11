@@ -258,6 +258,20 @@
             "type": "string",
             "enum": ["tms", "xyz"]
           },
+          "skipWhenError": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "skip": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["count", "skip"]
+          },
           "skip": {
             "type": "boolean"
           },
@@ -472,6 +486,20 @@
           "maxTry": {
             "type": "integer",
             "minimum": 1
+          },
+          "skipWhenError": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "skip": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["count", "skip"]
           },
           "skip": {
             "type": "boolean"
