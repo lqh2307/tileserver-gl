@@ -8,6 +8,9 @@
           "type": "integer",
           "minimum": 0
         },
+        "enableSocket": {
+          "type": "boolean"
+        },
         "serveFrontPage": {
           "type": "boolean"
         },
@@ -153,15 +156,27 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["baselayer", "overlay"]
+                "enum": [
+                  "baselayer",
+                  "overlay"
+                ]
               },
               "scheme": {
                 "type": "string",
-                "enum": ["tms", "xyz"]
+                "enum": [
+                  "tms",
+                  "xyz"
+                ]
               },
               "format": {
                 "type": "string",
-                "enum": ["png", "jpg", "jpeg", "webp", "pbf"]
+                "enum": [
+                  "png",
+                  "jpg",
+                  "jpeg",
+                  "webp",
+                  "pbf"
+                ]
               },
               "minzoom": {
                 "type": "integer",
@@ -221,7 +236,9 @@
                       }
                     }
                   },
-                  "required": ["id"]
+                  "required": [
+                    "id"
+                  ]
                 },
                 "minItems": 0
               },

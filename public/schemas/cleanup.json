@@ -22,10 +22,14 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               }
             ]
           }
@@ -53,10 +57,14 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               }
             ]
           }
@@ -110,10 +118,16 @@
               },
               "anyOf": [
                 {
-                  "required": ["zoom", "bbox"]
+                  "required": [
+                    "zoom",
+                    "bbox"
+                  ]
                 },
                 {
-                  "required": ["zoom", "circle"]
+                  "required": [
+                    "zoom",
+                    "circle"
+                  ]
                 }
               ]
             },
@@ -131,7 +145,10 @@
                 "minimum": 1
               }
             },
-            "required": ["count", "skip"]
+            "required": [
+              "count",
+              "skip"
+            ]
           },
           "skip": {
             "type": "boolean"
@@ -150,10 +167,14 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               }
             ]
           },
@@ -186,10 +207,14 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               }
             ]
           }
@@ -213,7 +238,10 @@
                 "minimum": 1
               }
             },
-            "required": ["count", "skip"]
+            "required": [
+              "count",
+              "skip"
+            ]
           },
           "skip": {
             "type": "boolean"
@@ -232,10 +260,14 @@
             },
             "anyOf": [
               {
-                "required": ["time"]
+                "required": [
+                  "time"
+                ]
               },
               {
-                "required": ["day"]
+                "required": [
+                  "day"
+                ]
               }
             ]
           },

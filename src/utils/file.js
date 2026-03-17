@@ -207,7 +207,7 @@ export async function removeEmptyFolders(folderPath, regex) {
  */
 export async function removeOldLocks() {
   const fileNames = await findFiles(
-    `${process.env.DATA_DIR}`,
+    process.env.DATA_DIR || "data",
     /^.*\.lock$/,
     true,
     true,

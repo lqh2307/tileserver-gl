@@ -19,7 +19,7 @@ const httpRequestDuration = new Histogram({
 });
 
 register.setDefaultLabels({
-  service_name: process.env.SERVICE_NAME,
+  service_name: process.env.SERVICE_NAME || "tile-server",
 });
 
 register.registerMetric(httpRequestDuration);

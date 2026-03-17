@@ -62,7 +62,7 @@
       if (error.response) {
         alert(`Error: Status code: ${error.response.status} - ${error.response.statusText}`);
       } else if (error.request) {
-        alert("No response received");
+        alert(`No response received: ${error.message}`);
       } else {
         alert(`Error: ${error.message}`);
       }
@@ -96,28 +96,38 @@
                 type: "FeatureCollection",
                 features: []
               };
-
-              cacheCoverageLayers[zoom]["features"].push({
-                type: "Feature",
-                geometry: {
-                  type: "LineString",
-                  coordinates: [
-                    [bbox[0], bbox[1]],
-                    [bbox[2], bbox[1]],
-                    [bbox[2], bbox[3]],
-                    [bbox[0], bbox[3]],
-                    [bbox[0], bbox[1]]
-                  ]
-                }
-              });
             }
 
-            for (const zoom in cacheCoverageLayers) {
-              style["sources"][zoom] = {
-                "type": "geojson",
-                "data": cacheCoverageLayers[zoom]
+            cacheCoverageLayers[zoom]["features"].push({
+              type: "Feature",
+              geometry: {
+                type: "LineString",
+                coordinates: [
+                  [bbox[0], bbox[1]],
+                  [bbox[2], bbox[1]],
+                  [bbox[2], bbox[3]],
+                  [bbox[0], bbox[3]],
+                  [bbox[0], bbox[1]]
+                ]
               }
-            }
+            });
+          }
+
+          for (const zoom in cacheCoverageLayers) {
+            style["sources"][`cache_${zoom}`] = {
+              type: "geojson",
+              data: cacheCoverageLayers[zoom]
+            };
+
+            style["layers"].push({
+              id: `cache_${zoom}_line`,
+              type: "line",
+              source: `cache_${zoom}`,
+              paint: {
+                "line-color": "rgba(255, 0, 0, 0.6)",
+                "line-width": 1
+              }
+            });
           }
         }
 
@@ -174,21 +184,24 @@
 
           if (jsonResponse.cacheCoverages) {
             let isCoverageVisible = true;
+            let currentZoomLayer = undefined;
 
             function updateVisibleCoverages() {
-              for (const zoom in cacheCoverageLayers) {
-                map.setLayoutProperty(`${zoom}_polygon`, "visibility", "none");
-                map.setLayoutProperty(`${zoom}_line`, "visibility", "none");
-                map.setLayoutProperty(`${zoom}_circle`, "visibility", "none");
+              if (currentZoomLayer) {
+                map.setLayoutProperty(currentZoomLayer, "visibility", "none");
+
+                currentZoomLayer = undefined;
               }
 
               if (isCoverageVisible) {
                 const currentZoom = Math.floor(map.getZoom());
 
-                if (cacheCoverageLayers[currentZoom]) {
-                  map.setLayoutProperty(`${currentZoom}_polygon`, "visibility", "visible");
-                  map.setLayoutProperty(`${currentZoom}_line`, "visibility", "visible");
-                  map.setLayoutProperty(`${currentZoom}_circle`, "visibility", "visible");
+                const layerId = `cache_${currentZoom}_line`;
+
+                if (style["layers"].some(layer => layer.id === layerId)) {
+                  map.setLayoutProperty(layerId, "visibility", "visible");
+
+                  currentZoomLayer = layerId;
                 }
               }
             }
@@ -214,6 +227,8 @@
             };
 
             document.body.appendChild(cacheCoveragesButton);
+
+            updateVisibleCoverages();
           }
         });
 

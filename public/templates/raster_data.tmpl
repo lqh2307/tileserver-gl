@@ -40,7 +40,7 @@
       if (error.response) {
         alert(`Error: Status code: ${error.response.status} - ${error.response.statusText}`);
       } else if (error.request) {
-        alert("No response received");
+        alert(`No response received: ${error.message}`);
       } else {
         alert(`Error: ${error.message}`);
       }
@@ -91,24 +91,25 @@
           }
 
           let isCoverageVisible = true;
+          let currentCoverageLayer = undefined;
 
           function updateVisibleCoverages() {
-            for (const zoom in cacheCoverageGeoJSONLayers) {
-              cacheCoverageGeoJSONLayers[zoom].remove();
+            if (currentCoverageLayer) {
+              currentCoverageLayer.remove();
 
-              delete cacheCoverageGeoJSONLayers[zoom];
+              currentCoverageLayer = undefined;
             }
 
             if (isCoverageVisible) {
               const currentZoom = map.getZoom();
 
-              if (!cacheCoverageGeoJSONLayers[currentZoom] && cacheCoverageLayers[currentZoom]) {
-                cacheCoverageGeoJSONLayers[currentZoom] = L.geoJSON(cacheCoverageLayers[currentZoom], {
+              if (cacheCoverageLayers[currentZoom]) {
+                currentCoverageLayer = L.geoJSON(cacheCoverageLayers[currentZoom], {
                   weight: 1,
                   color: "rgba(255, 0, 0, 0.6)"
                 });
 
-                cacheCoverageGeoJSONLayers[currentZoom].addTo(map);
+                currentCoverageLayer.addTo(map);
               }
             }
           }

@@ -115,6 +115,18 @@ async function loadData() {
 }
 
 /**
+ * Setup static folders
+ * @param {express.Application} app - Express app
+ * @returns {void}
+ */
+function setupStaticFolders(app) {
+  printLog("info", "Setting statics...");
+
+  app.use(express.static("public/resources"));
+  app.use("/statics", express.static(`${process.env.DATA_DIR}/statics`));
+}
+
+/**
  * Start server
  * @returns {Promise<void>}
  */
@@ -123,25 +135,36 @@ export async function startServer() {
     if (cluster.isPrimary) {
       const server = http.createServer();
 
-      setupMaster(server, {
-        loadBalancingMethod: "least-connection",
-      });
+      let serverType;
 
-      setupPrimary();
+      if (config.enableSocket) {
+        serverType = "HTTP/WS";
+
+        setupMaster(server, {
+          loadBalancingMethod: "least-connection",
+        });
+
+        setupPrimary();
+      } else {
+        serverType = "HTTP";
+      }
 
       server
         .listen(+process.env.LISTEN_PORT, () => {
           printLog(
             "info",
-            `HTTP/WS server is listening on port "${process.env.LISTEN_PORT}"...`,
+            `${serverType} server is listening on port "${process.env.LISTEN_PORT}"...`,
           );
         })
         .on("error", (error) => {
-          printLog("error", `HTTP server is stopped by: ${error}`);
+          printLog("error", `${serverType} server is stopped by: ${error}`);
         });
     } else {
-      /* Start HTTP server */
-      printLog("info", "Starting HTTP/WS server...");
+      /* Start HTTP/WS server */
+      printLog(
+        "info",
+        `Starting ${config.enableSocket ? "HTTP/WS" : "HTTP"} server...`,
+      );
 
       const app = express()
         .disable("x-powered-by")
@@ -156,12 +179,15 @@ export async function startServer() {
             limit: "1gb",
           }),
         )
-        .use(loggerMiddleware())
-        .use(express.static("public/resources"));
+        .use(loggerMiddleware());
+
+      setupStaticFolders(app);
 
       const server = http.createServer(app);
 
-      setupWSServer(server);
+      if (config.enableSocket) {
+        setupWSServer(server);
+      }
 
       /* Load datas */
       await loadData();

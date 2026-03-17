@@ -22,7 +22,10 @@
     },
     "tileSize": {
       "type": "integer",
-      "enum": [256, 512]
+      "enum": [
+        256,
+        512
+      ]
     },
     "styleId": {
       "type": "string",
@@ -53,7 +56,12 @@
     },
     "format": {
       "type": "string",
-      "enum": ["png", "jpg", "jpeg", "webp"]
+      "enum": [
+        "png",
+        "jpg",
+        "jpeg",
+        "webp"
+      ]
     },
     "pitch": {
       "type": "number"
@@ -72,10 +80,18 @@
   },
   "anyOf": [
     {
-      "required": ["styleId", "bbox", "zoom"]
+      "required": [
+        "styleId",
+        "bbox",
+        "zoom"
+      ]
     },
     {
-      "required": ["styleJSON", "bbox", "zoom"]
+      "required": [
+        "styleJSON",
+        "bbox",
+        "zoom"
+      ]
     }
   ]
 }
