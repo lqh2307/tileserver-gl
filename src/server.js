@@ -135,36 +135,34 @@ export async function startServer() {
     if (cluster.isPrimary) {
       const server = http.createServer();
 
-      let serverType;
-
       if (config.enableSocket) {
-        serverType = "HTTP/WS";
-
         setupMaster(server, {
           loadBalancingMethod: "least-connection",
         });
 
         setupPrimary();
-      } else {
-        serverType = "HTTP";
-      }
 
-      server
-        .listen(+process.env.LISTEN_PORT, () => {
-          printLog(
-            "info",
-            `${serverType} server is listening on port "${process.env.LISTEN_PORT}"...`,
-          );
-        })
-        .on("error", (error) => {
-          printLog("error", `${serverType} server is stopped by: ${error}`);
-        });
+        server
+          .listen(+process.env.LISTEN_PORT, () => {
+            printLog(
+              "info",
+              `HTTP/WS server is listening on port "${process.env.LISTEN_PORT}"...`,
+            );
+          })
+          .on("error", (error) => {
+            printLog("error", `HTTP/WS server is stopped by: ${error}`);
+          });
+      } else {
+        printLog(
+          "info",
+          `HTTP server is listening on port "${process.env.LISTEN_PORT}"...`,
+        );
+      }
     } else {
+      const serverType = config.enableSocket ? "HTTP/WS" : "HTTP";
+
       /* Start HTTP/WS server */
-      printLog(
-        "info",
-        `Starting ${config.enableSocket ? "HTTP/WS" : "HTTP"} server...`,
-      );
+      printLog("info", `Starting ${serverType} server...`);
 
       const app = express()
         .disable("x-powered-by")
@@ -188,6 +186,11 @@ export async function startServer() {
       if (config.enableSocket) {
         setupWSServer(server);
       }
+
+      // Workers always need to listen
+      server.listen(+process.env.LISTEN_PORT, () => {
+        printLog("info", `${serverType} server worker is listening...`);
+      });
 
       /* Load datas */
       await loadData();
