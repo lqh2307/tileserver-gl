@@ -707,7 +707,7 @@ async function seedTileDatas(
 
             targetTileExtraInfo = await getDataFromURL(hashURL, {
               method: "POST",
-              timeout: 3600000, // 1 hours
+              timeout: 1800000, // 30 mins
               body: targetCoverages,
               responseType: "json",
               headers: {
@@ -815,7 +815,7 @@ async function seedTileDatas(
 
             targetTileExtraInfo = await getDataFromURL(hashURL, {
               method: "POST",
-              timeout: 3600000, // 1 hours
+              timeout: 1800000, // 30 mins
               body: targetCoverages,
               responseType: "json",
               headers: {
@@ -924,7 +924,7 @@ async function seedTileDatas(
 
             targetTileExtraInfo = await getDataFromURL(hashURL, {
               method: "POST",
-              timeout: 3600000, // 1 hours
+              timeout: 1800000, // 30 mins
               body: targetCoverages,
               responseType: "json",
               headers: {
