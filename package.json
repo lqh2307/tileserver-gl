@@ -17,7 +17,7 @@
     "server": "./entrypoint.sh",
     "lint": "eslint \"src/**/*.{json,js,ts,tsx,css}\"",
     "format": "prettier --write \"src/**/*.{json,js,ts,tsx,css}\"",
-    "upgrade": "npx npm-check-updates -u && npx json -I -f package.json -e \"if(this.dependencies){Object.keys(this.dependencies).forEach(k=>this.dependencies[k]=this.dependencies[k].replace(/^[~^]/,''))} if(this.devDependencies){Object.keys(this.devDependencies).forEach(k=>this.devDependencies[k]=this.devDependencies[k].replace(/^[~^]/,''))}\" && npm install",
+    "upgrade-newest": "npx npm-check-updates -u && npx json -I -f package.json -e \"if(this.dependencies){Object.keys(this.dependencies).forEach(k=>this.dependencies[k]=this.dependencies[k].replace(/^[~^]/,''))} if(this.devDependencies){Object.keys(this.devDependencies).forEach(k=>this.devDependencies[k]=this.devDependencies[k].replace(/^[~^]/,''))}\" && npm install",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -58,7 +58,7 @@
     "swagger-ui-express": "5.0.1"
   },
   "devDependencies": {
-    "eslint": "10.0.3",
+    "eslint": "10.1.0",
     "globals": "17.4.0",
     "husky": "9.1.7",
     "lint-staged": "16.4.0",
