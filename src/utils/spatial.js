@@ -37,7 +37,7 @@ export function xy3857ToLonLat4326(x, y) {
   return [
     limitValue((x / SPHERICAL_RADIUS) * (MAX_LON / Math.PI), -MAX_LON, MAX_LON),
     limitValue(
-      Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (MAX_LON / Math.PI),
+      Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (MAX_LAT / Math.PI),
       -MAX_CAL_LAT,
       MAX_CAL_LAT,
     ),
