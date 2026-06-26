@@ -10,6 +10,7 @@ import {
 } from "../resources/index.js";
 import {
   detectContentTypeFromFormat,
+  sendTextResponse,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -28,16 +29,20 @@ function getSpriteHandler() {
 
       /* Check sprite is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Sprite id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Sprite id "${id}" does not exist`,
+        );
       }
 
       /* Check sprite format? */
       if (!SPRITE_FORMATS.has(req.params.format)) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Sprite format "${req.params.format}" is not support`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Sprite format "${req.params.format}" is not support`,
+        );
       }
 
       /* Get and cache Sprite */
@@ -78,9 +83,11 @@ function getSpriteMD5Handler() {
 
       /* Check sprite is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Sprite id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Sprite id "${id}" does not exist`,
+        );
       }
 
       /* Calculate MD5 and Add to header */
@@ -93,7 +100,7 @@ function getSpriteMD5Handler() {
       printLog("error", `Failed to get md5 of sprite id "${id}": ${error}`);
 
       if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+        return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

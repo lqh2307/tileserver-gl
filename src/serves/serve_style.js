@@ -17,6 +17,7 @@ import {
   RASTER_TILE_FORMATS,
   createTileMetadata,
   getXYZFromLonLatZ,
+  sendTextResponse,
   getRequestHost,
   TILE_SIZES,
   isLocalURL,
@@ -36,9 +37,11 @@ function serveStyleHandler() {
       const item = config.styles[id];
 
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Style id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Style id "${id}" does not exist`,
+        );
       }
 
       const compiled = await compileHandleBarsTemplate("viewer", {
@@ -70,9 +73,11 @@ function serveWMTSHandler() {
       const item = config.styles[id].tileJSON;
 
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`WMTS of style id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `WMTS of style id "${id}" does not exist`,
+        );
       }
 
       const compiled = await compileHandleBarsTemplate("wmts", {
@@ -107,9 +112,11 @@ function getStyleHandler() {
 
       /* Check style is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Style id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Style id "${id}" does not exist`,
+        );
       }
 
       /* Get and cache StyleJSON */
@@ -221,7 +228,7 @@ function getStyleHandler() {
       printLog("error", `Failed to get style id "${id}": ${error}`);
 
       if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+        return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -297,15 +304,19 @@ function getRenderedTileHandler() {
   return async (req, res) => {
     /* Check tile data format */
     if (!RASTER_TILE_FORMATS.has(req.params.format)) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .send(`Rendered tile format "${req.params.format}" is not support`);
+      return sendTextResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        `Rendered tile format "${req.params.format}" is not support`,
+      );
     }
 
     if (req.query.tileSize && !TILE_SIZES.has(req.query.tileSize)) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .send(`Tile size "${req.query.tileSize}" is not support`);
+      return sendTextResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        `Tile size "${req.query.tileSize}" is not support`,
+      );
     }
 
     const id = req.params.id;
@@ -313,9 +324,11 @@ function getRenderedTileHandler() {
 
     /* Check rendered is exist? */
     if (!item || !item.tileJSON) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .send(`Rendered of style id "${id}" does not exist`);
+      return sendTextResponse(
+        res,
+        StatusCodes.NOT_FOUND,
+        `Rendered of style id "${id}" does not exist`,
+      );
     }
 
     /* Render tile */
@@ -362,9 +375,11 @@ function getRenderedHandler() {
 
     if (req.query.tileSize) {
       if (!TILE_SIZES.has(req.query.tileSize)) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Tile size "${req.query.tileSize}" is not support`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Tile size "${req.query.tileSize}" is not support`,
+        );
       } else {
         queryStrings.push(`tileSize=${req.query.tileSize}`);
       }
@@ -379,9 +394,11 @@ function getRenderedHandler() {
 
       /* Check rendered is exist? */
       if (!item || !item.tileJSON) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Rendered of style id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Rendered of style id "${id}" does not exist`,
+        );
       }
 
       res.header("content-type", "application/json");
@@ -421,9 +438,11 @@ function getStyleMD5Handler() {
 
       /* Check style is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Style id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Style id "${id}" does not exist`,
+        );
       }
 
       /* Calculate MD5 and Add to header */
@@ -436,7 +455,7 @@ function getStyleMD5Handler() {
       printLog("error", `Failed to get md5 of style id "${id}": ${error}`);
 
       if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+        return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

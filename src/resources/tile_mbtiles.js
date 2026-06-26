@@ -360,7 +360,7 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {object}
+ * @returns {Promise<{ data: Buffer, headers: { [key: string]: string } }>}
  */
 export function getMBTilesTile(source, z, x, y) {
   const data = source
@@ -380,7 +380,7 @@ export function getMBTilesTile(source, z, x, y) {
 /**
  * Get MBTiles metadata
  * @param {Database} source SQLite database instance
- * @returns {Promise<Promise<object>>}
+ * @returns {Promise<{ [key: string]: any }>}
  */
 export async function getMBTilesMetadata(source) {
   /* Default metadata */

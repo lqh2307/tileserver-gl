@@ -29,7 +29,7 @@ let currentTaskWorker;
 
 /**
  * Start task in worker
- * @param {object} opts Options
+ * @param {{ [key: string]: any }} opts Options
  * @returns {void}
  */
 export function startTaskInWorker(opts) {

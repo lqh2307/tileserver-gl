@@ -1,17 +1,50 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
+import axios, { isCancel } from "axios";
 import { printLog } from "./logger.js";
 import https from "node:https";
 import http from "node:http";
-import axios from "axios";
 
 export const HTTP_SCHEMES = ["https://", "http://"];
 
 /**
+ * Check if a string is a URL (blob, data, http, or https).
+ * @param {string} data Input string
+ * @returns {boolean} True if the string is a URL, false otherwise
+ */
+export function isURL(data) {
+  if (
+    data.startsWith("blob:") ||
+    data.startsWith("data:") ||
+    data.startsWith("http")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Abort an HTTP request and optionally create a new AbortController.
+ * @param {AbortController} controller Controller to abort
+ * @param {boolean} create If true, create and return a new controller
+ * @returns {AbortController} New controller when `create` is true
+ */
+export function abortRequest(controller, create) {
+  if (controller) {
+    controller.abort();
+  }
+
+  if (create) {
+    return new AbortController();
+  }
+}
+
+/**
  * Request to URL
  * @param {string} url URL to request
- * @param {{ method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean }} options Options
+ * @param {{ method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean, signal: AbortSignal }} options Options
  * @returns {Promise<axios.AxiosResponse>}
  */
 export async function requestToURL(url, options) {
@@ -23,6 +56,7 @@ export async function requestToURL(url, options) {
       responseType: options.responseType,
       headers: options.headers,
       data: options.body,
+      signal: options.signal,
       decompress: options.decompress,
       validateStatus: (status) =>
         StatusCodes.OK <= status &&
@@ -36,11 +70,15 @@ export async function requestToURL(url, options) {
       }),
     });
   } catch (error) {
+    if (isCancel(error)) {
+      throw error;
+    }
+
     if (error.response) {
       error.statusCode = error.response.status;
       error.message = `Status code: ${error.response.status} - ${error.statusCode === StatusCodes.NO_CONTENT ? "Not Found" : error.response.statusText}`;
     } else if (error.request) {
-      error.message = `No response received: ${error.message}`;
+      error.message = "No response received";
     }
 
     throw error;

@@ -77,7 +77,7 @@ mlgl.on("message", (msg) => {
 /**
  * Create render
  * @param {{ mode: "tile"|"static", styleJSON: object, ratio: number }} option Option object
- * @returns {object}
+ * @returns {{ mode: "tile"|"static", styleJSON: object, ratio: number, render: function, load: function, release: function }} Renderer
  */
 function createRenderer(option) {
   const renderer = new mlgl.Map({
@@ -608,7 +608,7 @@ export async function renderStyleJSON(option) {
  * @param {string} id Style ID
  * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {string} storePath Exported path
- * @param {object} metadata Metadata object
+ * @param {{ [key: string]: any }} metadata Metadata object
  * @param {number} maxRendererPoolSize Max renderer pool size
  * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?

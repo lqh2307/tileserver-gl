@@ -1,7 +1,11 @@
 {
   "type": "object",
+  "propertyNames": {
+    "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._ -]*$"
+  },
   "additionalProperties": {
     "type": "object",
+    "additionalProperties": true,
     "properties": {
       "height": {
         "type": "integer",

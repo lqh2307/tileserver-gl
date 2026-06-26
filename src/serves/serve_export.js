@@ -1,11 +1,16 @@
 "use strict";
 
-import { getJSONSchema, validateJSON, printLog } from "../utils/index.js";
 import { exportTileDatas, exportAll } from "../export.js";
 import { renderTileDatas } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
 import os from "node:os";
+import {
+  sendTextResponse,
+  getJSONSchema,
+  validateJSON,
+  printLog,
+} from "../utils/index.js";
 
 /**
  * Export all handler
@@ -23,9 +28,11 @@ function exportAllHandler() {
       if (req.body.styles) {
         for (const styleID of req.body.styles) {
           if (!config.styles[styleID]) {
-            return res
-              .status(StatusCodes.NOT_FOUND)
-              .send(`Style id "${styleID}" does not exist`);
+            return sendTextResponse(
+              res,
+              StatusCodes.NOT_FOUND,
+              `Style id "${styleID}" does not exist`,
+            );
           }
         }
       }
@@ -33,9 +40,11 @@ function exportAllHandler() {
       if (req.body.datas) {
         for (const dataID of req.body.datas) {
           if (!config.datas[dataID]) {
-            return res
-              .status(StatusCodes.NOT_FOUND)
-              .send(`Data id "${dataID}" does not exist`);
+            return sendTextResponse(
+              res,
+              StatusCodes.NOT_FOUND,
+              `Data id "${dataID}" does not exist`,
+            );
           }
         }
       }
@@ -43,9 +52,11 @@ function exportAllHandler() {
       if (req.body.geojsons) {
         for (const group of req.body.geojsons) {
           if (!config.geojsons[group]) {
-            return res
-              .status(StatusCodes.NOT_FOUND)
-              .send(`GeoJSON group id "${group}" does not exist`);
+            return sendTextResponse(
+              res,
+              StatusCodes.NOT_FOUND,
+              `GeoJSON group id "${group}" does not exist`,
+            );
           }
         }
       }
@@ -53,9 +64,11 @@ function exportAllHandler() {
       if (req.body.sprites) {
         for (const spriteID of req.body.sprites) {
           if (!config.sprites[spriteID]) {
-            return res
-              .status(StatusCodes.NOT_FOUND)
-              .send(`Sprite id "${spriteID}" does not exist`);
+            return sendTextResponse(
+              res,
+              StatusCodes.NOT_FOUND,
+              `Sprite id "${spriteID}" does not exist`,
+            );
           }
         }
       }
@@ -70,9 +83,11 @@ function exportAllHandler() {
       printLog("error", `Failed to export all: ${error}`);
 
       if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Options parameter is invalid: ${error}`,
+        );
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -94,9 +109,11 @@ function exportDataHandler() {
       const item = config.datas[id];
 
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Data id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Data id "${id}" does not exist`,
+        );
       }
 
       if (req.query.cancel === "true") {
@@ -182,9 +199,11 @@ function exportDataHandler() {
       printLog("error", `Failed to export data id "${id}": ${error}`);
 
       if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Options parameter is invalid: ${error}`,
+        );
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -207,9 +226,11 @@ function renderStyleHandler() {
 
       /* Check rendered is exist? */
       if (!item || !item.tileJSON) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Rendered of style id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Rendered of style id "${id}" does not exist`,
+        );
       }
 
       if (req.query.cancel === "true") {
@@ -297,9 +318,11 @@ function renderStyleHandler() {
       printLog("error", `Failed to render style id "${id}": ${error}`);
 
       if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Options parameter is invalid: ${error}`,
+        );
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

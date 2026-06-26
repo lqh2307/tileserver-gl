@@ -2,8 +2,8 @@
 
 import { delay, detectContentTypeFromFormat } from "./util.js";
 import { createReadStream, createWriteStream } from "node:fs";
+import { Archiver } from "archiver";
 import crypto from "node:crypto";
-import archiver from "archiver";
 import path from "node:path";
 import zlib from "node:zlib";
 import util from "node:util";
@@ -340,7 +340,7 @@ export async function zipFolder(iDirPath, oFilePath) {
 
   return new Promise((resolve, reject) => {
     const output = createWriteStream(oFilePath);
-    const archive = archiver("zip", {
+    const archive = new Archiver("zip", {
       zlib: {
         level: 9,
       },

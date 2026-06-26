@@ -12,6 +12,7 @@ import {
   renderImageToHighQualityPDF,
   createImageOutput,
   renderImageToPDF,
+  sendTextResponse,
   addFrameToImage,
   base64ToBuffer,
   bufferToBase64,
@@ -38,9 +39,11 @@ function renderStyleJSONHandler() {
         const item = config.styles[req.body.styleId];
 
         if (!item) {
-          return res
-            .status(StatusCodes.NOT_FOUND)
-            .send(`Style id "${req.body.styleId}" does not exist`);
+          return sendTextResponse(
+            res,
+            StatusCodes.NOT_FOUND,
+            `Style id "${req.body.styleId}" does not exist`,
+          );
         }
 
         req.body.styleJSON = await getRenderedStyleJSON(item.path);
@@ -85,9 +88,11 @@ function renderStyleJSONHandler() {
       printLog("error", `Failed to render styleJSON: ${error}`);
 
       if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Options parameter is invalid: ${error}`,
+        );
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -143,9 +148,11 @@ function addFrameHandler() {
       printLog("error", `Failed to add frame: ${error}`);
 
       if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Options parameter is invalid: ${error}`,
+        );
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -195,9 +202,11 @@ function renderSVGHandler() {
       printLog("error", `Failed to render SVG: ${error}`);
 
       if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Options parameter is invalid: ${error}`,
+        );
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -251,9 +260,11 @@ function renderPDFHandler() {
       printLog("error", `Failed to render PDF: ${error}`);
 
       if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Options parameter is invalid: ${error}`,
+        );
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -310,9 +321,11 @@ function renderHighQualityPDFHandler() {
       printLog("error", `Failed to render high quality PDF: ${error}`);
 
       if (error instanceof SyntaxError) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Options parameter is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Options parameter is invalid: ${error}`,
+        );
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

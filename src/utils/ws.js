@@ -10,7 +10,7 @@ let socketServer;
 
 /**
  * Setup WS server
- * @param {object} server Server
+ * @param {http.Server} server Server
  * @returns {void}
  */
 export function setupWSServer(server) {

@@ -40,8 +40,8 @@ const FALLBACK_TILE_DATA = {
 
 /**
  * Create tile metadata
- * @param {object} metadata Metadata object
- * @returns {object}
+ * @param {{ [key: string]: any }} metadata Metadata object
+ * @returns {{ [key: string]: any }}
  */
 function createTileMetadata(metadata = {}) {
   const data = {};
@@ -78,7 +78,7 @@ function createTileMetadata(metadata = {}) {
 
 /**
  * Validate tile metadata (no validate json field)
- * @param {object} metadata Metadata object
+ * @param {{ [key: string]: any }} metadata Metadata object
  * @returns {void}
  */
 function validateTileMetadata(metadata) {

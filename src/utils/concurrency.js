@@ -5,7 +5,7 @@
  * @param {AsyncGenerator<function(): Promise<void>>} generator Async generator that yields tasks
  * @param {number} limit Concurrency limit. If limit < 1, it will be treated as Infinity
  * @param {{ export: boolean }} item Item object
- * @returns {Promise<{void}>} Response
+ * @returns {Promise<void>} Response
  */
 export async function runAllWithLimit(generator, limit, item) {
   const concurrency = limit >= 1 ? limit : Infinity;

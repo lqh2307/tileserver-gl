@@ -42,7 +42,7 @@ class PMTilesFileSource {
 /**
  * Open PMTiles
  * @param {string} filePath PMTiles filepath
- * @returns {object}
+ * @returns {{ getHeader: function, getMetadata: function, getZxy: function }}
  */
 export function openPMTiles(filePath) {
   let source;
@@ -58,8 +58,8 @@ export function openPMTiles(filePath) {
 
 /**
  * Get PMTiles metadata
- * @param {object} pmtilesSource
- * @returns {Promise<object>}
+ * @param {{ [key: string]: any }} pmtilesSource
+ * @returns {Promise<{ [key: string]: any }>}
  */
 export async function getPMTilesMetadata(pmtilesSource) {
   /* Get metadatas */
@@ -165,7 +165,7 @@ export async function getPMTilesMetadata(pmtilesSource) {
  * @param {number} z Zoom level
  * @param {number} x X tile index
  * @param {number} y Y tile index
- * @returns {Promise<object>}
+ * @returns {Promise<{ data: Buffer, headers: { [key: string]: string } }>}
  */
 export async function getPMTilesTile(pmtilesSource, z, x, y) {
   const zxyTile = await pmtilesSource.getZxy(z, x, y);

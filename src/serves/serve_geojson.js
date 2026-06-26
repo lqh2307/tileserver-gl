@@ -11,6 +11,7 @@ import {
 } from "../resources/index.js";
 import {
   compileHandleBarsTemplate,
+  sendTextResponse,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -26,9 +27,11 @@ function serveGeoJSONGroupHandler() {
 
     try {
       if (!config.geojsons[id]) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`GeoJSON group id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON group id "${id}" does not exist`,
+        );
       }
 
       const compiled = await compileHandleBarsTemplate("geojson_data", {
@@ -59,17 +62,19 @@ function serveGeoJSONHandler() {
       const item = config.geojsons[id];
 
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`GeoJSON group id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON group id "${id}" does not exist`,
+        );
       }
 
       if (!item[req.params.layer]) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(
-            `GeoJSON layer "${req.params.layer}" of group id "${id}" does not exist`,
-          );
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON layer "${req.params.layer}" of group id "${id}" does not exist`,
+        );
       }
 
       const compiled = await compileHandleBarsTemplate("geojson_data", {
@@ -105,9 +110,11 @@ function getGeoJSONGroupInfoHandler() {
 
       /* Check GeoJSON group is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`GeoJSON group id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON group id "${id}" does not exist`,
+        );
       }
 
       const requestHost = getRequestHost(req);
@@ -154,9 +161,11 @@ function getGeoJSONInfoHandler() {
 
       /* Check GeoJSON is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`GeoJSON group id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON group id "${id}" does not exist`,
+        );
       }
 
       res.header("content-type", "application/json");
@@ -195,20 +204,22 @@ function getGeoJSONHandler() {
 
       /* Check GeoJSON is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`GeoJSON group id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON group id "${id}" does not exist`,
+        );
       }
 
       const geoJSONLayer = item[req.params.layer];
 
       /* Check GeoJSON layer is used? */
       if (!geoJSONLayer) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(
-            `GeoJSON layer "${req.params.layer}" of group id "${id}" does not exist`,
-          );
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON layer "${req.params.layer}" of group id "${id}" does not exist`,
+        );
       }
 
       /* Get and cache GeoJSON */
@@ -235,7 +246,7 @@ function getGeoJSONHandler() {
       );
 
       if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+        return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -258,20 +269,22 @@ function getGeoJSONMD5Handler() {
 
       /* Check GeoJSON is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`GeoJSON group id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON group id "${id}" does not exist`,
+        );
       }
 
       const geoJSONLayer = item[req.params.layer];
 
       /* Check GeoJSON layer is used? */
       if (!geoJSONLayer) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(
-            `GeoJSON layer "${req.params.layer}" of group id "${id}" does not exist`,
-          );
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `GeoJSON layer "${req.params.layer}" of group id "${id}" does not exist`,
+        );
       }
 
       /* Calculate MD5 and Add to header */
@@ -287,7 +300,7 @@ function getGeoJSONMD5Handler() {
       );
 
       if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+        return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

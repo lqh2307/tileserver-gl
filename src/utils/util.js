@@ -6,9 +6,9 @@ import { printLog } from "./logger.js";
 import mime from "mime";
 
 /**
- * Delay function to wait for a specified time
- * @param {number} ms Time to wait in milliseconds
- * @returns {Promise<void>}
+ * Delay execution for a number of milliseconds.
+ * @param {number} ms Delay time in milliseconds (>= 0)
+ * @returns {Promise<void>} Resolves after delay
  */
 export async function delay(ms) {
   if (ms >= 0) {
@@ -21,7 +21,7 @@ export async function delay(ms) {
  * @param {function} fn The function to attempt
  * @param {number} maxTry Number of retry attempts on failure
  * @param {number} after Delay in milliseconds between each retry
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves if the function succeeds within the retry limit, rejects otherwise
  */
 export async function retry(fn, maxTry, after = 0) {
   for (let attempt = 1; attempt <= maxTry; attempt++) {
@@ -40,17 +40,6 @@ export async function retry(fn, maxTry, after = 0) {
         throw error;
       }
     }
-  }
-}
-
-/**
- * Deep clone an object using JSON serialization
- * @param {object} obj The object to clone
- * @returns {object} The deep-cloned object
- */
-export function deepClone(obj) {
-  if (obj !== undefined) {
-    return JSON.parse(JSON.stringify(obj));
   }
 }
 
@@ -215,6 +204,16 @@ export function detectContentTypeFromFormat(format) {
   return mime.getType(format);
 }
 
+const UNIT_FACTORS = {
+  km: 1000,
+  hm: 100,
+  dam: 10,
+  m: 1,
+  dm: 0.1,
+  cm: 0.01,
+  mm: 0.001,
+};
+
 /**
  * Convert a value from one unit to another
  * @param {number} value Numeric value
@@ -223,18 +222,9 @@ export function detectContentTypeFromFormat(format) {
  * @returns {number} Converted value
  */
 export function convertLength(value, from, to) {
-  const factors = {
-    km: 1000,
-    hm: 100,
-    dam: 10,
-    m: 1,
-    dm: 0.1,
-    cm: 0.01,
-    mm: 0.001,
-  };
-
   return (
-    (value * (factors[from] ?? factors["m"])) / (factors[to] ?? factors["m"])
+    (value * (UNIT_FACTORS[from] ?? UNIT_FACTORS["m"])) /
+    (UNIT_FACTORS[to] ?? UNIT_FACTORS["m"])
   );
 }
 
@@ -245,18 +235,10 @@ export function convertLength(value, from, to) {
  * @param {number} ppi Pixel per inch
  * @returns {number} Value in pixel
  */
-export function toPixel(value, unit, ppi = 96) {
-  const factors = {
-    km: 1000,
-    hm: 100,
-    dam: 10,
-    m: 1,
-    dm: 0.1,
-    cm: 0.01,
-    mm: 0.001,
-  };
-
-  return (value * ppi * (factors[unit] ?? factors["m"])) / 0.0254;
+export function toPixel(value, unit, ppi) {
+  return (
+    (value * (ppi ?? 96) * (UNIT_FACTORS[unit] ?? UNIT_FACTORS["m"])) / 0.0254
+  );
 }
 
 /**
@@ -266,16 +248,9 @@ export function toPixel(value, unit, ppi = 96) {
  * @param {number} ppi Pixel per inch
  * @returns {number} Value in the given unit
  */
-export function fromPixel(pixels, unit, ppi = 96) {
-  const factors = {
-    km: 1000,
-    hm: 100,
-    dam: 10,
-    m: 1,
-    dm: 0.1,
-    cm: 0.01,
-    mm: 0.001,
-  };
-
-  return (pixels * 0.0254) / (ppi * (factors[unit] ?? factors["m"]));
+export function fromPixel(pixels, unit, ppi) {
+  return (
+    (pixels * 0.0254) /
+    ((ppi ?? 96) * (UNIT_FACTORS[unit] ?? UNIT_FACTORS["m"]))
+  );
 }

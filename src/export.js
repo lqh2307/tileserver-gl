@@ -45,7 +45,7 @@ import {
 /**
  * Export all
  * @param {string} dirPath Exported dir path
- * @param {object} options Export object
+ * @param {{ concurrency?: number, parentServerHost?: string, listenPort?: number, serveFrontPage?: boolean, serveSwagger?: boolean, taskSchedule?: any, postgreSQLBaseURI?: string, process?: number, thread?: number, styles?: string[], exportData?: boolean, refreshBefore?: number }} options Export object
  * @returns {Promise<void>}
  */
 export async function exportAll(dirPath, options) {
@@ -726,7 +726,7 @@ export async function exportAll(dirPath, options) {
  * @param {string} id Data ID
  * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
  * @param {string} storePath Exported path
- * @param {object} metadata Metadata object
+ * @param {{ [key: string]: any }} metadata Metadata object
  * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
  * @param {number} concurrency Concurrency
  * @param {boolean} storeTransparent Is store transparent tile?

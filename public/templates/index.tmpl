@@ -291,110 +291,215 @@
     <div id="configs-tab" class="tab-content"></div>
   </section>
 
-  <dialog id="updateConfigDialog">
-    <form id="updateConfigForm" method="dialog">
-      <label for="updateConfigInput">Enter JSON:</label>
-      <textarea id="updateConfigInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">OK</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('updateConfigDialog')">Cancel</button>
-      </div>
-    </form>
-  </dialog>
+  {{#*inline "jsonDialog"}}
+    <dialog id="{{dialogId}}">
+      <form id="{{formId}}" method="dialog">
+        <label for="{{inputId}}">Enter JSON:</label>
+        <textarea id="{{inputId}}" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+        <div class="dialog">
+          <button type="submit" class="btn-primary">{{submitText}}</button>
+          <button type="button" class="btn-secondary" onclick="closeDialog('{{dialogId}}')">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+  {{/inline}}
 
-  <dialog id="updateSeedDialog">
-    <form id="updateSeedForm" method="dialog">
-      <label for="updateSeedInput">Enter JSON:</label>
-      <textarea id="updateSeedInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">OK</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('updateSeedDialog')">Cancel</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="updateCleanUpDialog">
-    <form id="updateCleanUpForm" method="dialog">
-      <label for="updateCleanUpInput">Enter JSON:</label>
-      <textarea id="updateCleanUpInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">OK</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('updateCleanUpDialog')">Cancel</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="deleteConfigDialog">
-    <form id="deleteConfigForm" method="dialog">
-      <label for="deleteConfigInput">Enter JSON:</label>
-      <textarea id="deleteConfigInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">OK</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('deleteConfigDialog')">Cancel</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="deleteSeedDialog">
-    <form id="deleteSeedForm" method="dialog">
-      <label for="deleteSeedInput">Enter JSON:</label>
-      <textarea id="deleteSeedInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">OK</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('deleteSeedDialog')">Cancel</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="deleteCleanUpDialog">
-    <form id="deleteCleanUpForm" method="dialog">
-      <label for="deleteCleanUpInput">Enter JSON:</label>
-      <textarea id="deleteCleanUpInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">OK</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('deleteCleanUpDialog')">Cancel</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="exportRenderDialog">
-    <form id="exportRenderForm" method="dialog">
-      <label for="exportRenderInput">Enter JSON:</label>
-      <textarea id="exportRenderInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">Export</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('exportRenderDialog');">Cancel</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="exportImageDialog">
-    <form id="exportImageForm" method="dialog">
-      <label for="exportImageInput">Enter JSON:</label>
-      <textarea id="exportImageInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">Export</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('exportImageDialog');">Cancel</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="exportDataDialog">
-    <form id="exportDataForm" method="dialog">
-      <label for="exportDataInput">Enter JSON:</label>
-      <textarea id="exportDataInput" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
-      <div class="dialog">
-        <button type="submit" class="btn-primary">Export</button>
-        <button type="button" class="btn-secondary" onclick="closeDialog('exportDataDialog');">Cancel</button>
-      </div>
-    </form>
-  </dialog>
+  {{> jsonDialog dialogId="updateConfigDialog" formId="updateConfigForm" inputId="updateConfigInput" submitText="OK"}}
+  {{> jsonDialog dialogId="updateSeedDialog" formId="updateSeedForm" inputId="updateSeedInput" submitText="OK"}}
+  {{> jsonDialog dialogId="updateCleanUpDialog" formId="updateCleanUpForm" inputId="updateCleanUpInput" submitText="OK"}}
+  {{> jsonDialog dialogId="deleteConfigDialog" formId="deleteConfigForm" inputId="deleteConfigInput" submitText="OK"}}
+  {{> jsonDialog dialogId="deleteSeedDialog" formId="deleteSeedForm" inputId="deleteSeedInput" submitText="OK"}}
+  {{> jsonDialog dialogId="deleteCleanUpDialog" formId="deleteCleanUpForm" inputId="deleteCleanUpInput" submitText="OK"}}
+  {{> jsonDialog dialogId="exportRenderDialog" formId="exportRenderForm" inputId="exportRenderInput" submitText="Export"}}
+  {{> jsonDialog dialogId="exportImageDialog" formId="exportImageForm" inputId="exportImageInput" submitText="Export"}}
+  {{> jsonDialog dialogId="exportDataDialog" formId="exportDataForm" inputId="exportDataInput" submitText="Export"}}
 
   <a href="#" class="back-to-top" onclick="scrollToTop(event)">Back to top</a>
 
   <script>
-    const baseURL = "{{base_url}}";
+    const baseURL = {{{js base_url}}};
     const emptyImageURL = `${baseURL}/images/placeholder.png`;
+
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function escapeAttr(value) {
+      return escapeHTML(value);
+    }
+
+    function pathSegment(value) {
+      return encodeURIComponent(String(value ?? ""));
+    }
+
+    function domId(prefix, value) {
+      return `${prefix}_${String(value ?? "").replaceAll(/[^a-zA-Z0-9_-]/g, "_")}`;
+    }
+
+    function renderButton({ text, href = "#", onClick }) {
+      return `<a class="btn" href="${escapeAttr(href)}"${onClick ? ` onclick="${escapeAttr(onClick)}"` : ""}>${escapeHTML(text)}</a>`;
+    }
+
+    function renderStaticItem({ title, description, buttons }) {
+      return `
+        <div class="item">
+          <img src="${emptyImageURL}" alt="Empty image" />
+          <div class="details">
+            <h3 class="name">${escapeHTML(title)}</h3>
+            <p>description: ${escapeHTML(description)}</p>
+          </div>
+          <div class="viewers">
+            ${buttons.map(renderButton).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStaticBox(items) {
+      return `<div class="box">${items.map(renderStaticItem).join("")}</div>`;
+    }
+
+    function requestGET(url, message) {
+      fetch(url, {
+        method: "GET",
+      })
+        .then(() => alert(message))
+        .catch(handleError);
+    }
+
+    function submitJSONDialog({ dialogId, formId, inputId, url, method, message }) {
+      document.getElementById(dialogId).showModal();
+
+      document.getElementById(formId).onsubmit = (event) => {
+        event.preventDefault();
+
+        fetch(url, {
+          method,
+          headers: {
+            "content-type": "application/json",
+          },
+          body: document.getElementById(inputId).value
+        })
+          .then(() => {
+            alert(message);
+
+            closeDialog(dialogId);
+          })
+          .catch(handleError);
+      };
+    }
+
+    const actionItems = [
+      { title: "Cancel sync", description: "Cancel cleanup/seed tasks", buttons: [{ text: "Cancel sync", onClick: "handleAction(event, 'cancel')" }] },
+      { title: "Sync all", description: "Start cleanup/seed tasks", buttons: [{ text: "Sync all", onClick: "handleAction(event, 'all')" }] },
+      { title: "Clean styles", description: "Start cleanup styles", buttons: [{ text: "Clean styles", onClick: "handleAction(event, 'cleanUpStyles')" }] },
+      { title: "Clean geojsons", description: "Start cleanup geojsons", buttons: [{ text: "Clean geojsons", onClick: "handleAction(event, 'cleanUpGeoJSONs')" }] },
+      { title: "Clean datas", description: "Start cleanup datas", buttons: [{ text: "Clean datas", onClick: "handleAction(event, 'cleanUpDatas')" }] },
+      { title: "Clean sprites", description: "Start cleanup sprites", buttons: [{ text: "Clean sprites", onClick: "handleAction(event, 'cleanUpSprites')" }] },
+      { title: "Clean fonts", description: "Start cleanup fonts", buttons: [{ text: "Clean fonts", onClick: "handleAction(event, 'cleanUpFonts')" }] },
+      { title: "Seed styles", description: "Start seed styles", buttons: [{ text: "Seed styles", onClick: "handleAction(event, 'seedStyles')" }] },
+      { title: "Seed geojsons", description: "Start seed geojsons", buttons: [{ text: "Seed geojsons", onClick: "handleAction(event, 'seedGeoJSONs')" }] },
+      { title: "Seed datas", description: "Start seed datas", buttons: [{ text: "Seed datas", onClick: "handleAction(event, 'seedDatas')" }] },
+      { title: "Seed sprites", description: "Start seed sprites", buttons: [{ text: "Seed sprites", onClick: "handleAction(event, 'seedSprites')" }] },
+      { title: "Seed fonts", description: "Start seed fonts", buttons: [{ text: "Seed fonts", onClick: "handleAction(event, 'seedFonts')" }] },
+      { title: "Summary service", description: "Summary service", buttons: [{ text: "View", href: `${baseURL}/summary?type=service` }] },
+      { title: "Summary seed", description: "Summary seed", buttons: [{ text: "View", href: `${baseURL}/summary?type=seed` }] },
+      { title: "Export image", description: "Export static image", buttons: [{ text: "Export", onClick: "handleExportImage(event)" }] },
+    ];
+
+    const configItems = [
+      { title: "Swagger", description: "View swagger", buttons: [{ text: "View", href: `${baseURL}/swagger/index.html` }] },
+      { title: "View config JSON", description: "View config.json content", buttons: [{ text: "View", href: `${baseURL}/config?type=config` }] },
+      { title: "View seed JSON", description: "View seed.json content", buttons: [{ text: "View", href: `${baseURL}/config?type=seed` }] },
+      { title: "View cleanup JSON", description: "View cleanup.json content", buttons: [{ text: "View", href: `${baseURL}/config?type=cleanup` }] },
+      { title: "Update config JSON", description: "Update config.json content", buttons: [{ text: "Update", onClick: "handleConfig(event, 'showUpdateConfig')" }] },
+      { title: "Update seed JSON", description: "Update seed.json content", buttons: [{ text: "Update", onClick: "handleConfig(event, 'showUpdateSeed')" }] },
+      { title: "Update cleanup JSON", description: "Update cleanup.json content", buttons: [{ text: "Update", onClick: "handleConfig(event, 'showUpdateCleanUp')" }] },
+      { title: "Delete config JSON", description: "Delete config.json content", buttons: [{ text: "Delete", onClick: "handleConfig(event, 'showDeleteConfig')" }] },
+      { title: "Delete seed JSON", description: "Delete seed.json content", buttons: [{ text: "Delete", onClick: "handleConfig(event, 'showDeleteSeed')" }] },
+      { title: "Delete cleanup JSON", description: "Delete cleanup.json content", buttons: [{ text: "Delete", onClick: "handleConfig(event, 'showDeleteCleanUp')" }] },
+      { title: "Kill", description: "Kill server", buttons: [{ text: "Kill server", onClick: "handleConfig(event, 'kill')" }] },
+      { title: "Restart", description: "Restart server", buttons: [{ text: "Restart server", onClick: "handleConfig(event, 'restart')" }] },
+    ];
+
+    const taskActions = {
+      all: {
+        url: `${baseURL}/tasks/start?seedStyles=true&cleanUpStyles=true&cleanUpDatas=true&seedDatas=true&seedGeoJSONs=true&cleanUpGeoJSONs=true&seedSprites=true&cleanUpSprites=true&seedFonts=true&cleanUpFonts=true&restart=true`,
+        message: "Starting cleanup/seed tasks...",
+      },
+      cleanUpStyles: { url: `${baseURL}/tasks/start?cleanUpStyles=true&restart=true`, message: "Starting start cleanup styles..." },
+      cleanUpGeoJSONs: { url: `${baseURL}/tasks/start?cleanUpGeoJSONs=true&restart=true`, message: "Starting start cleanup geojsons..." },
+      cleanUpDatas: { url: `${baseURL}/tasks/start?cleanUpDatas=true&restart=true`, message: "Starting cleanup datas..." },
+      cleanUpSprites: { url: `${baseURL}/tasks/start?cleanUpSprites=true&restart=true`, message: "Starting cleanup sprites..." },
+      cleanUpFonts: { url: `${baseURL}/tasks/start?cleanUpFonts=true&restart=true`, message: "Starting cleanup fonts..." },
+      seedStyles: { url: `${baseURL}/tasks/start?seedStyles=true&restart=true`, message: "Starting seed styles..." },
+      seedGeoJSONs: { url: `${baseURL}/tasks/start?seedGeoJSONs=true&restart=true`, message: "Starting seed geojsons..." },
+      seedDatas: { url: `${baseURL}/tasks/start?seedDatas=true&restart=true`, message: "Starting seed datas..." },
+      seedSprites: { url: `${baseURL}/tasks/start?seedSprites=true&restart=true`, message: "Starting seed sprites..." },
+      seedFonts: { url: `${baseURL}/tasks/start?seedFonts=true&restart=true`, message: "Starting seed fonts..." },
+      cancel: { url: `${baseURL}/tasks/cancel`, message: "Canceling cleanup/seed tasks..." },
+    };
+
+    const configActions = {
+      restart: { url: `${baseURL}/restart?type=restart`, message: "Server restarted successfully!" },
+      kill: { url: `${baseURL}/restart?type=kill`, message: "Server killed successfully!" },
+    };
+
+    const configDialogActions = {
+      showUpdateConfig: {
+        dialogId: "updateConfigDialog",
+        formId: "updateConfigForm",
+        inputId: "updateConfigInput",
+        url: `${baseURL}/config?type=config&restart=true`,
+        method: "PUT",
+        message: "Updating config...",
+      },
+      showUpdateSeed: {
+        dialogId: "updateSeedDialog",
+        formId: "updateSeedForm",
+        inputId: "updateSeedInput",
+        url: `${baseURL}/config?type=seed&restart=true`,
+        method: "PUT",
+        message: "Updating seed...",
+      },
+      showUpdateCleanUp: {
+        dialogId: "updateCleanUpDialog",
+        formId: "updateCleanUpForm",
+        inputId: "updateCleanUpInput",
+        url: `${baseURL}/config?type=cleanup&restart=true`,
+        method: "PUT",
+        message: "Updating cleanup...",
+      },
+      showDeleteConfig: {
+        dialogId: "deleteConfigDialog",
+        formId: "deleteConfigForm",
+        inputId: "deleteConfigInput",
+        url: `${baseURL}/config?type=config&restart=true`,
+        method: "DELETE",
+        message: "Deleting config...",
+      },
+      showDeleteSeed: {
+        dialogId: "deleteSeedDialog",
+        formId: "deleteSeedForm",
+        inputId: "deleteSeedInput",
+        url: `${baseURL}/config?type=seed&restart=true`,
+        method: "DELETE",
+        message: "Deleting seed...",
+      },
+      showDeleteCleanUp: {
+        dialogId: "deleteCleanUpDialog",
+        formId: "deleteCleanUpForm",
+        inputId: "deleteCleanUpInput",
+        url: `${baseURL}/config?type=cleanup&restart=true`,
+        method: "DELETE",
+        message: "Deleting cleanup...",
+      },
+    };
 
     function toggleURL(id, event) {
       event.preventDefault();
@@ -451,29 +556,29 @@
           <div class="box">
             {{#each styles}}
               <div class="item">
-                {{#if thumbnail}}<img src="{{thumbnail}}" alt="{{name}} preview" />{{else}}<img src="${emptyImageURL}" alt="{{name}} preview" />{{/if}}
+                {{#if thumbnail}}<img src="${escapeAttr({{{js thumbnail}}})}" alt="${escapeAttr({{{js name}}})} preview" />{{else}}<img src="${emptyImageURL}" alt="${escapeAttr({{{js name}}})} preview" />{{/if}}
                 <div class="details">
-                  <h3 class="name">{{name}}</h3>
-                  <p>identifier: {{@key}}</p>
+                  <h3 class="name">${escapeHTML({{{js name}}})}</h3>
+                  <p>identifier: ${escapeHTML({{{js @key}}})}</p>
                   <p>cache: {{#if cache}}<span style="color:green;">true</span>{{else}}<span style="color:red;">false</span>{{/if}}</p>
                   <p class="services">
-                    services: <a href="${baseURL}/styles/{{@key}}/style.json">StyleJSON</a>
+                    services: <a href="${baseURL}/styles/${pathSegment({{{js @key}}})}/style.json">StyleJSON</a>
                     {{#if thumbnail}}
-                      | <a href="${baseURL}/styles/{{@key}}.json">TileJSON</a>
-                      | <a href="${baseURL}/styles/{{@key}}/wmts.xml">WMTS</a>
-                      | <a href="#" onclick="toggleURL('xyz_style_{{@key}}', event)">XYZ</a>
-                      <input id="xyz_style_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/styles/{{@key}}/{z}/{x}/{y}.png" onclick="copyToClipboard(this)" />
+                      | <a href="${baseURL}/styles/${pathSegment({{{js @key}}})}.json">TileJSON</a>
+                      | <a href="${baseURL}/styles/${pathSegment({{{js @key}}})}/wmts.xml">WMTS</a>
+                      | <a href="#" data-target="${escapeAttr(domId("xyz_style", {{{js @key}}}))}" onclick="toggleURL(this.dataset.target, event)">XYZ</a>
+                      <input id="${escapeAttr(domId("xyz_style", {{{js @key}}}))}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/styles/${pathSegment({{{js @key}}})}/{z}/{x}/{y}.png" onclick="copyToClipboard(this)" />
                     {{/if}}
                   </p>
                 </div>
                 <div class="viewers">
-                    <a class="btn" href="${baseURL}/styles/{{@key}}/?vector{{viewer_hash}}">Client Render</a>
+                    <a class="btn" href="${baseURL}/styles/${pathSegment({{{js @key}}})}/?vector${escapeAttr({{{js viewer_hash}}})}">Client Render</a>
                     {{#if thumbnail}}
-                      <a class="btn" href="${baseURL}/styles/{{@key}}/?raster{{viewer_hash}}">Backend Render</a>
+                      <a class="btn" href="${baseURL}/styles/${pathSegment({{{js @key}}})}/?raster${escapeAttr({{{js viewer_hash}}})}">Backend Render</a>
                       {{#if cancel_render}}
-                      <a class="btn" href="#" onclick="handleExportRender(event, '{{@key}}', 'cancel')">Cancel Render</a>
+                      <a class="btn" href="#" data-id="${escapeAttr({{{js @key}}})}" onclick="handleExportRender(event, this.dataset.id, 'cancel')">Cancel Render</a>
                       {{else}}
-                      <a class="btn" href="#" onclick="handleExportRender(event, '{{@key}}', 'export')">Export Render</a>
+                      <a class="btn" href="#" data-id="${escapeAttr({{{js @key}}})}" onclick="handleExportRender(event, this.dataset.id, 'export')">Export Render</a>
                       {{/if}}
                     {{/if}}
                 </div>
@@ -488,18 +593,18 @@
               <div class="item">
                 <img src="${emptyImageURL}" alt="Empty image" />
                 <div class="details">
-                  <h3 class="name">{{layer}}</h3>
-                  <p>identifier: {{layer}}</p>
-                  <p>group: {{group}}</p>
-                  <p>layer: {{layer}}</p>
+                  <h3 class="name">${escapeHTML({{{js layer}}})}</h3>
+                  <p>identifier: ${escapeHTML({{{js layer}}})}</p>
+                  <p>group: ${escapeHTML({{{js group}}})}</p>
+                  <p>layer: ${escapeHTML({{{js layer}}})}</p>
                   <p>cache: {{#if cache}}<span style="color:green;">true</span>{{else}}<span style="color:red;">false</span>{{/if}}</p>
                   <p class="services">
-                    services: <a href="${baseURL}/geojsons/{{group}}/{{layer}}.geojson">GeoJSON</a>
-                    | <a href="${baseURL}/geojsons/{{group}}/{{layer}}.json">INFO</a>
+                    services: <a href="${baseURL}/geojsons/${pathSegment({{{js group}}})}/${pathSegment({{{js layer}}})}.geojson">GeoJSON</a>
+                    | <a href="${baseURL}/geojsons/${pathSegment({{{js group}}})}/${pathSegment({{{js layer}}})}.json">INFO</a>
                   </p>
                 </div>
                 <div class="viewers">
-                  <a class="btn" href="${baseURL}/geojsons/{{group}}/{{layer}}/">Inspect</a>
+                  <a class="btn" href="${baseURL}/geojsons/${pathSegment({{{js group}}})}/${pathSegment({{{js layer}}})}/">Inspect</a>
                 </div>
               </div>
             {{/each}}
@@ -512,14 +617,14 @@
               <div class="item">
                 <img src="${emptyImageURL}" alt="Empty image" />
                 <div class="details">
-                  <h3 class="name">{{@key}}</h3>
-                  <p>identifier: {{@key}}</p>
+                  <h3 class="name">${escapeHTML({{{js @key}}})}</h3>
+                  <p>identifier: ${escapeHTML({{{js @key}}})}</p>
                   <p class="services">
-                    services: <a href="${baseURL}/geojsons/{{@key}}.json">INFO</a>
+                    services: <a href="${baseURL}/geojsons/${pathSegment({{{js @key}}})}.json">INFO</a>
                   </p>
                 </div>
                 <div class="viewers">
-                  <a class="btn" href="${baseURL}/geojsons/{{@key}}/">Inspect</a>
+                  <a class="btn" href="${baseURL}/geojsons/${pathSegment({{{js @key}}})}/">Inspect</a>
                 </div>
               </div>
             {{/each}}
@@ -530,28 +635,28 @@
           <div class="box">
             {{#each datas}}
               <div class="item">
-                {{#if thumbnail}}<img src="{{thumbnail}}" alt="{{name}} preview" />{{else}}<img src="${emptyImageURL}" alt="{{name}} preview" />{{/if}}
+                {{#if thumbnail}}<img src="${escapeAttr({{{js thumbnail}}})}" alt="${escapeAttr({{{js name}}})} preview" />{{else}}<img src="${emptyImageURL}" alt="${escapeAttr({{{js name}}})} preview" />{{/if}}
                 <div class="details">
-                  <h3 class="name">{{name}}</h3>
-                  <p>identifier: {{@key}}</p>
-                  <p>type: {{#if thumbnail}}raster{{else}}vector{{/if}} | ext: {{source_type}}</p>
+                  <h3 class="name">${escapeHTML({{{js name}}})}</h3>
+                  <p>identifier: ${escapeHTML({{{js @key}}})}</p>
+                  <p>type: {{#if thumbnail}}raster{{else}}vector{{/if}} | ext: ${escapeHTML({{{js source_type}}})}</p>
                   <p>cache: {{#if cache}}<span style="color:green;">true</span>{{else}}<span style="color:red;">false</span>{{/if}}</p>
                   <p class="services">
-                    services: <a href="${baseURL}/datas/{{@key}}.json">TileJSON</a>
-                      | <a href="#" onclick="toggleURL('xyz_data_{{@key}}', event)">XYZ</a>
-                      <input id="xyz_data_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/datas/{{@key}}/{z}/{x}/{y}.{{format}}" onclick="copyToClipboard(this)" />
+                    services: <a href="${baseURL}/datas/${pathSegment({{{js @key}}})}.json">TileJSON</a>
+                      | <a href="#" data-target="${escapeAttr(domId("xyz_data", {{{js @key}}}))}" onclick="toggleURL(this.dataset.target, event)">XYZ</a>
+                      <input id="${escapeAttr(domId("xyz_data", {{{js @key}}}))}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/datas/${pathSegment({{{js @key}}})}/{z}/{x}/{y}.${pathSegment({{{js format}}})}" onclick="copyToClipboard(this)" />
                   </p>
                 </div>
                 <div class="viewers">
                   {{#if thumbnail}}
-                  <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">View</a>
+                  <a class="btn" href="${baseURL}/datas/${pathSegment({{{js @key}}})}/${escapeAttr({{{js viewer_hash}}})}">View</a>
                   {{else}}
-                  <a class="btn" href="${baseURL}/datas/{{@key}}/{{viewer_hash}}">Inspect</a>
+                  <a class="btn" href="${baseURL}/datas/${pathSegment({{{js @key}}})}/${escapeAttr({{{js viewer_hash}}})}">Inspect</a>
                   {{/if}}
                   {{#if cancel_export}}
-                  <a class="btn" href="#" onclick="handleExportData(event, '{{@key}}', 'cancel')">Cancel Export</a>
+                  <a class="btn" href="#" data-id="${escapeAttr({{{js @key}}})}" onclick="handleExportData(event, this.dataset.id, 'cancel')">Cancel Export</a>
                   {{else}}
-                  <a class="btn" href="#" onclick="handleExportData(event, '{{@key}}', 'export')">Export Data</a>
+                  <a class="btn" href="#" data-id="${escapeAttr({{{js @key}}})}" onclick="handleExportData(event, this.dataset.id, 'export')">Export Data</a>
                   {{/if}}
                 </div>
               </div>
@@ -565,12 +670,12 @@
               <div class="item">
                 <img src="${emptyImageURL}" alt="Empty image" />
                 <div class="details">
-                  <h3 class="name">{{@key}}</h3>
-                  <p>identifier: {{@key}}</p>
+                  <h3 class="name">${escapeHTML({{{js @key}}})}</h3>
+                  <p>identifier: ${escapeHTML({{{js @key}}})}</p>
                   <p>cache: {{#if cache}}<span style="color:green;">true</span>{{else}}<span style="color:red;">false</span>{{/if}}</p>
                   <p class="services">
-                    services: <a href="#" onclick="toggleURL('font_{{@key}}', event)">URL</a>
-                    <input id="font_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/fonts/{{@key}}/{range}.pbf" onclick="copyToClipboard(this)" />
+                    services: <a href="#" data-target="${escapeAttr(domId("font", {{{js @key}}}))}" onclick="toggleURL(this.dataset.target, event)">URL</a>
+                    <input id="${escapeAttr(domId("font", {{{js @key}}}))}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/fonts/${pathSegment({{{js @key}}})}/{range}.pbf" onclick="copyToClipboard(this)" />
                   </p>
                 </div>
               </div>
@@ -582,16 +687,16 @@
           <div class="box">
             {{#each sprites}}
               <div class="item">
-                <img src="${baseURL}/sprites/{{@key}}/sprite.png" alt="{{@key}} preview" />
+                <img src="${baseURL}/sprites/${pathSegment({{{js @key}}})}/sprite.png" alt="${escapeAttr({{{js @key}}})} preview" />
                 <div class="details">
-                  <h3 class="name">{{@key}}</h3>
-                  <p>identifier: {{@key}}</p>
+                  <h3 class="name">${escapeHTML({{{js @key}}})}</h3>
+                  <p>identifier: ${escapeHTML({{{js @key}}})}</p>
                   <p>cache: {{#if cache}}<span style="color:green;">true</span>{{else}}<span style="color:red;">false</span>{{/if}}</p>
                   <p class="services">
-                    services: <a href="${baseURL}/sprites/{{@key}}/sprite.json">JSON</a>
-                    | <a href="${baseURL}/sprites/{{@key}}/sprite.png">PNG</a>
-                    | <a href="#" onclick="toggleURL('sprite_{{@key}}', event)">URL</a>
-                    <input id="sprite_{{@key}}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/sprites/{{@key}}/sprite" onclick="copyToClipboard(this)" />
+                    services: <a href="${baseURL}/sprites/${pathSegment({{{js @key}}})}/sprite.json">JSON</a>
+                    | <a href="${baseURL}/sprites/${pathSegment({{{js @key}}})}/sprite.png">PNG</a>
+                    | <a href="#" data-target="${escapeAttr(domId("sprite", {{{js @key}}}))}" onclick="toggleURL(this.dataset.target, event)">URL</a>
+                    <input id="${escapeAttr(domId("sprite", {{{js @key}}}))}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/sprites/${pathSegment({{{js @key}}})}/sprite" onclick="copyToClipboard(this)" />
                   </p>
                 </div>
               </div>
@@ -599,285 +704,9 @@
           </div>
         `;
       } else if (tabId === "actions-tab" && !innerHTML) {
-        document.querySelector("#actions-tab").innerHTML = `
-          <div class="box">
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Cancel sync</h3>
-                <p>description: Cancel cleanup/seed tasks</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'cancel')">Cancel sync</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Sync all</h3>
-                <p>description: Start cleanup/seed tasks</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'all')">Sync all</a>
-              </div>
-            </div>  
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Clean styles</h3>
-                <p>description: Start cleanup styles</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpStyles')">Clean styles</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Clean geojsons</h3>
-                <p>description: Start cleanup geojsons</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpGeoJSONs')">Clean geojsons</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Clean datas</h3>
-                <p>description: Start cleanup datas</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpDatas')">Clean datas</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Clean sprites</h3>
-                <p>description: Start cleanup sprites</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpSprites')">Clean sprites</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Clean fonts</h3>
-                <p>description: Start cleanup fonts</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'cleanUpFonts')">Clean fonts</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Seed styles</h3>
-                <p>description: Start seed styles</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'seedStyles')">Seed styles</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Seed geojsons</h3>
-                <p>description: Start seed geojsons</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'seedGeoJSONs')">Seed geojsons</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Seed datas</h3>
-                <p>description: Start seed datas</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'seedDatas')">Seed datas</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Seed sprites</h3>
-                <p>description: Start seed sprites</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'seedSprites')">Seed sprites</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Seed fonts</h3>
-                <p>description: Start seed fonts</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleAction(event, 'seedFonts')">Seed fonts</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Summary service</h3>
-                <p>description: Summary service</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="${baseURL}/summary?type=service">View</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Summary seed</h3>
-                <p>description: Summary seed</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="${baseURL}/summary?type=seed">View</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Export image</h3>
-                <p>description: Export static image</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleExportImage(event)">Export</a>
-              </div>
-            </div>
-          </div>
-        `;
+        document.querySelector("#actions-tab").innerHTML = renderStaticBox(actionItems);
       } else if (tabId === "configs-tab" && !innerHTML) {
-        document.querySelector("#configs-tab").innerHTML = `
-          <div class="box">
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Swagger</h3>
-                <p>description: View swagger</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="${baseURL}/swagger/index.html">View</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">View config JSON</h3>
-                <p>description: View config.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="${baseURL}/config?type=config">View</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">View seed JSON</h3>
-                <p>description: View seed.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="${baseURL}/config?type=seed">View</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">View cleanup JSON</h3>
-                <p>description: View cleanup.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="${baseURL}/config?type=cleanup">View</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Update config JSON</h3>
-                <p>description: Update config.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleConfig(event, 'showUpdateConfig')">Update</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Update seed JSON</h3>
-                <p>description: Update seed.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleConfig(event, 'showUpdateSeed')">Update</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Update cleanup JSON</h3>
-                <p>description: Update cleanup.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleConfig(event, 'showUpdateCleanUp')">Update</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Delete config JSON</h3>
-                <p>description: Delete config.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleConfig(event, 'showDeleteConfig')">Delete</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Delete seed JSON</h3>
-                <p>description: Delete seed.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleConfig(event, 'showDeleteSeed')">Delete</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Delete cleanup JSON</h3>
-                <p>description: Delete cleanup.json content</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleConfig(event, 'showDeleteCleanUp')">Delete</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Kill</h3>
-                <p>description: Kill server</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleConfig(event, 'kill')">Kill server</a>
-              </div>
-            </div>
-            <div class="item">
-              <img src="${emptyImageURL}" alt="Empty image" />
-              <div class="details">
-                <h3 class="name">Restart</h3>
-                <p>description: Restart server</p>
-              </div>
-              <div class="viewers">
-                <a class="btn" href="#" onclick="handleConfig(event, 'restart')">Restart server</a>
-              </div>
-            </div>
-          </div>
-        `;
+        document.querySelector("#configs-tab").innerHTML = renderStaticBox(configItems);
       }
     }
 
@@ -894,216 +723,23 @@
     function handleAction(event, action) {
       event.preventDefault();
 
-      if (action === "all") {
-        fetch(`${baseURL}/tasks/start?seedStyles=true&cleanUpStyles=true&cleanUpDatas=true&seedDatas=true&seedGeoJSONs=true&cleanUpGeoJSONs=true&seedSprites=true&cleanUpSprites=true&seedFonts=true&cleanUpFonts=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting cleanup/seed tasks..."))
-          .catch(handleError);
-      } else if (action === "cleanUpStyles") {
-        fetch(`${baseURL}/tasks/start?cleanUpStyles=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting start cleanup styles..."))
-          .catch(handleError);
-      } else if (action === "cleanUpGeoJSONs") {
-        fetch(`${baseURL}/tasks/start?cleanUpGeoJSONs=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting start cleanup geojsons..."))
-          .catch(handleError);
-      } else if (action === "cleanUpDatas") {
-        fetch(`${baseURL}/tasks/start?cleanUpDatas=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting cleanup datas..."))
-          .catch(handleError);
-      } else if (action === "cleanUpSprites") {
-        fetch(`${baseURL}/tasks/start?cleanUpSprites=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting cleanup sprites..."))
-          .catch(handleError);
-      } else if (action === "cleanUpFonts") {
-        fetch(`${baseURL}/tasks/start?cleanUpFonts=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting cleanup fonts..."))
-          .catch(handleError);
-      } else if (action === "seedStyles") {
-        fetch(`${baseURL}/tasks/start?seedStyles=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting seed styles..."))
-          .catch(handleError);
-      } else if (action === "seedGeoJSONs") {
-        fetch(`${baseURL}/tasks/start?seedGeoJSONs=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting seed geojsons..."))
-          .catch(handleError);
-      } else if (action === "seedDatas") {
-        fetch(`${baseURL}/tasks/start?seedDatas=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting seed datas..."))
-          .catch(handleError);
-      } else if (action === "seedSprites") {
-        fetch(`${baseURL}/tasks/start?seedSprites=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting seed sprites..."))
-          .catch(handleError);
-      } else if (action === "seedFonts") {
-        fetch(`${baseURL}/tasks/start?seedFonts=true&restart=true`, {
-          method: "GET",
-        })
-          .then(() => alert("Starting seed fonts..."))
-          .catch(handleError);
-      } else if (action === "cancel") {
-        fetch(`${baseURL}/tasks/cancel`, {
-          method: "GET",
-        })
-          .then(() => alert("Canceling cleanup/seed tasks..."))
-          .catch(handleError);
+      const taskAction = taskActions[action];
+
+      if (taskAction) {
+        requestGET(taskAction.url, taskAction.message);
       }
     }
 
     function handleConfig(event, action) {
       event.preventDefault();
 
-      if (action === "restart") {
-        fetch(`${baseURL}/restart?type=restart`, {
-          method: "GET",
-        })
-          .then(() => alert("Server restarted successfully!"))
-          .catch(handleError);
-      } else if (action === "kill") {
-        fetch(`${baseURL}/restart?type=kill`, {
-          method: "GET",
-        })
-          .then(() => alert("Server killed successfully!"))
-          .catch(handleError);
-      } else if (action === "showUpdateConfig") {
-        document.getElementById("updateConfigDialog").showModal();
+      const configAction = configActions[action];
+      const configDialogAction = configDialogActions[action];
 
-        document.getElementById("updateConfigForm").onsubmit = (event) => {
-          event.preventDefault();
-
-          fetch(`${baseURL}/config?type=config&restart=true`, {
-            method: "PUT",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: document.getElementById("updateConfigInput").value
-          })
-            .then(() => {
-              alert("Updating config...");
-
-              closeDialog("updateConfigDialog");
-            })
-            .catch(handleError);
-        };
-      } else if (action === "showUpdateSeed") {
-        document.getElementById("updateSeedDialog").showModal();
-
-        document.getElementById("updateSeedForm").onsubmit = (event) => {
-          event.preventDefault();
-
-          fetch(`${baseURL}/config?type=seed&restart=true`, {
-            method: "PUT",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: document.getElementById("updateSeedInput").value
-          })
-            .then(() => {
-              alert("Updating seed...");
-
-              closeDialog("updateSeedDialog");
-            })
-            .catch(handleError);
-        };
-      } else if (action === "showUpdateCleanUp") {
-        document.getElementById("updateCleanUpDialog").showModal();
-
-        document.getElementById("updateCleanUpForm").onsubmit = (event) => {
-          event.preventDefault();
-
-          fetch(`${baseURL}/config?type=cleanup&restart=true`, {
-            method: "PUT",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: document.getElementById("updateCleanUpInput").value
-          })
-            .then(() => {
-              alert("Updating cleanup...");
-
-              closeDialog("updateCleanUpDialog");
-            })
-            .catch(handleError);
-        };
-      } else if (action === "showDeleteConfig") {
-        document.getElementById("deleteConfigDialog").showModal();
-
-        document.getElementById("deleteConfigForm").onsubmit = (event) => {
-          event.preventDefault();
-
-          fetch(`${baseURL}/config?type=config&restart=true`, {
-            method: "DELETE",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: document.getElementById("deleteConfigInput").value
-          })
-            .then(() => {
-              alert("Deleting config...");
-
-              closeDialog("deleteConfigDialog");
-            })
-            .catch(handleError);
-        };
-      } else if (action === "showDeleteSeed") {
-        document.getElementById("deleteSeedDialog").showModal();
-
-        document.getElementById("deleteSeedForm").onsubmit = (event) => {
-          event.preventDefault();
-
-          fetch(`${baseURL}/config?type=seed&restart=true`, {
-            method: "DELETE",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: document.getElementById("deleteSeedInput").value
-          })
-            .then(() => {
-              alert("Deleting seed...");
-
-              closeDialog("deleteSeedDialog");
-            })
-            .catch(handleError);
-        };
-      } else if (action === "showDeleteCleanUp") {
-        document.getElementById("deleteCleanUpDialog").showModal();
-
-        document.getElementById("deleteCleanUpForm").onsubmit = (event) => {
-          event.preventDefault();
-
-          fetch(`${baseURL}/config?type=cleanup&restart=true`, {
-            method: "DELETE",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: document.getElementById("deleteCleanUpInput").value
-          })
-            .then(() => {
-              alert("Deleting cleanup...");
-
-              closeDialog("deleteCleanUpDialog");
-            })
-            .catch(handleError);
-        };
+      if (configAction) {
+        requestGET(configAction.url, configAction.message);
+      } else if (configDialogAction) {
+        submitJSONDialog(configDialogAction);
       }
     }
 

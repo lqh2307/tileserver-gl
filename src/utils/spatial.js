@@ -1,13 +1,31 @@
 "use strict";
 
+import { limitValue, max, min } from "./number.js";
 import { calculateResolution } from "./image.js";
-import { limitValue } from "./number.js";
+import proj4 from "proj4";
 
+/** Maximum longitude in degrees for EPSG:4326 normalization. */
 export const MAX_LON = 180;
+/** Maximum latitude in degrees for EPSG:4326 normalization. */
 export const MAX_LAT = 90;
+/** Maximum latitude supported by Web Mercator (EPSG:3857) in degrees. */
 export const MAX_CAL_LAT = 85.051129;
-const SPHERICAL_RADIUS = 6378137.0;
-const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
+
+/** Radius of the Earth in meters for spherical calculations. */
+export const SPHERICAL_RADIUS = 6378137.0;
+/** Circumference of the Earth in meters for spherical calculations. */
+export const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
+
+/** Minimum zoom level for Web Mercator (EPSG:3857). */
+export const MIN_ZOOM = 0;
+/** Maximum zoom level for Web Mercator (EPSG:3857). */
+export const MAX_ZOOM = 25;
+
+/** Default tile size in pixels for Web Mercator (EPSG:3857). */
+export const DEFAULT_TILE_SIZE = 512;
+
+/** Default pixels per inch (PPI) for screen resolution. */
+export const DEFAULT_PPI = 96;
 
 /**
  * Convert coordinates from EPSG:4326 (lon, lat) to EPSG:3857 (x, y in meters)
@@ -37,7 +55,7 @@ export function xy3857ToLonLat4326(x, y) {
   return [
     limitValue((x / SPHERICAL_RADIUS) * (MAX_LON / Math.PI), -MAX_LON, MAX_LON),
     limitValue(
-      Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (MAX_LAT / Math.PI),
+      Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (MAX_LON / Math.PI),
       -MAX_CAL_LAT,
       MAX_CAL_LAT,
     ),
@@ -546,26 +564,17 @@ export function getCenterFromBBox(bbox, z) {
 }
 
 /**
- * Get bounding box intersect
- * @param {[number, number, number, number]} bbox1 Bounding box 1 in the format [minLon, minLat, maxLon, maxLat]
- * @param {[number, number, number, number]} bbox2 Bounding box 2 in the format [minLon, minLat, maxLon, maxLat]
- * @returns {[number, number, number, number]} Intersect bounding box in the format [minLon, minLat, maxLon, maxLat]
+ * Get intersection of two bboxes.
+ * When they do not intersect, returns [0, 0, 0, 0].
+ * @param {number[]} bbox1 [minLon, minLat, maxLon, maxLat]
+ * @param {number[]} bbox2 [minLon, minLat, maxLon, maxLat]
+ * @returns {number[]} Intersection bbox
  */
 export function getIntersectBBox(bbox1, bbox2) {
-  const aMinX = bbox1[0] < bbox1[2] ? bbox1[0] : bbox1[2];
-  const aMaxX = bbox1[0] > bbox1[2] ? bbox1[0] : bbox1[2];
-  const aMinY = bbox1[1] < bbox1[3] ? bbox1[1] : bbox1[3];
-  const aMaxY = bbox1[1] > bbox1[3] ? bbox1[1] : bbox1[3];
-
-  const bMinX = bbox2[0] < bbox2[2] ? bbox2[0] : bbox2[2];
-  const bMaxX = bbox2[0] > bbox2[2] ? bbox2[0] : bbox2[2];
-  const bMinY = bbox2[1] < bbox2[3] ? bbox2[1] : bbox2[3];
-  const bMaxY = bbox2[1] > bbox2[3] ? bbox2[1] : bbox2[3];
-
-  const minLon = aMinX > bMinX ? aMinX : bMinX;
-  const minLat = aMinY > bMinY ? aMinY : bMinY;
-  const maxLon = aMaxX < bMaxX ? aMaxX : bMaxX;
-  const maxLat = aMaxY < bMaxY ? aMaxY : bMaxY;
+  const minLon = max(bbox1[0], bbox2[0]);
+  const minLat = max(bbox1[1], bbox2[1]);
+  const maxLon = min(bbox1[2], bbox2[2]);
+  const maxLat = min(bbox1[3], bbox2[3]);
 
   if (minLon >= maxLon || minLat >= maxLat) {
     return;
@@ -575,23 +584,18 @@ export function getIntersectBBox(bbox1, bbox2) {
 }
 
 /**
- * Check if two bounding boxes intersect (works for any coordinate system)
- * @param {[number, number, number, number]} bbox1 Bounding box 1 in the format [minLon, minLat, maxLon, maxLat]
- * @param {[number, number, number, number]} bbox2 Bounding box 2 in the format [minLon, minLat, maxLon, maxLat]
- * @returns {boolean} Intersect
+ * Check if two bboxes intersect (works for any coordinate system).
+ * @param {number[]} bbox1 [minLon, minLat, maxLon, maxLat]
+ * @param {number[]} bbox2 [minLon, minLat, maxLon, maxLat]
+ * @returns {boolean} True if they intersect
  */
 export function isIntersectBBoxs(bbox1, bbox2) {
-  const aMinX = bbox1[0] < bbox1[2] ? bbox1[0] : bbox1[2];
-  const aMaxX = bbox1[0] > bbox1[2] ? bbox1[0] : bbox1[2];
-  const aMinY = bbox1[1] < bbox1[3] ? bbox1[1] : bbox1[3];
-  const aMaxY = bbox1[1] > bbox1[3] ? bbox1[1] : bbox1[3];
-
-  const bMinX = bbox2[0] < bbox2[2] ? bbox2[0] : bbox2[2];
-  const bMaxX = bbox2[0] > bbox2[2] ? bbox2[0] : bbox2[2];
-  const bMinY = bbox2[1] < bbox2[3] ? bbox2[1] : bbox2[3];
-  const bMaxY = bbox2[1] > bbox2[3] ? bbox2[1] : bbox2[3];
-
-  if (aMaxX <= bMinX || aMinX >= bMaxX || aMaxY <= bMinY || aMinY >= bMaxY) {
+  if (
+    max(bbox1[0], bbox1[2]) <= min(bbox2[0], bbox2[2]) ||
+    min(bbox1[0], bbox1[2]) >= max(bbox2[0], bbox2[2]) ||
+    max(bbox1[1], bbox1[3]) <= min(bbox2[1], bbox2[3]) ||
+    min(bbox1[1], bbox1[3]) >= max(bbox2[1], bbox2[3])
+  ) {
     return false;
   }
 
@@ -599,19 +603,17 @@ export function isIntersectBBoxs(bbox1, bbox2) {
 }
 
 /**
- * Check if point is inside bbox (works for both GIS and pixel coordinate systems)
- * @param {[number, number, number, number]} bbox Bounding box in the format [minLon, minLat, maxLon, maxLat]
- * @param {[number, number]} point Point in the format [lon, lat]
- * @returns {boolean} Intersect
+ * Check if a point is inside a bbox (inclusive).
+ * @param {number[]} bbox Bounds in [minLon, minLat, maxLon, maxLat]
+ * @param {{ lng: number, lat: number }} coordinate { lng, lat }
+ * @returns {boolean} True if inside
  */
-export function isIntersectBBoxPoint(bbox, point) {
-  const minX = bbox[0] < bbox[2] ? bbox[0] : bbox[2];
-  const maxX = bbox[0] > bbox[2] ? bbox[0] : bbox[2];
-  const minY = bbox[1] < bbox[3] ? bbox[1] : bbox[3];
-  const maxY = bbox[1] > bbox[3] ? bbox[1] : bbox[3];
-
+export function isIntersectBBoxPoint(bbox, coordinate) {
   return (
-    point[0] >= minX && point[0] <= maxX && point[1] >= minY && point[1] <= maxY
+    coordinate.lng >= min(bbox[0], bbox[2]) &&
+    coordinate.lng <= max(bbox[0], bbox[2]) &&
+    coordinate.lat >= min(bbox[1], bbox[3]) &&
+    coordinate.lat <= max(bbox[1], bbox[3])
   );
 }
 
@@ -671,4 +673,122 @@ export function scaleToZoom(scale, ppi = 96, tileSize = 256) {
  */
 export function getTileFromPixelsZ(scale, ppi = 96, tileSize = 256) {
   return Math.log2(ppi * (MAX_GM / tileSize / scale / 0.0254));
+}
+
+/**
+ * Transform a point between any two coordinate reference systems.
+ * Accepts EPSG codes (e.g. `"EPSG:4326"`, `"EPSG:3857"`) or proj4 definition strings.
+ * @param {{ dstSRS: string, srcSRS: string, bounds: number[] }} option Options for transformation
+ * @returns {number[]} Transformed [x, y]
+ */
+export function transformPointSRS(option) {
+  if (option.dstSRS === option.srcSRS) {
+    return option.point;
+  }
+
+  return proj4(option.srcSRS, option.dstSRS, option.point);
+}
+
+/**
+ * Transform a bounding box between coordinate reference systems.
+ * All four corners are transformed and normalized back to `[minX, minY, maxX, maxY]`.
+ * @param {{ dstSRS: string, srcSRS: string, bounds: number[] }} option Options for transformation
+ * @returns {number[]} Transformed bbox
+ */
+export function transformBBoxSRS(option) {
+  if (option.dstSRS === option.srcSRS) {
+    return option.bounds;
+  }
+
+  const corner1 = transformPointSRS({
+    srcSRS: option.srcSRS,
+    dstSRS: option.dstSRS,
+    point: [option.bounds[0], option.bounds[1]],
+  });
+  const corner2 = transformPointSRS({
+    srcSRS: option.srcSRS,
+    dstSRS: option.dstSRS,
+    point: [option.bounds[2], option.bounds[3]],
+  });
+
+  return [
+    min(corner1[0], corner2[0]),
+    min(corner1[1], corner2[1]),
+    max(corner1[0], corner2[0]),
+    max(corner1[1], corner2[1]),
+  ];
+}
+
+/**
+ * Ensure a ring of points is closed by checking if the first and last points are the same.
+ * If they are not the same, append the first point to the end of the array to close the ring.
+ * @param {number[][]} ring Array of points [x, y]
+ * @returns {number[][]} The original ring if it's already closed, or a new array with the first point appended if it was not closed
+ */
+export function makeValidCloseRing(ring) {
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+
+  if (first[0] === last[0] && first[1] === last[1]) {
+    return ring;
+  }
+
+  const newRing = ring.slice();
+  newRing.push(first);
+
+  return newRing;
+}
+
+/**
+ * Calculate the area of a polygon defined by an array of rings (arrays of points).
+ * Uses the shoelace formula to calculate the area of the outer ring (first array of points) and ignores holes.
+ * @param {number[][][]} coords Array of rings, where each ring is an array of points [x, y]
+ * @returns {number} The area of the polygon
+ */
+export function getPolygonArea(coords) {
+  const ring = makeValidCloseRing(coords[0]);
+
+  if (ring.length < 4) {
+    return 0;
+  }
+
+  let area = 0;
+
+  for (let i = 0; i < ring.length - 1; i++) {
+    area += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+  }
+
+  return Math.abs(area) * 0.5;
+}
+
+/**
+ * Calculate the centroid of a polygon defined by an array of rings (arrays of points).
+ * Uses the formula for polygon centroids, which accounts for the shape of the polygon.
+ * Only considers the outer ring (first array of points) and ignores holes.
+ * @param {number[][][]} coords Array of rings, where each ring is an array of points [x, y]
+ * @returns {number[]} The centroid [x, y] of the polygon
+ */
+export function getPolygonCentroid(coords) {
+  let area = 0;
+  let x = 0;
+  let y = 0;
+
+  const ring = makeValidCloseRing(coords[0]);
+
+  for (let i = 0; i < ring.length - 1; i++) {
+    const f = ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+
+    x += (ring[i][0] + ring[i + 1][0]) * f;
+    y += (ring[i][1] + ring[i + 1][1]) * f;
+
+    area += f;
+  }
+
+  area *= 0.5;
+
+  if (!area) {
+    return ring[0];
+  }
+
+  return [x / (6 * area), y / (6 * area)];
 }

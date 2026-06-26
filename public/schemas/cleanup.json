@@ -1,8 +1,12 @@
 {
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "styles": {
       "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._ -]*$"
+      },
       "additionalProperties": {
         "type": "object",
         "properties": {
@@ -38,6 +42,9 @@
     },
     "geojsons": {
       "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._ -]*$"
+      },
       "additionalProperties": {
         "type": "object",
         "properties": {
@@ -73,6 +80,9 @@
     },
     "datas": {
       "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._ -]*$"
+      },
       "additionalProperties": {
         "type": "object",
         "properties": {
@@ -187,6 +197,9 @@
     },
     "sprites": {
       "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._ -]*$"
+      },
       "additionalProperties": {
         "type": "object",
         "properties": {
@@ -223,6 +236,9 @@
     },
     "fonts": {
       "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._ -]*$"
+      },
       "additionalProperties": {
         "type": "object",
         "properties": {

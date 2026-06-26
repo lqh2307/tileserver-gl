@@ -10,6 +10,7 @@ import {
 } from "../resources/index.js";
 import {
   detectFormatAndHeaders,
+  sendTextResponse,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -64,9 +65,11 @@ function getFontMD5Handler() {
 
       /* Check font is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Font id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Font id "${id}" does not exist`,
+        );
       }
 
       /* Calculate MD5 and Add to header */
@@ -79,7 +82,7 @@ function getFontMD5Handler() {
       printLog("error", `Failed to get md5 of font id "${id}": ${error}`);
 
       if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+        return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)

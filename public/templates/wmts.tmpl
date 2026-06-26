@@ -11,7 +11,7 @@
     <ows:Operation name="GetCapabilities">
       <ows:DCP>
         <ows:HTTP>
-          <ows:Get xlink:href="{{base_url}}/styles/{{id}}/wmts.xml">
+          <ows:Get xlink:href="{{base_url}}/styles/{{urlSegment id}}/wmts.xml">
             <ows:Constraint name="GetEncoding">
               <ows:AllowedValues>
                 <ows:Value>RESTful</ows:Value>
@@ -24,7 +24,7 @@
     <ows:Operation name="GetTile">
       <ows:DCP>
         <ows:HTTP>
-          <ows:Get xlink:href="{{base_url}}/styles/{{id}}/wmts.xml">
+          <ows:Get xlink:href="{{base_url}}/styles/{{urlSegment id}}/wmts.xml">
             <ows:Constraint name="GetEncoding">
               <ows:AllowedValues>
                 <ows:Value>RESTful</ows:Value>
@@ -50,7 +50,7 @@
       <TileMatrixSetLink>
         <TileMatrixSet>GoogleMapsCompatible_256</TileMatrixSet>
       </TileMatrixSetLink>
-      <ResourceURL format="image/png" resourceType="tile" template="{{base_url}}/styles/{{id}}/256/{TileMatrix}/{TileCol}/{TileRow}.png"/>
+      <ResourceURL format="image/png" resourceType="tile" template="{{base_url}}/styles/{{urlSegment id}}/256/{TileMatrix}/{TileCol}/{TileRow}.png"/>
     </Layer>
     <Layer>
       <ows:Title>{{name}}-512</ows:Title>
@@ -66,7 +66,7 @@
       <TileMatrixSetLink>
         <TileMatrixSet>GoogleMapsCompatible_512</TileMatrixSet>
       </TileMatrixSetLink>
-      <ResourceURL format="image/png" resourceType="tile" template="{{base_url}}/styles/{{id}}/512/{TileMatrix}/{TileCol}/{TileRow}.png"/>
+      <ResourceURL format="image/png" resourceType="tile" template="{{base_url}}/styles/{{urlSegment id}}/512/{TileMatrix}/{TileCol}/{TileRow}.png"/>
     </Layer>
     <TileMatrixSet>
       <ows:Title>GoogleMapsCompatible_256</ows:Title>
@@ -921,5 +921,5 @@
       </TileMatrix>
     </TileMatrixSet>
   </Contents>
-  <ServiceMetadataURL xlink:href="{{base_url}}/styles/{{id}}/wmts.xml"/>
+  <ServiceMetadataURL xlink:href="{{base_url}}/styles/{{urlSegment id}}/wmts.xml"/>
 </Capabilities>

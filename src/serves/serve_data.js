@@ -8,6 +8,7 @@ import {
   createTileMetadata,
   getXYZFromLonLatZ,
   ALL_TILE_FORMATS,
+  sendTextResponse,
   getRequestHost,
   getTileBounds,
   getJSONSchema,
@@ -50,9 +51,11 @@ function serveDataHandler() {
       const item = config.datas[id];
 
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Data id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Data id "${id}" does not exist`,
+        );
       }
 
       const compiled = await compileHandleBarsTemplate(
@@ -86,9 +89,11 @@ function getTileDataHandler() {
 
     /* Check data is exist? */
     if (!item) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .send(`Data id "${id}" does not exist`);
+      return sendTextResponse(
+        res,
+        StatusCodes.NOT_FOUND,
+        `Data id "${id}" does not exist`,
+      );
     }
 
     /* Check tile data format */
@@ -96,9 +101,11 @@ function getTileDataHandler() {
       req.params.format !== item.tileJSON.format ||
       !ALL_TILE_FORMATS.has(req.params.format)
     ) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .send(`Data tile format "${req.params.format}" is not support`);
+      return sendTextResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        `Data tile format "${req.params.format}" is not support`,
+      );
     }
 
     /* Get and cache tile data */
@@ -171,7 +178,7 @@ function getTileDataHandler() {
       );
 
       if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+        return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -193,9 +200,11 @@ function getDataHandler() {
       const item = config.datas[id];
 
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Data id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Data id "${id}" does not exist`,
+        );
       }
 
       res.header("content-type", "application/json");
@@ -234,9 +243,11 @@ function getDataMD5Handler() {
 
       /* Check data is used? */
       if (!item) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .send(`Data id "${id}" does not exist`);
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          `Data id "${id}" does not exist`,
+        );
       }
 
       /* Calculate MD5 and Add to header */
@@ -283,7 +294,7 @@ function getDataMD5Handler() {
       printLog("error", `Failed to get md5 of data id "${id}": ${error}`);
 
       if (error.message.includes("Not Found")) {
-        return res.status(StatusCodes.NO_CONTENT).send(error.message);
+        return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -304,9 +315,11 @@ function getTileDataExtraInfoHandler() {
 
     /* Check data is exist? */
     if (!item) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .send(`Data id "${id}" does not exist`);
+      return sendTextResponse(
+        res,
+        StatusCodes.NOT_FOUND,
+        `Data id "${id}" does not exist`,
+      );
     }
 
     /* Get tile extra info */
@@ -314,9 +327,11 @@ function getTileDataExtraInfoHandler() {
       try {
         validateJSON(await getJSONSchema("coverages"), req.body);
       } catch (error) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .send(`Coverages is invalid: ${error}`);
+        return sendTextResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Coverages is invalid: ${error}`,
+        );
       }
 
       let extraInfo;
@@ -403,9 +418,11 @@ function calculateDataExtraInfoHandler() {
 
     /* Check data is exist? */
     if (!item) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .send(`Data id "${id}" does not exist`);
+      return sendTextResponse(
+        res,
+        StatusCodes.NOT_FOUND,
+        `Data id "${id}" does not exist`,
+      );
     }
 
     /* Calculate tile extra info */

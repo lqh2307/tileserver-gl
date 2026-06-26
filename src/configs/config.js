@@ -101,13 +101,7 @@ async function updateConfigFile(type, configObj, timeout) {
  */
 async function validateConfig(type, configObj) {
   if (!configObj) {
-    if (type === "seed") {
-      configObj = seed;
-    } else if (type === "cleanup") {
-      configObj = cleanUp;
-    } else {
-      configObj = config;
-    }
+    configObj = readConfigFile(type, true);
   }
 
   validateJSON(await getJSONSchema(type), configObj);
