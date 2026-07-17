@@ -1,6 +1,7 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
+import { getFileCreated } from "./file.js";
 import axios, { isCancel } from "axios";
 import { printLog } from "./logger.js";
 import https from "node:https";
@@ -148,4 +149,40 @@ export function getRequestHost(req) {
   const prefix = req.headers["x-forwarded-prefix"] || "";
 
   return `${protocol}://${host}${prefix}`;
+}
+
+/**
+ * Check whether a local file has changed since the client's last request.
+ * If a request also includes If-None-Match, Express evaluates that validator
+ * after creating the response body, as required by HTTP's validator priority.
+ * A forwarded resource may not have been written to the cache yet, so a
+ * missing file deliberately does not prevent its response.
+ * @param {Request} req Express request
+ * @param {Response} res Express response
+ * @param {string} fileOrFolderPath File or folder path to inspect
+ * @returns {Promise<boolean>}
+ */
+export async function isFileNotModified(
+  req,
+  res,
+  fileOrFolderPath,
+) {
+  try {
+    const created = await getFileCreated(fileOrFolderPath);
+
+    res.set("last-modified", new Date(created).toUTCString());
+
+    const ifModifiedSince = req.get("if-modified-since");
+    if (!ifModifiedSince || req.get("if-none-match")) {
+      return false;
+    }
+
+    return created <= Date.parse(ifModifiedSince);
+  } catch (error) {
+    if (error.message === "Not Found") {
+      return false;
+    }
+
+    throw error;
+  }
 }

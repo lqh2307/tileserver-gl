@@ -11,6 +11,7 @@ import {
 } from "../resources/index.js";
 import {
   compileHandleBarsTemplate,
+  isFileNotModified,
   sendTextResponse,
   getRequestHost,
   gzipAsync,
@@ -128,7 +129,7 @@ function getGeoJSONGroupInfoHandler() {
         };
       }
 
-      res.header("content-type", "application/json");
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send({
         id: id,
@@ -168,14 +169,13 @@ function getGeoJSONInfoHandler() {
         );
       }
 
-      res.header("content-type", "application/json");
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send({
         group: id,
         layer: req.params.layer,
-        url: `${getRequestHost(req)}/geojsons/${id}/${
-          req.params.layer
-        }.geojson`,
+        url: `${getRequestHost(req)}/geojsons/${id}/${req.params.layer
+          }.geojson`,
         geometryTypes: item[req.params.layer].geometryTypes,
       });
     } catch (error) {
@@ -220,6 +220,10 @@ function getGeoJSONHandler() {
           StatusCodes.NOT_FOUND,
           `GeoJSON layer "${req.params.layer}" of group id "${id}" does not exist`,
         );
+      }
+
+      if (await isFileNotModified(req, res, geoJSONLayer.path)) {
+        return res.status(StatusCodes.NOT_MODIFIED).end();
       }
 
       /* Get and cache GeoJSON */
@@ -288,9 +292,7 @@ function getGeoJSONMD5Handler() {
       }
 
       /* Calculate MD5 and Add to header */
-      res.set({
-        etag: await getGeoJSONMD5(geoJSONLayer.path),
-      });
+      res.set("etag", await getGeoJSONMD5(geoJSONLayer.path));
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {

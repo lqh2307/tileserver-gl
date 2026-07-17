@@ -10,6 +10,7 @@ import {
 } from "../resources/index.js";
 import {
   detectContentTypeFromFormat,
+  isFileNotModified,
   sendTextResponse,
   getRequestHost,
   gzipAsync,
@@ -45,17 +46,20 @@ function getSpriteHandler() {
         );
       }
 
+      if (await isFileNotModified(req, res, item.path)) {
+        return res.status(StatusCodes.NOT_MODIFIED).end();
+      }
+
       /* Get and cache Sprite */
       const sprite = await getAndCacheDataSprite(
         id,
         req.url.slice(req.url.lastIndexOf("/") + 1),
       );
 
-      res.header(
+      res.set(
         "content-type",
         detectContentTypeFromFormat(req.params.format),
       );
-
       return res.status(StatusCodes.OK).send(sprite);
     } catch (error) {
       printLog(
@@ -91,9 +95,7 @@ function getSpriteMD5Handler() {
       }
 
       /* Calculate MD5 and Add to header */
-      res.set({
-        etag: await getSpriteMD5(item.path),
-      });
+      res.set("etag", await getSpriteMD5(item.path));
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {

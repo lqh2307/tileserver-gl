@@ -207,7 +207,7 @@ function getDataHandler() {
         );
       }
 
-      res.header("content-type", "application/json");
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send({
         ...item.tileJSON,
@@ -285,9 +285,7 @@ function getDataMD5Handler() {
         }
       }
 
-      res.set({
-        etag: md5,
-      });
+      res.set("etag", md5);
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {

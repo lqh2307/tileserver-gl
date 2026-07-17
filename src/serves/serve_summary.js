@@ -369,7 +369,7 @@ function serveSummaryHandler() {
           result.datas.pgs.size;
       }
 
-      res.header("content-type", "application/json");
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

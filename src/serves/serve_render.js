@@ -73,14 +73,13 @@ function renderStyleJSONHandler() {
       if (req.body.base64) {
         image = bufferToBase64(image, req.body.format);
 
-        res.set({
-          "content-type": "text/plain",
-        });
+        res.set("content-type", "text/plain");
       } else {
-        res.set({
-          // "content-disposition": `attachment; filename="${path.basename(filePath)}"`,
-          "content-type": detectContentTypeFromFormat(req.body.format),
-        });
+        // "content-disposition": `attachment; filename="${path.basename(filePath)}"`,
+        res.set(
+          "content-type",
+          detectContentTypeFromFormat(req.body.format),
+        );
       }
 
       return res.status(StatusCodes.OK).send(image);
@@ -133,14 +132,13 @@ function addFrameHandler() {
       if (req.body.output.base64) {
         image = bufferToBase64(image, req.body.output.format);
 
-        res.set({
-          "content-type": "text/plain",
-        });
+        res.set("content-type", "text/plain");
       } else {
-        res.set({
-          // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
-          "content-type": detectContentTypeFromFormat(req.body.output.format),
-        });
+        // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
+        res.set(
+          "content-type",
+          detectContentTypeFromFormat(req.body.output.format),
+        );
       }
 
       return res.status(StatusCodes.OK).send(image);
@@ -187,14 +185,13 @@ function renderSVGHandler() {
       if (req.body.base64) {
         image = bufferToBase64(image, req.body.format);
 
-        res.set({
-          "content-type": "text/plain",
-        });
+        res.set("content-type", "text/plain");
       } else {
-        res.set({
-          // "content-disposition": `attachment; filename="${nanoid()}.${req.body.format}"`,
-          "content-type": detectContentTypeFromFormat(req.body.format),
-        });
+        // "content-disposition": `attachment; filename="${nanoid()}.${req.body.format}"`,
+        res.set(
+          "content-type",
+          detectContentTypeFromFormat(req.body.format),
+        );
       }
 
       return res.status(StatusCodes.OK).send(image);
@@ -245,14 +242,13 @@ function renderPDFHandler() {
       if (req.body.output.base64) {
         image = bufferToBase64(image, req.body.output.format);
 
-        res.set({
-          "content-type": "text/plain",
-        });
+        res.set("content-type", "text/plain");
       } else {
-        res.set({
-          // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
-          "content-type": detectContentTypeFromFormat(req.body.output.format),
-        });
+        // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
+        res.set(
+          "content-type",
+          detectContentTypeFromFormat(req.body.output.format),
+        );
       }
 
       return res.status(StatusCodes.OK).send(image);
@@ -306,14 +302,13 @@ function renderHighQualityPDFHandler() {
       if (req.body.output.base64) {
         image = bufferToBase64(image, req.body.output.format);
 
-        res.set({
-          "content-type": "text/plain",
-        });
+        res.set("content-type", "text/plain");
       } else {
-        res.set({
-          // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
-          "content-type": detectContentTypeFromFormat(req.body.output.format),
-        });
+        // "content-disposition": `attachment; filename="${nanoid()}.${req.body.output.format}"`,
+        res.set(
+          "content-type",
+          detectContentTypeFromFormat(req.body.output.format),
+        );
       }
 
       return res.status(StatusCodes.OK).send(image);

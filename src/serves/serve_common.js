@@ -165,7 +165,7 @@ function serveConfigHandler() {
     const type = req.query.type || "config";
 
     try {
-      res.header("content-type", "application/json");
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(readConfigFile(type, false));
     } catch (error) {

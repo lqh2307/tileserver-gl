@@ -12,7 +12,7 @@ function serveMetricsHandler() {
     try {
       const data = await getMetrics();
 
-      res.header("content-type", data.contentType);
+      res.set("content-type", data.contentType);
 
       return res.status(StatusCodes.OK).send(data.metrics);
     } catch (error) {

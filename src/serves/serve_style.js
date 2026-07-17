@@ -17,6 +17,7 @@ import {
   RASTER_TILE_FORMATS,
   createTileMetadata,
   getXYZFromLonLatZ,
+  isFileNotModified,
   sendTextResponse,
   getRequestHost,
   TILE_SIZES,
@@ -86,7 +87,7 @@ function serveWMTSHandler() {
         base_url: getRequestHost(req),
       });
 
-      res.header("content-type", "text/xml");
+      res.set("content-type", "text/xml");
 
       return res.status(StatusCodes.OK).send(compiled);
     } catch (error) {
@@ -117,6 +118,10 @@ function getStyleHandler() {
           StatusCodes.NOT_FOUND,
           `Style id "${id}" does not exist`,
         );
+      }
+
+      if (await isFileNotModified(req, res, item.path)) {
+        return res.status(StatusCodes.NOT_MODIFIED).end();
       }
 
       /* Get and cache StyleJSON */
@@ -331,6 +336,12 @@ function getRenderedTileHandler() {
       );
     }
 
+    res.set("cache-control", "public, max-age=300");
+
+    if (await isFileNotModified(req, res, item.path)) {
+      return res.status(StatusCodes.NOT_MODIFIED).end();
+    }
+
     /* Render tile */
     try {
       const image = await renderImageTileData(
@@ -345,7 +356,7 @@ function getRenderedTileHandler() {
         },
       );
 
-      res.header(
+      res.set(
         "content-type",
         detectContentTypeFromFormat(req.params.format),
       );
@@ -401,7 +412,7 @@ function getRenderedHandler() {
         );
       }
 
-      res.header("content-type", "application/json");
+      res.set("content-type", "application/json");
 
       /* Get render info */
       return res.status(StatusCodes.OK).send({
@@ -410,8 +421,7 @@ function getRenderedHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${
-            queryStrings.length ? `?${queryStrings.join("&")}` : ""
+          `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${queryStrings.length ? `?${queryStrings.join("&")}` : ""
           }`,
         ],
       });
@@ -446,9 +456,7 @@ function getStyleMD5Handler() {
       }
 
       /* Calculate MD5 and Add to header */
-      res.set({
-        etag: await getStyleMD5(item.path),
-      });
+      res.set("etag", await getStyleMD5(item.path));
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {

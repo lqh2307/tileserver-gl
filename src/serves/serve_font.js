@@ -10,6 +10,7 @@ import {
 } from "../resources/index.js";
 import {
   detectFormatAndHeaders,
+  isFileNotModified,
   sendTextResponse,
   getRequestHost,
   gzipAsync,
@@ -73,9 +74,7 @@ function getFontMD5Handler() {
       }
 
       /* Calculate MD5 and Add to header */
-      res.set({
-        etag: await getFontMD5(item.path),
-      });
+      res.set("etag", await getFontMD5(item.path));
 
       return res.status(StatusCodes.OK).send();
     } catch (error) {
@@ -100,12 +99,16 @@ function getFontStaticHandler() {
   return async (req, res) => {
     const id = req.params.id;
     const format = req.params.format;
+    const filePath =
+      `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`;
 
     try {
+      if (await isFileNotModified(req, res, filePath)) {
+        return res.status(StatusCodes.NOT_MODIFIED).end();
+      }
+
       /* Get static Font */
-      let data = await getFont(
-        `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`,
-      );
+      let data = await getFont(filePath);
 
       /* Add header */
       res.set(detectFormatAndHeaders(data).headers);
