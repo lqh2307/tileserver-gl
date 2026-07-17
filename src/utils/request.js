@@ -150,11 +150,11 @@ export function isLocalURL(url) {
  * @returns {string}
  */
 export function getRequestHost(req) {
-  // const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-  // const host = req.headers["x-forwarded-host"] || req.headers["host"];
+  // const protocol = req.headers["x-forwarded-proto"] || req.protocol || "";
+  // const host = req.headers["x-forwarded-host"] || req.headers["host"] || "";
   // const prefix = req.headers["x-forwarded-prefix"] || "";
 
-  return `${req.headers["x-forwarded-proto"] || req.protocol}://${req.headers["x-forwarded-host"] || req.headers["host"]}${(prefix = req.headers["x-forwarded-prefix"] || "")}`;
+  return `${req.headers["x-forwarded-proto"] || req.protocol || ""}://${req.headers["x-forwarded-host"] || req.headers["host"] || ""}${req.headers["x-forwarded-prefix"] || ""}`;
 }
 
 /**
