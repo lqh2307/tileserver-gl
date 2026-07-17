@@ -169,15 +169,16 @@ export async function isFileNotModified(
 ) {
   try {
     const created = await getFileCreated(fileOrFolderPath);
+    const lastModified = new Date(created).toUTCString();
 
-    res.set("last-modified", new Date(created).toUTCString());
+    res.set("last-modified", lastModified);
 
     const ifModifiedSince = req.get("if-modified-since");
     if (!ifModifiedSince || req.get("if-none-match")) {
       return false;
     }
 
-    return created <= Date.parse(ifModifiedSince);
+    return Date.parse(lastModified) <= Date.parse(ifModifiedSince);
   } catch (error) {
     if (error.message === "Not Found") {
       return false;
