@@ -1,6 +1,7 @@
 "use strict";
 
 import { StatusCodes } from "http-status-codes";
+import { createCache } from "cache-manager";
 import { getFileCreated } from "./file.js";
 import axios, { isCancel } from "axios";
 import { printLog } from "./logger.js";
@@ -8,6 +9,11 @@ import https from "node:https";
 import http from "node:http";
 
 export const HTTP_SCHEMES = ["https://", "http://"];
+
+/* Cache in RAM */
+const lastModifiedCaches = createCache({
+  ttl: 300000, // 5 mins
+});
 
 /**
  * Check if a string is a URL (blob, data, http, or https).
@@ -144,11 +150,11 @@ export function isLocalURL(url) {
  * @returns {string}
  */
 export function getRequestHost(req) {
-  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-  const host = req.headers["x-forwarded-host"] || req.headers["host"];
-  const prefix = req.headers["x-forwarded-prefix"] || "";
+  // const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+  // const host = req.headers["x-forwarded-host"] || req.headers["host"];
+  // const prefix = req.headers["x-forwarded-prefix"] || "";
 
-  return `${protocol}://${host}${prefix}`;
+  return `${req.headers["x-forwarded-proto"] || req.protocol}://${req.headers["x-forwarded-host"] || req.headers["host"]}${(prefix = req.headers["x-forwarded-prefix"] || "")}`;
 }
 
 /**
@@ -160,21 +166,18 @@ export function getRequestHost(req) {
  * @param {Request} req Express request
  * @param {Response} res Express response
  * @param {string} fileOrFolderPath File or folder path to inspect
- * @param {number} maxAge Cache lifetime in seconds
  * @returns {Promise<boolean>}
  */
-export async function isFileNotModified(
-  req,
-  res,
-  fileOrFolderPath,
-  maxAge = 300,
-) {
+export async function isFileNotModified(req, res, fileOrFolderPath) {
   try {
-    const created = await getFileCreated(fileOrFolderPath);
-    const lastModified = new Date(created).toUTCString();
+    const lastModified = await lastModifiedCaches.wrap(
+      fileOrFolderPath,
+      async () =>
+        new Date(await getFileCreated(fileOrFolderPath)).toUTCString(),
+    );
 
     res.set({
-      "cache-control": `public, max-age=${maxAge}`,
+      "cache-control": "public, max-age=0",
       "last-modified": lastModified,
     });
 
@@ -192,3 +195,4 @@ export async function isFileNotModified(
     throw error;
   }
 }
+

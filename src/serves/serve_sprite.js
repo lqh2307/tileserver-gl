@@ -56,10 +56,7 @@ function getSpriteHandler() {
         req.url.slice(req.url.lastIndexOf("/") + 1),
       );
 
-      res.set(
-        "content-type",
-        detectContentTypeFromFormat(req.params.format),
-      );
+      res.set("content-type", detectContentTypeFromFormat(req.params.format));
       return res.status(StatusCodes.OK).send(sprite);
     } catch (error) {
       printLog(

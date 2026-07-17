@@ -24,13 +24,21 @@ import {
 function getFontHandler() {
   return async (req, res) => {
     const ids = req.params.id;
+    const fileName = req.url.slice(req.url.lastIndexOf("/") + 1);
 
     try {
+      const fontIDs = ids.split(",");
+      if (fontIDs.length === 1) {
+        const item = config.fonts[fontIDs[0]];
+        const filePath = item ? `${item.path}/${fileName}` : undefined;
+
+        if (filePath && (await isFileNotModified(req, res, filePath))) {
+          return res.status(StatusCodes.NOT_MODIFIED).end();
+        }
+      }
+
       /* Get and cache Fonts */
-      let data = await getAndCacheDataFonts(
-        ids,
-        req.url.slice(req.url.lastIndexOf("/") + 1),
-      );
+      let data = await getAndCacheDataFonts(ids, fileName);
 
       /* Gzip pbf font */
       const headers = detectFormatAndHeaders(data).headers;
@@ -99,8 +107,7 @@ function getFontStaticHandler() {
   return async (req, res) => {
     const id = req.params.id;
     const format = req.params.format;
-    const filePath =
-      `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`;
+    const filePath = `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`;
 
     try {
       if (await isFileNotModified(req, res, filePath)) {
@@ -417,3 +424,4 @@ export const serve_font = {
     }
   },
 };
+

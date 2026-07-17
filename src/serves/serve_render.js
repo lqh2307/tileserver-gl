@@ -76,10 +76,7 @@ function renderStyleJSONHandler() {
         res.set("content-type", "text/plain");
       } else {
         // "content-disposition": `attachment; filename="${path.basename(filePath)}"`,
-        res.set(
-          "content-type",
-          detectContentTypeFromFormat(req.body.format),
-        );
+        res.set("content-type", detectContentTypeFromFormat(req.body.format));
       }
 
       return res.status(StatusCodes.OK).send(image);
@@ -188,10 +185,7 @@ function renderSVGHandler() {
         res.set("content-type", "text/plain");
       } else {
         // "content-disposition": `attachment; filename="${nanoid()}.${req.body.format}"`,
-        res.set(
-          "content-type",
-          detectContentTypeFromFormat(req.body.format),
-        );
+        res.set("content-type", detectContentTypeFromFormat(req.body.format));
       }
 
       return res.status(StatusCodes.OK).send(image);

@@ -174,8 +174,9 @@ function getGeoJSONInfoHandler() {
       return res.status(StatusCodes.OK).send({
         group: id,
         layer: req.params.layer,
-        url: `${getRequestHost(req)}/geojsons/${id}/${req.params.layer
-          }.geojson`,
+        url: `${getRequestHost(req)}/geojsons/${id}/${
+          req.params.layer
+        }.geojson`,
         geometryTypes: item[req.params.layer].geometryTypes,
       });
     } catch (error) {

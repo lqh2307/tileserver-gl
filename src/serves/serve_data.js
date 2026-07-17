@@ -6,6 +6,7 @@ import {
   compileHandleBarsTemplate,
   validateTileMetadata,
   createTileMetadata,
+  isFileNotModified,
   getXYZFromLonLatZ,
   ALL_TILE_FORMATS,
   sendTextResponse,
@@ -110,6 +111,20 @@ function getTileDataHandler() {
 
     /* Get and cache tile data */
     try {
+      if (
+        await isFileNotModified(
+          req,
+          res,
+          item.sourceType === "xyz"
+            ? `${item.path}/${req.params.z}/${req.params.x}/${req.params.y}.${req.params.format}`
+            : item.sourceType === "mbtiles" || item.sourceType === "pmtiles"
+              ? item.path
+              : undefined,
+        )
+      ) {
+        return res.status(StatusCodes.NOT_MODIFIED).end();
+      }
+
       let tileData;
 
       switch (item.sourceType) {
@@ -215,8 +230,7 @@ function getDataHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
-            item.tileJSON.format
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format
           }`,
         ],
       });
@@ -438,7 +452,7 @@ function calculateDataExtraInfoHandler() {
         }
 
         case "pmtiles": {
-          calculateTileExtraInfoFunc = async () => {};
+          calculateTileExtraInfoFunc = async () => { };
 
           break;
         }
