@@ -160,18 +160,23 @@ export function getRequestHost(req) {
  * @param {Request} req Express request
  * @param {Response} res Express response
  * @param {string} fileOrFolderPath File or folder path to inspect
+ * @param {number} maxAge Cache lifetime in seconds
  * @returns {Promise<boolean>}
  */
 export async function isFileNotModified(
   req,
   res,
   fileOrFolderPath,
+  maxAge = 300,
 ) {
   try {
     const created = await getFileCreated(fileOrFolderPath);
     const lastModified = new Date(created).toUTCString();
 
-    res.set("last-modified", lastModified);
+    res.set({
+      "cache-control": `public, max-age=${maxAge}`,
+      "last-modified": lastModified,
+    });
 
     const ifModifiedSince = req.get("if-modified-since");
     if (!ifModifiedSince || req.get("if-none-match")) {

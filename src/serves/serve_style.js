@@ -336,8 +336,6 @@ function getRenderedTileHandler() {
       );
     }
 
-    res.set("cache-control", "public, max-age=300");
-
     if (await isFileNotModified(req, res, item.path)) {
       return res.status(StatusCodes.NOT_MODIFIED).end();
     }
