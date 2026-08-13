@@ -424,4 +424,3 @@ export const serve_font = {
     }
   },
 };
-

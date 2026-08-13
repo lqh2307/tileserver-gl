@@ -69,7 +69,7 @@ apt-get -y install \
 Install nodejs:
 
 ```bash
-export NODEJS_VERSION=24.18.0
+export NODEJS_VERSION=24.19.0
 
 wget -q https://nodejs.org/download/release/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
 tar -xzf node-v${NODEJS_VERSION}-linux-x64.tar.gz; \
@@ -78,6 +78,14 @@ cp -r ./node-v${NODEJS_VERSION}-linux-x64/* /usr/local/opt/nodejs; \
 rm -rf node-v${NODEJS_VERSION}-linux-x64*; \
 grep -q '/usr/local/opt/nodejs/bin' ~/.bashrc || echo 'export PATH=/usr/local/opt/nodejs/bin:${PATH}' >> ~/.bashrc; \
 source ~/.bashrc;
+```
+
+Fix install global package:
+```bash
+mkdir -p ~/.npm-global
+npm config set prefix ~/.npm-global
+echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
 ```
 
 Install nodejs packages:

@@ -230,7 +230,8 @@ function getDataHandler() {
         scheme: "xyz",
         id: id,
         tiles: [
-          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${item.tileJSON.format
+          `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
+            item.tileJSON.format
           }`,
         ],
       });
@@ -452,7 +453,7 @@ function calculateDataExtraInfoHandler() {
         }
 
         case "pmtiles": {
-          calculateTileExtraInfoFunc = async () => { };
+          calculateTileExtraInfoFunc = async () => {};
 
           break;
         }

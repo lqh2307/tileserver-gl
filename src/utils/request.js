@@ -195,4 +195,3 @@ export async function isFileNotModified(req, res, fileOrFolderPath) {
     throw error;
   }
 }
-
