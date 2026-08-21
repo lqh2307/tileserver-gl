@@ -260,13 +260,11 @@ function serveConfigUpdateHandler() {
       await updateConfigFile(type, configJSON, 60000);
 
       if (req.query.restart === "true") {
-        setTimeout(
-          () =>
-            process.send({
-              action: "restartServer",
-            }),
-          0,
-        );
+        setTimeout(() => {
+          return process.send({
+            action: "restartServer",
+          });
+        }, 0);
       }
 
       return res.status(StatusCodes.OK).send("OK");
@@ -314,12 +312,12 @@ function serveConfigDeleteHandler() {
             rm(path.dirname(style.path), {
               recursive: true,
               force: true,
-            }).catch((error) =>
-              printLog(
+            }).catch((error) => {
+              return printLog(
                 "warn",
                 `Failed to remove style path "${style.path}": ${error}. Skipping...`,
-              ),
-            );
+              );
+            });
           }
         });
       }
@@ -339,12 +337,12 @@ function serveConfigDeleteHandler() {
               rm(path.dirname(geojson.path), {
                 recursive: true,
                 force: true,
-              }).catch((error) =>
-                printLog(
+              }).catch((error) => {
+                return printLog(
                   "warn",
                   `Failed to remove geojson path "${geojson.path}": ${error}. Skipping...`,
-                ),
-              );
+                );
+              });
             }
           });
         });
@@ -365,12 +363,12 @@ function serveConfigDeleteHandler() {
             rm(path.dirname(data.path), {
               recursive: true,
               force: true,
-            }).catch((error) =>
-              printLog(
+            }).catch((error) => {
+              return printLog(
                 "warn",
                 `Failed to remove data path "${data.path}": ${error}. Skipping...`,
-              ),
-            );
+              );
+            });
           }
         });
       }
@@ -390,12 +388,12 @@ function serveConfigDeleteHandler() {
             rm(sprite.path, {
               recursive: true,
               force: true,
-            }).catch((error) =>
-              printLog(
+            }).catch((error) => {
+              return printLog(
                 "warn",
                 `Failed to remove sprite path "${sprite.path}": ${error}. Skipping...`,
-              ),
-            );
+              );
+            });
           }
         });
       }
@@ -415,12 +413,12 @@ function serveConfigDeleteHandler() {
             rm(font.path, {
               recursive: true,
               force: true,
-            }).catch((error) =>
-              printLog(
+            }).catch((error) => {
+              return printLog(
                 "warn",
                 `Failed to remove font path "${font.path}": ${error}. Skipping...`,
-              ),
-            );
+              );
+            });
           }
         });
       }
@@ -428,13 +426,11 @@ function serveConfigDeleteHandler() {
       await updateConfigFile(type, configJSON, 60000);
 
       if (req.query.restart === "true") {
-        setTimeout(
-          () =>
-            process.send({
-              action: "restartServer",
-            }),
-          0,
-        );
+        setTimeout(() => {
+          return process.send({
+            action: "restartServer",
+          });
+        }, 0);
       }
 
       return res.status(StatusCodes.OK).send("OK");
@@ -516,21 +512,17 @@ function serveRestartKillHandler() {
   return async (req, res) => {
     try {
       if (req.query.type === "kill") {
-        setTimeout(
-          () =>
-            process.send({
-              action: "killServer",
-            }),
-          0,
-        );
+        setTimeout(() => {
+          return process.send({
+            action: "killServer",
+          });
+        }, 0);
       } else {
-        setTimeout(
-          () =>
-            process.send({
-              action: "restartServer",
-            }),
-          0,
-        );
+        setTimeout(() => {
+          return process.send({
+            action: "restartServer",
+          });
+        }, 0);
       }
 
       return res.status(StatusCodes.OK).send("OK");

@@ -38,7 +38,9 @@ export async function calculateMD5OfFile(filePath) {
     await new Promise((resolve, reject) => {
       createReadStream(filePath)
         .on("error", reject)
-        .on("data", (chunk) => hash.update(chunk))
+        .on("data", (chunk) => {
+          return hash.update(chunk);
+        })
         .on("end", resolve);
     });
 
@@ -67,7 +69,9 @@ export async function calculateMD5OfFiles(filePaths) {
       await new Promise((resolve, reject) => {
         createReadStream(filePath)
           .on("error", reject)
-          .on("data", (chunk) => hash.update(chunk))
+          .on("data", (chunk) => {
+            return hash.update(chunk);
+          })
           .on("end", resolve);
       });
 
@@ -139,11 +143,11 @@ export function base64ToBuffer(base64) {
  */
 export async function createFolders(dirPaths) {
   await Promise.all(
-    dirPaths.map((dirPath) =>
-      mkdir(dirPath, {
+    dirPaths.map((dirPath) => {
+      return mkdir(dirPath, {
         recursive: true,
-      }),
-    ),
+      });
+    }),
   );
 }
 
@@ -154,12 +158,12 @@ export async function createFolders(dirPaths) {
  */
 export async function removeFolders(dirPaths) {
   await Promise.all(
-    dirPaths.map((dirPath) =>
-      rm(dirPath, {
+    dirPaths.map((dirPath) => {
+      return rm(dirPath, {
         force: true,
         recursive: true,
-      }),
-    ),
+      });
+    }),
   );
 }
 
@@ -185,7 +189,9 @@ export async function removeEmptyFolders(folderPath, regex) {
       } else if (entry.isDirectory()) {
         await removeEmptyFolders(fullPath, regex);
 
-        const subEntries = await readdir(fullPath).catch(() => []);
+        const subEntries = await readdir(fullPath).catch(() => {
+          return [];
+        });
         if (subEntries.length) {
           hasMatchingFile = true;
         }
@@ -293,9 +299,13 @@ export async function findFiles(
       );
 
       if (includeDirPath) {
-        subEntries.forEach((sub) => results.push(`${fullPath}/${sub}`));
+        subEntries.forEach((sub) => {
+          results.push(`${fullPath}/${sub}`);
+        });
       } else {
-        subEntries.forEach((sub) => results.push(`${entry.name}/${sub}`));
+        subEntries.forEach((sub) => {
+          results.push(`${entry.name}/${sub}`);
+        });
       }
     }
   }

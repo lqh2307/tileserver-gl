@@ -75,12 +75,17 @@ export async function getFontCreated(pbfDirPath) {
  */
 export async function getFontMD5(pbfDirPath) {
   return await calculateMD5OfFiles(
-    Array.from({ length: 256 }, (_, idx) => {
-      const rangeStart = idx * 256;
-      const rangeEnd = rangeStart + 255;
+    Array.from(
+      {
+        length: 256,
+      },
+      (_, idx) => {
+        const rangeStart = idx * 256;
+        const rangeEnd = rangeStart + 255;
 
-      return `${pbfDirPath}/${rangeStart}-${rangeEnd}.pbf`;
-    }),
+        return `${pbfDirPath}/${rangeStart}-${rangeEnd}.pbf`;
+      },
+    ),
   );
 }
 
@@ -176,7 +181,9 @@ export function mergePBFFontDatas(pbfBuffers) {
     }
   }
 
-  result.stacks[0].glyphs.sort((a, b) => a.id - b.id);
+  result.stacks[0].glyphs.sort((a, b) => {
+    return a.id - b.id;
+  });
 
   return glyphsProto.glyphs.encode(result);
 }
@@ -266,12 +273,12 @@ export async function getAndCacheDataFonts(ids, fileName) {
                 `Caching font id "${id}" - Filename "${fileName}"...`,
               );
 
-              storeFontFile(filePath, font).catch((error) =>
-                printLog(
+              storeFontFile(filePath, font).catch((error) => {
+                return printLog(
                   "error",
                   `Failed to cache font id "${id}" - Filename "${fileName}": ${error}`,
-                ),
-              );
+                );
+              });
             }
 
             return font;

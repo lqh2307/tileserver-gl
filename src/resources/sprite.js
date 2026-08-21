@@ -123,9 +123,9 @@ export async function validateSprite(spriteDirPath) {
     throw new Error("Missing some JSON or PNG files");
   }
 
-  const fileNameWoExts = jsonSpriteFileNames.map(
-    (jsonSpriteFileName) => jsonSpriteFileName.split(".")[0],
-  );
+  const fileNameWoExts = jsonSpriteFileNames.map((jsonSpriteFileName) => {
+    return jsonSpriteFileName.split(".")[0];
+  });
 
   await Promise.all(
     fileNameWoExts.map(async (fileNameWoExt) => {
@@ -186,12 +186,12 @@ export async function getAndCacheDataSprite(id, fileName) {
           `Caching sprite id "${id}" - Filename "${fileName}"...`,
         );
 
-        storeSpriteFile(filePath, sprite).catch((error) =>
-          printLog(
+        storeSpriteFile(filePath, sprite).catch((error) => {
+          return printLog(
             "error",
             `Failed to cache sprite id "${id}" - Filename "${fileName}": ${error}`,
-          ),
-        );
+          );
+        });
       }
 
       return sprite;

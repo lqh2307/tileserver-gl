@@ -294,7 +294,9 @@ function serveSummaryHandler() {
 
               case "pmtiles": {
                 if (
-                  !HTTP_SCHEMES.some((scheme) => item.path.startsWith(scheme))
+                  !HTTP_SCHEMES.some((scheme) => {
+                    return item.path.startsWith(scheme);
+                  })
                 ) {
                   result.datas.pmtiles.size += await getPMTilesSize(item.path);
                 }

@@ -12,7 +12,9 @@ import mime from "mime";
  */
 export async function delay(ms) {
   if (ms >= 0) {
-    await new Promise((resolve) => setTimeout(resolve, ms));
+    await new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 }
 
@@ -77,7 +79,9 @@ export async function runCommand(command, interval, callback) {
 
     const intervalID =
       interval > 0 && callback
-        ? setInterval(() => callback(stdout), interval)
+        ? setInterval(() => {
+            callback(stdout);
+          }, interval)
         : undefined;
 
     child.on("close", (code) => {

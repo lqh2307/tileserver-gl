@@ -54,7 +54,9 @@ async function getXYZLayersFromTiles(sourcePath) {
       yield async () => {
         vectorTileProto.tile
           .decode(await readFile(pbfFilePath))
-          .layers.map((layer) => layer.name)
+          .layers.map((layer) => {
+            return layer.name;
+          })
           .forEach(layerNames.add);
       };
     }
@@ -102,7 +104,9 @@ async function getXYZBBoxFromTiles(sourcePath) {
       continue;
     }
 
-    const ys = yFiles.map((f) => Number(f.split(".")[0]));
+    const ys = yFiles.map((f) => {
+      return Number(f.split(".")[0]);
+    });
 
     const yMinLocal = minValue(ys);
     const yMaxLocal = maxValue(ys);
@@ -362,7 +366,11 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
 
     const tableInfos = source.prepare("PRAGMA table_info(md5s);").all();
 
-    if (!tableInfos.some((col) => col.name === "hash")) {
+    if (
+      !tableInfos.some((col) => {
+        return col.name === "hash";
+      })
+    ) {
       try {
         source.exec("ALTER TABLE md5s ADD COLUMN hash TEXT;");
       } catch (error) {
@@ -373,7 +381,11 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
       }
     }
 
-    if (!tableInfos.some((col) => col.name === "created")) {
+    if (
+      !tableInfos.some((col) => {
+        return col.name === "created";
+      })
+    ) {
       try {
         source.exec("ALTER TABLE md5s ADD COLUMN created BIGINT;");
       } catch (error) {
@@ -552,9 +564,11 @@ export async function getXYZMetadata(sourcePath, source) {
     try {
       const layers = await getXYZLayersFromTiles(sourcePath);
 
-      metadata.vector_layers = layers.map((layer) => ({
-        id: layer,
-      }));
+      metadata.vector_layers = layers.map((layer) => {
+        return {
+          id: layer,
+        };
+      });
     } catch (error) {
       metadata.vector_layers = FALLBACK_VECTOR_LAYERS;
     }
@@ -740,12 +754,12 @@ export async function getAndCacheXYZTileData(id, z, x, y) {
           sourcePath: item.source,
           format: item.tileJSON.format,
           storeTransparent: item.storeTransparent,
-        }).catch((error) =>
-          printLog(
+        }).catch((error) => {
+          return printLog(
             "error",
             `Failed to cache data id "${id}" - Tile "${tileName}": ${error}`,
-          ),
-        );
+          );
+        });
       }
 
       return {

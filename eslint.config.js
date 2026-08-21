@@ -12,8 +12,20 @@ export default [
       },
     },
     rules: {
-      "no-undef": "error",
-      semi: ["error", "always"],
+      "no-undef": "off",
+      "semi": ["error", "always"],
+      "react-hooks/exhaustive-deps": "off",
+      "arrow-body-style": ["error", "always"],
+      "object-curly-newline": [
+        "error",
+        {
+          ObjectExpression: {
+            multiline: true,
+            minProperties: 1,
+          },
+        },
+      ],
+      curly: ["error", "all"],
     },
   },
 ];

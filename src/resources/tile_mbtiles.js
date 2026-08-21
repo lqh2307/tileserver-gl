@@ -73,12 +73,14 @@ async function getMBTilesLayersFromTiles(source) {
       break;
     }
 
-    rows.forEach((row) =>
-      vectorTileProto.tile
+    rows.forEach((row) => {
+      return vectorTileProto.tile
         .decode(row.tile_data)
-        .layers.map((layer) => layer.name)
-        .forEach(layerNames.add),
-    );
+        .layers.map((layer) => {
+          return layer.name;
+        })
+        .forEach(layerNames.add);
+    });
 
     lastRowID = rows[len - 1].rowid;
   }
@@ -257,15 +259,15 @@ export function calculateMBTilesTileExtraInfo(source) {
       break;
     }
 
-    rows.forEach((row) =>
-      updateSQL.run([
+    rows.forEach((row) => {
+      return updateSQL.run([
         calculateMD5(row.tile_data),
         created,
         row.zoom_level,
         row.tile_column,
         row.tile_row,
-      ]),
-    );
+      ]);
+    });
 
     lastRowID = rows[len - 1].rowid;
   }
@@ -328,7 +330,11 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
 
     const tableInfos = source.prepare("PRAGMA table_info(tiles);").all();
 
-    if (!tableInfos.some((col) => col.name === "hash")) {
+    if (
+      !tableInfos.some((col) => {
+        return col.name === "hash";
+      })
+    ) {
       try {
         source.exec("ALTER TABLE tiles ADD COLUMN hash TEXT;");
       } catch (error) {
@@ -339,7 +345,11 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
       }
     }
 
-    if (!tableInfos.some((col) => col.name === "created")) {
+    if (
+      !tableInfos.some((col) => {
+        return col.name === "created";
+      })
+    ) {
       try {
         source.exec("ALTER TABLE tiles ADD COLUMN created BIGINT;");
       } catch (error) {
@@ -514,9 +524,11 @@ export async function getMBTilesMetadata(source) {
     try {
       const layers = await getMBTilesLayersFromTiles(source);
 
-      metadata.vector_layers = layers.map((layer) => ({
-        id: layer,
-      }));
+      metadata.vector_layers = layers.map((layer) => {
+        return {
+          id: layer,
+        };
+      });
     } catch (error) {
       metadata.vector_layers = FALLBACK_VECTOR_LAYERS;
     }
@@ -691,12 +703,12 @@ export async function getAndCacheMBTilesTileData(id, z, x, y) {
         storeMBtilesTileData(z, x, tmpY, data, {
           source: item.source,
           storeTransparent: item.storeTransparent,
-        }).catch((error) =>
-          printLog(
+        }).catch((error) => {
+          return printLog(
             "error",
             `Failed to cache data id "${id}" - Tile "${tileName}": ${error}`,
-          ),
-        );
+          );
+        });
       }
 
       return {

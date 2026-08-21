@@ -446,8 +446,9 @@ function calculateDataExtraInfoHandler() {
 
       switch (item.sourceType) {
         case "mbtiles": {
-          calculateTileExtraInfoFunc = async () =>
-            calculateMBTilesTileExtraInfo(item.source);
+          calculateTileExtraInfoFunc = async () => {
+            return calculateMBTilesTileExtraInfo(item.source);
+          };
 
           break;
         }
@@ -459,15 +460,17 @@ function calculateDataExtraInfoHandler() {
         }
 
         case "xyz": {
-          calculateTileExtraInfoFunc = async () =>
-            await calculateXYZTileExtraInfo(item.source, item.md5Source);
+          calculateTileExtraInfoFunc = async () => {
+            return await calculateXYZTileExtraInfo(item.source, item.md5Source);
+          };
 
           break;
         }
 
         case "pg": {
-          calculateTileExtraInfoFunc = async () =>
-            await calculatePostgreSQLTileExtraInfo(item.source);
+          calculateTileExtraInfoFunc = async () => {
+            return await calculatePostgreSQLTileExtraInfo(item.source);
+          };
 
           break;
         }
@@ -980,7 +983,9 @@ export const serve_data = {
               dataInfo.sourceType = "pmtiles";
 
               if (
-                HTTP_SCHEMES.some((scheme) => item.pmtiles.startsWith(scheme))
+                HTTP_SCHEMES.some((scheme) => {
+                  return item.pmtiles.startsWith(scheme);
+                })
               ) {
                 /* Get PMTiles path */
                 dataInfo.path = item.pmtiles;

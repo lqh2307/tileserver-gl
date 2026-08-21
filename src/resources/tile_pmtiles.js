@@ -47,7 +47,11 @@ class PMTilesFileSource {
 export function openPMTiles(filePath) {
   let source;
 
-  if (HTTP_SCHEMES.some((scheme) => filePath.startsWith(scheme))) {
+  if (
+    HTTP_SCHEMES.some((scheme) => {
+      return filePath.startsWith(scheme);
+    })
+  ) {
     source = new FetchSource(filePath);
   } else {
     source = new PMTilesFileSource(openSync(filePath, "r"));

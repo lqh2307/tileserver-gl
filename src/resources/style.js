@@ -225,7 +225,9 @@ export async function validateStyle(data) {
   if (validationErrors.length) {
     throw new Error(
       validationErrors
-        .map((validationError) => `\n\t${validationError.message}`)
+        .map((validationError) => {
+          return `\n\t${validationError.message}`;
+        })
         .join(),
     );
   }
@@ -234,7 +236,9 @@ export async function validateStyle(data) {
   if (styleJSON.glyphs !== undefined) {
     if (styleJSON.glyphs.startsWith("fonts://")) {
     } else if (
-      !HTTP_SCHEMES.some((scheme) => styleJSON.glyphs.startsWith(scheme))
+      !HTTP_SCHEMES.some((scheme) => {
+        return styleJSON.glyphs.startsWith(scheme);
+      })
     ) {
       throw new Error(`Invalid font url: "${styleJSON.glyphs}"`);
     }
@@ -249,7 +253,9 @@ export async function validateStyle(data) {
         throw new Error(`Sprite "${spriteID}" is not found`);
       }
     } else if (
-      !HTTP_SCHEMES.some((scheme) => styleJSON.sprite.startsWith(scheme))
+      !HTTP_SCHEMES.some((scheme) => {
+        return styleJSON.sprite.startsWith(scheme);
+      })
     ) {
       throw new Error(`Invalid sprite url: "${styleJSON.sprite}"`);
     }
@@ -289,7 +295,9 @@ export async function validateStyle(data) {
           }
         } else if (source.url.startsWith("data:")) {
         } else if (
-          !HTTP_SCHEMES.some((scheme) => source.url.startsWith(scheme))
+          !HTTP_SCHEMES.some((scheme) => {
+            return source.url.startsWith(scheme);
+          })
         ) {
           throw new Error(
             `Source "${id}" is invalid data url: "${source.url}"`,
@@ -313,7 +321,11 @@ export async function validateStyle(data) {
                 `Source "${id}" is not found data source "${sourceID}"`,
               );
             }
-          } else if (!HTTP_SCHEMES.some((scheme) => url.startsWith(scheme))) {
+          } else if (
+            !HTTP_SCHEMES.some((scheme) => {
+              return url.startsWith(scheme);
+            })
+          ) {
             throw new Error(`Source "${id}" is invalid data url: "${url}"`);
           }
         });
@@ -335,7 +347,11 @@ export async function validateStyle(data) {
                 `Source "${id}" is not found data source "${sourceID}"`,
               );
             }
-          } else if (!HTTP_SCHEMES.some((scheme) => tile.startsWith(scheme))) {
+          } else if (
+            !HTTP_SCHEMES.some((scheme) => {
+              return tile.startsWith(scheme);
+            })
+          ) {
             throw new Error(`Source "${id}" is invalid tile url: "${tile}"`);
           }
         });
@@ -375,12 +391,12 @@ export async function getAndCacheDataStyleJSON(id) {
       if (item.storeCache) {
         printLog("info", `Caching style id "${id}" - File "${item.path}"...`);
 
-        storeStyleFile(item.path, styleJSON).catch((error) =>
-          printLog(
+        storeStyleFile(item.path, styleJSON).catch((error) => {
+          return printLog(
             "error",
             `Failed to cache style id "${id}" - File "${item.path}": ${error}`,
-          ),
-        );
+          );
+        });
       }
 
       return styleJSON;

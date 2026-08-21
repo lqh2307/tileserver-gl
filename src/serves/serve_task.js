@@ -10,24 +10,22 @@ import { printLog } from "../utils/index.js";
 function startTaskHandler() {
   return async (req, res) => {
     try {
-      setTimeout(
-        () =>
-          process.send({
-            action: "startTask",
-            cleanUpSprites: req.query.cleanUpSprites === "true",
-            cleanUpFonts: req.query.cleanUpFonts === "true",
-            cleanUpStyles: req.query.cleanUpStyles === "true",
-            cleanUpGeoJSONs: req.query.cleanUpGeoJSONs === "true",
-            cleanUpDatas: req.query.cleanUpDatas === "true",
-            seedSprites: req.query.seedSprites === "true",
-            seedFonts: req.query.seedFonts === "true",
-            seedStyles: req.query.seedStyles === "true",
-            seedGeoJSONs: req.query.seedGeoJSONs === "true",
-            seedDatas: req.query.seedDatas === "true",
-            restart: req.query.restart === "true",
-          }),
-        0,
-      );
+      setTimeout(() => {
+        return process.send({
+          action: "startTask",
+          cleanUpSprites: req.query.cleanUpSprites === "true",
+          cleanUpFonts: req.query.cleanUpFonts === "true",
+          cleanUpStyles: req.query.cleanUpStyles === "true",
+          cleanUpGeoJSONs: req.query.cleanUpGeoJSONs === "true",
+          cleanUpDatas: req.query.cleanUpDatas === "true",
+          seedSprites: req.query.seedSprites === "true",
+          seedFonts: req.query.seedFonts === "true",
+          seedStyles: req.query.seedStyles === "true",
+          seedGeoJSONs: req.query.seedGeoJSONs === "true",
+          seedDatas: req.query.seedDatas === "true",
+          restart: req.query.restart === "true",
+        });
+      }, 0);
 
       return res.status(StatusCodes.OK).send("OK");
     } catch (error) {
@@ -47,13 +45,11 @@ function startTaskHandler() {
 function cancelTaskHandler() {
   return async (_, res) => {
     try {
-      setTimeout(
-        () =>
-          process.send({
-            action: "cancelTask",
-          }),
-        0,
-      );
+      setTimeout(() => {
+        return process.send({
+          action: "cancelTask",
+        });
+      }, 0);
 
       return res.status(StatusCodes.OK).send("OK");
     } catch (error) {

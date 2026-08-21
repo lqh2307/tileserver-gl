@@ -23,7 +23,7 @@ const FALLBACK_TILE_DATA = {
   pbf: Buffer.from([]),
 };
 
-(async () =>
+(async () => {
   await Promise.all(
     [...RASTER_TILE_FORMATS].map(async (format) => {
       FALLBACK_TILE_DATA[format] = await createImageOutput({
@@ -36,7 +36,8 @@ const FALLBACK_TILE_DATA = {
         format: format,
       });
     }),
-  ))();
+  );
+})();
 
 /**
  * Create tile metadata

@@ -18,10 +18,9 @@ export function validateJSON(schema, jsonData) {
 
     if (!validate(jsonData)) {
       throw validate.errors
-        .map(
-          (error) =>
-            `\n\tPath ${error.instancePath || "/"}: ${error.keyword} - ${error.message} - ${JSON.stringify(error.params)}`,
-        )
+        .map((error) => {
+          return `\n\tPath ${error.instancePath || "/"}: ${error.keyword} - ${error.message} - ${JSON.stringify(error.params)}`;
+        })
         .join();
     }
   } catch (error) {

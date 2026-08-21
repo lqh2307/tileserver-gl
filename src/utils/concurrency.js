@@ -21,7 +21,9 @@ export async function runAllWithLimit(generator, limit, item) {
 
     executing.add(p);
 
-    p.finally(() => executing.delete(p));
+    p.finally(() => {
+      return executing.delete(p);
+    });
 
     if (executing.size >= concurrency) {
       await Promise.race(executing);

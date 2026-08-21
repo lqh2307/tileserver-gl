@@ -814,8 +814,9 @@ export async function exportTileDatas(
         updateMBTilesMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async () =>
-          getMBTilesTileExtraInfoFromCoverages(source, coverages, false);
+        getTileExtraInfo = async () => {
+          return getMBTilesTileExtraInfoFromCoverages(source, coverages, false);
+        };
 
         /* Assign tile option */
         tileOption = {
@@ -825,11 +826,14 @@ export async function exportTileDatas(
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) =>
-          await storeMBtilesTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) => {
+          return await storeMBtilesTileData(z, x, y, data, tileOption);
+        };
 
         /* Close database function */
-        closeDatabaseFunc = async () => closeMBTilesDB(source);
+        closeDatabaseFunc = async () => {
+          return closeMBTilesDB(source);
+        };
 
         break;
       }
@@ -850,12 +854,13 @@ export async function exportTileDatas(
         await updatePostgreSQLMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async () =>
-          await getPostgreSQLTileExtraInfoFromCoverages(
+        getTileExtraInfo = async () => {
+          return await getPostgreSQLTileExtraInfoFromCoverages(
             source,
             coverages,
             true,
           );
+        };
 
         /* Assign tile option */
         tileOption = {
@@ -865,11 +870,14 @@ export async function exportTileDatas(
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) =>
-          await storePostgreSQLTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) => {
+          return await storePostgreSQLTileData(z, x, y, data, tileOption);
+        };
 
         /* Close database function */
-        closeDatabaseFunc = async () => await closePostgreSQLDB(source);
+        closeDatabaseFunc = async () => {
+          return await closePostgreSQLDB(source);
+        };
 
         break;
       }
@@ -892,8 +900,9 @@ export async function exportTileDatas(
         updateXYZMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async () =>
-          getXYZTileExtraInfoFromCoverages(source, coverages, true);
+        getTileExtraInfo = async () => {
+          return getXYZTileExtraInfoFromCoverages(source, coverages, true);
+        };
 
         /* Assign tile option */
         tileOption = {
@@ -905,11 +914,14 @@ export async function exportTileDatas(
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) =>
-          await storeXYZTileFile(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) => {
+          return await storeXYZTileFile(z, x, y, data, tileOption);
+        };
 
         /* Close database function */
-        closeDatabaseFunc = async () => closeXYZMD5DB(source);
+        closeDatabaseFunc = async () => {
+          return closeXYZMD5DB(source);
+        };
 
         break;
       }

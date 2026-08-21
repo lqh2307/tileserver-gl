@@ -12,15 +12,13 @@ function toSafeJavaScriptLiteral(value) {
     .replace(/\u2029/g, "\\u2029");
 }
 
-handlebars.registerHelper(
-  "js",
-  (value) => new handlebars.SafeString(toSafeJavaScriptLiteral(value)),
-);
+handlebars.registerHelper("js", (value) => {
+  return new handlebars.SafeString(toSafeJavaScriptLiteral(value));
+});
 
-handlebars.registerHelper(
-  "urlSegment",
-  (value) => new handlebars.SafeString(encodeURIComponent(String(value ?? ""))),
-);
+handlebars.registerHelper("urlSegment", (value) => {
+  return new handlebars.SafeString(encodeURIComponent(String(value ?? "")));
+});
 
 /**
  * Compile handlebars template

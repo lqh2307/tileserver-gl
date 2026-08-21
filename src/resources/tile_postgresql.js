@@ -55,12 +55,14 @@ async function getPostgreSQLLayersFromTiles(source) {
       break;
     }
 
-    data.rows.forEach((row) =>
-      vectorTileProto.tile
+    data.rows.forEach((row) => {
+      return vectorTileProto.tile
         .decode(row.tile_data)
-        .layers.map((layer) => layer.name)
-        .forEach(layerNames.add),
-    );
+        .layers.map((layer) => {
+          return layer.name;
+        })
+        .forEach(layerNames.add);
+    });
 
     offset += BATCH_SIZE;
   }
@@ -222,15 +224,15 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
     }
 
     await Promise.all(
-      data.rows.map((row) =>
-        source.query(updateSQL, [
+      data.rows.map((row) => {
+        return source.query(updateSQL, [
           calculateMD5(row.tile_data),
           created,
           row.zoom_level,
           row.tile_column,
           row.tile_row,
-        ]),
-      ),
+        ]);
+      }),
     );
   }
 }
@@ -475,9 +477,11 @@ export async function getPostgreSQLMetadata(source) {
     try {
       const layers = await getPostgreSQLLayersFromTiles(source);
 
-      metadata.vector_layers = layers.map((layer) => ({
-        id: layer,
-      }));
+      metadata.vector_layers = layers.map((layer) => {
+        return {
+          id: layer,
+        };
+      });
     } catch (error) {
       metadata.vector_layers = FALLBACK_VECTOR_LAYERS;
     }
@@ -637,12 +641,12 @@ export async function getAndCachePostgreSQLTileData(id, z, x, y) {
         storePostgreSQLTileData(z, x, tmpY, data, {
           source: item.source,
           storeTransparent: item.storeTransparent,
-        }).catch((error) =>
-          printLog(
+        }).catch((error) => {
+          return printLog(
             "error",
             `Failed to cache data id "${id}" - Tile "${tileName}": ${error}`,
-          ),
-        );
+          );
+        });
       }
 
       return {

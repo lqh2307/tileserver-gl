@@ -22,7 +22,11 @@ export function deepClone(obj) {
  * @returns {any} New object containing merged properties
  */
 export function updateObjects(obj, updates, isDeepClone) {
-  const newObj = isDeepClone ? deepClone(obj) : { ...obj };
+  const newObj = isDeepClone
+    ? deepClone(obj)
+    : {
+        ...obj,
+      };
 
   Object.assign(newObj, updates);
 
@@ -64,7 +68,9 @@ export function assignObject(target, source, omitKeys) {
 export function updateArrays(arr, indexs, values, isDeepClone) {
   const newArr = isDeepClone ? deepClone(arr) : [...arr];
 
-  indexs.forEach((index) => (newArr[index] = values[index]));
+  indexs.forEach((index) => {
+    return (newArr[index] = values[index]);
+  });
 
   return newArr;
 }
@@ -224,7 +230,9 @@ export function compareArray(arr1, arr2, order) {
       return false;
     }
 
-    return arr2.every((item) => setA.has(item));
+    return arr2.every((item) => {
+      return setA.has(item);
+    });
   }
 }
 
@@ -246,7 +254,9 @@ export function clearObject(obj) {
  * @returns {boolean} True if at least one field exists in the object, false otherwise
  */
 export function hasAnyFields(obj, fields) {
-  return fields.some((field) => field in obj);
+  return fields.some((field) => {
+    return field in obj;
+  });
 }
 
 /**
@@ -256,7 +266,9 @@ export function hasAnyFields(obj, fields) {
  * @returns {boolean} True if all fields exist in the object, false otherwise
  */
 export function hasAllFields(obj, fields) {
-  return fields.every((field) => field in obj);
+  return fields.every((field) => {
+    return field in obj;
+  });
 }
 
 /**
@@ -267,5 +279,7 @@ export function hasAllFields(obj, fields) {
  * @returns {boolean} True if all specified fields have equal values in both objects, false otherwise
  */
 export function isEqualFields(obj1, obj2, fields) {
-  return fields.every((field) => obj1[field] === obj2[field]);
+  return fields.every((field) => {
+    return obj1[field] === obj2[field];
+  });
 }

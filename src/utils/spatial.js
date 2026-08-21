@@ -311,10 +311,12 @@ export function splitBBox(bbox, lonStep, latStep) {
  * @returns {{ zoom: number, bbox: [number, number, number, number] }[]}
  */
 export function getGridsFromCoverage(coverage, lonStep, latStep) {
-  return splitBBox(coverage.bbox, lonStep, latStep).map((bbox) => ({
-    bbox: bbox,
-    zoom: coverage.zoom,
-  }));
+  return splitBBox(coverage.bbox, lonStep, latStep).map((bbox) => {
+    return {
+      bbox: bbox,
+      zoom: coverage.zoom,
+    };
+  });
 }
 
 /**

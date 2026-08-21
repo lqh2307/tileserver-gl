@@ -289,12 +289,12 @@ export async function getAndCacheDataGeoJSON(id, layer) {
       if (item.storeCache) {
         printLog("info", `Caching GeoJSON "${id}" - File "${item.path}"...`);
 
-        storeGeoJSONFile(item.path, geoJSON).catch((error) =>
-          printLog(
+        storeGeoJSONFile(item.path, geoJSON).catch((error) => {
+          return printLog(
             "error",
             `Failed to cache GeoJSON "${id}" - File "${item.path}": ${error}`,
-          ),
-        );
+          );
+        });
       }
 
       return geoJSON;

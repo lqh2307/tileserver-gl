@@ -15,7 +15,7 @@
   },
   "scripts": {
     "server": "./entrypoint.sh",
-    "lint": "eslint \"src/**/*.{json,js,ts,tsx,css}\"",
+    "lint": "eslint \"src/**/*.{json,js,ts,tsx,css}\" --fix",
     "format": "prettier --write \"src/**/*.{json,js,ts,tsx,css}\"",
     "newest": "npx npm-check-updates -u && npx json -I -f package.json -e \"if(this.dependencies){Object.keys(this.dependencies).forEach(k=>this.dependencies[k]=this.dependencies[k].replace(/^[~^]/,''))} if(this.devDependencies){Object.keys(this.devDependencies).forEach(k=>this.devDependencies[k]=this.devDependencies[k].replace(/^[~^]/,''))}\"",
     "prepare": "husky"

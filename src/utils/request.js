@@ -65,10 +65,13 @@ export async function requestToURL(url, options) {
       data: options.body,
       signal: options.signal,
       decompress: options.decompress,
-      validateStatus: (status) =>
-        StatusCodes.OK <= status &&
-        status < StatusCodes.MULTIPLE_CHOICES &&
-        status !== StatusCodes.NO_CONTENT,
+      validateStatus: (status) => {
+        return (
+          StatusCodes.OK <= status &&
+          status < StatusCodes.MULTIPLE_CHOICES &&
+          status !== StatusCodes.NO_CONTENT
+        );
+      },
       httpAgent: new http.Agent({
         keepAlive: options.keepAlive,
       }),
@@ -140,7 +143,9 @@ export function isLocalURL(url) {
   }
 
   return ["mbtiles://", "pmtiles://", "xyz://", "pg://", "geojson://"].some(
-    (scheme) => url.startsWith(scheme),
+    (scheme) => {
+      return url.startsWith(scheme);
+    },
   );
 }
 
@@ -154,7 +159,10 @@ export function getRequestHost(req) {
   // const host = req.headers["x-forwarded-host"] || req.headers["host"] || "";
   // const prefix = req.headers["x-forwarded-prefix"] || "";
 
-  return `${req.headers["x-forwarded-proto"] || req.protocol || ""}://${req.headers["x-forwarded-host"] || req.headers["host"] || ""}${req.headers["x-forwarded-prefix"] || ""}`;
+  return (
+    req.query.proxy ||
+    `${req.headers["x-forwarded-proto"] || req.protocol || ""}://${req.headers["x-forwarded-host"] || req.headers["host"] || ""}${req.headers["x-forwarded-prefix"] || ""}`
+  );
 }
 
 /**
@@ -172,8 +180,9 @@ export async function isFileNotModified(req, res, fileOrFolderPath) {
   try {
     const lastModified = await lastModifiedCaches.wrap(
       fileOrFolderPath,
-      async () =>
-        new Date(await getFileCreated(fileOrFolderPath)).toUTCString(),
+      async () => {
+        return new Date(await getFileCreated(fileOrFolderPath)).toUTCString();
+      },
     );
 
     res.set({

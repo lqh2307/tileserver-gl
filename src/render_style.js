@@ -684,13 +684,16 @@ export async function renderTileDatas(
     if (maxRendererPoolSize) {
       pool = createPool(
         {
-          create: () =>
-            createRenderer({
+          create: () => {
+            return createRenderer({
               mode: "tile",
               ratio: tileScale,
               styleJSON: styleJSON,
-            }),
-          destroy: (renderer) => renderer.release(),
+            });
+          },
+          destroy: (renderer) => {
+            return renderer.release();
+          },
         },
         {
           min: 1,
@@ -752,11 +755,14 @@ export async function renderTileDatas(
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) =>
-          await storeMBtilesTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) => {
+          return await storeMBtilesTileData(z, x, y, data, tileOption);
+        };
 
         /* Close database function */
-        closeDatabaseFunc = async () => closeMBTilesDB(source);
+        closeDatabaseFunc = async () => {
+          return closeMBTilesDB(source);
+        };
 
         break;
       }
@@ -808,11 +814,14 @@ export async function renderTileDatas(
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) =>
-          await storePostgreSQLTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) => {
+          return await storePostgreSQLTileData(z, x, y, data, tileOption);
+        };
 
         /* Close database function */
-        closeDatabaseFunc = async () => await closePostgreSQLDB(source);
+        closeDatabaseFunc = async () => {
+          return await closePostgreSQLDB(source);
+        };
 
         break;
       }
@@ -868,11 +877,14 @@ export async function renderTileDatas(
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) =>
-          await storeXYZTileFile(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data) => {
+          return await storeXYZTileFile(z, x, y, data, tileOption);
+        };
 
         /* Close database function */
-        closeDatabaseFunc = async () => closeXYZMD5DB(source);
+        closeDatabaseFunc = async () => {
+          return closeXYZMD5DB(source);
+        };
 
         break;
       }

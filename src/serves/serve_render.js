@@ -54,19 +54,17 @@ function renderStyleJSONHandler() {
 
       const filePath = await renderStyleJSON(req.body);
 
-      setTimeout(
-        () =>
-          rm(path.dirname(filePath), {
-            force: true,
-            recursive: true,
-          }).catch((error) =>
-            printLog(
-              "warn",
-              `Failed to remove path "${filePath}": ${error}. Skipping...`,
-            ),
-          ),
-        0,
-      );
+      setTimeout(() => {
+        return rm(path.dirname(filePath), {
+          force: true,
+          recursive: true,
+        }).catch((error) => {
+          return printLog(
+            "warn",
+            `Failed to remove path "${filePath}": ${error}. Skipping...`,
+          );
+        });
+      }, 0);
 
       let image = await readFile(filePath);
 
@@ -284,10 +282,12 @@ function renderHighQualityPDFHandler() {
       let image = await renderImageToHighQualityPDF(
         {
           ...req.body.input,
-          images: req.body.input.images.map((item) => ({
-            image: base64ToBuffer(item.image),
-            res: item.resolution,
-          })),
+          images: req.body.input.images.map((item) => {
+            return {
+              image: base64ToBuffer(item.image),
+              res: item.resolution,
+            };
+          }),
         },
         req.body.preview,
         req.body.output,

@@ -8,7 +8,12 @@ import { jsPDF } from "jspdf";
 import path from "node:path";
 import sharp from "sharp";
 
-export const BACKGROUND_COLOR = { r: 255, g: 255, b: 255, alpha: 0 };
+export const BACKGROUND_COLOR = {
+  r: 255,
+  g: 255,
+  b: 255,
+  alpha: 0,
+};
 
 sharp.cache(false);
 // sharp.timeout({
@@ -1530,32 +1535,34 @@ export async function renderImageToPDF(input, preview, output) {
 
       // Create composites option
       const compositesOption = await Promise.all(
-        items.map(async (item, idx) => ({
-          limitInputPixels: false,
-          input: await createImageOutput({
-            data: item,
-            resizeOption: {
-              fit: output.fit,
-              position: position,
-              background: BACKGROUND_COLOR,
-            },
-            width: cellWidth,
-            height: cellHeight,
-          }),
-          left: marginXPX + (idx % column) * (cellWidth + gapXPX),
-          top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
-        })),
+        items.map(async (item, idx) => {
+          return {
+            limitInputPixels: false,
+            input: await createImageOutput({
+              data: item,
+              resizeOption: {
+                fit: output.fit,
+                position: position,
+                background: BACKGROUND_COLOR,
+              },
+              width: cellWidth,
+              height: cellHeight,
+            }),
+            left: marginXPX + (idx % column) * (cellWidth + gapXPX),
+            top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
+          };
+        }),
       );
 
       if (svg) {
-        items.forEach((_, idx) =>
+        items.forEach((_, idx) => {
           compositesOption.push({
             limitInputPixels: false,
             input: svg,
             left: marginXPX + (idx % column) * (cellWidth + gapXPX),
             top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
-          }),
-        );
+          });
+        });
       }
 
       // Process pagination
@@ -1638,21 +1645,23 @@ export async function renderImageToPDF(input, preview, output) {
       const compositesOption = await Promise.all(
         input.images
           .slice(page * imageInPageNum, (page + 1) * imageInPageNum)
-          .map(async (item, idx) => ({
-            limitInputPixels: false,
-            input: await createImageOutput({
-              data: item,
-              resizeOption: {
-                fit: output.fit,
-                position: position,
-                background: BACKGROUND_COLOR,
-              },
-              width: cellWidth,
-              height: cellHeight,
-            }),
-            left: marginXPX + (idx % column) * (cellWidth + gapXPX),
-            top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
-          })),
+          .map(async (item, idx) => {
+            return {
+              limitInputPixels: false,
+              input: await createImageOutput({
+                data: item,
+                resizeOption: {
+                  fit: output.fit,
+                  position: position,
+                  background: BACKGROUND_COLOR,
+                },
+                width: cellWidth,
+                height: cellHeight,
+              }),
+              left: marginXPX + (idx % column) * (cellWidth + gapXPX),
+              top: marginYPX + Math.floor(idx / column) * (cellHeight + gapYPX),
+            };
+          }),
       );
 
       // Process pagination

@@ -48,7 +48,9 @@ export function emitWSMessage(event = "message", message, ids) {
   }
 
   if (ids) {
-    ids.forEach((id) => socketServer.to(id).emit(event, message));
+    ids.forEach((id) => {
+      socketServer.to(id).emit(event, message);
+    });
   } else {
     socketServer.emit(event, message);
   }
