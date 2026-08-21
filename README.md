@@ -108,16 +108,14 @@ Khi public URL có prefix, ví dụ
 
 1. Bỏ prefix `/tile-server` trước khi forward request vào ứng dụng.
 2. Forward protocol, host và prefix qua các header `X-Forwarded-*`.
-3. Giữ prefix khi rewrite redirect `/swagger` sang `/swagger/` do
-   `swagger-ui-express` thực hiện.
+
+Ứng dụng chấp nhận cả `X-Prefix` và `X-Forwarded-Prefix`. Proxy cần bỏ public
+prefix trước khi forward request vào ứng dụng. Redirect từ `/swagger` sang
+`/swagger/` sẽ tự khôi phục public prefix từ header.
 
 Ví dụ Nginx:
 
 ```nginx
-location = /tile-server/swagger {
-    return 308 /tile-server/swagger/;
-}
-
 location /tile-server/ {
     proxy_pass http://127.0.0.1:8080/;
     proxy_http_version 1.1;
@@ -649,15 +647,18 @@ Luồng này được kích hoạt khi cấu hình:
   "refreshBefore": {
     "md5": true
   },
+  "batch": 100000,
   "timeout": 60000,
   "infoTimeout": 1800000
 }
 ```
 
-`timeout` là timeout của request download từng tile. `infoTimeout` là timeout
-riêng cho mỗi request lấy extra-info của một batch từ tile-server cha, tính bằng
-milliseconds. Nếu không cấu hình, `infoTimeout` mặc định là `1800000` (30 phút)
-và không lấy giá trị từ `timeout`.
+`batch` là số tile tối đa trong mỗi request extra-info, nhận giá trị từ `1` đến
+`100000` và mặc định là `100000`. Có thể giảm giá trị này khi tile-server cha
+có giới hạn request hoặc RAM thấp. `timeout` là timeout của request download
+từng tile. `infoTimeout` là timeout riêng cho mỗi request lấy extra-info của một
+batch từ tile-server cha, tính bằng milliseconds. Nếu không cấu hình,
+`infoTimeout` mặc định là `1800000` (30 phút) và không lấy giá trị từ `timeout`.
 
 Trong trường hợp này, `url` phải trỏ đến endpoint tile của một tile-server cha
 và chứa đúng đoạn `/{z}/{x}/{y}`. Ví dụ:

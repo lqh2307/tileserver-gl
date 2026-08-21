@@ -1,6 +1,6 @@
 "use strict";
 
-import { getRequestHost } from "../utils/index.js";
+import { getRequestHost, getRequestPrefix } from "../utils/index.js";
 import { createRequire } from "node:module";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
@@ -164,6 +164,16 @@ function serveSwagger(req, res, next) {
   )(req, res, next);
 }
 
+/**
+ * Redirect to the trailing-slash Swagger URL while retaining its public prefix.
+ * @param {Request} req Request object
+ * @param {Response} res Response object
+ * @returns {void}
+ */
+function redirectSwagger(req, res) {
+  res.redirect(308, `${getRequestPrefix(req)}/swagger/`);
+}
+
 export const serve_swagger = {
   /**
    * Register swagger handlers
@@ -173,6 +183,7 @@ export const serve_swagger = {
   init: (app) => {
     /* Serve swagger */
     if (process.env.SERVE_SWAGGER !== "false") {
+      app.get(/^\/swagger$/, redirectSwagger);
       app.use("/swagger", swaggerUi.serve, serveSwagger);
     }
   },

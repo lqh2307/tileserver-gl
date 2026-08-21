@@ -381,7 +381,7 @@ function createRenderer(option) {
 
       // Call callback fn
       callback(err, {
-        data: data,
+        data,
       });
     },
   });
@@ -433,7 +433,7 @@ export async function renderImageTileData({ z, x, y, ...option }) {
           : undefined;
 
         createImageOutput({
-          data: data,
+          data,
           rawOption: {
             premultiplied: true,
             width: originTileSize,
@@ -490,7 +490,7 @@ export async function renderImageStaticData(option) {
         }
 
         createImageOutput({
-          data: data,
+          data,
           rawOption: {
             premultiplied: true,
             width: Math.round(option.tileScale * sizes.width),
@@ -529,7 +529,7 @@ export async function renderStyleJSON(option) {
   if (totalWidth <= MAX_TILE_PX && totalHeight <= MAX_TILE_PX) {
     return await renderImageStaticData({
       ...option,
-      filePath: filePath,
+      filePath,
     });
   } else {
     const [minX, minY] = lonLat4326ToXY3857(option.bbox[0], option.bbox[1]);
@@ -597,8 +597,8 @@ export async function renderStyleJSON(option) {
         channels: 4,
         background: BACKGROUND_COLOR,
       },
-      filePath: filePath,
-      compositesOption: compositesOption,
+      filePath,
+      compositesOption,
       format: option.format,
       width: option.width,
       height: option.height,
@@ -683,7 +683,7 @@ export async function renderTileDatas({
             return createRenderer({
               mode: "tile",
               ratio: tileScale,
-              styleJSON: styleJSON,
+              styleJSON,
             });
           },
           destroy: (renderer) => {
@@ -737,11 +737,11 @@ export async function renderTileDatas({
         tileOption = {
           statement: source.prepare(MBTILES_INSERT_TILE_QUERY),
           created: Date.now(),
-          storeTransparent: storeTransparent,
-          pool: pool,
-          styleJSON: styleJSON,
-          tileScale: tileScale,
-          tileSize: tileSize,
+          storeTransparent,
+          pool,
+          styleJSON,
+          tileScale,
+          tileSize,
           format: metadata.format,
         };
 
@@ -792,11 +792,11 @@ export async function renderTileDatas({
         /* Assign tile option */
         tileOption = {
           created: Date.now(),
-          storeTransparent: storeTransparent,
-          pool: pool,
-          styleJSON: styleJSON,
-          tileScale: tileScale,
-          tileSize: tileSize,
+          storeTransparent,
+          pool,
+          styleJSON,
+          tileScale,
+          tileSize,
           format: metadata.format,
         };
 
@@ -855,11 +855,11 @@ export async function renderTileDatas({
           statement: source.prepare(XYZ_INSERT_MD5_QUERY),
           created: Date.now(),
           sourcePath: storePath,
-          storeTransparent: storeTransparent,
-          pool: pool,
-          styleJSON: styleJSON,
-          tileScale: tileScale,
-          tileSize: tileSize,
+          storeTransparent,
+          pool,
+          styleJSON,
+          tileScale,
+          tileSize,
           format: metadata.format,
         };
 

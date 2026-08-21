@@ -640,7 +640,7 @@ export async function getAndCachePostgreSQLTileData(id, z, x, y) {
       }
 
       return {
-        data: data,
+        data,
         headers: detectFormatAndHeaders(data).headers,
       };
     }

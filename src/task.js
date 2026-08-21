@@ -3,6 +3,7 @@
 import { cleanUp, seed } from "./configs/index.js";
 import {
   DEFAULT_STORE_TRANSPARENT,
+  DEFAULT_TILE_BATCH_SIZE,
   DEFAULT_QUERY_TIMEOUT,
   DEFAULT_INFO_TIMEOUT,
   DEFAULT_CONCURRENCY,
@@ -569,6 +570,7 @@ export async function runTasks(opts) {
                   maxTry: item.maxTry,
                   timeout: item.timeout,
                   infoTimeout: item.infoTimeout,
+                  batch: item.batch,
                   storeTransparent: item.storeTransparent,
                   headers: item.headers,
                   skipWhenError: item.skipWhenError,
@@ -610,7 +612,7 @@ export async function runTasks(opts) {
 
 /**
  * Seed tile datas
- * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", metadata: object, url: string, scheme: "tms"|"xyz", coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, maxTry?: number, timeout?: number, infoTimeout?: number, storeTransparent?: boolean, headers?: object, skipWhenError?: object, refreshBefore?: string|number|boolean }} options Options
+ * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", metadata: object, url: string, scheme: "tms"|"xyz", coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, maxTry?: number, timeout?: number, infoTimeout?: number, batch?: number, storeTransparent?: boolean, headers?: object, skipWhenError?: object, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
 async function seedTileDatas({
@@ -624,6 +626,7 @@ async function seedTileDatas({
   maxTry = DEFAULT_MAX_TRY,
   timeout = DEFAULT_QUERY_TIMEOUT,
   infoTimeout = DEFAULT_INFO_TIMEOUT,
+  batch = DEFAULT_TILE_BATCH_SIZE,
   storeTransparent = DEFAULT_STORE_TRANSPARENT,
   headers,
   skipWhenError,
@@ -646,7 +649,7 @@ async function seedTileDatas({
       headers,
     )} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout} - Info timeout: ${infoTimeout} - Skip when error: ${JSON.stringify(skipWhenError)}`;
+    log += `\n\tConcurrency: ${concurrency} - Batch: ${batch} - Max try: ${maxTry} - Timeout: ${timeout} - Info timeout: ${infoTimeout} - Skip when error: ${JSON.stringify(skipWhenError)}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
@@ -711,7 +714,7 @@ async function seedTileDatas({
           maxTry,
           timeout,
           created: Date.now(),
-          storeTransparent: storeTransparent,
+          storeTransparent,
           headers,
           decompress: false,
         };
@@ -758,7 +761,7 @@ async function seedTileDatas({
           maxTry,
           timeout,
           created: Date.now(),
-          storeTransparent: storeTransparent,
+          storeTransparent,
           headers,
           decompress: false,
         };
@@ -808,7 +811,7 @@ async function seedTileDatas({
           maxTry,
           timeout,
           created: Date.now(),
-          storeTransparent: storeTransparent,
+          storeTransparent,
           headers,
           decompress: false,
         };
@@ -926,15 +929,23 @@ async function seedTileDatas({
     /* Download and store tile datas */
     printLog("info", "Downloading and storing tiles...");
 
-    for (const batchTileBounds of getTileBoundsBatches(tileBounds)) {
+    let batchNumber = 0;
+
+    for (const batchTileBounds of getTileBoundsBatches(tileBounds, batch)) {
+      batchNumber++;
+
       let targetTileExtraInfo = {};
       let tileExtraInfo = {};
+      const batchTotal = batchTileBounds.reduce((total, tileBound) => {
+        return total + tileBound.total;
+      }, 0);
+      const batchDescription = `batch #${batchNumber} (${batchTileBounds.length} ranges, ${batchTotal} tiles)`;
 
       if (refreshTimestamp === true) {
         try {
           printLog(
             "info",
-            `Get target tile extra info from "${hashURL}" and local tile extra info for next batch...`,
+            `Getting target tile extra info from "${hashURL}" and local tile extra info for ${batchDescription}...`,
           );
 
           [targetTileExtraInfo, tileExtraInfo] = await Promise.all([
@@ -966,7 +977,7 @@ async function seedTileDatas({
 
           printLog(
             "error",
-            `Failed to get target or local tile extra info for a batch: ${error}`,
+            `Failed to get target or local tile extra info for ${batchDescription}: ${error}`,
           );
 
           targetTileExtraInfo = {};
@@ -974,11 +985,21 @@ async function seedTileDatas({
         }
       } else if (refreshTimestamp) {
         try {
+          printLog(
+            "info",
+            `Getting local tile extra info for ${batchDescription}...`,
+          );
+
           tileExtraInfo = await getTileExtraInfoFunc(batchTileBounds, true);
+
+          printLog(
+            "info",
+            `Completed getting local tile extra info for ${batchDescription}.`,
+          );
         } catch (error) {
           printLog(
             "error",
-            `Failed to get local tile extra info for a batch: ${error}`,
+            `Failed to get local tile extra info for ${batchDescription}: ${error}`,
           );
 
           tileExtraInfo = {};

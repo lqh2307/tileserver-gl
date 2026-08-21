@@ -35,7 +35,7 @@ const FALLBACK_TILE_DATA = {
           channels: 4,
           background: BACKGROUND_COLOR,
         },
-        format: format,
+        format,
       });
     }),
   );

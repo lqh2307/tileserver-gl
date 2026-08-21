@@ -176,8 +176,8 @@ export function convertDEGToDMS(deg) {
 
   return {
     degree: normalized >= 0 ? degree : -degree,
-    minute: minute,
-    second: second,
+    minute,
+    second,
   };
 }
 

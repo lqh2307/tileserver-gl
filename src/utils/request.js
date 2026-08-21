@@ -11,6 +11,8 @@ import http from "node:http";
 
 export const HTTP_SCHEMES = ["https://", "http://"];
 
+const MAX_ERROR_RESPONSE_LENGTH = 2000;
+
 /* Cache in RAM */
 const lastModifiedCaches = createCache({
   ttl: DEFAULT_CACHE_TIMEOUT,
@@ -59,7 +61,7 @@ export async function requestToURL(url, options) {
   try {
     return await axios({
       method: options.method,
-      url: url,
+      url,
       timeout: options.timeout,
       responseType: options.responseType,
       headers: options.headers,
@@ -87,7 +89,31 @@ export async function requestToURL(url, options) {
 
     if (error.response) {
       error.statusCode = error.response.status;
-      error.message = `Status code: ${error.response.status} - ${error.statusCode === StatusCodes.NO_CONTENT ? "Not Found" : error.response.statusText}`;
+      error.responseData = error.response.data;
+
+      let responseMessage;
+      if (Buffer.isBuffer(error.response.data)) {
+        responseMessage = error.response.data.toString("utf8");
+      } else if (typeof error.response.data === "string") {
+        responseMessage = error.response.data;
+      } else if (error.response.data !== undefined) {
+        try {
+          responseMessage = JSON.stringify(error.response.data);
+        } catch {
+          responseMessage = `${error.response.data}`;
+        }
+      }
+
+      if (responseMessage?.length > MAX_ERROR_RESPONSE_LENGTH) {
+        responseMessage = `${responseMessage.slice(0, MAX_ERROR_RESPONSE_LENGTH)}...`;
+      }
+
+      const statusMessage =
+        error.statusCode === StatusCodes.NO_CONTENT
+          ? "Not Found"
+          : error.response.statusText || "Request failed";
+
+      error.message = `Status code: ${error.statusCode} - ${statusMessage}${responseMessage ? ` - Response: ${responseMessage}` : ""}`;
     } else if (error.request) {
       error.message = "No response received";
     }
@@ -151,19 +177,36 @@ export function isLocalURL(url) {
 }
 
 /**
+ * Get the public path prefix supplied by a reverse proxy.
+ * `x-prefix` is preferred and `x-forwarded-prefix` is also supported.
+ * @param {Request} req Request object
+ * @returns {string} Normalized public prefix without a trailing slash
+ */
+export function getRequestPrefix(req) {
+  const prefix =
+    req.headers["x-prefix"] || req.headers["x-forwarded-prefix"] || "";
+
+  if (!prefix.startsWith("/") || prefix.startsWith("//")) {
+    return "";
+  }
+
+  return prefix.endsWith("/") ? prefix.slice(0, -1) : prefix;
+}
+
+/**
  * Get request host
  * @param {Request} req Request object
  * @returns {string}
  */
 export function getRequestHost(req) {
-  // const protocol = req.headers["x-forwarded-proto"] || req.protocol || "";
-  // const host = req.headers["x-forwarded-host"] || req.headers["host"] || "";
-  // const prefix = req.headers["x-forwarded-prefix"] || "";
+  if (req.query.proxy) {
+    return req.query.proxy;
+  }
 
-  return (
-    req.query.proxy ||
-    `${req.headers["x-forwarded-proto"] || req.protocol || ""}://${req.headers["x-forwarded-host"] || req.headers["host"] || ""}${req.headers["x-forwarded-prefix"] || ""}`
-  );
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "";
+  const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+
+  return `${protocol}://${host}${getRequestPrefix(req)}`;
 }
 
 /**

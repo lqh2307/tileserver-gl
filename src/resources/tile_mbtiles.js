@@ -703,7 +703,7 @@ export async function getAndCacheMBTilesTileData(id, z, x, y) {
       }
 
       return {
-        data: data,
+        data,
         headers: detectFormatAndHeaders(data).headers,
       };
     }

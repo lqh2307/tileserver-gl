@@ -46,7 +46,7 @@ function serveStyleHandler() {
       }
 
       const compiled = await compileHandleBarsTemplate("viewer", {
-        id: id,
+        id,
         name: item.name,
         base_url: getRequestHost(req),
       });
@@ -82,7 +82,7 @@ function serveWMTSHandler() {
       }
 
       const compiled = await compileHandleBarsTemplate("wmts", {
-        id: id,
+        id,
         name: item.name,
         base_url: getRequestHost(req),
       });
@@ -255,7 +255,7 @@ function getStylesListHandler() {
       const result = await Promise.all(
         Object.keys(config.styles).map(async (id) => {
           const data = {
-            id: id,
+            id,
             url: `${requestHost}/styles/${id}/style.json`,
           };
 
@@ -412,7 +412,7 @@ function getRenderedHandler() {
         ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
-        id: id,
+        id,
         tiles: [
           `${getRequestHost(req)}/styles/${id}/{z}/{x}/{y}.png${
             queryStrings.length ? `?${queryStrings.join("&")}` : ""
@@ -483,7 +483,7 @@ function getRenderedsListHandler() {
 
         if (item) {
           result.push({
-            id: id,
+            id,
             name: item.name,
             url: [
               `${requestHost}/styles/256/${id}.json`,

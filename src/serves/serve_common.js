@@ -53,7 +53,7 @@ function serveFrontPageHandler() {
             );
 
             styles[id] = {
-              name: name,
+              name,
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
               cache: style.storeCache,
@@ -64,7 +64,7 @@ function serveFrontPageHandler() {
             const { name, zoom, center } = style;
 
             styles[id] = {
-              name: name,
+              name,
               viewer_hash: `#${zoom}/${center[1]}/${center[0]}`,
               cache: style.storeCache,
             };
@@ -78,7 +78,7 @@ function serveFrontPageHandler() {
 
             geojsons[`${id}/${layer}`] = {
               group: id,
-              layer: layer,
+              layer,
               cache: geojson.storeCache,
             };
           });
@@ -95,8 +95,8 @@ function serveFrontPageHandler() {
             );
 
             datas[id] = {
-              name: name,
-              format: format,
+              name,
+              format,
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               thumbnail: `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`,
               source_type: data.sourceType,
@@ -105,8 +105,8 @@ function serveFrontPageHandler() {
             };
           } else {
             datas[id] = {
-              name: name,
-              format: format,
+              name,
+              format,
               viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
               source_type: data.sourceType,
               cache: data.storeCache,
@@ -131,12 +131,12 @@ function serveFrontPageHandler() {
       ]);
 
       const compiled = await compileHandleBarsTemplate("index", {
-        styles: styles,
-        geojsons: geojsons,
+        styles,
+        geojsons,
         geojson_groups: geojsonGroups,
-        datas: datas,
-        fonts: fonts,
-        sprites: sprites,
+        datas,
+        fonts,
+        sprites,
         style_count: Object.keys(styles).length,
         geojson_count: Object.keys(geojsons).length,
         geojson_group_count: Object.keys(geojsonGroups).length,

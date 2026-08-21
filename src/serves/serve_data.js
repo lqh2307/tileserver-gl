@@ -66,7 +66,7 @@ function serveDataHandler() {
       const compiled = await compileHandleBarsTemplate(
         item.tileJSON.format === "pbf" ? "vector_data" : "raster_data",
         {
-          id: id,
+          id,
           name: item.tileJSON.name,
           base_url: getRequestHost(req),
         },
@@ -232,7 +232,7 @@ function getDataHandler() {
         ...item.tileJSON,
         tilejson: "2.2.0",
         scheme: "xyz",
-        id: id,
+        id,
         tiles: [
           `${getRequestHost(req)}/datas/${id}/{z}/{x}/{y}.${
             item.tileJSON.format
@@ -387,7 +387,7 @@ function getTileDataExtraInfoHandler() {
         case "mbtiles": {
           extraInfo = getMBTilesTileExtraInfo({
             source: item.source,
-            tileBounds: tileBounds,
+            tileBounds,
             isCreated,
           });
 
@@ -405,7 +405,7 @@ function getTileDataExtraInfoHandler() {
         case "xyz": {
           extraInfo = getXYZTileExtraInfo({
             source: item.md5Source,
-            tileBounds: tileBounds,
+            tileBounds,
             isCreated,
           });
 
@@ -415,7 +415,7 @@ function getTileDataExtraInfoHandler() {
         case "pg": {
           extraInfo = await getPostgreSQLTileExtraInfo({
             source: item.source,
-            tileBounds: tileBounds,
+            tileBounds,
             isCreated,
           });
 
@@ -545,8 +545,8 @@ function getDatasListHandler() {
           const { name, center, format } = config.datas[id].tileJSON;
 
           const data = {
-            id: id,
-            name: name,
+            id,
+            name,
             url: `${requestHost}/datas/${id}.json`,
           };
 

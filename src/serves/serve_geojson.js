@@ -132,9 +132,9 @@ function getGeoJSONGroupInfoHandler() {
       res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send({
-        id: id,
+        id,
         name: id,
-        geojsons: geojsons,
+        geojsons,
       });
     } catch (error) {
       printLog(
@@ -325,7 +325,7 @@ function getGeoJSONGroupsListHandler() {
       const result = await Promise.all(
         Object.keys(config.geojsons).map(async (id) => {
           return {
-            id: id,
+            id,
             name: id,
             url: `${requestHost}/geojsons/${id}.json`,
           };

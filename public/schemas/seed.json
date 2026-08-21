@@ -418,6 +418,11 @@
             "type": "integer",
             "minimum": 0
           },
+          "batch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
           "concurrency": {
             "type": "integer",
             "minimum": 1

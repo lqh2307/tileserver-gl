@@ -423,15 +423,15 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     // Create composited image
     image = await createImageOutput({
       data: input.image,
-      compositesOption: compositesOption,
+      compositesOption,
     });
   }
 
   // SVG to store frame and grid
   const svg = {
     content: "",
-    width: width,
-    height: height,
+    width,
+    height,
   };
 
   let totalMargin = 0;
@@ -1109,8 +1109,8 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
   // Create image
   return await createImageOutput({
     data: image ?? input.image,
-    extendOption: extendOption,
-    compositesOption: compositesOption,
+    extendOption,
+    compositesOption,
     ...output,
   });
 }
@@ -1179,8 +1179,8 @@ export async function mergeTilesToImage(input, output) {
       channels: 4,
       background: BACKGROUND_COLOR,
     },
-    compositesOption: compositesOption,
-    extractOption: extractOption,
+    compositesOption,
+    extractOption,
     ...output,
   });
 }
@@ -1365,11 +1365,11 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       // Create image
       const previewImage = await createImageOutput({
         data: image.image,
-        extendOption: extendOption,
-        compositesOption: compositesOption,
-        format: format,
-        height: height,
-        width: width,
+        extendOption,
+        compositesOption,
+        format,
+        height,
+        width,
         grayscale: output.grayscale,
         filePath: output.filePath,
         base64: output.base64,
@@ -1381,7 +1381,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       // Create extended image
       const baseImage = await createImageOutput({
         data: image.image,
-        extendOption: extendOption,
+        extendOption,
       });
 
       // Process PDF
@@ -1543,7 +1543,7 @@ export async function renderImageToPDF(input, preview, output) {
               data: item,
               resizeOption: {
                 fit: output.fit,
-                position: position,
+                position,
                 background: BACKGROUND_COLOR,
               },
               width: cellWidth,
@@ -1613,10 +1613,10 @@ export async function renderImageToPDF(input, preview, output) {
           channels: 4,
           background: BACKGROUND_COLOR,
         },
-        compositesOption: compositesOption,
-        format: format,
-        width: width,
-        height: height,
+        compositesOption,
+        format,
+        width,
+        height,
         base64: output.base64,
         grayscale: output.grayscale,
       });
@@ -1653,7 +1653,7 @@ export async function renderImageToPDF(input, preview, output) {
                 data: item,
                 resizeOption: {
                   fit: output.fit,
-                  position: position,
+                  position,
                   background: BACKGROUND_COLOR,
                 },
                 width: cellWidth,
@@ -1712,7 +1712,7 @@ export async function renderImageToPDF(input, preview, output) {
           channels: 4,
           background: BACKGROUND_COLOR,
         },
-        compositesOption: compositesOption,
+        compositesOption,
         format: "png",
         grayscale: output.grayscale,
       });

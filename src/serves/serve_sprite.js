@@ -121,7 +121,7 @@ function getSpritesListHandler() {
       const result = await Promise.all(
         Object.keys(config.sprites).map(async (id) => {
           return {
-            id: id,
+            id,
             name: id,
             urls: [
               `${requestHost}/sprites/${id}/sprite.json`,

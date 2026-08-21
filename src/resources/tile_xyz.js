@@ -415,7 +415,7 @@ export async function getXYZTile(sourcePath, z, x, y, format) {
     const data = await readFile(`${sourcePath}/${z}/${x}/${y}.${format}`);
 
     return {
-      data: data,
+      data,
       headers: detectFormatAndHeaders(data).headers,
     };
   } catch (error) {
@@ -764,7 +764,7 @@ export async function getAndCacheXYZTileData(id, z, x, y) {
       }
 
       return {
-        data: data,
+        data,
         headers: detectFormatAndHeaders(data).headers,
       };
     }

@@ -188,9 +188,9 @@ export function getTileBounds3857(x, y, z, scheme) {
  */
 export async function calculateMaxZoom(bbox, width, height, tileSize = 256) {
   const [xRes, yRes] = await calculateResolution({
-    bbox: bbox,
-    width: width,
-    height: height,
+    bbox,
+    width,
+    height,
   });
 
   return limitValue(
@@ -313,7 +313,7 @@ export function splitBBox(bbox, lonStep, latStep) {
 export function getGridsFromCoverage(coverage, lonStep, latStep) {
   return splitBBox(coverage.bbox, lonStep, latStep).map((bbox) => {
     return {
-      bbox: bbox,
+      bbox,
       zoom: coverage.zoom,
     };
   });
@@ -368,12 +368,12 @@ export function getTileBounds(options) {
 
       targetCoverages.push({
         zoom: coverage.zoom,
-        bbox: bbox,
+        bbox,
       });
 
       tileBounds.push({
         realBBox: _bbox,
-        bbox: bbox,
+        bbox,
         total: _total,
         z: coverage.zoom,
         x: [xMin, xMax],
@@ -415,13 +415,13 @@ export function getTileBounds(options) {
       totalTile += _total;
 
       targetCoverages.push({
-        zoom: zoom,
-        bbox: bbox,
+        zoom,
+        bbox,
       });
 
       tileBounds.push({
         realBBox: _bbox,
-        bbox: bbox,
+        bbox,
         total: _total,
         z: zoom,
         x: [xMin, xMax],
@@ -431,10 +431,10 @@ export function getTileBounds(options) {
   }
 
   return {
-    targetCoverages: targetCoverages,
-    realBBox: realBBox,
+    targetCoverages,
+    realBBox,
     total: totalTile,
-    tileBounds: tileBounds,
+    tileBounds,
   };
 }
 

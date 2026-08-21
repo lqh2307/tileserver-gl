@@ -823,7 +823,7 @@ export async function exportTileDatas({
         tileOption = {
           statement: source.prepare(MBTILES_INSERT_TILE_QUERY),
           created: Date.now(),
-          storeTransparent: storeTransparent,
+          storeTransparent,
         };
 
         /* Store data function */
@@ -863,7 +863,7 @@ export async function exportTileDatas({
         tileOption = {
           source,
           created: Date.now(),
-          storeTransparent: storeTransparent,
+          storeTransparent,
         };
 
         /* Store data function */
@@ -911,7 +911,7 @@ export async function exportTileDatas({
           created: Date.now(),
           sourcePath: storePath,
           format: metadata.format,
-          storeTransparent: storeTransparent,
+          storeTransparent,
         };
 
         /* Store data function */

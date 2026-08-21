@@ -14,7 +14,7 @@ import { runTasks } from "./task.js";
     })
     .catch((error) => {
       parentPort.postMessage({
-        error: error,
+        error,
       });
     });
 })();
