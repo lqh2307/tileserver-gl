@@ -346,25 +346,24 @@ export const serve_render = {
      *       content:
      *         application/json:
      *           schema:
-     *             type: object
-     *             example: {}
+     *             $ref: '#/components/schemas/AddFrame'
      *       description: Add frame options
      *     responses:
      *       201:
      *         description: Frame added
      *         content:
      *           application/json:
-     *           schema:
-     *             type: object
+     *             schema:
+     *               type: object
      *       404:
      *         description: Not found
      *       503:
      *         description: Server is starting up
      *         content:
      *           text/plain:
-     *           schema:
-     *             type: string
-     *             example: Starting...
+     *             schema:
+     *               type: string
+     *               example: Starting...
      *       500:
      *         description: Internal server error
      */
@@ -385,25 +384,24 @@ export const serve_render = {
      *       content:
      *         application/json:
      *           schema:
-     *             type: object
-     *             example: {}
+     *             $ref: '#/components/schemas/RenderStyleJSON'
      *       description: Render styleJSON options
      *     responses:
      *       201:
      *         description: StyleJSONs rendered
      *         content:
      *           text/plain:
-     *           schema:
-     *             type: string
+     *             schema:
+     *               type: string
      *       404:
      *         description: Not found
      *       503:
      *         description: Server is starting up
      *         content:
      *           text/plain:
-     *           schema:
-     *             type: string
-     *             example: Starting...
+     *             schema:
+     *               type: string
+     *               example: Starting...
      *       500:
      *         description: Internal server error
      */
@@ -424,37 +422,24 @@ export const serve_render = {
      *       content:
      *         application/json:
      *           schema:
-     *             type: object
-     *             properties:
-     *               content:
-     *                 type: string
-     *               width:
-     *                 type: number
-     *               height:
-     *                 type: number
-     *               format:
-     *                 type: string
-     *                 enum: [jpeg, jpg, png, webp]
-     *               base64:
-     *                 type: boolean
-     *             example: {}
+     *             $ref: '#/components/schemas/RenderSVG'
      *       description: Render SVG options
      *     responses:
      *       201:
      *         description: SVG rendered
      *         content:
      *           application/json:
-     *           schema:
-     *             type: array
+     *             schema:
+     *               type: array
      *       404:
      *         description: Not found
      *       503:
      *         description: Server is starting up
      *         content:
      *           text/plain:
-     *           schema:
-     *             type: string
-     *             example: Starting...
+     *             schema:
+     *               type: string
+     *               example: Starting...
      *       500:
      *         description: Internal server error
      */
@@ -475,25 +460,24 @@ export const serve_render = {
      *       content:
      *         application/json:
      *           schema:
-     *             type: object
-     *             example: {}
+     *             $ref: '#/components/schemas/RenderHighQualityPDF'
      *       description: Render high quality PDF options
      *     responses:
      *       201:
      *         description: High quality PDF rendered
      *         content:
      *           application/json:
-     *           schema:
-     *             type: object
+     *             schema:
+     *               type: object
      *       404:
      *         description: Not found
      *       503:
      *         description: Server is starting up
      *         content:
      *           text/plain:
-     *           schema:
-     *             type: string
-     *             example: Starting...
+     *             schema:
+     *               type: string
+     *               example: Starting...
      *       500:
      *         description: Internal server error
      */
@@ -514,25 +498,24 @@ export const serve_render = {
      *       content:
      *         application/json:
      *           schema:
-     *             type: object
-     *             example: {}
+     *             $ref: '#/components/schemas/RenderPDF'
      *       description: Render PDF options
      *     responses:
      *       201:
      *         description: PDF rendered
      *         content:
      *           application/json:
-     *           schema:
-     *             type: object
+     *             schema:
+     *               type: object
      *       404:
      *         description: Not found
      *       503:
      *         description: Server is starting up
      *         content:
      *           text/plain:
-     *           schema:
-     *             type: string
-     *             example: Starting...
+     *             schema:
+     *               type: string
+     *               example: Starting...
      *       500:
      *         description: Internal server error
      */

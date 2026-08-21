@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { maxValue, minValue } from "../utils/number.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
@@ -185,20 +186,20 @@ export async function getXYZFormatFromTiles(sourcePath) {
 }
 
 /**
- * Get XYZ tile extra info from coverages
- * @param {Database} source SQLite database instance
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {boolean} isCreated Tile created extra info
+ * Get XYZ tile extra info from coverages or exact tile bounds
+ * @param {{ source: Database, coverages?: { zoom: number, bbox: [number, number, number, number]}[], tileBounds?: { z: number, x: [number, number], y: [number, number] }[], isCreated?: boolean }} options Options
  * @returns {Object<string, string>} Extra info object
  */
-export function getXYZTileExtraInfoFromCoverages(source, coverages, isCreated) {
-  const { tileBounds } = getTileBounds({
-    coverages: coverages,
-  });
+export function getXYZTileExtraInfo(options) {
+  const tileBounds =
+    options.tileBounds ??
+    getTileBounds({
+      coverages: options.coverages,
+    }).tileBounds;
 
-  const extraInfoType = isCreated ? "created" : "hash";
+  const extraInfoType = options.isCreated ? "created" : "hash";
 
-  const querySQL = source.prepare(
+  const querySQL = options.source.prepare(
     `
       SELECT
         tile_column, tile_row, ${extraInfoType}
@@ -318,7 +319,7 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
 export async function removeXYZTile(z, x, y, option) {
   await removeFileWithLock(
     `${option.sourcePath}/${z}/${x}/${y}.${option.format}`,
-    30000, // 30 seconds
+    DEFAULT_QUERY_TIMEOUT,
   );
 
   if (option.statement) {
@@ -653,7 +654,7 @@ export async function storeXYZTileFile(z, x, y, data, option) {
     await createFileWithLock(
       `${option.sourcePath}/${z}/${x}/${y}.${option.format}`,
       data,
-      30000, // 30 seconds
+      DEFAULT_QUERY_TIMEOUT,
     );
 
     if (option.statement) {
@@ -740,7 +741,7 @@ export async function getAndCacheXYZTileData(id, z, x, y) {
       const data = await getDataFromURL(targetURL, {
         method: "GET",
         responseType: "arraybuffer",
-        timeout: 30000, // 30 seconds
+        timeout: DEFAULT_QUERY_TIMEOUT,
         headers: item.headers,
         decompress: false,
       });

@@ -5,6 +5,10 @@ import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
 import { createCache } from "cache-manager";
 import {
+  DEFAULT_CACHE_TIMEOUT,
+  DEFAULT_QUERY_TIMEOUT,
+} from "../defaults/index.js";
+import {
   removeFileWithLock,
   createFileWithLock,
   calculateMD5OfFile,
@@ -18,7 +22,7 @@ import {
 
 /* Cache in RAM */
 const renderedStyleJSONCaches = createCache({
-  ttl: 300000, // 5 mins
+  ttl: DEFAULT_CACHE_TIMEOUT,
 });
 
 /*********************************** Style *************************************/
@@ -29,10 +33,7 @@ const renderedStyleJSONCaches = createCache({
  * @returns {Promise<void>}
  */
 export async function removeStyleFile(filePath) {
-  await removeFileWithLock(
-    filePath,
-    30000, // 30 seconds
-  );
+  await removeFileWithLock(filePath, DEFAULT_QUERY_TIMEOUT);
 }
 
 /**
@@ -42,11 +43,7 @@ export async function removeStyleFile(filePath) {
  * @returns {Promise<void>}
  */
 export async function storeStyleFile(filePath, data) {
-  await createFileWithLock(
-    filePath,
-    data,
-    30000, // 30 seconds
-  );
+  await createFileWithLock(filePath, data, DEFAULT_QUERY_TIMEOUT);
 }
 
 /**
@@ -383,7 +380,7 @@ export async function getAndCacheDataStyleJSON(id) {
       const styleJSON = await getDataFromURL(item.sourceURL, {
         method: "GET",
         responseType: "arraybuffer",
-        timeout: 30000, // 30 seconds
+        timeout: DEFAULT_QUERY_TIMEOUT,
         headers: item.headers,
         decompress: true,
       });

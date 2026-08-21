@@ -414,6 +414,10 @@
             "type": "integer",
             "minimum": 0
           },
+          "infoTimeout": {
+            "type": "integer",
+            "minimum": 0
+          },
           "concurrency": {
             "type": "integer",
             "minimum": 1

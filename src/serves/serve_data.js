@@ -3,6 +3,10 @@
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import {
+  DEFAULT_TILE_BATCH_SIZE,
+  DEFAULT_QUERY_TIMEOUT,
+} from "../defaults/index.js";
+import {
   compileHandleBarsTemplate,
   validateTileMetadata,
   createTileMetadata,
@@ -19,16 +23,16 @@ import {
   printLog,
 } from "../utils/index.js";
 import {
-  getPostgreSQLTileExtraInfoFromCoverages,
-  getMBTilesTileExtraInfoFromCoverages,
-  getXYZTileExtraInfoFromCoverages,
   calculatePostgreSQLTileExtraInfo,
   calculateMBTilesTileExtraInfo,
   getAndCachePostgreSQLTileData,
+  getPostgreSQLTileExtraInfo,
   getAndCacheMBTilesTileData,
   calculateXYZTileExtraInfo,
+  getMBTilesTileExtraInfo,
   getAndCacheXYZTileData,
   getPostgreSQLMetadata,
+  getXYZTileExtraInfo,
   getMBTilesMetadata,
   getPMTilesMetadata,
   openPostgreSQLDB,
@@ -337,13 +341,42 @@ function getTileDataExtraInfoHandler() {
 
     /* Get tile extra info */
     try {
+      const tileBounds = req.body?.tileBounds;
+
       try {
-        validateJSON(await getJSONSchema("coverages"), req.body);
+        validateJSON(await getJSONSchema("tile_bounds"), req.body);
+
+        let total = 0;
+
+        tileBounds.forEach((tileBound) => {
+          const maxTileIndex = 2 ** tileBound.z - 1;
+
+          if (
+            tileBound.x[0] > tileBound.x[1] ||
+            tileBound.y[0] > tileBound.y[1] ||
+            tileBound.x[1] > maxTileIndex ||
+            tileBound.y[1] > maxTileIndex
+          ) {
+            throw new Error("Tile bounds range is invalid");
+          }
+
+          total +=
+            (tileBound.x[1] - tileBound.x[0] + 1) *
+            (tileBound.y[1] - tileBound.y[0] + 1);
+        });
+
+        if (total > DEFAULT_TILE_BATCH_SIZE) {
+          return sendTextResponse(
+            res,
+            413,
+            `Tile bounds contains more than ${DEFAULT_TILE_BATCH_SIZE} tiles`,
+          );
+        }
       } catch (error) {
         return sendTextResponse(
           res,
           StatusCodes.BAD_REQUEST,
-          `Coverages is invalid: ${error}`,
+          `Tile bounds is invalid: ${error}`,
         );
       }
 
@@ -352,12 +385,11 @@ function getTileDataExtraInfoHandler() {
 
       switch (item.sourceType) {
         case "mbtiles": {
-          extraInfo = getMBTilesTileExtraInfoFromCoverages(
-            item.source,
-            req.body,
+          extraInfo = getMBTilesTileExtraInfo({
+            source: item.source,
+            tileBounds: tileBounds,
             isCreated,
-            item.tileJSON.bounds,
-          );
+          });
 
           break;
         }
@@ -371,23 +403,21 @@ function getTileDataExtraInfoHandler() {
         }
 
         case "xyz": {
-          extraInfo = getXYZTileExtraInfoFromCoverages(
-            item.md5Source,
-            req.body,
+          extraInfo = getXYZTileExtraInfo({
+            source: item.md5Source,
+            tileBounds: tileBounds,
             isCreated,
-            item.tileJSON.bounds,
-          );
+          });
 
           break;
         }
 
         case "pg": {
-          extraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
-            item.source,
-            req.body,
+          extraInfo = await getPostgreSQLTileExtraInfo({
+            source: item.source,
+            tileBounds: tileBounds,
             isCreated,
-            item.tileJSON.bounds,
-          );
+          });
 
           break;
         }
@@ -586,8 +616,8 @@ export const serve_data = {
      *         description: List of all datas
      *         content:
      *           application/json:
-     *           schema:
-     *             type: array
+     *             schema:
+     *               type: array
      *               items:
      *                 type: object
      *                 properties:
@@ -722,10 +752,9 @@ export const serve_data = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
-     *       description: Coverages object
+     *           schema:
+     *             $ref: '#/components/schemas/TileBounds'
+     *       description: Exact tile bounds object, limited to 100000 tiles
      *     responses:
      *       200:
      *         description: Tile extra info
@@ -950,7 +979,7 @@ export const serve_data = {
                 dataInfo.source = await openMBTilesDB(
                   dataInfo.path,
                   true,
-                  30000, // 30 seconds
+                  DEFAULT_QUERY_TIMEOUT,
                 );
 
                 /* Get MBTiles metadata */
@@ -970,7 +999,7 @@ export const serve_data = {
                 dataInfo.source = await openMBTilesDB(
                   dataInfo.path,
                   true,
-                  30000, // 30 seconds
+                  DEFAULT_QUERY_TIMEOUT,
                 );
 
                 /* Get MBTiles metadata */
@@ -1060,7 +1089,7 @@ export const serve_data = {
                 const md5Source = await openXYZMD5DB(
                   `${dataInfo.path}/${item.xyz}.sqlite`,
                   true,
-                  30000, // 30 seconds
+                  DEFAULT_QUERY_TIMEOUT,
                 );
 
                 /* Get XYZ metadata */
@@ -1095,7 +1124,7 @@ export const serve_data = {
                 dataInfo.source = await openPostgreSQLDB(
                   dataInfo.path,
                   true,
-                  30000, // 30 seconds
+                  DEFAULT_QUERY_TIMEOUT,
                 );
 
                 /* Get PostgreSQL metadata */
@@ -1115,7 +1144,7 @@ export const serve_data = {
                 dataInfo.source = await openPostgreSQLDB(
                   dataInfo.path,
                   false,
-                  30000, // 30 seconds
+                  DEFAULT_QUERY_TIMEOUT,
                 );
 
                 /* Get PostgreSQL metadata */

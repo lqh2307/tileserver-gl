@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
@@ -39,10 +40,7 @@ if (!cluster.isPrimary) {
  * @returns {Promise<void>}
  */
 export async function removeFontFile(filePath) {
-  await removeFileWithLock(
-    filePath,
-    30000, // 30 seconds
-  );
+  await removeFileWithLock(filePath, DEFAULT_QUERY_TIMEOUT);
 }
 
 /**
@@ -52,11 +50,7 @@ export async function removeFontFile(filePath) {
  * @returns {Promise<void>}
  */
 export async function storeFontFile(filePath, data) {
-  await createFileWithLock(
-    filePath,
-    data,
-    30000, // 30 seconds
-  );
+  await createFileWithLock(filePath, data, DEFAULT_QUERY_TIMEOUT);
 }
 
 /**
@@ -261,7 +255,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
             const font = await getDataFromURL(targetURL, {
               method: "GET",
               responseType: "arraybuffer",
-              timeout: 30000, // 30 seconds
+              timeout: DEFAULT_QUERY_TIMEOUT,
               headers: item.headers,
               decompress: true,
             });

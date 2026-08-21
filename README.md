@@ -1,5 +1,182 @@
 # Tile server
 
+Tile server phục vụ và cache raster/vector tile, MapLibre StyleJSON, GeoJSON,
+sprite và font. Dữ liệu có thể đọc từ MBTiles, PMTiles, thư mục XYZ hoặc
+PostgreSQL; server cũng hỗ trợ seed/cleanup theo lịch, export dữ liệu và render
+ảnh/PDF khi MapLibre GL Native khả dụng.
+
+## Mục lục
+
+- [Tổng quan](#tổng-quan)
+- [Truy cập dịch vụ](#truy-cập-dịch-vụ)
+- [Chạy sau reverse proxy](#chạy-sau-reverse-proxy)
+- [Cấu hình và thư mục dữ liệu](#cấu-hình-và-thư-mục-dữ-liệu)
+- [Các giá trị mặc định](#các-giá-trị-mặc-định)
+- [Build và chạy](#build--run)
+- [Ví dụ config.json](#example-configjson)
+- [Luồng seed tile theo batch](#luồng-seed-tile-theo-batch)
+- [Ví dụ seed.json](#example-seedjson)
+- [Ví dụ cleanup và export](#example-cleanupjson)
+
+## Tổng quan
+
+Các nhóm chức năng chính:
+
+- Phục vụ tile raster `png`, `jpg`, `jpeg`, `webp` và vector tile `pbf` theo
+  chuẩn XYZ.
+- Đọc dữ liệu từ MBTiles, PMTiles, XYZ hoặc PostgreSQL và tùy chọn forward/cache
+  dữ liệu từ tile-server khác.
+- Phục vụ TileJSON, WMTS capabilities, MapLibre StyleJSON, GeoJSON, sprite và
+  glyph font.
+- Seed và cleanup dữ liệu theo coverage `bbox`/`circle`, zoom, thời gian tạo hoặc
+  MD5.
+- Chia coverage lớn thành batch lazy để giới hạn RAM và kích thước response
+  extra-info.
+- Export toàn bộ cấu hình, export tile và render style sang MBTiles, XYZ hoặc
+  PostgreSQL.
+- Cung cấp health/readiness probe, summary và Prometheus metrics.
+
+### Kiểu storage
+
+| Kiểu | Mục đích | Ghi dữ liệu | Ghi chú |
+| --- | --- | --- | --- |
+| `mbtiles` | SQLite theo chuẩn MBTiles | Có | Hỗ trợ metadata, tile và MD5/created |
+| `xyz` | Cây thư mục `{z}/{x}/{y}.{format}` | Có | MD5/created được lưu trong SQLite phụ |
+| `pg` | PostgreSQL | Có | URI gốc lấy từ `postgreSQLBaseURI` |
+| `pmtiles` | PMTiles local hoặc remote | Không | Phù hợp nguồn chỉ đọc |
+
+## Truy cập dịch vụ
+
+Với cấu hình mặc định, base URL là `http://localhost:8080`.
+
+| URL | Chức năng |
+| --- | --- |
+| `/` | Trang quản trị và danh sách resource |
+| `/swagger` | Swagger UI và chức năng Try it out |
+| `/health` | Liveness probe |
+| `/ready` | Readiness probe sau khi resource đã load |
+| `/version` | Phiên bản ứng dụng |
+| `/prometheus` | Prometheus metrics |
+| `/summary?type=service` | Tóm tắt resource đang phục vụ |
+| `/datas/datas.json` | Danh sách data source |
+| `/styles/styles.json` | Danh sách style |
+| `/geojsons/geojsons.json` | Danh sách GeoJSON group |
+| `/sprites/sprites.json` | Danh sách sprite |
+| `/fonts/fonts.json` | Danh sách font |
+
+Một số request thường dùng:
+
+```bash
+# Kiểm tra worker còn sống và đã sẵn sàng
+curl -fsS http://localhost:8080/health
+curl -fsS http://localhost:8080/ready
+
+# Lấy TileJSON và một tile
+curl -fsS http://localhost:8080/datas/osm.json
+curl -o tile.png http://localhost:8080/datas/osm/10/806/483.png
+
+# Đọc config hiện tại
+curl -fsS 'http://localhost:8080/config?type=config'
+
+# Bắt đầu seed riêng data
+curl -fsS 'http://localhost:8080/tasks/start?seedDatas=true'
+```
+
+Các endpoint trả `201` cho export/render chỉ xác nhận job nền đã được nhận.
+Theo dõi log hoặc `/summary` để biết tiến trình. Tile không tồn tại có thể trả
+`204`; lỗi validation trả `400`; resource không tồn tại trả `404`; server chưa
+sẵn sàng trả `503`.
+
+### Swagger
+
+Swagger UI được mount tại `/swagger`. OpenAPI document lấy server URL từ request
+hiện tại để nút **Try it out** gọi đúng public domain. Khi có query `proxy`, giá
+trị này được ưu tiên hơn header proxy, ví dụ:
+
+```text
+https://release.c4i.vn/tile-server/swagger/?proxy=https://release.c4i.vn/tile-server
+```
+
+Swagger mô tả request body bằng cùng JSON Schema đang được server dùng để
+validate. Vì vậy field bắt buộc, enum, giới hạn số và cấu trúc nested trong UI
+phải khớp với request thực tế.
+
+## Chạy sau reverse proxy
+
+Khi public URL có prefix, ví dụ
+`https://release.c4i.vn/tile-server`, reverse proxy cần:
+
+1. Bỏ prefix `/tile-server` trước khi forward request vào ứng dụng.
+2. Forward protocol, host và prefix qua các header `X-Forwarded-*`.
+3. Giữ prefix khi rewrite redirect `/swagger` sang `/swagger/` do
+   `swagger-ui-express` thực hiện.
+
+Ví dụ Nginx:
+
+```nginx
+location = /tile-server/swagger {
+    return 308 /tile-server/swagger/;
+}
+
+location /tile-server/ {
+    proxy_pass http://127.0.0.1:8080/;
+    proxy_http_version 1.1;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Prefix /tile-server;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+    proxy_redirect / /tile-server/;
+}
+```
+
+Sau khi cấu hình, kiểm tra:
+
+```bash
+curl -I https://release.c4i.vn/tile-server/swagger
+curl -fsS https://release.c4i.vn/tile-server/health
+```
+
+## Cấu hình và thư mục dữ liệu
+
+Ứng dụng đọc ba file trong `DATA_DIR` và validate trước khi khởi động:
+
+| File | Nội dung |
+| --- | --- |
+| `config.json` | Resource được phục vụ, storage, cache và tùy chọn process |
+| `seed.json` | Nguồn tải, coverage, retry, timeout và chiến lược refresh |
+| `cleanup.json` | Coverage và mốc thời gian dùng để xóa cache cũ |
+
+Các JSON Schema tương ứng nằm trong `public/schemas`. Khi thay đổi file cấu
+hình và `RESTART_AFTER_CONFIG_CHANGE=true`, process được restart tự động sau khi
+file thay đổi.
+
+Các thư mục thường gặp bên trong `DATA_DIR`:
+
+| Đường dẫn | Nội dung |
+| --- | --- |
+| `config.json`, `seed.json`, `cleanup.json` | Cấu hình runtime |
+| `mbtiles/`, `pmtiles/`, `xyzs/` | Nguồn tile local |
+| `styles/`, `sprites/`, `fonts/`, `geojsons/` | Resource local |
+| `caches/` | Dữ liệu forward/seed được cache |
+| `exports/` | Kết quả export và render |
+| `statics/` | Static file do người vận hành cung cấp |
+
+## Các giá trị mặc định
+
+| Giá trị | Mặc định | Ý nghĩa |
+| --- | ---: | --- |
+| HTTP query/request timeout | `60000 ms` | Timeout request tile/resource và thao tác query thông thường |
+| Extra-info timeout | `1800000 ms` | Timeout riêng cho mỗi batch MD5/created |
+| Retry | `5` | Số lần thử request lỗi |
+| Concurrency | Số CPU | Số task chạy đồng thời nếu không cấu hình |
+| Store transparent | `true` | Có lưu tile trong suốt |
+| Tile batch size | `100000` | Số tile tối đa trong một batch extra-info |
+| Cache TTL | `300000 ms` | TTL cache metadata trong RAM |
+
 ## Build & Run
 
 ### Prepare
@@ -100,17 +277,21 @@ Run:
 npm run server
 ```
 
-ENVs:
+Biến môi trường:
 
-```bash
-LISTEN_PORT: service name, will overwrite config.json file (default: 8080)
-DATA_DIR: path to data folder (default: data)
-SERVICE_NAME: service name (default: tile-server)
-RESTART_AFTER_CONFIG_CHANGE: restart server after config file changed, true/false (default: true)
-NUM_OF_THREAD: number of threads, will overwrite config.json file (default: num of cpus)
-NUM_OF_PROCESS: number of process, will overwrite config.json file (default: 1)
-LOG_LEVEL: log level (default: info)
-```
+| Tên | Mặc định | Mô tả |
+| --- | --- | --- |
+| `LISTEN_PORT` | `8080` | Cổng HTTP, ghi đè `options.listenPort` |
+| `DATA_DIR` | `data` | Thư mục chứa config và resource |
+| `SERVICE_NAME` | `tile-server` | Tên service dùng trong log/metrics |
+| `RESTART_AFTER_CONFIG_CHANGE` | `true` | Restart khi `config.json`, `seed.json` hoặc `cleanup.json` thay đổi |
+| `NUM_OF_THREAD` | Số CPU | Ghi đè `options.thread` và đặt `UV_THREADPOOL_SIZE` |
+| `NUM_OF_PROCESS` | `1` | Ghi đè `options.process` |
+| `LOG_LEVEL` | `info` | Mức log runtime |
+
+Thứ tự ưu tiên thường là biến môi trường, giá trị trong `config.json`, sau đó
+mới đến default trong code. Riêng PostgreSQL URI được lấy từ
+`options.postgreSQLBaseURI` và mặc định là `postgresql://localhost:5432`.
 
 ### Run with docker
 
@@ -385,6 +566,212 @@ docker push quanghuy2307/tile-server:1.0.0
   }
 }
 ```
+
+## Luồng seed tile theo batch
+
+Luồng batch được dùng để tránh tải toàn bộ `extra-info` của hàng triệu tile vào
+RAM và tránh gửi một response JSON quá lớn giữa tile-server con và tile-server
+cha. Kích thước mặc định của một batch là `100000` tile.
+
+### Tổng quan
+
+Tile-server con nhận `coverages` từ `seed.json`, chuyển chúng thành các khoảng
+tile XYZ gọn (`tileBounds`), sau đó sinh lần lượt từng batch. Mỗi batch chứa tối
+đa `100000` tile và được xử lý xong hoàn toàn trước khi chuyển sang batch tiếp
+theo.
+
+```text
+coverages trong seed.json
+        |
+        v
+Giới hạn theo metadata.bounds
+        |
+        v
+Tính total + các tileBounds dạng z/xMin/xMax/yMin/yMax
+        |
+        v
+Sinh lazy từng batch <= 100000 tile
+        |
+        +--> Lấy extra-info trên tile-server cha (khi so sánh MD5)
+        |
+        +--> Lấy extra-info trong cache local
+        |
+        v
+So sánh từng tile -> skip hoặc download/store
+        |
+        v
+Xóa extra-info của tile đã xử lý khỏi RAM
+        |
+        v
+Chờ toàn bộ task trong batch hoàn thành -> xử lý batch kế tiếp
+```
+
+### Cách tạo batch từ coverages
+
+Đầu tiên, `getTileBounds()` thực hiện các bước sau:
+
+1. Đọc từng coverage gồm `zoom` và `bbox` hoặc `circle`.
+2. Lấy phần giao với `metadata.bounds`. Coverage không giao với bounds sẽ bị
+   bỏ qua.
+3. Chuyển coverage thành khoảng tile XYZ:
+   `z`, `x: [xMin, xMax]`, `y: [yMin, yMax]`.
+4. Tính `total` là tổng số tile cần xét.
+
+Ví dụ một khoảng tile compact:
+
+```json
+{
+  "z": 12,
+  "x": [3200, 3399],
+  "y": [1500, 1599],
+  "total": 20000
+}
+```
+
+`getTileBoundsBatches()` tiếp tục chia các khoảng lớn thành hình chữ nhật nhỏ
+và gom chúng vào batch sao cho tổng `total` của mỗi batch không vượt quá
+`100000`. Hàm này là generator lazy: batch chỉ được tạo khi vòng seed yêu cầu
+batch tiếp theo, không tạo danh sách hàng triệu tile và cũng không giữ toàn bộ
+các batch trong RAM.
+
+Vì vậy, luồng hiện tại không cần tính trước và lưu `batchCount`. Với một khoảng
+liên tục gồm `255000` tile, thông thường sẽ có ba batch gồm `100000`, `100000`
+và `55000` tile. Khi có nhiều coverage hoặc nhiều khoảng hình dạng khác nhau,
+số batch thực tế có thể lớn hơn `ceil(total / 100000)` do một số batch cuối của
+mỗi khoảng không lấp đầy hoàn toàn.
+
+### Luồng so sánh MD5 với tile-server cha
+
+Luồng này được kích hoạt khi cấu hình:
+
+```json
+{
+  "refreshBefore": {
+    "md5": true
+  },
+  "timeout": 60000,
+  "infoTimeout": 1800000
+}
+```
+
+`timeout` là timeout của request download từng tile. `infoTimeout` là timeout
+riêng cho mỗi request lấy extra-info của một batch từ tile-server cha, tính bằng
+milliseconds. Nếu không cấu hình, `infoTimeout` mặc định là `1800000` (30 phút)
+và không lấy giá trị từ `timeout`.
+
+Trong trường hợp này, `url` phải trỏ đến endpoint tile của một tile-server cha
+và chứa đúng đoạn `/{z}/{x}/{y}`. Ví dụ:
+
+```text
+http://parent-tile-server:8080/datas/osm/{z}/{x}/{y}.png
+```
+
+Tile-server con suy ra endpoint extra-info:
+
+```text
+http://parent-tile-server:8080/datas/osm/extra-info?compression=true
+```
+
+Với mỗi batch, tile-server con chạy song song hai thao tác:
+
+1. Gửi `POST` lên tile-server cha để lấy hash của batch.
+2. Query hash của cùng batch trong MBTiles, PostgreSQL hoặc XYZ cache local.
+
+Request gửi lên tile-server cha sử dụng exact tile bounds, không gửi lại bbox:
+
+```json
+{
+  "tileBounds": [
+    {
+      "z": 12,
+      "x": [3200, 3399],
+      "y": [1500, 1999],
+      "total": 100000
+    }
+  ]
+}
+```
+
+Trường `total` trong từng range dùng để mô tả nhanh kích thước range. Server cha
+vẫn tự tính lại số tile từ `x` và `y`, không tin trực tiếp giá trị `total` từ
+client.
+
+Endpoint `/datas/:id/extra-info` chỉ nhận format `tileBounds` này. Tổng số tile
+trong request không được vượt quá `100000`; request lớn hơn sẽ nhận HTTP `413`.
+Khoảng tile luôn dùng XYZ. Với MBTiles, server tự chuyển hàng XYZ sang TMS khi
+query database.
+
+Response extra-info có dạng:
+
+```json
+{
+  "12/3200/1500": "8f14e45fceea167a5a36dedd4bea2543",
+  "12/3200/1501": "c9f0f895fb98ab9159f51fd0297e236d"
+}
+```
+
+Response được gzip khi có `compression=true`. Sau khi nhận response, tile-server
+con tự giải nén và parse JSON.
+
+Với từng tile trong batch:
+
+- Nếu hash local tồn tại và bằng hash trên tile-server cha, tile được skip.
+- Nếu hash khác, hash local không tồn tại hoặc tile chưa có trong cache, tile
+  được download từ `url` và lưu lại.
+- Dù tile được skip, download thành công hay gặp lỗi, key tương ứng đều được
+  xóa khỏi hai object extra-info trong khối `finally` để hash có thể được GC thu
+  hồi sớm.
+
+Khi tất cả task của batch đã hoàn thành theo giới hạn `concurrency`, hai object
+extra-info còn lại của batch không còn được tham chiếu và luồng chuyển sang
+batch tiếp theo.
+
+### Các chế độ refresh khác
+
+Nếu `refreshBefore.time` hoặc `refreshBefore.day` được cấu hình, tile-server con
+không gọi extra-info trên tile-server cha. Nó chỉ query trường `created` của
+cache local theo từng batch:
+
+- Tile có `created >= refreshTimestamp` được skip.
+- Tile cũ hơn hoặc chưa có `created` được download lại.
+
+Nếu không có `refreshBefore`, luồng không lấy extra-info. Tất cả tile trong
+coverage được download và lưu theo `concurrency`, nhưng vẫn đi qua từng batch để
+giữ cách thực thi nhất quán.
+
+### Xử lý lỗi
+
+- Nếu endpoint extra-info của tile-server cha trả lỗi HTTP `5xx`, toàn bộ seed
+  của data hiện tại dừng để tránh tải lại hàng loạt tile khi server cha đang lỗi.
+- Với lỗi extra-info khác, batch dùng object rỗng và tiếp tục download các tile
+  thay vì skip theo hash.
+- Download từng tile sử dụng `maxTry`, `timeout` và `skipWhenError` từ
+  `seed.json`.
+- Một batch luôn được chờ hoàn thành trước khi bắt đầu batch tiếp theo.
+
+### Đặc tính sử dụng RAM và network
+
+Trước khi chia batch, tile-server con có thể đồng thời giữ hash remote và hash
+local của toàn bộ coverage. Với hàng triệu tile, JSON, gzip buffer và object sau
+khi parse có thể chiếm RAM lớn ở cả server cha và server con.
+
+Sau khi chia batch, lượng extra-info được giữ gần với:
+
+```text
+O(100000 hash remote + 100000 hash local + concurrency tile đang xử lý)
+```
+
+thay vì `O(tổng số tile trong coverage)`. `delete` làm key/value đủ điều kiện để
+garbage collector thu hồi sớm; Node.js/V8 có thể giữ vùng heap đã cấp phát để tái
+sử dụng nên RSS của process không nhất thiết giảm ngay lập tức.
+
+Batching chủ yếu giảm peak RAM và kích thước của từng request/response, không
+loại bỏ tổng lượng hash cần truyền khi so sánh MD5. Với `N` tile, tile-server
+con vẫn nhận tối đa `N` hash nhưng được chia qua nhiều request tuần tự; đổi lại
+mỗi request có thêm một lượng nhỏ HTTP overhead. Gzip tiếp tục được dùng để giảm
+băng thông của từng response. Nếu cần giảm mạnh tổng lượng hash truyền qua mạng,
+cần thêm cơ chế checksum theo block hoặc Merkle tree để bỏ qua cả block không
+thay đổi.
 
 ## Example seed.json
 
@@ -3187,7 +3574,10 @@ docker push quanghuy2307/tile-server:1.0.0
   },
   "format": "png",
   "base64": true
-},
+}
+```
+
+```json
 {
   "zoom": 9,
   "bbox": [104, 20, 106, 22],

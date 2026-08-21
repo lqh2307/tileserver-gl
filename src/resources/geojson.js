@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
 import {
@@ -20,10 +21,7 @@ import {
  * @returns {Promise<void>}
  */
 export async function removeGeoJSONFile(filePath) {
-  await removeFileWithLock(
-    filePath,
-    30000, // 30 seconds
-  );
+  await removeFileWithLock(filePath, DEFAULT_QUERY_TIMEOUT);
 }
 
 /**
@@ -33,11 +31,7 @@ export async function removeGeoJSONFile(filePath) {
  * @returns {Promise<void>}
  */
 export async function storeGeoJSONFile(filePath, data) {
-  await createFileWithLock(
-    filePath,
-    data,
-    300000, // 5 mins
-  );
+  await createFileWithLock(filePath, data, DEFAULT_QUERY_TIMEOUT);
 }
 
 /**
@@ -281,7 +275,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
       const geoJSON = await getDataFromURL(item.sourceURL, {
         method: "GET",
         responseType: "arraybuffer",
-        timeout: 30000, // 30 seconds
+        timeout: DEFAULT_QUERY_TIMEOUT,
         headers: item.headers,
         decompress: true,
       });

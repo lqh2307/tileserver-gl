@@ -342,17 +342,15 @@ function getRenderedTileHandler() {
 
     /* Render tile */
     try {
-      const image = await renderImageTileData(
-        +req.params.z,
-        +req.params.x,
-        +req.params.y,
-        {
-          styleJSON: await getRenderedStyleJSON(item.path),
-          tileScale: +req.query.tileScale || 1,
-          tileSize: +req.query.tileSize || 256,
-          format: req.params.format,
-        },
-      );
+      const image = await renderImageTileData({
+        z: +req.params.z,
+        x: +req.params.x,
+        y: +req.params.y,
+        styleJSON: await getRenderedStyleJSON(item.path),
+        tileScale: +req.query.tileScale || 1,
+        tileSize: +req.query.tileSize || 256,
+        format: req.params.format,
+      });
 
       res.set("content-type", detectContentTypeFromFormat(req.params.format));
 
@@ -547,8 +545,8 @@ export const serve_style = {
      *         description: List of all styles
      *         content:
      *           application/json:
-     *           schema:
-     *             type: array
+     *             schema:
+     *               type: array
      *               items:
      *                 type: object
      *                 properties:
@@ -609,8 +607,8 @@ export const serve_style = {
        *         description: StyleJSON
        *         content:
        *           application/json:
-       *           schema:
-       *             type: object
+       *             schema:
+       *               type: object
        *       404:
        *         description: Not found
        *       503:

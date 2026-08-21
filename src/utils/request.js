@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_CACHE_TIMEOUT } from "../defaults/default.js";
 import { StatusCodes } from "http-status-codes";
 import { createCache } from "cache-manager";
 import { getFileCreated } from "./file.js";
@@ -12,7 +13,7 @@ export const HTTP_SCHEMES = ["https://", "http://"];
 
 /* Cache in RAM */
 const lastModifiedCaches = createCache({
-  ttl: 300000, // 5 mins
+  ttl: DEFAULT_CACHE_TIMEOUT,
 });
 
 /**

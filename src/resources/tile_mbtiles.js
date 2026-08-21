@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { limitValue } from "../utils/number.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
@@ -156,25 +157,20 @@ export function getMBTilesFormatFromTiles(source) {
 }
 
 /**
- * Get MBTiles tile extra info from coverages
- * @param {Database} source SQLite database instance
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {boolean} isCreated Tile created extra info
- * @returns {Object<string, string>} Extra info object
+ * Get MBTiles tile extra info from coverages or exact tile bounds
+ * @param {{ source: Database, coverages?: { zoom: number, bbox: [number, number, number, number]}[], tileBounds?: { z: number, x: [number, number], y: [number, number] }[], isCreated?: boolean }} options Options
+ * @returns {Object<string, string>} Extra info object keyed in XYZ scheme
  */
-export function getMBTilesTileExtraInfoFromCoverages(
-  source,
-  coverages,
-  isCreated,
-) {
-  const { tileBounds } = getTileBounds({
-    coverages: coverages,
-    scheme: "tms",
-  });
+export function getMBTilesTileExtraInfo(options) {
+  const tileBounds =
+    options.tileBounds ??
+    getTileBounds({
+      coverages: options.coverages,
+    }).tileBounds;
 
-  const extraInfoType = isCreated ? "created" : "hash";
+  const extraInfoType = options.isCreated ? "created" : "hash";
 
-  const querySQL = source.prepare(
+  const querySQL = options.source.prepare(
     `
       SELECT
         tile_column, tile_row, ${extraInfoType}
@@ -192,15 +188,14 @@ export function getMBTilesTileExtraInfoFromCoverages(
   const result = {};
 
   tileBounds.forEach((tileBound) => {
+    const maxRow = (1 << tileBound.z) - 1;
     const rows = querySQL.all(
       tileBound.z,
       tileBound.x[0],
       tileBound.x[1],
-      tileBound.y[0],
-      tileBound.y[1],
+      maxRow - tileBound.y[1],
+      maxRow - tileBound.y[0],
     );
-
-    const maxRow = (1 << tileBound.z) - 1;
 
     rows.forEach((row) => {
       if (row[extraInfoType]) {
@@ -633,11 +628,7 @@ export async function storeMBtilesTileData(z, x, y, data, option) {
  * @returns {Promise<number>}
  */
 export async function countMBTilesTiles(filePath) {
-  const source = await openSQLite(
-    filePath,
-    false,
-    60000, // 1 mins
-  );
+  const source = await openSQLite(filePath, false, DEFAULT_QUERY_TIMEOUT);
 
   const data = source.prepare("SELECT COUNT(*) AS count FROM tiles;").get();
 
@@ -691,7 +682,7 @@ export async function getAndCacheMBTilesTileData(id, z, x, y) {
       const data = await getDataFromURL(targetURL, {
         method: "GET",
         responseType: "arraybuffer",
-        timeout: 30000, // 30 seconds
+        timeout: DEFAULT_QUERY_TIMEOUT,
         headers: item.headers,
         decompress: false,
       });

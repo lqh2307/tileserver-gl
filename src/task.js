@@ -1,14 +1,19 @@
 "use strict";
 
 import { cleanUp, seed } from "./configs/index.js";
-import os from "node:os";
 import {
-  getPostgreSQLTileExtraInfoFromCoverages,
-  getMBTilesTileExtraInfoFromCoverages,
-  getXYZTileExtraInfoFromCoverages,
+  DEFAULT_STORE_TRANSPARENT,
+  DEFAULT_QUERY_TIMEOUT,
+  DEFAULT_INFO_TIMEOUT,
+  DEFAULT_CONCURRENCY,
+  DEFAULT_MAX_TRY,
+} from "./defaults/index.js";
+import {
+  getPostgreSQLTileExtraInfo,
   MBTILES_INSERT_TILE_QUERY,
   MBTILES_DELETE_TILE_QUERY,
   updatePostgreSQLMetadata,
+  getMBTilesTileExtraInfo,
   storePostgreSQLTileData,
   updateMBTilesMetadata,
   getXYZFormatFromTiles,
@@ -16,6 +21,7 @@ import {
   XYZ_DELETE_MD5_QUERY,
   XYZ_INSERT_MD5_QUERY,
   storeMBtilesTileData,
+  getXYZTileExtraInfo,
   updateXYZMetadata,
   removeMBTilesTile,
   closePostgreSQLDB,
@@ -50,6 +56,7 @@ import {
   runAllWithLimit,
   getDataFromURL,
   getTileBounds,
+  getTileBoundsBatches,
   requestToURL,
   printLog,
 } from "./utils/index.js";
@@ -145,7 +152,7 @@ export async function runTasks(opts) {
               try {
                 await cleanUpFont(
                   id,
-                  item.concurrency || os.cpus().length,
+                  item.concurrency || DEFAULT_CONCURRENCY,
                   item.skipWhenError,
                   item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
@@ -284,16 +291,17 @@ export async function runTasks(opts) {
               }
 
               try {
-                await cleanUpTileDatas(
-                  seedDataItem.storeType,
+                await cleanUpTileDatas({
                   id,
-                  seedDataItem.metadata,
-                  cleanUpDataItem.coverages,
-                  cleanUpDataItem.concurrency || os.cpus().length,
-                  cleanUpDataItem.skipWhenError,
-                  cleanUpDataItem.cleanUpBefore?.time ??
+                  storeType: seedDataItem.storeType,
+                  metadata: seedDataItem.metadata,
+                  coverages: cleanUpDataItem.coverages,
+                  concurrency: cleanUpDataItem.concurrency,
+                  skipWhenError: cleanUpDataItem.skipWhenError,
+                  cleanUpBefore:
+                    cleanUpDataItem.cleanUpBefore?.time ??
                     cleanUpDataItem.cleanUpBefore?.day,
-                );
+                });
               } catch (error) {
                 printLog(
                   "error",
@@ -336,16 +344,17 @@ export async function runTasks(opts) {
               }
 
               try {
-                await seedSprite(
+                await seedSprite({
                   id,
-                  item.url,
-                  item.maxTry || 5,
-                  item.timeout ?? 60000,
-                  item.headers,
-                  item.refreshBefore?.time ??
+                  url: item.url,
+                  maxTry: item.maxTry,
+                  timeout: item.timeout,
+                  headers: item.headers,
+                  refreshBefore:
+                    item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                );
+                });
               } catch (error) {
                 printLog(
                   "error",
@@ -388,18 +397,19 @@ export async function runTasks(opts) {
               }
 
               try {
-                await seedFont(
+                await seedFont({
                   id,
-                  item.url,
-                  item.concurrency || os.cpus().length,
-                  item.maxTry || 5,
-                  item.timeout ?? 60000,
-                  item.headers,
-                  item.skipWhenError,
-                  item.refreshBefore?.time ??
+                  url: item.url,
+                  concurrency: item.concurrency,
+                  maxTry: item.maxTry,
+                  timeout: item.timeout,
+                  headers: item.headers,
+                  skipWhenError: item.skipWhenError,
+                  refreshBefore:
+                    item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                );
+                });
               } catch (error) {
                 printLog(
                   "error",
@@ -442,16 +452,17 @@ export async function runTasks(opts) {
               }
 
               try {
-                await seedStyle(
+                await seedStyle({
                   id,
-                  item.url,
-                  item.maxTry || 5,
-                  item.timeout ?? 60000,
-                  item.headers,
-                  item.refreshBefore?.time ??
+                  url: item.url,
+                  maxTry: item.maxTry,
+                  timeout: item.timeout,
+                  headers: item.headers,
+                  refreshBefore:
+                    item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                );
+                });
               } catch (error) {
                 printLog(
                   "error",
@@ -494,16 +505,17 @@ export async function runTasks(opts) {
               }
 
               try {
-                await seedGeoJSON(
+                await seedGeoJSON({
                   id,
-                  item.url,
-                  item.maxTry || 5,
-                  item.timeout ?? 60000,
-                  item.headers,
-                  item.refreshBefore?.time ??
+                  url: item.url,
+                  maxTry: item.maxTry,
+                  timeout: item.timeout,
+                  headers: item.headers,
+                  refreshBefore:
+                    item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                );
+                });
               } catch (error) {
                 printLog(
                   "error",
@@ -546,23 +558,25 @@ export async function runTasks(opts) {
               }
 
               try {
-                await seedTileDatas(
+                await seedTileDatas({
                   id,
-                  item.storeType,
-                  item.metadata,
-                  item.url,
-                  item.scheme,
-                  item.coverages,
-                  item.concurrency || os.cpus().length,
-                  item.maxTry || 5,
-                  item.timeout ?? 60000,
-                  item.storeTransparent ?? true,
-                  item.headers,
-                  item.skipWhenError,
-                  item.refreshBefore?.time ??
+                  storeType: item.storeType,
+                  metadata: item.metadata,
+                  url: item.url,
+                  scheme: item.scheme,
+                  coverages: item.coverages,
+                  concurrency: item.concurrency,
+                  maxTry: item.maxTry,
+                  timeout: item.timeout,
+                  infoTimeout: item.infoTimeout,
+                  storeTransparent: item.storeTransparent,
+                  headers: item.headers,
+                  skipWhenError: item.skipWhenError,
+                  refreshBefore:
+                    item.refreshBefore?.time ??
                     item.refreshBefore?.day ??
                     item.refreshBefore?.md5,
-                );
+                });
               } catch (error) {
                 printLog(
                   "error",
@@ -596,36 +610,25 @@ export async function runTasks(opts) {
 
 /**
  * Seed tile datas
- * @param {string} id Cache data ID
- * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
- * @param {object} metadata Metadata object
- * @param {string} url Tile URL to download
- * @param {"tms"|"xyz"} scheme Tile scheme
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {boolean} storeTransparent Is store transparent tile?
- * @param {object} headers Headers
- * @param {object} skipWhenError Skip when error
- * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
+ * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", metadata: object, url: string, scheme: "tms"|"xyz", coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, maxTry?: number, timeout?: number, infoTimeout?: number, storeTransparent?: boolean, headers?: object, skipWhenError?: object, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
-async function seedTileDatas(
+async function seedTileDatas({
   id,
   storeType,
   metadata,
   url,
   scheme,
   coverages,
-  concurrency,
-  maxTry,
-  timeout,
-  storeTransparent,
+  concurrency = DEFAULT_CONCURRENCY,
+  maxTry = DEFAULT_MAX_TRY,
+  timeout = DEFAULT_QUERY_TIMEOUT,
+  infoTimeout = DEFAULT_INFO_TIMEOUT,
+  storeTransparent = DEFAULT_STORE_TRANSPARENT,
   headers,
   skipWhenError,
   refreshBefore,
-) {
+}) {
   const startTime = Date.now();
 
   let source;
@@ -634,7 +637,7 @@ async function seedTileDatas(
   try {
     /* Calculate summary */
     const { total, targetCoverages, tileBounds } = getTileBounds({
-      coverages: coverages,
+      coverages,
       limitedBBox: metadata.bounds,
     });
 
@@ -643,7 +646,7 @@ async function seedTileDatas(
       headers,
     )} - Scheme: ${scheme}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout} - Skip when error: ${JSON.stringify(skipWhenError)}`;
+    log += `\n\tConcurrency: ${concurrency} - Max try: ${maxTry} - Timeout: ${timeout} - Info timeout: ${infoTimeout} - Skip when error: ${JSON.stringify(skipWhenError)}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let refreshTimestamp;
@@ -665,10 +668,14 @@ async function seedTileDatas(
 
     printLog("info", log);
 
-    let targetTileExtraInfo;
-    let tileExtraInfo;
+    let getTileExtraInfoFunc;
     let storeTileDataFunc;
     let tileOption;
+
+    const hashURL =
+      refreshTimestamp === true
+        ? `${url.slice(0, url.indexOf("/{z}/{x}/{y}"))}/extra-info?compression=true`
+        : undefined;
 
     switch (storeType) {
       default: {
@@ -681,95 +688,31 @@ async function seedTileDatas(
         /* Open database */
         printLog("info", "Creating database...");
 
-        source = await openMBTilesDB(
-          filePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openMBTilesDB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
         updateMBTilesMetadata(source, metadata);
 
-        /* Get tile extra info */
-        if (refreshTimestamp === true) {
-          const hashURL = `${url.slice(
-            0,
-            url.indexOf("/{z}/{x}/{y}"),
-          )}/extra-info?compression=true`;
-
-          try {
-            printLog(
-              "info",
-              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
-            );
-
-            targetTileExtraInfo = await getDataFromURL(hashURL, {
-              method: "POST",
-              timeout: 1800000, // 30 mins
-              body: targetCoverages,
-              responseType: "json",
-              headers: {
-                ...(headers ?? {}),
-                "content-type": "application/json",
-              },
-              maxTry: maxTry,
-              decompress: true,
-            });
-
-            tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              false,
-            );
-          } catch (error) {
-            if (error.statusCode >= 500) {
-              printLog(
-                "error",
-                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed mbtiles "${id}"...`,
-              );
-
-              return;
-            }
-
-            printLog(
-              "error",
-              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`,
-            );
-
-            targetTileExtraInfo = {};
-            tileExtraInfo = {};
-          }
-        } else if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${filePath}"...`);
-
-            tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              true,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds, isCreated) => {
+          return getMBTilesTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated,
+          });
+        };
 
         /* Assign tile option */
         tileOption = {
           method: "GET",
           responseType: "arraybuffer",
           statement: source.prepare(MBTILES_INSERT_TILE_QUERY),
-          maxTry: maxTry,
-          timeout: timeout,
+          maxTry,
+          timeout,
           created: Date.now(),
           storeTransparent: storeTransparent,
-          headers: headers,
+          headers,
           decompress: false,
         };
 
@@ -792,95 +735,31 @@ async function seedTileDatas(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openPostgreSQLDB(
-          filePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openPostgreSQLDB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
         await updatePostgreSQLMetadata(source, metadata);
 
-        /* Get tile extra info */
-        if (refreshTimestamp === true) {
-          const hashURL = `${url.slice(
-            0,
-            url.indexOf("/{z}/{x}/{y}"),
-          )}/extra-info?compression=true`;
-
-          try {
-            printLog(
-              "info",
-              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
-            );
-
-            targetTileExtraInfo = await getDataFromURL(hashURL, {
-              method: "POST",
-              timeout: 1800000, // 30 mins
-              body: targetCoverages,
-              responseType: "json",
-              headers: {
-                ...(headers ?? {}),
-                "content-type": "application/json",
-              },
-              maxTry: maxTry,
-              decompress: true,
-            });
-
-            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              false,
-            );
-          } catch (error) {
-            if (error.statusCode >= 500) {
-              printLog(
-                "error",
-                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed postgresql "${id}"...`,
-              );
-
-              return;
-            }
-
-            printLog(
-              "error",
-              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`,
-            );
-
-            targetTileExtraInfo = {};
-            tileExtraInfo = {};
-          }
-        } else if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${filePath}"...`);
-
-            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              true,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds, isCreated) => {
+          return await getPostgreSQLTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated,
+          });
+        };
 
         /* Assign tile option */
         tileOption = {
           method: "GET",
           responseType: "arraybuffer",
-          source: source,
-          maxTry: maxTry,
-          timeout: timeout,
+          source,
+          maxTry,
+          timeout,
           created: Date.now(),
           storeTransparent: storeTransparent,
-          headers: headers,
+          headers,
           decompress: false,
         };
 
@@ -904,97 +783,33 @@ async function seedTileDatas(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openXYZMD5DB(
-          filePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openXYZMD5DB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
 
         updateXYZMetadata(source, metadata);
 
-        /* Get tile extra info */
-        if (refreshTimestamp === true) {
-          const hashURL = `${url.slice(
-            0,
-            url.indexOf("/{z}/{x}/{y}"),
-          )}/extra-info?compression=true`;
-
-          try {
-            printLog(
-              "info",
-              `Get target tile extra info from "${hashURL}" and tile extra info from "${filePath}"...`,
-            );
-
-            targetTileExtraInfo = await getDataFromURL(hashURL, {
-              method: "POST",
-              timeout: 1800000, // 30 mins
-              body: targetCoverages,
-              responseType: "json",
-              headers: {
-                ...(headers ?? {}),
-                "content-type": "application/json",
-              },
-              maxTry: maxTry,
-              decompress: true,
-            });
-
-            tileExtraInfo = getXYZTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              false,
-            );
-          } catch (error) {
-            if (error.statusCode >= 500) {
-              printLog(
-                "error",
-                `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed xyz "${id}"...`,
-              );
-
-              return;
-            }
-
-            printLog(
-              "error",
-              `Failed to get target tile extra info from "${hashURL}" and tile extra info from "${filePath}": ${error}`,
-            );
-
-            targetTileExtraInfo = {};
-            tileExtraInfo = {};
-          }
-        } else if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${filePath}"...`);
-
-            tileExtraInfo = getXYZTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              true,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds, isCreated) => {
+          return getXYZTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated,
+          });
+        };
 
         /* Assign tile option */
         tileOption = {
           method: "GET",
           responseType: "arraybuffer",
-          sourcePath: sourcePath,
+          sourcePath,
           statement: source.prepare(XYZ_INSERT_MD5_QUERY),
           format: metadata.format,
-          maxTry: maxTry,
-          timeout: timeout,
+          maxTry,
+          timeout,
           created: Date.now(),
           storeTransparent: storeTransparent,
-          headers: headers,
+          headers,
           decompress: false,
         };
 
@@ -1011,19 +826,25 @@ async function seedTileDatas(
       }
     }
 
-    /* Download and store tile data generator */
-    function* downloadAndStoreTileDataGenerator() {
-      let completeTasks = 0;
+    let completeTasks = 0;
 
-      if (skipWhenError) {
-        skipWhenError.errCount = 0;
-        skipWhenError.skipLoop = 0;
-      }
+    if (skipWhenError) {
+      skipWhenError.errCount = 0;
+      skipWhenError.skipLoop = 0;
+    }
 
-      for (const { z, x, y } of tileBounds) {
+    /* Download and store one tile data batch */
+    function* downloadAndStoreTileDataGenerator(
+      batchTileBounds,
+      targetTileExtraInfo,
+      tileExtraInfo,
+    ) {
+      for (const { z, x, y } of batchTileBounds) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
+
+            const taskNumber = completeTasks;
 
             if (skipWhenError && skipWhenError.skipLoop > 0) {
               skipWhenError.skipLoop--;
@@ -1033,61 +854,68 @@ async function seedTileDatas(
 
             yield async () => {
               const tileName = `${z}/${xCount}/${yCount}`;
-
-              if (
-                (refreshTimestamp === true &&
-                  tileExtraInfo[tileName] &&
-                  tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-                (refreshTimestamp &&
-                  tileExtraInfo[tileName] >= refreshTimestamp)
-              ) {
-                return;
-              }
-
-              const tmpY = scheme === "tms" ? (1 << z) - 1 - yCount : yCount;
-
-              const targetURL = url
-                .replace("{z}", `${z}`)
-                .replace("{x}", `${xCount}`)
-                .replace("{y}", `${tmpY}`);
-
-              printLog(
-                "info",
-                `Downloading data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}...`,
-              );
+              const currentTileExtraInfo = tileExtraInfo[tileName];
+              const currentTargetTileExtraInfo = targetTileExtraInfo[tileName];
 
               try {
-                await storeTileDataFunc(
-                  z,
-                  xCount,
-                  tmpY,
-                  await getDataFromURL(targetURL, tileOption),
-                  tileOption,
-                );
-
-                if (skipWhenError) {
-                  skipWhenError.errCount = 0;
+                if (
+                  refreshTimestamp === true
+                    ? currentTileExtraInfo &&
+                      currentTileExtraInfo === currentTargetTileExtraInfo
+                    : refreshTimestamp &&
+                      currentTileExtraInfo >= refreshTimestamp
+                ) {
+                  return;
                 }
-              } catch (error) {
+
+                const tmpY = scheme === "tms" ? (1 << z) - 1 - yCount : yCount;
+
+                const targetURL = url
+                  .replace("{z}", `${z}`)
+                  .replace("{x}", `${xCount}`)
+                  .replace("{y}", `${tmpY}`);
+
                 printLog(
-                  "error",
-                  `Failed to seed data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${completeTasks}/${total}: ${error}`,
+                  "info",
+                  `Downloading data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${taskNumber}/${total}...`,
                 );
 
-                if (skipWhenError) {
-                  skipWhenError.errCount++;
+                try {
+                  await storeTileDataFunc(
+                    z,
+                    xCount,
+                    tmpY,
+                    await getDataFromURL(targetURL, tileOption),
+                    tileOption,
+                  );
 
-                  if (skipWhenError.errCount >= skipWhenError.count) {
-                    skipWhenError.skipLoop = skipWhenError.skip;
-
-                    printLog(
-                      "warn",
-                      `Encountered ${skipWhenError.errCount} errors. Skipping download next ${skipWhenError.skipLoop} tiles...`,
-                    );
-
+                  if (skipWhenError) {
                     skipWhenError.errCount = 0;
                   }
+                } catch (error) {
+                  printLog(
+                    "error",
+                    `Failed to seed data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${taskNumber}/${total}: ${error}`,
+                  );
+
+                  if (skipWhenError) {
+                    skipWhenError.errCount++;
+
+                    if (skipWhenError.errCount >= skipWhenError.count) {
+                      skipWhenError.skipLoop = skipWhenError.skip;
+
+                      printLog(
+                        "warn",
+                        `Encountered ${skipWhenError.errCount} errors. Skipping download next ${skipWhenError.skipLoop} tiles...`,
+                      );
+
+                      skipWhenError.errCount = 0;
+                    }
+                  }
                 }
+              } finally {
+                delete tileExtraInfo[tileName];
+                delete targetTileExtraInfo[tileName];
               }
             };
           }
@@ -1098,8 +926,74 @@ async function seedTileDatas(
     /* Download and store tile datas */
     printLog("info", "Downloading and storing tiles...");
 
-    // Batch run
-    await runAllWithLimit(downloadAndStoreTileDataGenerator(), concurrency);
+    for (const batchTileBounds of getTileBoundsBatches(tileBounds)) {
+      let targetTileExtraInfo = {};
+      let tileExtraInfo = {};
+
+      if (refreshTimestamp === true) {
+        try {
+          printLog(
+            "info",
+            `Get target tile extra info from "${hashURL}" and local tile extra info for next batch...`,
+          );
+
+          [targetTileExtraInfo, tileExtraInfo] = await Promise.all([
+            getDataFromURL(hashURL, {
+              method: "POST",
+              timeout: infoTimeout,
+              body: {
+                tileBounds: batchTileBounds,
+              },
+              responseType: "json",
+              headers: {
+                ...(headers ?? {}),
+                "content-type": "application/json",
+              },
+              maxTry,
+              decompress: true,
+            }),
+            getTileExtraInfoFunc(batchTileBounds, false),
+          ]);
+        } catch (error) {
+          if (error.statusCode >= 500) {
+            printLog(
+              "error",
+              `Failed to get target tile extra info from "${hashURL}": ${error}. Skipping seed ${storeType} "${id}"...`,
+            );
+
+            return;
+          }
+
+          printLog(
+            "error",
+            `Failed to get target or local tile extra info for a batch: ${error}`,
+          );
+
+          targetTileExtraInfo = {};
+          tileExtraInfo = {};
+        }
+      } else if (refreshTimestamp) {
+        try {
+          tileExtraInfo = await getTileExtraInfoFunc(batchTileBounds, true);
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to get local tile extra info for a batch: ${error}`,
+          );
+
+          tileExtraInfo = {};
+        }
+      }
+
+      await runAllWithLimit(
+        downloadAndStoreTileDataGenerator(
+          batchTileBounds,
+          targetTileExtraInfo,
+          tileExtraInfo,
+        ),
+        concurrency,
+      );
+    }
 
     printLog(
       "info",
@@ -1119,15 +1013,17 @@ async function seedTileDatas(
 
 /**
  * Seed geojson
- * @param {string} id Cache geojson ID
- * @param {string} url GeoJSON URL
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {object} headers Headers
- * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
+ * @param {{ id: string, url: string, maxTry?: number, timeout?: number, headers?: object, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
-async function seedGeoJSON(id, url, maxTry, timeout, headers, refreshBefore) {
+async function seedGeoJSON({
+  id,
+  url,
+  maxTry = DEFAULT_MAX_TRY,
+  timeout = DEFAULT_QUERY_TIMEOUT,
+  headers,
+  refreshBefore,
+}) {
   const startTime = Date.now();
 
   let log = `Seeding geojson id "${id}" with:`;
@@ -1166,9 +1062,9 @@ async function seedGeoJSON(id, url, maxTry, timeout, headers, refreshBefore) {
       const [response, md5] = await Promise.all([
         requestToURL(`${url.slice(0, url.indexOf(".geojson"))}/md5`, {
           method: "GET",
-          timeout: timeout,
+          timeout,
           responseType: "arraybuffer",
-          headers: headers,
+          headers,
           decompress: false,
         }),
         getGeoJSONMD5(filePath),
@@ -1208,9 +1104,9 @@ async function seedGeoJSON(id, url, maxTry, timeout, headers, refreshBefore) {
     const option = {
       method: "GET",
       responseType: "arraybuffer",
-      maxTry: maxTry,
-      timeout: timeout,
-      headers: headers,
+      maxTry,
+      timeout,
+      headers,
       decompress: true,
     };
 
@@ -1241,15 +1137,17 @@ async function seedGeoJSON(id, url, maxTry, timeout, headers, refreshBefore) {
 
 /**
  * Seed sprite
- * @param {string} id Cache sprite ID
- * @param {string} url Sprite URL
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {object} headers Headers
- * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
+ * @param {{ id: string, url: string, maxTry?: number, timeout?: number, headers?: object, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
-async function seedSprite(id, url, maxTry, timeout, headers, refreshBefore) {
+async function seedSprite({
+  id,
+  url,
+  maxTry = DEFAULT_MAX_TRY,
+  timeout = DEFAULT_QUERY_TIMEOUT,
+  headers,
+  refreshBefore,
+}) {
   const startTime = Date.now();
 
   let log = `Seeding sprite id "${id}" with:`;
@@ -1287,9 +1185,9 @@ async function seedSprite(id, url, maxTry, timeout, headers, refreshBefore) {
       const [response, md5] = await Promise.all([
         requestToURL(`${url.slice(0, url.indexOf("/{name}"))}/md5`, {
           method: "GET",
-          timeout: timeout,
+          timeout,
           responseType: "arraybuffer",
-          headers: headers,
+          headers,
           decompress: false,
         }),
         getSpriteMD5(sourcePath),
@@ -1329,9 +1227,9 @@ async function seedSprite(id, url, maxTry, timeout, headers, refreshBefore) {
     const option = {
       method: "GET",
       responseType: "arraybuffer",
-      maxTry: maxTry,
-      timeout: timeout,
-      headers: headers,
+      maxTry,
+      timeout,
+      headers,
     };
 
     async function downloadAndStoreSpriteData(fileName) {
@@ -1377,26 +1275,19 @@ async function seedSprite(id, url, maxTry, timeout, headers, refreshBefore) {
 
 /**
  * Seed font
- * @param {string} id Cache font ID
- * @param {string} url Font URL
- * @param {number} concurrency Concurrency
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {object} headers Headers
- * @param {object} skipWhenError Skip when error
- * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
+ * @param {{ id: string, url: string, concurrency?: number, maxTry?: number, timeout?: number, headers?: object, skipWhenError?: object, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
-async function seedFont(
+async function seedFont({
   id,
   url,
-  concurrency,
-  maxTry,
-  timeout,
+  concurrency = DEFAULT_CONCURRENCY,
+  maxTry = DEFAULT_MAX_TRY,
+  timeout = DEFAULT_QUERY_TIMEOUT,
   headers,
   skipWhenError,
   refreshBefore,
-) {
+}) {
   const startTime = Date.now();
 
   const total = 256;
@@ -1436,9 +1327,9 @@ async function seedFont(
       const [response, md5] = await Promise.all([
         requestToURL(`${url.slice(0, url.indexOf("/{range}.pbf"))}/md5`, {
           method: "GET",
-          timeout: timeout,
+          timeout,
           responseType: "arraybuffer",
-          headers: headers,
+          headers,
           decompress: false,
         }),
         getFontMD5(sourcePath),
@@ -1478,9 +1369,9 @@ async function seedFont(
     const option = {
       method: "GET",
       responseType: "arraybuffer",
-      maxTry: maxTry,
-      timeout: timeout,
-      headers: headers,
+      maxTry,
+      timeout,
+      headers,
       decompress: true,
     };
 
@@ -1566,15 +1457,17 @@ async function seedFont(
 
 /**
  * Seed style
- * @param {string} id Cache style ID
- * @param {string} url Style URL
- * @param {number} maxTry Number of retry attempts on failure
- * @param {number} timeout Timeout in milliseconds
- * @param {object} headers Headers
- * @param {string|number} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss" or number of days before which file should be refreshed
+ * @param {{ id: string, url: string, maxTry?: number, timeout?: number, headers?: object, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
-async function seedStyle(id, url, maxTry, timeout, headers, refreshBefore) {
+async function seedStyle({
+  id,
+  url,
+  maxTry = DEFAULT_MAX_TRY,
+  timeout = DEFAULT_QUERY_TIMEOUT,
+  headers,
+  refreshBefore,
+}) {
   const startTime = Date.now();
 
   let log = `Seeding style id "${id}" with:`;
@@ -1613,9 +1506,9 @@ async function seedStyle(id, url, maxTry, timeout, headers, refreshBefore) {
       const [response, md5] = await Promise.all([
         requestToURL(`${url.slice(0, url.indexOf("/style.json"))}/md5`, {
           method: "GET",
-          timeout: timeout,
+          timeout,
           responseType: "arraybuffer",
-          headers: headers,
+          headers,
         }),
         getStyleMD5(filePath),
       ]);
@@ -1654,9 +1547,9 @@ async function seedStyle(id, url, maxTry, timeout, headers, refreshBefore) {
     const option = {
       method: "GET",
       responseType: "arraybuffer",
-      maxTry: maxTry,
-      timeout: timeout,
-      headers: headers,
+      maxTry,
+      timeout,
+      headers,
       decompress: true,
     };
 
@@ -1689,24 +1582,18 @@ async function seedStyle(id, url, maxTry, timeout, headers, refreshBefore) {
 
 /**
  * Cleanup tile datas
- * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
- * @param {string} id Cleanup data ID
- * @param {object} metadata Metadata object
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency for removing tile data
- * @param {object} skipWhenError Skip when error
- * @param {string|number} cleanUpBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be deleted
+ * @param {{ storeType: "mbtiles"|"xyz"|"pg", id: string, metadata: object, coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, skipWhenError?: object, cleanUpBefore?: string|number }} options Options
  * @returns {Promise<void>}
  */
-async function cleanUpTileDatas(
+async function cleanUpTileDatas({
   storeType,
   id,
   metadata,
   coverages,
-  concurrency,
+  concurrency = DEFAULT_CONCURRENCY,
   skipWhenError,
   cleanUpBefore,
-) {
+}) {
   const startTime = Date.now();
 
   let source;
@@ -1715,7 +1602,7 @@ async function cleanUpTileDatas(
   try {
     /* Calculate summary */
     const { total, targetCoverages, tileBounds } = getTileBounds({
-      coverages: coverages,
+      coverages,
       limitedBBox: metadata.bounds,
     });
 
@@ -1738,7 +1625,7 @@ async function cleanUpTileDatas(
 
     printLog("info", log);
 
-    let tileExtraInfo;
+    let getTileExtraInfoFunc;
     let removeTileDataFunc;
     let compactDatabase;
     let tileOption;
@@ -1754,31 +1641,15 @@ async function cleanUpTileDatas(
         /* Open database */
         printLog("info", "Opening database...");
 
-        source = await openMBTilesDB(
-          filePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openMBTilesDB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
-        /* Get tile extra info */
-        if (cleanUpTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${filePath}"...`);
-
-            tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              true,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds) => {
+          return getMBTilesTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated: true,
+          });
+        };
 
         /* Assign tile option */
         tileOption = {
@@ -1809,35 +1680,19 @@ async function cleanUpTileDatas(
         /* Open database */
         printLog("info", "Opening database...");
 
-        source = await openPostgreSQLDB(
-          filePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openPostgreSQLDB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
-        /* Get tile extra info */
-        if (cleanUpTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${filePath}"...`);
-
-            tileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              true,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds) => {
+          return await getPostgreSQLTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated: true,
+          });
+        };
 
         /* Assign tile option */
         tileOption = {
-          source: source,
+          source,
         };
 
         /* Remove tile data function */
@@ -1863,37 +1718,21 @@ async function cleanUpTileDatas(
         /* Open database */
         printLog("info", "Opening database...");
 
-        source = await openXYZMD5DB(
-          filePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openXYZMD5DB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
-        /* Get tile extra info */
-        if (cleanUpTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${filePath}"...`);
-
-            tileExtraInfo = getXYZTileExtraInfoFromCoverages(
-              source,
-              targetCoverages,
-              true,
-            );
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${filePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds) => {
+          return getXYZTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated: true,
+          });
+        };
 
         const format = await getXYZFormatFromTiles(sourcePath);
 
         /* Assign tile option */
         tileOption = {
-          sourcePath: sourcePath,
+          sourcePath,
           statement: source.prepare(XYZ_DELETE_MD5_QUERY),
         };
 
@@ -1920,19 +1759,21 @@ async function cleanUpTileDatas(
       }
     }
 
-    /* Remove tile data generator */
-    function* removeTileDataGenerator() {
-      let completeTasks = 0;
+    let completeTasks = 0;
 
-      if (skipWhenError) {
-        skipWhenError.errCount = 0;
-        skipWhenError.skipLoop = 0;
-      }
+    if (skipWhenError) {
+      skipWhenError.errCount = 0;
+      skipWhenError.skipLoop = 0;
+    }
 
-      for (const { z, x, y } of tileBounds) {
+    /* Remove one tile data batch */
+    function* removeTileDataGenerator(batchTileBounds, tileExtraInfo) {
+      for (const { z, x, y } of batchTileBounds) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
+
+            const taskNumber = completeTasks;
 
             if (skipWhenError && skipWhenError.skipLoop > 0) {
               skipWhenError.skipLoop--;
@@ -1942,45 +1783,50 @@ async function cleanUpTileDatas(
 
             yield async () => {
               const tileName = `${z}/${xCount}/${yCount}`;
-
-              if (
-                cleanUpTimestamp &&
-                tileExtraInfo[tileName] >= cleanUpTimestamp
-              ) {
-                return;
-              }
-
-              printLog(
-                "info",
-                `Removing data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
-              );
+              const currentTileExtraInfo = tileExtraInfo[tileName];
 
               try {
-                await removeTileDataFunc(z, xCount, yCount, tileOption);
-
-                if (skipWhenError) {
-                  skipWhenError.errCount = 0;
+                if (
+                  cleanUpTimestamp &&
+                  currentTileExtraInfo >= cleanUpTimestamp
+                ) {
+                  return;
                 }
-              } catch (error) {
+
                 printLog(
-                  "error",
-                  `Failed to cleanup data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+                  "info",
+                  `Removing data id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}...`,
                 );
 
-                if (skipWhenError) {
-                  skipWhenError.errCount++;
+                try {
+                  await removeTileDataFunc(z, xCount, yCount, tileOption);
 
-                  if (skipWhenError.errCount >= skipWhenError.count) {
-                    skipWhenError.skipLoop = skipWhenError.skip;
-
-                    printLog(
-                      "warn",
-                      `Encountered ${skipWhenError.errCount} errors. Skipping download next ${skipWhenError.skipLoop} tiles...`,
-                    );
-
+                  if (skipWhenError) {
                     skipWhenError.errCount = 0;
                   }
+                } catch (error) {
+                  printLog(
+                    "error",
+                    `Failed to cleanup data id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}: ${error}`,
+                  );
+
+                  if (skipWhenError) {
+                    skipWhenError.errCount++;
+
+                    if (skipWhenError.errCount >= skipWhenError.count) {
+                      skipWhenError.skipLoop = skipWhenError.skip;
+
+                      printLog(
+                        "warn",
+                        `Encountered ${skipWhenError.errCount} errors. Skipping download next ${skipWhenError.skipLoop} tiles...`,
+                      );
+
+                      skipWhenError.errCount = 0;
+                    }
+                  }
                 }
+              } finally {
+                delete tileExtraInfo[tileName];
               }
             };
           }
@@ -1991,8 +1837,25 @@ async function cleanUpTileDatas(
     /* Remove tile datas */
     printLog("info", "Removing tiles...");
 
-    // Batch run
-    await runAllWithLimit(removeTileDataGenerator, concurrency);
+    for (const batchTileBounds of getTileBoundsBatches(tileBounds)) {
+      let tileExtraInfo = {};
+
+      if (cleanUpTimestamp) {
+        try {
+          tileExtraInfo = await getTileExtraInfoFunc(batchTileBounds);
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to get local tile extra info for a cleanup batch: ${error}`,
+          );
+        }
+      }
+
+      await runAllWithLimit(
+        removeTileDataGenerator(batchTileBounds, tileExtraInfo),
+        concurrency,
+      );
+    }
 
     /* Compact database */
     printLog("info", "Compacting database...");

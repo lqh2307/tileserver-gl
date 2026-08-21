@@ -202,8 +202,8 @@ export const serve_font = {
      *         description: List of fonts
      *         content:
      *           application/json:
-     *           schema:
-     *             type: array
+     *             schema:
+     *               type: array
      *               items:
      *                 type: object
      *                 properties:

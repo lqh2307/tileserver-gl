@@ -2,6 +2,7 @@
 
 import { getBBoxFromTiles, lonLat4326ToXY3857 } from "./spatial.js";
 import { base64ToBuffer, createFileWithLock } from "./file.js";
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/default.js";
 import { convertLength, toPixel } from "./util.js";
 import { mkdir } from "node:fs/promises";
 import { jsPDF } from "jspdf";
@@ -1422,7 +1423,7 @@ export async function renderImageToHighQualityPDF(input, preview, output) {
       await createFileWithLock(
         output.filePath,
         arrayBuffer,
-        300000, // 5 mins
+        DEFAULT_QUERY_TIMEOUT,
       );
     } else {
       return Buffer.from(arrayBuffer);
@@ -1728,7 +1729,7 @@ export async function renderImageToPDF(input, preview, output) {
       await createFileWithLock(
         output.filePath,
         arrayBuffer,
-        300000, // 5 mins
+        DEFAULT_QUERY_TIMEOUT,
       );
     } else {
       return Buffer.from(arrayBuffer);

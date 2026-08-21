@@ -1,7 +1,7 @@
 {
   "name": "ms-tile-server",
   "description": "Vector/Raster tile server for serving/caching xyz/wmts tiles",
-  "version": "1.0.0",
+  "version": "0.0.16",
   "license": "MIT",
   "author": "Huy Le <lqh23072000@gmail.com>",
   "keywords": [

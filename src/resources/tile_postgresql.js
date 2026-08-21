@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { limitValue } from "../utils/number.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
@@ -147,25 +148,20 @@ export async function getPostgreSQLFormatFromTiles(source) {
 }
 
 /**
- * Get PostgreSQL tile extra info from coverages
- * @param {pg.Client} source PostgreSQL database instance
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {boolean} isCreated Tile created extra info
+ * Get PostgreSQL tile extra info from coverages or exact tile bounds
+ * @param {{ source: pg.Client, coverages?: { zoom: number, bbox: [number, number, number, number]}[], tileBounds?: { z: number, x: [number, number], y: [number, number] }[], isCreated?: boolean }} options Options
  * @returns {Promise<Object<string, string>>} Extra info object
  */
-export async function getPostgreSQLTileExtraInfoFromCoverages(
-  source,
-  coverages,
-  isCreated,
-) {
-  const { tileBounds } = getTileBounds({
-    coverages: coverages,
-  });
+export async function getPostgreSQLTileExtraInfo(options) {
+  const tileBounds =
+    options.tileBounds ??
+    getTileBounds({
+      coverages: options.coverages,
+    }).tileBounds;
 
-  const extraInfoType = isCreated ? "created" : "hash";
+  const extraInfoType = options.isCreated ? "created" : "hash";
 
-  const querySQL = source.prepare(
-    `
+  const querySQL = `
       SELECT
         tile_column, tile_row, ${extraInfoType}
       FROM
@@ -176,20 +172,18 @@ export async function getPostgreSQLTileExtraInfoFromCoverages(
         tile_column BETWEEN $2 AND $3
       AND
         tile_row BETWEEN $4 AND $5;
-    `,
-  );
+    `;
 
   const result = {};
 
   for (const tileBound of tileBounds) {
-    const data = await source.query(
-      querySQL,
+    const data = await options.source.query(querySQL, [
       tileBound.z,
       tileBound.x[0],
       tileBound.x[1],
       tileBound.y[0],
       tileBound.y[1],
-    );
+    ]);
 
     data.rows.forEach((row) => {
       if (row[extraInfoType]) {
@@ -578,11 +572,7 @@ export async function getPostgreSQLSize(source, dbName) {
  * @returns {Promise<number>}
  */
 export async function countPostgreSQLTiles(uri) {
-  const source = await openPostgreSQL(
-    uri,
-    false,
-    60000, // 1 mins
-  );
+  const source = await openPostgreSQL(uri, false, DEFAULT_QUERY_TIMEOUT);
 
   const data = await source.query("SELECT COUNT(*) AS count FROM tiles;");
 
@@ -629,7 +619,7 @@ export async function getAndCachePostgreSQLTileData(id, z, x, y) {
       const data = await getDataFromURL(targetURL, {
         method: "GET",
         responseType: "arraybuffer",
-        timeout: 30000, // 30 seconds
+        timeout: DEFAULT_QUERY_TIMEOUT,
         headers: item.headers,
         decompress: false,
       });

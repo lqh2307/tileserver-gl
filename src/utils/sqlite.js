@@ -27,7 +27,7 @@ export async function openSQLite(filePath, isCreate, timeout) {
     try {
       source = new Database(filePath, {
         fileMustExist: !isCreate,
-        timeout: timeout,
+        timeout,
       });
 
       source.exec("PRAGMA synchronous = NORMAL;"); // Set synchronous mode

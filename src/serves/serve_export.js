@@ -4,7 +4,6 @@ import { exportTileDatas, exportAll } from "../export.js";
 import { renderTileDatas } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
-import os from "node:os";
 import {
   sendTextResponse,
   getJSONSchema,
@@ -175,16 +174,16 @@ function exportDataHandler() {
             }
           }
 
-          exportTileDatas(
+          exportTileDatas({
             id,
-            req.body.storeType,
+            storeType: req.body.storeType,
             storePath,
-            req.body.metadata,
-            req.body.coverages,
-            req.body.concurrency || os.cpus().length,
-            req.body.storeTransparent ?? true,
+            metadata: req.body.metadata,
+            coverages: req.body.coverages,
+            concurrency: req.body.concurrency,
+            storeTransparent: req.body.storeTransparent,
             refreshBefore,
-          )
+          })
             .catch((error) => {
               printLog("error", `Failed to export data id "${id}": ${error}`);
             })
@@ -292,18 +291,18 @@ function renderStyleHandler() {
             }
           }
 
-          renderTileDatas(
+          renderTileDatas({
             id,
-            req.body.storeType,
+            storeType: req.body.storeType,
             storePath,
-            req.body.metadata,
-            req.body.maxRendererPoolSize,
-            req.body.concurrency || os.cpus().length,
-            req.body.storeTransparent ?? true,
-            req.body.tileScale || 1,
-            req.body.tileSize || 256,
+            metadata: req.body.metadata,
+            maxRendererPoolSize: req.body.maxRendererPoolSize,
+            concurrency: req.body.concurrency,
+            storeTransparent: req.body.storeTransparent,
+            tileScale: req.body.tileScale,
+            tileSize: req.body.tileSize,
             refreshBefore,
-          )
+          })
             .catch((error) => {
               printLog("error", `Failed to render style id "${id}": ${error}`);
             })
@@ -353,9 +352,8 @@ export const serve_export = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
+     *           schema:
+     *             $ref: '#/components/schemas/ExportAll'
      *       description: Export all options
      *     responses:
      *       201:
@@ -438,10 +436,9 @@ export const serve_export = {
      *       required: true
      *       content:
      *         application/json:
-     *             schema:
-     *               type: object
-     *               example: {}
-     *       description: Export export options
+     *           schema:
+     *             $ref: '#/components/schemas/DataExport'
+     *       description: Data export options
      *     responses:
      *       201:
      *         description: Data export is started
@@ -525,9 +522,8 @@ export const serve_export = {
        *       required: true
        *       content:
        *         application/json:
-       *             schema:
-       *               type: object
-       *               example: {}
+       *           schema:
+       *             $ref: '#/components/schemas/StyleRender'
        *       description: Export render options
        *     responses:
        *       201:

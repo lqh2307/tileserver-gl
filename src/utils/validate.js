@@ -30,7 +30,7 @@ export function validateJSON(schema, jsonData) {
 
 /**
  * Get JSON schema
- * @param {"delete"|"cleanup"|"config"|"seed"|"style_render"|"render_svg"|"render_pdf"|"render_stylejson"|"data_export"|"export_all"|"render_high_quality_pdf"|"coverages"|"sprite"|"add_frame"} schema
+ * @param {"delete"|"cleanup"|"config"|"seed"|"style_render"|"render_svg"|"render_pdf"|"render_stylejson"|"data_export"|"export_all"|"render_high_quality_pdf"|"coverages"|"tile_bounds"|"sprite"|"add_frame"} schema
  * @returns {Promise<object>}
  */
 export async function getJSONSchema(schema) {
@@ -46,11 +46,11 @@ export async function getJSONSchema(schema) {
  * @returns {boolean} True if valid
  */
 export function isValidNumber(value, checkInteger, min, max) {
-  if (typeof value !== "number" || Number.isFinite(value) === false) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
     return false;
   }
 
-  if (checkInteger === true && Number.isInteger(value) === false) {
+  if (checkInteger && !Number.isInteger(value)) {
     return false;
   }
 
@@ -72,7 +72,7 @@ export function isValidNumber(value, checkInteger, min, max) {
  * @returns {boolean} True if valid
  */
 export function isValidLongitude(lon, isWGS84) {
-  return isWGS84 === true
+  return isWGS84
     ? isValidNumber(lon, false, -180, 180)
     : isValidNumber(lon, false);
 }
@@ -84,7 +84,7 @@ export function isValidLongitude(lon, isWGS84) {
  * @returns {boolean} True if valid
  */
 export function isValidLatitude(lat, isWGS84) {
-  return isWGS84 === true
+  return isWGS84
     ? isValidNumber(lat, false, -90, 90)
     : isValidNumber(lat, false);
 }
@@ -101,15 +101,15 @@ export function isValidExtent(extent, isWGS84) {
   }
 
   if (
-    isValidLongitude(extent[0], isWGS84) === false ||
-    isValidLongitude(extent[2], isWGS84) === false
+    !isValidLongitude(extent[0], isWGS84) ||
+    !isValidLongitude(extent[2], isWGS84)
   ) {
     return false;
   }
 
   if (
-    isValidLatitude(extent[1], isWGS84) === false ||
-    isValidLatitude(extent[3], isWGS84) === false
+    !isValidLatitude(extent[1], isWGS84) ||
+    !isValidLatitude(extent[3], isWGS84)
   ) {
     return false;
   }
@@ -133,15 +133,15 @@ export function isValidBBox(bbox, isWGS84) {
   }
 
   if (
-    isValidLongitude(bbox[0], isWGS84) === false ||
-    isValidLongitude(bbox[2], isWGS84) === false
+    !isValidLongitude(bbox[0], isWGS84) ||
+    !isValidLongitude(bbox[2], isWGS84)
   ) {
     return false;
   }
 
   if (
-    isValidLatitude(bbox[1], isWGS84) === false ||
-    isValidLatitude(bbox[3], isWGS84) === false
+    !isValidLatitude(bbox[1], isWGS84) ||
+    !isValidLatitude(bbox[3], isWGS84)
   ) {
     return false;
   }

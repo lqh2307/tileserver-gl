@@ -2,6 +2,8 @@
 
 import { getCenterFromBBox, MAX_LAT, MAX_LON } from "./spatial.js";
 import { BACKGROUND_COLOR, createImageOutput } from "./image.js";
+import { DEFAULT_TILE_BATCH_SIZE } from "../defaults/index.js";
+import { min } from "./number.js";
 
 const FALLBACK_BBOX = [-MAX_LON, -MAX_LAT, MAX_LON, MAX_LAT];
 
@@ -106,8 +108,78 @@ function validateTileMetadata(metadata) {
   }
 }
 
+/**
+ * Split tile bounds into batches without expanding them into individual tiles.
+ * Every yielded batch contains at most `batchSize` tiles.
+ * @param {{ z: number, x: [number, number], y: [number, number], total?: number }[]} tileBounds Tile bounds
+ * @param {number} batchSize Maximum tiles in a batch
+ * @returns {Generator<{ z: number, x: [number, number], y: [number, number], total: number }[]>} Tile bound batches
+ */
+function* getTileBoundsBatches(
+  tileBounds,
+  batchSize = DEFAULT_TILE_BATCH_SIZE,
+) {
+  let batch = [];
+  let batchTotal = 0;
+
+  function* splitTileBound(tileBound) {
+    const width = tileBound.x[1] - tileBound.x[0] + 1;
+    const height = tileBound.y[1] - tileBound.y[0] + 1;
+
+    let chunkHeight = min(height, Math.floor(Math.sqrt(batchSize)));
+    let chunkWidth = min(width, Math.floor(batchSize / chunkHeight));
+
+    chunkHeight = min(height, Math.floor(batchSize / chunkWidth));
+
+    for (
+      let xMin = tileBound.x[0];
+      xMin <= tileBound.x[1];
+      xMin += chunkWidth
+    ) {
+      const xMax = min(xMin + chunkWidth - 1, tileBound.x[1]);
+
+      for (
+        let yMin = tileBound.y[0];
+        yMin <= tileBound.y[1];
+        yMin += chunkHeight
+      ) {
+        const yMax = min(yMin + chunkHeight - 1, tileBound.y[1]);
+
+        yield {
+          z: tileBound.z,
+          x: [xMin, xMax],
+          y: [yMin, yMax],
+          total: (xMax - xMin + 1) * (yMax - yMin + 1),
+        };
+      }
+    }
+  }
+
+  for (const tileBound of tileBounds) {
+    for (const part of splitTileBound(tileBound)) {
+      if (batchTotal + part.total > batchSize) {
+        yield batch;
+
+        batch = [];
+        batchTotal = 0;
+      }
+
+      batch.push(part);
+
+      batchTotal += part.total;
+    }
+  }
+
+  if (batch.length) {
+    yield batch;
+  }
+}
+
 export {
   FALLBACK_VECTOR_LAYERS,
+  getTileBoundsBatches,
+  validateTileMetadata,
+  createTileMetadata,
   RASTER_TILE_FORMATS,
   VECTOR_TILE_FORMATS,
   FALLBACK_TILE_DATA,
@@ -115,6 +187,4 @@ export {
   FALLBACK_BBOX,
   LAYER_TYPES,
   TILE_SIZES,
-  validateTileMetadata,
-  createTileMetadata,
 };

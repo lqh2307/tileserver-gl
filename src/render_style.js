@@ -5,15 +5,18 @@ import { config } from "./configs/index.js";
 import { createPool } from "generic-pool";
 import { nanoid } from "nanoid";
 import path from "node:path";
-import os from "node:os";
 import {
-  getPostgreSQLTileExtraInfoFromCoverages,
-  getMBTilesTileExtraInfoFromCoverages,
-  getXYZTileExtraInfoFromCoverages,
+  DEFAULT_STORE_TRANSPARENT,
+  DEFAULT_QUERY_TIMEOUT,
+  DEFAULT_CONCURRENCY,
+} from "./defaults/index.js";
+import {
   getAndCachePostgreSQLTileData,
+  getPostgreSQLTileExtraInfo,
   getAndCacheMBTilesTileData,
   MBTILES_INSERT_TILE_QUERY,
   updatePostgreSQLMetadata,
+  getMBTilesTileExtraInfo,
   storePostgreSQLTileData,
   getAndCacheDataGeoJSON,
   getAndCacheXYZTileData,
@@ -23,6 +26,7 @@ import {
   getRenderedStyleJSON,
   storeMBtilesTileData,
   XYZ_INSERT_MD5_QUERY,
+  getXYZTileExtraInfo,
   closePostgreSQLDB,
   updateXYZMetadata,
   storeXYZTileFile,
@@ -288,7 +292,7 @@ function createRenderer(option) {
           try {
             data = await getDataFromURL(req.url, {
               method: "GET",
-              timeout: 30000, // 30 seconds
+              timeout: DEFAULT_QUERY_TIMEOUT,
               responseType: "arraybuffer",
               decompress: true,
             });
@@ -390,13 +394,10 @@ function createRenderer(option) {
 
 /**
  * Render image tile data
- * @param {number} z Zoom level
- * @param {number} x Tile column
- * @param {number} y Tile row
- * @param {{ pool: object, styleJSON: object, pitch: number, bearing: number, tileScale: number, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp", grayscale: boolean, filePath: string }} option Option object
+ * @param {{ z: number, x: number, y: number, pool?: object, styleJSON: object, pitch?: number, bearing?: number, tileScale: number, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp", grayscale?: boolean, filePath?: string }} options Options
  * @returns {Promise<Buffer|string>}
  */
-export async function renderImageTileData(z, x, y, option) {
+export async function renderImageTileData({ z, x, y, ...option }) {
   const renderer = option.pool
     ? await option.pool.acquire()
     : createRenderer({
@@ -583,7 +584,10 @@ export async function renderStyleJSON(option) {
     }
 
     // Batch run
-    await runAllWithLimit(createCompositeOptionGenerator(), os.cpus().length);
+    await runAllWithLimit(
+      createCompositeOptionGenerator(),
+      DEFAULT_CONCURRENCY,
+    );
 
     // Create image output
     return await createImageOutput({
@@ -605,30 +609,21 @@ export async function renderStyleJSON(option) {
 
 /**
  * Render tile datas
- * @param {string} id Style ID
- * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
- * @param {string} storePath Exported path
- * @param {{ [key: string]: any }} metadata Metadata object
- * @param {number} maxRendererPoolSize Max renderer pool size
- * @param {number} concurrency Concurrency
- * @param {boolean} storeTransparent Is store transparent tile?
- * @param {number} tileScale Tile scale
- * @param {256|512} tileSize Tile size
- * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
+ * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", storePath: string, metadata: { [key: string]: any }, maxRendererPoolSize?: number, concurrency?: number, storeTransparent?: boolean, tileScale?: number, tileSize?: 256|512, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
-export async function renderTileDatas(
+export async function renderTileDatas({
   id,
   storeType,
   storePath,
   metadata,
   maxRendererPoolSize,
-  concurrency,
-  storeTransparent,
-  tileScale,
-  tileSize,
+  concurrency = DEFAULT_CONCURRENCY,
+  storeTransparent = DEFAULT_STORE_TRANSPARENT,
+  tileScale = 1,
+  tileSize = 256,
   refreshBefore,
-) {
+}) {
   const startTime = Date.now();
 
   let source;
@@ -669,7 +664,7 @@ export async function renderTileDatas(
 
     printLog("info", log);
 
-    let tileExtraInfo;
+    let tileExtraInfo = {};
     let storeTileDataFunc;
     let tileOption;
 
@@ -711,11 +706,7 @@ export async function renderTileDatas(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openMBTilesDB(
-          storePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openMBTilesDB(storePath, true, DEFAULT_QUERY_TIMEOUT);
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
@@ -727,11 +718,11 @@ export async function renderTileDatas(
           try {
             printLog("info", `Get tile extra info from "${storePath}"...`);
 
-            tileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
+            tileExtraInfo = getMBTilesTileExtraInfo({
               source,
-              targetCoverages,
-              refreshTimestamp === true,
-            );
+              coverages: targetCoverages,
+              isCreated: refreshTimestamp === true,
+            });
           } catch (error) {
             printLog(
               "error",
@@ -771,11 +762,7 @@ export async function renderTileDatas(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openPostgreSQLDB(
-          storePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openPostgreSQLDB(storePath, true, DEFAULT_QUERY_TIMEOUT);
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
@@ -787,11 +774,11 @@ export async function renderTileDatas(
           try {
             printLog("info", `Get tile extra info from "${storePath}"...`);
 
-            tileExtraInfo = await getPostgreSQLTileExtraInfoFromCoverages(
+            tileExtraInfo = await getPostgreSQLTileExtraInfo({
               source,
-              targetCoverages,
-              refreshTimestamp === true,
-            );
+              coverages: targetCoverages,
+              isCreated: refreshTimestamp === true,
+            });
           } catch (error) {
             printLog(
               "error",
@@ -835,7 +822,7 @@ export async function renderTileDatas(
         source = await openXYZMD5DB(
           sqliteFilePath,
           true,
-          30000, // 30 seconds
+          DEFAULT_QUERY_TIMEOUT,
         );
 
         /* Update metadata */
@@ -848,11 +835,11 @@ export async function renderTileDatas(
           try {
             printLog("info", `Get tile extra info from "${sqliteFilePath}"...`);
 
-            tileExtraInfo = getXYZTileExtraInfoFromCoverages(
+            tileExtraInfo = getXYZTileExtraInfo({
               source,
-              targetCoverages,
-              refreshTimestamp === true,
-            );
+              coverages: targetCoverages,
+              isCreated: refreshTimestamp === true,
+            });
           } catch (error) {
             printLog(
               "error",
@@ -899,25 +886,28 @@ export async function renderTileDatas(
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
 
+            const taskNumber = completeTasks;
+
             yield async () => {
               const tileName = `${z}/${xCount}/${yCount}`;
+              const currentTileExtraInfo = tileExtraInfo[tileName];
 
               try {
                 if (refreshTimestamp === true) {
                   printLog(
                     "info",
-                    `Rendering style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+                    `Rendering style id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}...`,
                   );
 
                   // Get tile data
-                  const data = await renderImageTileData(
+                  const data = await renderImageTileData({
+                    ...tileOption,
                     z,
-                    xCount,
-                    yCount,
-                    tileOption,
-                  );
+                    x: xCount,
+                    y: yCount,
+                  });
 
-                  if (tileExtraInfo[tileName] === calculateMD5(data)) {
+                  if (currentTileExtraInfo === calculateMD5(data)) {
                     return;
                   }
 
@@ -926,14 +916,14 @@ export async function renderTileDatas(
                 } else {
                   if (
                     refreshTimestamp &&
-                    tileExtraInfo[tileName] >= refreshTimestamp
+                    currentTileExtraInfo >= refreshTimestamp
                   ) {
                     return;
                   }
 
                   printLog(
                     "info",
-                    `Rendering style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
+                    `Rendering style id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}...`,
                   );
 
                   // Store tile data
@@ -941,14 +931,21 @@ export async function renderTileDatas(
                     z,
                     xCount,
                     yCount,
-                    await renderImageTileData(z, xCount, yCount, tileOption),
+                    await renderImageTileData({
+                      ...tileOption,
+                      z,
+                      x: xCount,
+                      y: yCount,
+                    }),
                   );
                 }
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to render style id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+                  `Failed to render style id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}: ${error}`,
                 );
+              } finally {
+                delete tileExtraInfo[tileName];
               }
             };
           }

@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/default.js";
 import { StatusCodes } from "http-status-codes";
 import { rm } from "node:fs/promises";
 import path from "node:path";
@@ -257,7 +258,7 @@ function serveConfigUpdateHandler() {
         });
       }
 
-      await updateConfigFile(type, configJSON, 60000);
+      await updateConfigFile(type, configJSON, DEFAULT_QUERY_TIMEOUT);
 
       if (req.query.restart === "true") {
         setTimeout(() => {
@@ -423,7 +424,7 @@ function serveConfigDeleteHandler() {
         });
       }
 
-      await updateConfigFile(type, configJSON, 60000);
+      await updateConfigFile(type, configJSON, DEFAULT_QUERY_TIMEOUT);
 
       if (req.query.restart === "true") {
         setTimeout(() => {
@@ -663,8 +664,11 @@ export const serve_common = {
      *         description: Config
      *         content:
      *           application/json:
-     *           schema:
-     *               type: object
+     *             schema:
+     *               oneOf:
+     *                 - $ref: '#/components/schemas/Config'
+     *                 - $ref: '#/components/schemas/Seed'
+     *                 - $ref: '#/components/schemas/Cleanup'
      *       404:
      *         description: Not found
      *       503:
@@ -700,8 +704,10 @@ export const serve_common = {
      *       content:
      *         application/json:
      *           schema:
-     *             type: object
-     *             example: {}
+     *             oneOf:
+     *               - $ref: '#/components/schemas/Config'
+     *               - $ref: '#/components/schemas/Seed'
+     *               - $ref: '#/components/schemas/Cleanup'
      *       description: Update config object
      *     responses:
      *       200:
@@ -726,7 +732,7 @@ export const serve_common = {
      *   delete:
      *     tags:
      *       - Common
-     *     summary: Update config
+     *     summary: Delete config entries
      *     parameters:
      *       - in: query
      *         name: type
@@ -747,8 +753,7 @@ export const serve_common = {
      *       content:
      *         application/json:
      *           schema:
-     *             type: object
-     *             example: {}
+     *             $ref: '#/components/schemas/DeleteConfig'
      *       description: Delete config object
      *     responses:
      *       200:

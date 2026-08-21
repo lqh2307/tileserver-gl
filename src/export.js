@@ -3,6 +3,13 @@
 import { config } from "./configs/index.js";
 import path from "node:path";
 import {
+  DEFAULT_STORE_TRANSPARENT,
+  DEFAULT_QUERY_TIMEOUT,
+  DEFAULT_CONCURRENCY,
+  DEFAULT_MAX_TRY,
+} from "./defaults/index.js";
+import {
+  getTileBoundsBatches,
   createFileWithLock,
   runAllWithLimit,
   createFolders,
@@ -11,13 +18,12 @@ import {
   printLog,
 } from "./utils/index.js";
 import {
-  getPostgreSQLTileExtraInfoFromCoverages,
-  getMBTilesTileExtraInfoFromCoverages,
-  getXYZTileExtraInfoFromCoverages,
   getAndCachePostgreSQLTileData,
+  getPostgreSQLTileExtraInfo,
   getAndCacheMBTilesTileData,
   MBTILES_INSERT_TILE_QUERY,
   updatePostgreSQLMetadata,
+  getMBTilesTileExtraInfo,
   storePostgreSQLTileData,
   getAndCacheXYZTileData,
   getAndCacheDataGeoJSON,
@@ -27,6 +33,7 @@ import {
   getRenderedStyleJSON,
   storeMBtilesTileData,
   XYZ_INSERT_MD5_QUERY,
+  getXYZTileExtraInfo,
   updateXYZMetadata,
   closePostgreSQLDB,
   openPostgreSQLDB,
@@ -54,7 +61,7 @@ export async function exportAll(dirPath, options) {
   try {
     const concurrency = options.concurrency || 256;
     const timeout = 300000; // 5 minutes
-    const maxTry = 5;
+    const maxTry = DEFAULT_MAX_TRY;
     const parentServerHost =
       options.parentServerHost || "http://localhost:8080";
 
@@ -146,8 +153,8 @@ export async function exportAll(dirPath, options) {
           },
           url: `${parentServerHost}/styles/${styleID}/style.json?raw=true`,
           refreshBefore: options.refreshBefore,
-          timeout: timeout,
-          maxTry: maxTry,
+          timeout,
+          maxTry,
           skip: false,
         };
 
@@ -179,8 +186,8 @@ export async function exportAll(dirPath, options) {
           seedObj.sprites[spriteFolder] = {
             url: `${parentServerHost}/sprites/${spriteID}/{name}`,
             refreshBefore: options.refreshBefore,
-            timeout: timeout,
-            maxTry: maxTry,
+            timeout,
+            maxTry,
             skip: false,
           };
 
@@ -227,9 +234,9 @@ export async function exportAll(dirPath, options) {
             seedObj.fonts[fontFolder] = {
               url: `${parentServerHost}/fonts/${fontID}/{range}.pbf`,
               refreshBefore: options.refreshBefore,
-              timeout: timeout,
-              concurrency: concurrency,
-              maxTry: maxTry,
+              timeout,
+              concurrency,
+              maxTry,
               skip: false,
             };
 
@@ -280,8 +287,8 @@ export async function exportAll(dirPath, options) {
               seedObj.geojsons[geojsonFolder] = {
                 url: `${parentServerHost}/geojsons/${parts[2]}/${parts[3]}.geojson`,
                 refreshBefore: options.refreshBefore,
-                timeout: timeout,
-                maxTry: maxTry,
+                timeout,
+                maxTry,
                 skip: false,
               };
 
@@ -332,10 +339,10 @@ export async function exportAll(dirPath, options) {
                       url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
                       refreshBefore: options.refreshBefore,
-                      coverages: coverages,
-                      timeout: timeout,
-                      concurrency: concurrency,
-                      maxTry: maxTry,
+                      coverages,
+                      timeout,
+                      concurrency,
+                      maxTry,
                       storeType: "xyz",
                       storeTransparent: true,
                       skip: false,
@@ -362,10 +369,10 @@ export async function exportAll(dirPath, options) {
                       url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
                       refreshBefore: options.refreshBefore,
-                      coverages: coverages,
-                      timeout: timeout,
-                      concurrency: concurrency,
-                      maxTry: maxTry,
+                      coverages,
+                      timeout,
+                      concurrency,
+                      maxTry,
                       storeType: "mbtiles",
                       storeTransparent: true,
                       skip: false,
@@ -392,10 +399,10 @@ export async function exportAll(dirPath, options) {
                       url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
                       scheme: "xyz",
                       refreshBefore: options.refreshBefore,
-                      coverages: coverages,
-                      timeout: timeout,
-                      concurrency: concurrency,
-                      maxTry: maxTry,
+                      coverages,
+                      timeout,
+                      concurrency,
+                      maxTry,
                       storeType: "pg",
                       storeTransparent: true,
                       skip: false,
@@ -410,18 +417,19 @@ export async function exportAll(dirPath, options) {
                 }
 
                 if (options.exportData) {
-                  await exportTileDatas(
-                    dataID,
-                    data.sourceType,
+                  await exportTileDatas({
+                    id: dataID,
+                    storeType: data.sourceType,
                     storePath,
-                    data.tileJSON,
+                    metadata: data.tileJSON,
                     coverages,
                     concurrency,
-                    options.storeTransparent,
-                    options.refreshBefore?.time ||
+                    storeTransparent: options.storeTransparent,
+                    refreshBefore:
+                      options.refreshBefore?.time ||
                       options.refreshBefore?.day ||
                       options.refreshBefore?.md5,
-                  );
+                  });
                 }
               }
             }
@@ -463,10 +471,10 @@ export async function exportAll(dirPath, options) {
               url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
               refreshBefore: options.refreshBefore,
-              coverages: coverages,
-              timeout: timeout,
-              concurrency: concurrency,
-              maxTry: maxTry,
+              coverages,
+              timeout,
+              concurrency,
+              maxTry,
               storeType: "xyz",
               storeTransparent: true,
               skip: false,
@@ -493,10 +501,10 @@ export async function exportAll(dirPath, options) {
               url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
               refreshBefore: options.refreshBefore,
-              coverages: coverages,
-              timeout: timeout,
-              concurrency: concurrency,
-              maxTry: maxTry,
+              coverages,
+              timeout,
+              concurrency,
+              maxTry,
               storeType: "mbtiles",
               storeTransparent: true,
               skip: false,
@@ -523,10 +531,10 @@ export async function exportAll(dirPath, options) {
               url: `${parentServerHost}/datas/${dataID}/{z}/{x}/{y}.${data.tileJSON.format}`,
               scheme: "xyz",
               refreshBefore: options.refreshBefore,
-              coverages: coverages,
-              timeout: timeout,
-              concurrency: concurrency,
-              maxTry: maxTry,
+              coverages,
+              timeout,
+              concurrency,
+              maxTry,
               storeType: "pg",
               storeTransparent: true,
               skip: false,
@@ -543,18 +551,19 @@ export async function exportAll(dirPath, options) {
         if (options.exportData) {
           storePath = `${process.env.POSTGRESQL_BASE_URI}/${dataFolder}`;
 
-          await exportTileDatas(
-            dataID,
-            data.sourceType,
+          await exportTileDatas({
+            id: dataID,
+            storeType: data.sourceType,
             storePath,
-            data.tileJSON,
+            metadata: data.tileJSON,
             coverages,
             concurrency,
-            options.storeTransparent,
-            options.refreshBefore?.time ||
+            storeTransparent: options.storeTransparent,
+            refreshBefore:
+              options.refreshBefore?.time ||
               options.refreshBefore?.day ||
               options.refreshBefore?.md5,
-          );
+          });
         }
       }
     }
@@ -581,8 +590,8 @@ export async function exportAll(dirPath, options) {
           seedObj.geojsons[geojsonFolder] = {
             url: `${parentServerHost}/geojsons/${group}/${layer}.geojson`,
             refreshBefore: options.refreshBefore,
-            timeout: timeout,
-            maxTry: maxTry,
+            timeout,
+            maxTry,
             skip: false,
           };
 
@@ -617,8 +626,8 @@ export async function exportAll(dirPath, options) {
         seedObj.sprites[spriteFolder] = {
           url: `${parentServerHost}/sprites/${spriteID}/{name}`,
           refreshBefore: options.refreshBefore,
-          timeout: timeout,
-          maxTry: maxTry,
+          timeout,
+          maxTry,
           skip: false,
         };
 
@@ -661,9 +670,9 @@ export async function exportAll(dirPath, options) {
         seedObj.fonts[fontFolder] = {
           url: `${parentServerHost}/fonts/${fontID}/{range}.pbf`,
           refreshBefore: options.refreshBefore,
-          timeout: timeout,
-          concurrency: concurrency,
-          maxTry: maxTry,
+          timeout,
+          concurrency,
+          maxTry,
           skip: false,
         };
 
@@ -723,26 +732,19 @@ export async function exportAll(dirPath, options) {
 
 /**
  * Export tile datas
- * @param {string} id Data ID
- * @param {"mbtiles"|"xyz"|"pg"} storeType Store type
- * @param {string} storePath Exported path
- * @param {{ [key: string]: any }} metadata Metadata object
- * @param {{ zoom: number, bbox: [number, number, number, number]}[]} coverages Specific coverages
- * @param {number} concurrency Concurrency
- * @param {boolean} storeTransparent Is store transparent tile?
- * @param {string|number|boolean} refreshBefore Date string in format "YYYY-MM-DDTHH:mm:ss"/Number of days before which files should be refreshed/Compare MD5
+ * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", storePath: string, metadata: { [key: string]: any }, coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, storeTransparent?: boolean, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
-export async function exportTileDatas(
+export async function exportTileDatas({
   id,
   storeType,
   storePath,
   metadata,
   coverages,
-  concurrency,
-  storeTransparent,
+  concurrency = DEFAULT_CONCURRENCY,
+  storeTransparent = DEFAULT_STORE_TRANSPARENT,
   refreshBefore,
-) {
+}) {
   const startTime = Date.now();
 
   let source;
@@ -751,7 +753,7 @@ export async function exportTileDatas(
   try {
     /* Calculate summary */
     const { realBBox, total, tileBounds } = getTileBounds({
-      coverages: coverages,
+      coverages,
     });
 
     let log = `Exporting ${total} tiles of data id "${id}" to ${storeType} with:`;
@@ -779,8 +781,7 @@ export async function exportTileDatas(
 
     printLog("info", log);
 
-    let targetTileExtraInfo;
-    let tileExtraInfo;
+    let getTargetTileExtraInfo;
     let getTileExtraInfo;
     let getTileDataFunc;
     let storeTileDataFunc;
@@ -802,11 +803,7 @@ export async function exportTileDatas(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openMBTilesDB(
-          storePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openMBTilesDB(storePath, true, DEFAULT_QUERY_TIMEOUT);
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
@@ -814,8 +811,12 @@ export async function exportTileDatas(
         updateMBTilesMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async () => {
-          return getMBTilesTileExtraInfoFromCoverages(source, coverages, false);
+        getTileExtraInfo = async (batchTileBounds, isCreated) => {
+          return getMBTilesTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated,
+          });
         };
 
         /* Assign tile option */
@@ -842,11 +843,7 @@ export async function exportTileDatas(
         /* Create database */
         printLog("info", "Creating database...");
 
-        source = await openPostgreSQLDB(
-          storePath,
-          true,
-          30000, // 30 seconds
-        );
+        source = await openPostgreSQLDB(storePath, true, DEFAULT_QUERY_TIMEOUT);
 
         /* Update metadata */
         printLog("info", "Updating metadata...");
@@ -854,17 +851,17 @@ export async function exportTileDatas(
         await updatePostgreSQLMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async () => {
-          return await getPostgreSQLTileExtraInfoFromCoverages(
+        getTileExtraInfo = async (batchTileBounds, isCreated) => {
+          return await getPostgreSQLTileExtraInfo({
             source,
-            coverages,
-            true,
-          );
+            tileBounds: batchTileBounds,
+            isCreated,
+          });
         };
 
         /* Assign tile option */
         tileOption = {
-          source: source,
+          source,
           created: Date.now(),
           storeTransparent: storeTransparent,
         };
@@ -891,7 +888,7 @@ export async function exportTileDatas(
         source = await openXYZMD5DB(
           sqliteFilePath,
           true,
-          30000, // 30 seconds
+          DEFAULT_QUERY_TIMEOUT,
         );
 
         /* Update metadata */
@@ -900,8 +897,12 @@ export async function exportTileDatas(
         updateXYZMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async () => {
-          return getXYZTileExtraInfoFromCoverages(source, coverages, true);
+        getTileExtraInfo = async (batchTileBounds, isCreated) => {
+          return getXYZTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated,
+          });
         };
 
         /* Assign tile option */
@@ -929,44 +930,12 @@ export async function exportTileDatas(
 
     switch (item.sourceType) {
       case "mbtiles": {
-        /* Get tile extra info */
-        if (refreshTimestamp === true) {
-          try {
-            printLog(
-              "info",
-              `Get target tile extra info from "${item.path}" and tile extra info from "${storePath}"...`,
-            );
-
-            targetTileExtraInfo = getMBTilesTileExtraInfoFromCoverages(
-              item.source,
-              coverages,
-              false,
-            );
-
-            tileExtraInfo = getTileExtraInfo();
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get target tile extra info from "${item.path}" and tile extra info from "${storePath}": ${error}`,
-            );
-
-            targetTileExtraInfo = {};
-            tileExtraInfo = {};
-          }
-        } else if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${storePath}"...`);
-
-            tileExtraInfo = getTileExtraInfo();
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${storePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTargetTileExtraInfo = async (batchTileBounds) => {
+          return getMBTilesTileExtraInfo({
+            source: item.source,
+            tileBounds: batchTileBounds,
+          });
+        };
 
         /* Get data function */
         getTileDataFunc = async (z, x, y) => {
@@ -979,44 +948,12 @@ export async function exportTileDatas(
       }
 
       case "pg": {
-        /* Get tile extra info */
-        if (refreshTimestamp === true) {
-          try {
-            printLog(
-              "info",
-              `Get target tile extra info from "${item.path}" and tile extra info from "${storePath}"...`,
-            );
-
-            targetTileExtraInfo = getPostgreSQLTileExtraInfoFromCoverages(
-              item.source,
-              coverages,
-              false,
-            );
-
-            tileExtraInfo = getTileExtraInfo();
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get target tile extra info from "${item.path}" and tile extra info from "${storePath}": ${error}`,
-            );
-
-            targetTileExtraInfo = {};
-            tileExtraInfo = {};
-          }
-        } else if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${storePath}"...`);
-
-            tileExtraInfo = getTileExtraInfo();
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${storePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTargetTileExtraInfo = async (batchTileBounds) => {
+          return await getPostgreSQLTileExtraInfo({
+            source: item.source,
+            tileBounds: batchTileBounds,
+          });
+        };
 
         /* Get data function */
         getTileDataFunc = async (z, x, y) => {
@@ -1029,44 +966,12 @@ export async function exportTileDatas(
       }
 
       case "xyz": {
-        /* Get tile extra info */
-        if (refreshTimestamp === true) {
-          try {
-            printLog(
-              "info",
-              `Get target tile extra info from "${item.path}" and tile extra info from "${sqliteFilePath}"...`,
-            );
-
-            targetTileExtraInfo = getXYZTileExtraInfoFromCoverages(
-              item.md5Source,
-              coverages,
-              false,
-            );
-
-            tileExtraInfo = getTileExtraInfo();
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get target tile extra info from "${item.path}" and tile extra info from "${sqliteFilePath}": ${error}`,
-            );
-
-            targetTileExtraInfo = {};
-            tileExtraInfo = {};
-          }
-        } else if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${sqliteFilePath}"...`);
-
-            tileExtraInfo = getTileExtraInfo();
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${sqliteFilePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTargetTileExtraInfo = async (batchTileBounds) => {
+          return getXYZTileExtraInfo({
+            source: item.md5Source,
+            tileBounds: batchTileBounds,
+          });
+        };
 
         /* Get data function */
         getTileDataFunc = async (z, x, y) => {
@@ -1079,45 +984,58 @@ export async function exportTileDatas(
       }
     }
 
-    /* Export and store tile data generator */
-    function* exportAndStoreTileDataGenerator() {
-      let completeTasks = 0;
+    let completeTasks = 0;
 
-      for (const { z, x, y } of tileBounds) {
+    /* Export and store one tile data batch */
+    function* exportAndStoreTileDataGenerator(
+      batchTileBounds,
+      targetTileExtraInfo,
+      tileExtraInfo,
+    ) {
+      for (const { z, x, y } of batchTileBounds) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
 
+            const taskNumber = completeTasks;
+
             yield async () => {
               const tileName = `${z}/${xCount}/${yCount}`;
-
-              if (
-                (refreshTimestamp === true &&
-                  tileExtraInfo[tileName] &&
-                  tileExtraInfo[tileName] === targetTileExtraInfo[tileName]) ||
-                (refreshTimestamp &&
-                  tileExtraInfo[tileName] >= refreshTimestamp)
-              ) {
-                return;
-              }
-
-              printLog(
-                "info",
-                `Exporting data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}...`,
-              );
+              const currentTileExtraInfo = tileExtraInfo[tileName];
+              const currentTargetTileExtraInfo = targetTileExtraInfo[tileName];
 
               try {
-                await storeTileDataFunc(
-                  z,
-                  xCount,
-                  yCount,
-                  await getTileDataFunc(z, xCount, yCount),
-                );
-              } catch (error) {
+                if (
+                  refreshTimestamp === true
+                    ? currentTileExtraInfo &&
+                      currentTileExtraInfo === currentTargetTileExtraInfo
+                    : refreshTimestamp &&
+                      currentTileExtraInfo >= refreshTimestamp
+                ) {
+                  return;
+                }
+
                 printLog(
-                  "error",
-                  `Failed to export data id "${id}" - Tile "${tileName}" - ${completeTasks}/${total}: ${error}`,
+                  "info",
+                  `Exporting data id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}...`,
                 );
+
+                try {
+                  await storeTileDataFunc(
+                    z,
+                    xCount,
+                    yCount,
+                    await getTileDataFunc(z, xCount, yCount),
+                  );
+                } catch (error) {
+                  printLog(
+                    "error",
+                    `Failed to export data id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}: ${error}`,
+                  );
+                }
+              } finally {
+                delete tileExtraInfo[tileName];
+                delete targetTileExtraInfo[tileName];
               }
             };
           }
@@ -1128,7 +1046,43 @@ export async function exportTileDatas(
     /* Export and store tile datas */
     printLog("info", "Exporting and storing tile datas...");
 
-    await runAllWithLimit(exportAndStoreTileDataGenerator(), concurrency, item);
+    for (const batchTileBounds of getTileBoundsBatches(tileBounds)) {
+      let targetTileExtraInfo = {};
+      let tileExtraInfo = {};
+
+      try {
+        if (refreshTimestamp === true) {
+          [targetTileExtraInfo, tileExtraInfo] = await Promise.all([
+            getTargetTileExtraInfo(batchTileBounds),
+            getTileExtraInfo(batchTileBounds, false),
+          ]);
+        } else if (refreshTimestamp) {
+          tileExtraInfo = await getTileExtraInfo(batchTileBounds, true);
+        }
+      } catch (error) {
+        printLog(
+          "error",
+          `Failed to get target or exported tile extra info for a batch: ${error}`,
+        );
+
+        targetTileExtraInfo = {};
+        tileExtraInfo = {};
+      }
+
+      await runAllWithLimit(
+        exportAndStoreTileDataGenerator(
+          batchTileBounds,
+          targetTileExtraInfo,
+          tileExtraInfo,
+        ),
+        concurrency,
+        item,
+      );
+
+      if (!item.export) {
+        break;
+      }
+    }
 
     printLog(
       "info",
