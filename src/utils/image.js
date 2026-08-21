@@ -197,14 +197,18 @@ function createSVG(svg, isBuffer) {
 
 /**
  * Calculate resolution
- * @param {{ image: string|Buffer, bbox: [number, number, number, number], width: number, height: number }} input Input object
+ * @param {{ image?: string|Buffer, bbox?: number[], bounds?: number[], width?: number, height?: number, size?: {width: number, height: number}, unit?: string }} input Input object
  * @param {"km"|"hm"|"dam"|"m"|"dm"|"cm"|"mm"} unit unit
  * @returns {Promise<[number, number]>} [X resolution (m/pixel), Y resolution (m/pixel)]
  */
 export async function calculateResolution(input, unit) {
+  const bbox = input.bounds ?? input.bbox;
+  const size = input.size ?? input;
+  const targetUnit = input.unit ?? unit;
+
   // Convert bbox from EPSG:4326 to EPSG:3857
-  const [minX, minY] = lonLat4326ToXY3857(input.bbox[0], input.bbox[1]);
-  const [maxX, maxY] = lonLat4326ToXY3857(input.bbox[2], input.bbox[3]);
+  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
+  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
   let resolution;
 
   // Get origin image size
@@ -213,13 +217,13 @@ export async function calculateResolution(input, unit) {
 
     resolution = [(maxX - minX) / width, (maxY - minY) / height];
   } else {
-    resolution = [(maxX - minX) / input.width, (maxY - minY) / input.height];
+    resolution = [(maxX - minX) / size.width, (maxY - minY) / size.height];
   }
 
   // Convert resolution to the specified unit
   return [
-    convertLength(resolution[0], "m", unit),
-    convertLength(resolution[1], "m", unit),
+    convertLength(resolution[0], "m", targetUnit),
+    convertLength(resolution[1], "m", targetUnit),
   ];
 }
 

@@ -208,6 +208,64 @@ export function detectContentTypeFromFormat(format) {
   return mime.getType(format);
 }
 
+const PAPER_BASE_SIZE = {
+  a: {
+    width: 841,
+    height: 1189,
+  },
+  b: {
+    width: 1000,
+    height: 1414,
+  },
+  c: {
+    width: 917,
+    height: 1297,
+  },
+};
+
+/**
+ * Calculate ISO A/B/C paper dimensions from a type such as `A4`.
+ * @param {string} paperType Paper type
+ * @returns {{width: number, height: number}}
+ */
+export function calculatePaperSize(paperType) {
+  const match = paperType?.toLowerCase().match(/^([abc])(\d+)$/);
+  if (!match) {
+    return;
+  }
+
+  const size = PAPER_BASE_SIZE[match[1]]
+    ? {
+        ...PAPER_BASE_SIZE[match[1]],
+      }
+    : undefined;
+
+  if (!size) {
+    return;
+  }
+
+  for (let i = 0; i < Number(match[2]); i++) {
+    const newWidth = Math.floor(size.height / 2);
+
+    size.height = size.width;
+    size.width = newWidth;
+  }
+
+  return size;
+}
+
+/** Check whether the current runtime is Safari. */
+export function isSafari() {
+  const ua = globalThis.navigator?.userAgent?.toLowerCase();
+
+  return Boolean(
+    ua?.includes("safari") &&
+    !ua.includes("chrome") &&
+    !ua.includes("crios") &&
+    !ua.includes("fxios"),
+  );
+}
+
 const UNIT_FACTORS = {
   km: 1000,
   hm: 100,
@@ -240,6 +298,17 @@ export function convertLength(value, from, to) {
  * @returns {number} Value in pixel
  */
 export function toPixel(value, unit, ppi) {
+  if (typeof value === "object" && value !== null) {
+    const option = value;
+    const result =
+      (option.value *
+        (option.ppi ?? 96) *
+        (UNIT_FACTORS[option.unit] ?? UNIT_FACTORS["m"])) /
+      0.0254;
+
+    return option.round ? Math.round(result) : result;
+  }
+
   return (
     (value * (ppi ?? 96) * (UNIT_FACTORS[unit] ?? UNIT_FACTORS["m"])) / 0.0254
   );
@@ -253,6 +322,15 @@ export function toPixel(value, unit, ppi) {
  * @returns {number} Value in the given unit
  */
 export function fromPixel(pixels, unit, ppi) {
+  if (typeof pixels === "object" && pixels !== null) {
+    const option = pixels;
+    const result =
+      (option.value * 0.0254) /
+      ((option.ppi ?? 96) * (UNIT_FACTORS[option.unit] ?? UNIT_FACTORS["m"]));
+
+    return option.round ? Math.round(result) : result;
+  }
+
   return (
     (pixels * 0.0254) /
     ((ppi ?? 96) * (UNIT_FACTORS[unit] ?? UNIT_FACTORS["m"]))

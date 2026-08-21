@@ -1,18 +1,24 @@
 "use strict";
 
 export * from "./concurrency.js";
+export * from "./transform.js";
 export * from "./prometheus.js";
 export * from "./postgresql.js";
 export * from "./handlebar.js";
+export * from "./debounce.js";
 export * from "./validate.js";
 export * from "./response.js";
 export * from "./request.js";
 export * from "./spatial.js";
+export * from "./string.js";
 export * from "./logger.js";
 export * from "./sqlite.js";
 export * from "./number.js";
+export * from "./object.js";
 export * from "./image.js";
+export * from "./shape.js";
 export * from "./util.js";
 export * from "./file.js";
 export * from "./tile.js";
+export * from "./xml.js";
 export * from "./ws.js";

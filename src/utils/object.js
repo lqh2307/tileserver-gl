@@ -283,3 +283,419 @@ export function isEqualFields(obj1, obj2, fields) {
     return obj1[field] === obj2[field];
   });
 }
+
+/** Remove specified fields from an object in place. */
+export function removeFields(obj, fields) {
+  for (const key of fields) {
+    delete obj[key];
+  }
+
+  return obj;
+}
+
+/** Create an object containing only the requested fields. */
+export function pickFields(obj, fields) {
+  const result = {};
+
+  for (const key of fields) {
+    if (key in obj) {
+      result[key] = obj[key];
+    }
+  }
+
+  return result;
+}
+
+/** Check whether any selected field differs between two objects. */
+export function isDifferentFields(obj1, obj2, fields) {
+  return fields.some((field) => {
+    return obj1[field] !== obj2[field];
+  });
+}
+
+/** Parse JSON without throwing and return an optional fallback on failure. */
+export function parseStringJSON(value, fallback) {
+  try {
+    return {
+      result: JSON.parse(value),
+    };
+  } catch (error) {
+    return {
+      result: fallback,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+}
+
+/**
+ * Parse XML without throwing when DOMParser is available in the runtime.
+ * In Node, a caller may provide a DOMParser polyfill through `globalThis`.
+ */
+export function parseStringXML(value, fallback) {
+  try {
+    if (typeof globalThis.DOMParser !== "function") {
+      throw new Error("DOMParser is not available in this runtime.");
+    }
+
+    const result = new globalThis.DOMParser().parseFromString(
+      value,
+      "application/xml",
+    );
+    const parserError = result.querySelector("parsererror");
+
+    if (parserError) {
+      throw new Error(parserError.textContent?.trim() || "XML is invalid.");
+    }
+
+    return {
+      result,
+    };
+  } catch (error) {
+    return {
+      result: fallback,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+}
+
+/** Check if a value is a plain object. */
+export function isRecord(value) {
+  return Object.prototype.toString.call(value) === "[object Object]";
+}
+
+/** Check if a value is an array. */
+export function isArray(value) {
+  return Array.isArray(value);
+}
+
+const hasOwnKey = (value, key) => {
+  return Object.prototype.hasOwnProperty.call(value, key);
+};
+
+const createJSONContainer = (nextSegment) => {
+  return typeof nextSegment === "number" ? [] : {};
+};
+
+/** Encode a JSON path into a collision-free key suitable for maps. */
+export const getJSONPathKey = (path) => {
+  return JSON.stringify(path);
+};
+
+/** Return the value at a JSON path, or `undefined` for an invalid path. */
+export const getJSONValueAtPath = (value, path) => {
+  let currentValue = value;
+
+  for (const segment of path) {
+    if (
+      Array.isArray(currentValue) &&
+      typeof segment === "number" &&
+      segment >= 0 &&
+      segment < currentValue.length
+    ) {
+      currentValue = currentValue[segment];
+    } else if (
+      isRecord(currentValue) &&
+      typeof segment === "string" &&
+      hasOwnKey(currentValue, segment)
+    ) {
+      currentValue = currentValue[segment];
+    } else {
+      return;
+    }
+  }
+
+  return currentValue;
+};
+
+/** Set a nested value, cloning only containers on the changed branch. */
+export const setNestedValue = (value, path, nextValue, mutable = false) => {
+  if (path.length === 0) {
+    return nextValue;
+  }
+
+  const [segment, ...remainingPath] = path;
+
+  if (Array.isArray(value) && typeof segment === "number") {
+    if (segment < 0 || !Number.isInteger(segment)) {
+      return value;
+    }
+
+    const currentChild = value[segment];
+    const updatedChild = remainingPath.length
+      ? setNestedValue(
+          currentChild ?? createJSONContainer(remainingPath[0]),
+          remainingPath,
+          nextValue,
+          mutable,
+        )
+      : nextValue;
+
+    if (currentChild === updatedChild && segment in value) {
+      return value;
+    }
+
+    if (mutable) {
+      value[segment] = updatedChild;
+      return value;
+    }
+
+    const nextArray = [...value];
+    nextArray[segment] = updatedChild;
+    return nextArray;
+  }
+
+  if (!isRecord(value) || typeof segment !== "string") {
+    return value;
+  }
+
+  const currentChild = value[segment];
+  const updatedChild = remainingPath.length
+    ? setNestedValue(
+        currentChild ?? createJSONContainer(remainingPath[0]),
+        remainingPath,
+        nextValue,
+        mutable,
+      )
+    : nextValue;
+
+  if (currentChild === updatedChild && hasOwnKey(value, segment)) {
+    return value;
+  }
+
+  if (mutable) {
+    value[segment] = updatedChild;
+    return value;
+  }
+
+  return {
+    ...value,
+    [segment]: updatedChild,
+  };
+};
+
+/** Delete a nested value, cloning only containers on the changed branch. */
+export const deleteNestedValue = (value, path, mutable = false) => {
+  if (path.length === 0) {
+    return value;
+  }
+
+  const [segment, ...remainingPath] = path;
+
+  if (Array.isArray(value) && typeof segment === "number") {
+    if (segment < 0 || segment >= value.length || !Number.isInteger(segment)) {
+      return value;
+    }
+
+    if (remainingPath.length === 0) {
+      if (mutable) {
+        value.splice(segment, 1);
+        return value;
+      }
+
+      return value.filter((_, index) => {
+        return index !== segment;
+      });
+    }
+
+    const currentChild = value[segment];
+    const updatedChild = deleteNestedValue(
+      currentChild,
+      remainingPath,
+      mutable,
+    );
+
+    if (currentChild === updatedChild) {
+      return value;
+    }
+
+    if (mutable) {
+      value[segment] = updatedChild;
+      return value;
+    }
+
+    const nextArray = [...value];
+    nextArray[segment] = updatedChild;
+    return nextArray;
+  }
+
+  if (
+    !isRecord(value) ||
+    typeof segment !== "string" ||
+    !hasOwnKey(value, segment)
+  ) {
+    return value;
+  }
+
+  if (remainingPath.length === 0) {
+    if (mutable) {
+      delete value[segment];
+      return value;
+    }
+
+    const nextRecord = {
+      ...value,
+    };
+    delete nextRecord[segment];
+    return nextRecord;
+  }
+
+  const currentChild = value[segment];
+  const updatedChild = deleteNestedValue(currentChild, remainingPath, mutable);
+
+  if (currentChild === updatedChild) {
+    return value;
+  }
+
+  if (mutable) {
+    value[segment] = updatedChild;
+    return value;
+  }
+
+  return {
+    ...value,
+    [segment]: updatedChild,
+  };
+};
+
+/** Rename an object key at `parentPath`, preserving key order and values. */
+export const renameJSONKeyAtPath = (
+  value,
+  parentPath,
+  oldKey,
+  newKey,
+  mutable = false,
+) => {
+  const normalizedKey = newKey.trim();
+  const parent = getJSONValueAtPath(value, parentPath);
+
+  if (
+    !normalizedKey ||
+    oldKey === normalizedKey ||
+    !isRecord(parent) ||
+    !hasOwnKey(parent, oldKey) ||
+    hasOwnKey(parent, normalizedKey)
+  ) {
+    return value;
+  }
+
+  const renamedParent = Object.keys(parent).reduce((result, key) => {
+    result[key === oldKey ? normalizedKey : key] = parent[key];
+    return result;
+  }, {});
+
+  if (mutable) {
+    Object.keys(parent).forEach((key) => {
+      return delete parent[key];
+    });
+    Object.assign(parent, renamedParent);
+    return value;
+  }
+
+  return setNestedValue(value, parentPath, renamedParent);
+};
+
+/** Add a default child to an array or object at `path`. */
+export const addJSONChildAtPath = (value, path, mutable = false) => {
+  const parent = getJSONValueAtPath(value, path);
+
+  if (Array.isArray(parent)) {
+    if (mutable) {
+      parent.push(null);
+      return value;
+    }
+
+    return setNestedValue(value, path, [...parent, null]);
+  }
+
+  if (!isRecord(parent)) {
+    return value;
+  }
+
+  let index = 1;
+  let key = "newKey";
+
+  while (hasOwnKey(parent, key)) {
+    key = `newKey${index}`;
+    index += 1;
+  }
+
+  if (mutable) {
+    parent[key] = "";
+    return value;
+  }
+
+  return setNestedValue(value, path, {
+    ...parent,
+    [key]: "",
+  });
+};
+
+/** Sort object keys recursively while preserving array item order. */
+export const sortJSONKeys = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(sortJSONKeys);
+  }
+
+  if (isRecord(value)) {
+    return Object.keys(value)
+      .sort((firstKey, secondKey) => {
+        return firstKey.localeCompare(secondKey);
+      })
+      .reduce((sorted, key) => {
+        sorted[key] = sortJSONKeys(value[key]);
+        return sorted;
+      }, {});
+  }
+
+  return value;
+};
+
+/** Return map entries that expand every object and array in a JSON value. */
+export const getExpandedJSONPathKeys = (value, path = [], expanded = {}) => {
+  if (!Array.isArray(value) && !isRecord(value)) {
+    return expanded;
+  }
+
+  expanded[getJSONPathKey(path)] = true;
+
+  if (Array.isArray(value)) {
+    value.forEach((child, index) => {
+      return getExpandedJSONPathKeys(child, [...path, index], expanded);
+    });
+  } else {
+    Object.entries(value).forEach(([key, child]) => {
+      return getExpandedJSONPathKeys(child, [...path, key], expanded);
+    });
+  }
+
+  return expanded;
+};
+
+/** Ensure a user-provided filename uses the `.json` extension. */
+export const normalizeJSONFileName = (fileName) => {
+  return fileName.trim().toLowerCase().endsWith(".json")
+    ? fileName.trim()
+    : `${fileName.trim() || "data"}.json`;
+};
+
+/** Apply undefined defaults to a target object in place. */
+export function applyDefaults(target, defaults, keys) {
+  if (!defaults) {
+    return target;
+  }
+
+  for (const key of keys ?? Object.keys(defaults)) {
+    const value = defaults[key];
+
+    if (value !== undefined && target[key] === undefined) {
+      target[key] = value;
+    }
+  }
+
+  return target;
+}
+
+/** Return an existing set or materialize another iterable as a set. */
+export function toSet(iterable) {
+  return iterable instanceof Set ? iterable : new Set(iterable);
+}

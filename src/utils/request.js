@@ -52,6 +52,17 @@ export function abortRequest(controller, create) {
 }
 
 /**
+ * Throw a standard abort error when a cancellable operation was aborted.
+ * @param {AbortSignal} signal Abort signal
+ * @returns {void}
+ */
+export function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    throw new DOMException("The operation was aborted.", "AbortError");
+  }
+}
+
+/**
  * Request to URL
  * @param {string} url URL to request
  * @param {{ method: axios.Method, timeout: number, body: object, responseType: axios.ResponseType, keepAlive: boolean, headers: object, decompress: boolean, signal: AbortSignal }} options Options

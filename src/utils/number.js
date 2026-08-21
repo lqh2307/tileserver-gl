@@ -2,6 +2,48 @@
 
 const INTEGER_REGEX = /-?\d+/;
 const FLOAT_REGEX = /-?\d+(\.\d+)?/;
+const DMS_NUMBER_REGEX = /[-+]?\d+(?:\.\d+)?/g;
+const DMS_HEMISPHERE_REGEX = /[NSEW]/i;
+const NUMBER_PATTERN = /[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g;
+
+export const DEFAULT_TOLERANCE = 1e-7;
+
+/**
+ * Convert a string-like value into a list of finite numbers.
+ * @param {unknown} value Input containing numbers
+ * @param {number[]} def Fallback when no number can be parsed
+ * @param {number} digit Maximum fractional digits retained without rounding
+ * @returns {number[]}
+ */
+export function parseNumberList(value, def, digit = 3) {
+  const matches = String(value ?? "").match(NUMBER_PATTERN);
+  if (!matches?.length) {
+    return def;
+  }
+
+  return matches.map((match) => {
+    return parseNumber(match, undefined, digit);
+  });
+}
+
+/**
+ * Safely extract a finite number from a string-like value.
+ * @param {unknown} value Input value
+ * @param {number} def Fallback when conversion is invalid
+ * @param {number} digit Maximum fractional digits retained without rounding
+ * @returns {number}
+ */
+export function parseNumber(value, def, digit = 3) {
+  const matches = String(value ?? "").match(NUMBER_PATTERN);
+  if (!matches?.length) {
+    return def;
+  }
+
+  const factor = 10 ** digit;
+  const parsed = Number(matches.join(""));
+
+  return Number.isFinite(parsed) ? Math.trunc(parsed * factor) / factor : def;
+}
 
 /**
  * Clamp a number within min/max bounds.
@@ -48,6 +90,9 @@ export function maxValue(values) {
   }
 }
 
+/** Alias retained for compatibility with Maputnik utilities. */
+export const maxs = maxValue;
+
 /**
  * Get the minimum value in an array.
  * @param {number[]} values Input values
@@ -69,6 +114,9 @@ export function minValue(values) {
     return value;
   }
 }
+
+/** Alias retained for compatibility with Maputnik utilities. */
+export const mins = minValue;
 
 /**
  * Extract a number from a string.
@@ -182,6 +230,111 @@ export function convertDEGToDMS(deg) {
 }
 
 /**
+ * Convert decimal degrees to a DMS object with an optional hemisphere.
+ * @param {number} deg Decimal degrees
+ * @param {boolean} isLon True for longitude, false for latitude; omit for signed degree
+ * @returns {{degree: number, minute: number, second: number, hemisphere?: "N"|"S"|"E"|"W"}}
+ */
+export function convertDEGToDMSH(deg, isLon) {
+  const normalized = normalize180(deg % 360);
+  const dms = convertDEGToDMS(normalized);
+
+  if (isLon === undefined) {
+    return dms;
+  }
+
+  return {
+    ...dms,
+    degree: Math.abs(dms.degree),
+    hemisphere: isLon
+      ? normalized >= 0
+        ? "E"
+        : "W"
+      : normalized >= 0
+        ? "N"
+        : "S",
+  };
+}
+
+/**
+ * Format decimal degrees as DD, DDM, DMS, or DMSH.
+ * @param {number} value Coordinate value
+ * @param {boolean} isLatitude True for latitude
+ * @param {"DD"|"DDM"|"DMS"|"DMSH"} format Output format
+ * @returns {string}
+ */
+export function convertDEGToDMSHString(value, isLatitude, format) {
+  if (format === "DD") {
+    return `${String(parseNumber(value))}\u00b0`;
+  }
+
+  const absolute = Math.abs(value);
+  let degree = Math.floor(absolute);
+
+  if (format === "DDM") {
+    let decimalMinute = Math.round((absolute - degree) * 60 * 1000) / 1000;
+
+    if (decimalMinute === 60) {
+      decimalMinute = 0;
+      degree += 1;
+    }
+
+    return `${value < 0 ? "-" : ""}${degree}\u00b0${String(parseNumber(decimalMinute))}'`;
+  }
+
+  const dms = convertDEGToDMSH(
+    value,
+    format === "DMSH" ? !isLatitude : undefined,
+  );
+
+  return `${format !== "DMSH" && dms.degree < 0 ? "-" : ""}${Math.abs(dms.degree)}\u00b0${dms.minute ? `${dms.minute}'` : ""}${dms.second ? `${dms.second}\"` : ""}${dms.hemisphere ?? ""}`;
+}
+
+/**
+ * Convert a DMSH string to decimal degrees.
+ * @param {string} dmshString DMSH string
+ * @returns {number}
+ */
+export function convertDMSHStringToDEG(dmshString) {
+  const values =
+    dmshString?.match(DMS_NUMBER_REGEX)?.map((value) => {
+      return Number(value);
+    }) ?? [];
+
+  if (!values.length) {
+    return 0;
+  }
+
+  const [degree, minute = 0, second = 0] = values;
+
+  return convertDMSHToDEG({
+    degree,
+    minute,
+    second,
+    hemisphere: dmshString.match(DMS_HEMISPHERE_REGEX)?.[0]?.toUpperCase(),
+  });
+}
+
+/**
+ * Convert a DMSH object to decimal degrees.
+ * @param {{degree: number, minute: number, second: number, hemisphere?: "N"|"S"|"E"|"W"}} dms DMSH object
+ * @returns {number}
+ */
+export function convertDMSHToDEG(dms) {
+  const absDeg = Math.abs(dms.degree);
+  const decimal = absDeg + dms.minute / 60 + dms.second / 3600;
+  const signed = dms.hemisphere
+    ? dms.hemisphere === "W" || dms.hemisphere === "S"
+      ? -decimal
+      : decimal
+    : dms.degree >= 0
+      ? decimal
+      : -decimal;
+
+  return normalize180(signed % 360);
+}
+
+/**
  * Convert decimal degrees to a formatted DMS string.
  * @param {number} deg Decimal degrees
  * @returns {string} Formatted DMS string
@@ -240,13 +393,71 @@ export function convertDMSToDEG(dms) {
  * createRangeNumber(0, 10); // [0, 10]
  */
 export function createRangeNumber(start, end, pointsPerSegment) {
-  const segmentCount = (pointsPerSegment ?? 0) + 1;
-  const step = (end - start) / segmentCount;
+  if (typeof start !== "object" || start === null) {
+    const segmentCount = (pointsPerSegment ?? 0) + 1;
+    const step = (end - start) / segmentCount;
+    const points = new Array(segmentCount + 1);
 
-  const points = new Array(segmentCount + 1);
+    for (let i = 0; i <= segmentCount; i++) {
+      points[i] = start + i * step;
+    }
 
-  for (let i = 0; i <= segmentCount; i++) {
-    points[i] = start + i * step;
+    return points;
+  }
+
+  const option = start;
+  const rangeStart = option.start;
+  const rangeEnd = option.end;
+  const interiorPointCount = option.pointsPerSegment ?? 0;
+
+  if (rangeEnd < rangeStart) {
+    return [];
+  }
+
+  if (rangeStart === rangeEnd) {
+    return option.excludeStart || option.excludeEnd ? [] : [rangeStart];
+  }
+
+  if (option.step !== undefined) {
+    if (option.step <= 0) {
+      return [];
+    }
+
+    const origin = option.origin ?? 0;
+    const values = option.excludeStart ? [] : [rangeStart];
+
+    for (
+      let value = Math.ceil((rangeStart - origin) / option.step) * option.step;
+      value <= rangeEnd - origin + option.step * DEFAULT_TOLERANCE;
+      value += option.step
+    ) {
+      const roundedValue = roundDecimal(
+        origin + roundToMultiple(value, option.step),
+        12,
+      );
+
+      if (roundedValue > rangeStart && roundedValue < rangeEnd) {
+        values.push(roundedValue);
+      }
+    }
+
+    if (!option.excludeEnd) {
+      values.push(rangeEnd);
+    }
+
+    return values;
+  }
+
+  const segmentCount = interiorPointCount + 1;
+  const step = (rangeEnd - rangeStart) / segmentCount;
+  const points = option.excludeStart ? [] : [rangeStart];
+
+  for (let i = 1; i < segmentCount; i++) {
+    points.push(rangeStart + i * step);
+  }
+
+  if (!option.excludeEnd) {
+    points.push(rangeEnd);
   }
 
   return points;
@@ -293,8 +504,6 @@ export function min(a, b) {
 
   return a < b ? a : b;
 }
-
-const DEFAULT_TOLERANCE = 1e-7;
 
 /**
  * Round a decimal number to the specified number of fraction digits.

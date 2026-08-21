@@ -137,6 +137,15 @@ export function base64ToBuffer(base64) {
 }
 
 /**
+ * Return the extension after the final dot in a file name or path.
+ * @param {string} fileName File name
+ * @returns {string}
+ */
+export function getFileExt(fileName) {
+  return fileName?.slice(fileName.lastIndexOf(".") + 1);
+}
+
+/**
  * Create folders
  * @param {string[]} dirPaths Create folders
  * @returns {Promise<void>}
