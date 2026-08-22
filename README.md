@@ -9,6 +9,7 @@ PostgreSQL; server cũng hỗ trợ seed/cleanup theo lịch, export dữ liệu
 
 - [Tổng quan](#tổng-quan)
 - [Truy cập dịch vụ](#truy-cập-dịch-vụ)
+- [Trang quản trị](#trang-quản-trị)
 - [Chạy sau reverse proxy](#chạy-sau-reverse-proxy)
 - [Cấu hình và thư mục dữ liệu](#cấu-hình-và-thư-mục-dữ-liệu)
 - [Các giá trị mặc định](#các-giá-trị-mặc-định)
@@ -91,12 +92,51 @@ Theo dõi log hoặc `/summary` để biết tiến trình. Tile không tồn t�
 `204`; lỗi validation trả `400`; resource không tồn tại trả `404`; server chưa
 sẵn sàng trả `503`.
 
+## Trang quản trị
+
+Trang `/` là giao diện quản trị responsive cho styles, GeoJSONs, data, fonts và
+sprites. Mỗi tab resource có ô **Search** để lọc item theo nội dung đang hiển
+thị. Các trang bản đồ dùng chung navigation, fullscreen, scale, geolocate và
+globe control (MapLibre).
+
+Ba tab thao tác chính:
+
+| Tab | Chức năng |
+| --- | --- |
+| `SYNC` | `Sync` hoặc `Cancel sync` theo selector Type/ID. Mặc định `All`; xem chi tiết ở phần [Đồng bộ và hủy task theo resource](#đồng-bộ-và-hủy-task-theo-resource). |
+| `CONFIGS` | Một nút **Update config**. Chọn `Config`, `Seed` hoặc `Cleanup`; JSONEditor tự tải nội dung tương ứng và cho phép sửa ở Source hoặc Tree view. |
+| `UTILITY` | Swagger, export image, restart/kill server và các service/seed summary. |
+
+### Cập nhật config qua API
+
+```bash
+# Đọc từng document
+curl -fsS 'http://localhost:8080/config?type=config'
+curl -fsS 'http://localhost:8080/config?type=seed'
+curl -fsS 'http://localhost:8080/config?type=cleanup'
+
+# Merge options vào config.json, giữ nguyên các field khác
+curl -X PUT 'http://localhost:8080/config?type=config' -H 'content-type: application/json' --data '{"options":{"listenPort":9090,"process":2}}'
+
+# Merge một seed data, giữ nguyên các seed resource khác
+curl -X PUT 'http://localhost:8080/config?type=seed' -H 'content-type: application/json' --data '{"datas":{"osm":{"url":"https://example.com/osm/{z}/{x}/{y}.pbf"}}}'
+
+# Ghi đè hoàn toàn từng document từ file
+curl -X PUT 'http://localhost:8080/config?type=config&overwrite=true&restart=true' -H 'content-type: application/json' --data-binary @config.json
+curl -X PUT 'http://localhost:8080/config?type=seed&overwrite=true' -H 'content-type: application/json' --data-binary @seed.json
+curl -X PUT 'http://localhost:8080/config?type=cleanup&overwrite=true' -H 'content-type: application/json' --data-binary @cleanup.json
+```
+
+Thêm `overwrite=true` khi cần thay thế toàn bộ document, ví dụ để xóa resource
+khỏi file. Nút **Confirm** trong JSONEditor luôn dùng `overwrite=true` để nội
+dung trên màn hình và file lưu trữ giống nhau.
+
 ### Đồng bộ và hủy task theo resource
 
-API task sử dụng hai query parameter `type` và `id`. Các giá trị `type` hợp lệ
-là `data`, `style`, `geojson`, `sprite` và `font`. Mỗi task resource thực hiện
-cleanup trước rồi mới seed; nếu resource chỉ xuất hiện trong một config thì chỉ
-phần tương ứng được chạy.
+API task dùng hai query parameter `type` và `id`. Type hợp lệ là `data`,
+`style`, `geojson`, `sprite` và `font`. Mỗi task resource cleanup trước
+rồi mới seed; nếu resource chỉ xuất hiện trong một config thì chỉ phần tương ứng
+được chạy.
 
 ```bash
 # Đồng bộ đúng một data
