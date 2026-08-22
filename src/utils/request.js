@@ -6,17 +6,44 @@ import { createCache } from "cache-manager";
 import { getFileCreated } from "./file.js";
 import axios, { isCancel } from "axios";
 import { printLog } from "./logger.js";
+import { min } from "./number.js";
 import https from "node:https";
 import http from "node:http";
+
+const LOCAL_SCHEMES = new Set([
+  "mbtiles://",
+  "pmtiles://",
+  "xyz://",
+  "pg://",
+  "geojson://",
+]);
 
 export const HTTP_SCHEMES = ["https://", "http://"];
 
 const MAX_ERROR_RESPONSE_LENGTH = 2000;
+const MAX_HTTP_SOCKETS = 256;
+const MAX_HTTP_FREE_SOCKETS = 64;
 
-/* Cache in RAM */
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: MAX_HTTP_SOCKETS,
+  maxFreeSockets: MAX_HTTP_FREE_SOCKETS,
+});
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: MAX_HTTP_SOCKETS,
+  maxFreeSockets: MAX_HTTP_FREE_SOCKETS,
+});
+
 const lastModifiedCaches = createCache({
   ttl: DEFAULT_CACHE_TIMEOUT,
 });
+
+async function getCachedLastModified(fileOrFolderPath) {
+  return await lastModifiedCaches.wrap(fileOrFolderPath, async () => {
+    return new Date(await getFileCreated(fileOrFolderPath)).toUTCString();
+  });
+}
 
 /**
  * Check if a string is a URL (blob, data, http, or https).
@@ -24,15 +51,13 @@ const lastModifiedCaches = createCache({
  * @returns {boolean} True if the string is a URL, false otherwise
  */
 export function isURL(data) {
-  if (
+  return (
     data.startsWith("blob:") ||
     data.startsWith("data:") ||
-    data.startsWith("http")
-  ) {
-    return true;
-  }
-
-  return false;
+    HTTP_SCHEMES.some((scheme) => {
+      return data.startsWith(scheme);
+    })
+  );
 }
 
 /**
@@ -48,17 +73,6 @@ export function abortRequest(controller, create) {
 
   if (create) {
     return new AbortController();
-  }
-}
-
-/**
- * Throw a standard abort error when a cancellable operation was aborted.
- * @param {AbortSignal} signal Abort signal
- * @returns {void}
- */
-export function throwIfAborted(signal) {
-  if (signal?.aborted) {
-    throw new DOMException("The operation was aborted.", "AbortError");
   }
 }
 
@@ -86,12 +100,8 @@ export async function requestToURL(url, options) {
           status !== StatusCodes.NO_CONTENT
         );
       },
-      httpAgent: new http.Agent({
-        keepAlive: options.keepAlive,
-      }),
-      httpsAgent: new https.Agent({
-        keepAlive: options.keepAlive,
-      }),
+      httpAgent: options.keepAlive === false ? undefined : httpAgent,
+      httpsAgent: options.keepAlive === false ? undefined : httpsAgent,
     });
   } catch (error) {
     if (isCancel(error)) {
@@ -157,7 +167,10 @@ export async function getDataFromURL(url, options) {
 
         const remainingAttempts = options.maxTry - attempt;
         if (remainingAttempts > 0) {
-          printLog("warn", `${error}. ${remainingAttempts} try remaining...`);
+          printLog(
+            "warn",
+            `${error}. ${remainingAttempts} try remaining with backoff...`,
+          );
         } else {
           throw error;
         }
@@ -180,11 +193,9 @@ export function isLocalURL(url) {
     return false;
   }
 
-  return ["mbtiles://", "pmtiles://", "xyz://", "pg://", "geojson://"].some(
-    (scheme) => {
-      return url.startsWith(scheme);
-    },
-  );
+  const schemeEnd = url.indexOf("://");
+
+  return schemeEnd !== -1 && LOCAL_SCHEMES.has(url.slice(0, schemeEnd + 3));
 }
 
 /**
@@ -205,13 +216,14 @@ export function getRequestPrefix(req) {
 }
 
 /**
- * Get request host
+ * Get the public request host. The explicit `referer` query parameter takes
+ * precedence over reverse-proxy headers.
  * @param {Request} req Request object
  * @returns {string}
  */
 export function getRequestHost(req) {
-  if (req.query.proxy) {
-    return req.query.proxy;
+  if (req.query.referer) {
+    return req.query.referer;
   }
 
   const protocol = req.headers["x-forwarded-proto"] || req.protocol || "";
@@ -233,12 +245,7 @@ export function getRequestHost(req) {
  */
 export async function isFileNotModified(req, res, fileOrFolderPath) {
   try {
-    const lastModified = await lastModifiedCaches.wrap(
-      fileOrFolderPath,
-      async () => {
-        return new Date(await getFileCreated(fileOrFolderPath)).toUTCString();
-      },
-    );
+    const lastModified = await getCachedLastModified(fileOrFolderPath);
 
     res.set({
       "cache-control": "public, max-age=0",

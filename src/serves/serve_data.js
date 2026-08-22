@@ -3,8 +3,8 @@
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import {
-  DEFAULT_TILE_BATCH_SIZE,
   DEFAULT_QUERY_TIMEOUT,
+  DEFAULT_CONCURRENCY,
 } from "../defaults/index.js";
 import {
   compileHandleBarsTemplate,
@@ -14,11 +14,14 @@ import {
   getXYZFromLonLatZ,
   ALL_TILE_FORMATS,
   sendTextResponse,
+  runAllWithLimit,
   getRequestHost,
   getTileBounds,
   getJSONSchema,
   validateJSON,
   HTTP_SCHEMES,
+  inflateAsync,
+  unzipAsync,
   gzipAsync,
   printLog,
 } from "../utils/index.js";
@@ -35,11 +38,14 @@ import {
   getXYZTileExtraInfo,
   getMBTilesMetadata,
   getPMTilesMetadata,
+  closePostgreSQLDB,
   openPostgreSQLDB,
+  closeMBTilesDB,
   getXYZMetadata,
   getPMTilesTile,
   getMBTilesMD5,
   openMBTilesDB,
+  closeXYZMD5DB,
   openXYZMD5DB,
   openPMTiles,
 } from "../resources/index.js";
@@ -113,6 +119,10 @@ function getTileDataHandler() {
       );
     }
 
+    const z = +req.params.z;
+    const x = +req.params.x;
+    const y = +req.params.y;
+
     /* Get and cache tile data */
     try {
       if (
@@ -120,7 +130,7 @@ function getTileDataHandler() {
           req,
           res,
           item.sourceType === "xyz"
-            ? `${item.path}/${req.params.z}/${req.params.x}/${req.params.y}.${req.params.format}`
+            ? `${item.path}/${z}/${x}/${y}.${req.params.format}`
             : item.sourceType === "mbtiles" || item.sourceType === "pmtiles"
               ? item.path
               : undefined,
@@ -133,58 +143,49 @@ function getTileDataHandler() {
 
       switch (item.sourceType) {
         case "mbtiles": {
-          tileData = await getAndCacheMBTilesTileData(
-            id,
-            +req.params.z,
-            +req.params.x,
-            +req.params.y,
-          );
+          tileData = await getAndCacheMBTilesTileData(id, z, x, y);
 
           break;
         }
 
         case "pmtiles": {
-          tileData = await getPMTilesTile(
-            item.source,
-            +req.params.z,
-            +req.params.x,
-            +req.params.y,
-          );
+          tileData = await getPMTilesTile(item.source, z, x, y);
 
           break;
         }
 
         case "xyz": {
-          tileData = await getAndCacheXYZTileData(
-            id,
-            +req.params.z,
-            +req.params.x,
-            +req.params.y,
-          );
+          tileData = await getAndCacheXYZTileData(id, z, x, y);
 
           break;
         }
 
         case "pg": {
-          tileData = await getAndCachePostgreSQLTileData(
-            id,
-            +req.params.z,
-            +req.params.x,
-            +req.params.y,
-          );
+          tileData = await getAndCachePostgreSQLTileData(id, z, x, y);
 
           break;
         }
       }
 
       /* Gzip pbf tile data */
-      if (
-        tileData.headers["content-type"] === "application/x-protobuf" &&
-        !tileData.headers["content-encoding"]
-      ) {
-        tileData.data = await gzipAsync(tileData.data);
+      if (tileData.headers["content-type"] === "application/x-protobuf") {
+        const acceptsGzip = req.acceptsEncodings("gzip") === "gzip";
+        const contentEncoding = tileData.headers["content-encoding"];
 
-        tileData.headers["content-encoding"] = "gzip";
+        res.vary("Accept-Encoding");
+
+        if (!contentEncoding && acceptsGzip) {
+          tileData.data = await gzipAsync(tileData.data);
+
+          tileData.headers["content-encoding"] = "gzip";
+        } else if (contentEncoding && !acceptsGzip) {
+          tileData.data =
+            contentEncoding === "gzip"
+              ? await unzipAsync(tileData.data)
+              : await inflateAsync(tileData.data);
+
+          delete tileData.headers["content-encoding"];
+        }
       }
 
       res.set(tileData.headers);
@@ -345,33 +346,6 @@ function getTileDataExtraInfoHandler() {
 
       try {
         validateJSON(await getJSONSchema("tile_bounds"), req.body);
-
-        let total = 0;
-
-        tileBounds.forEach((tileBound) => {
-          const maxTileIndex = 2 ** tileBound.z - 1;
-
-          if (
-            tileBound.x[0] > tileBound.x[1] ||
-            tileBound.y[0] > tileBound.y[1] ||
-            tileBound.x[1] > maxTileIndex ||
-            tileBound.y[1] > maxTileIndex
-          ) {
-            throw new Error("Tile bounds range is invalid");
-          }
-
-          total +=
-            (tileBound.x[1] - tileBound.x[0] + 1) *
-            (tileBound.y[1] - tileBound.y[0] + 1);
-        });
-
-        if (total > DEFAULT_TILE_BATCH_SIZE) {
-          return sendTextResponse(
-            res,
-            413,
-            `Tile bounds contains more than ${DEFAULT_TILE_BATCH_SIZE} tiles`,
-          );
-        }
       } catch (error) {
         return sendTextResponse(
           res,
@@ -944,231 +918,263 @@ export const serve_data = {
 
       const repos = {};
 
-      await Promise.all(
-        ids.map(async (id) => {
-          try {
-            const item = config.datas[id];
+      await runAllWithLimit(
+        ids.map((id) => {
+          return async () => {
             const dataInfo = {};
 
-            /* Load data */
-            if (item.mbtiles !== undefined) {
-              dataInfo.sourceType = "mbtiles";
+            try {
+              const item = config.datas[id];
 
-              if (item.cache) {
-                /* Get MBTiles cache options */
-                const cacheSource = seed.datas?.[item.mbtiles];
+              /* Load data */
+              if (item.mbtiles !== undefined) {
+                dataInfo.sourceType = "mbtiles";
 
-                if (!cacheSource || cacheSource.storeType !== "mbtiles") {
-                  throw new Error(
-                    `Cache mbtiles data "${item.mbtiles}" is invalid`,
+                if (item.cache) {
+                  /* Get MBTiles cache options */
+                  const cacheSource = seed.datas?.[item.mbtiles];
+
+                  if (!cacheSource || cacheSource.storeType !== "mbtiles") {
+                    throw new Error(
+                      `Cache mbtiles data "${item.mbtiles}" is invalid`,
+                    );
+                  }
+
+                  if (item.cache.forward) {
+                    dataInfo.sourceURL = cacheSource.url;
+                    dataInfo.headers = cacheSource.headers;
+                    dataInfo.scheme = cacheSource.scheme;
+                    dataInfo.storeCache = item.cache.store;
+                    dataInfo.storeTransparent = cacheSource.storeTransparent;
+                  }
+
+                  /* Get MBTiles path */
+                  dataInfo.path = `${process.env.DATA_DIR}/caches/mbtiles/${item.mbtiles}/${item.mbtiles}.mbtiles`;
+
+                  /* Open MBTiles */
+                  dataInfo.source = await openMBTilesDB(
+                    dataInfo.path,
+                    true,
+                    DEFAULT_QUERY_TIMEOUT,
                   );
+
+                  /* Get MBTiles metadata */
+                  dataInfo.tileJSON = createTileMetadata({
+                    ...cacheSource.metadata,
+                    cacheCoverages: getTileBounds({
+                      coverages: cacheSource.coverages,
+                      limitedBBox: cacheSource.metadata.bounds,
+                    }).targetCoverages,
+                    ...(item.tilejson ?? {}),
+                  });
+                } else {
+                  /* Get MBTiles path */
+                  dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
+
+                  /* Open MBTiles */
+                  dataInfo.source = await openMBTilesDB(
+                    dataInfo.path,
+                    true,
+                    DEFAULT_QUERY_TIMEOUT,
+                  );
+
+                  /* Get MBTiles metadata */
+                  dataInfo.tileJSON = {
+                    ...(await getMBTilesMetadata(dataInfo.source)),
+                    ...(item.tilejson ?? {}),
+                  };
                 }
+              } else if (item.pmtiles !== undefined) {
+                dataInfo.sourceType = "pmtiles";
 
-                if (item.cache.forward) {
-                  dataInfo.sourceURL = cacheSource.url;
-                  dataInfo.headers = cacheSource.headers;
-                  dataInfo.scheme = cacheSource.scheme;
-                  dataInfo.storeCache = item.cache.store;
-                  dataInfo.storeTransparent = cacheSource.storeTransparent;
+                if (
+                  HTTP_SCHEMES.some((scheme) => {
+                    return item.pmtiles.startsWith(scheme);
+                  })
+                ) {
+                  /* Get PMTiles path */
+                  dataInfo.path = item.pmtiles;
+
+                  /* Open PMTiles */
+                  dataInfo.source = openPMTiles(dataInfo.path);
+
+                  /* Get PMTiles metadata */
+                  dataInfo.tileJSON = {
+                    ...(await getPMTilesMetadata(dataInfo.source)),
+                    ...(item.tilejson ?? {}),
+                  };
+                } else {
+                  /* Get PMTiles path */
+                  dataInfo.path = `${process.env.DATA_DIR}/pmtiles/${item.pmtiles}`;
+
+                  /* Open PMTiles */
+                  dataInfo.source = openPMTiles(dataInfo.path);
+
+                  /* Get PMTiles metadata */
+                  dataInfo.tileJSON = {
+                    ...(await getPMTilesMetadata(dataInfo.source)),
+                    ...(item.tilejson ?? {}),
+                  };
                 }
+              } else if (item.xyz !== undefined) {
+                dataInfo.sourceType = "xyz";
 
-                /* Get MBTiles path */
-                dataInfo.path = `${process.env.DATA_DIR}/caches/mbtiles/${item.mbtiles}/${item.mbtiles}.mbtiles`;
+                if (item.cache) {
+                  /* Get XYZ cache options */
+                  const cacheSource = seed.datas?.[item.xyz];
 
-                /* Open MBTiles */
-                dataInfo.source = await openMBTilesDB(
-                  dataInfo.path,
-                  true,
-                  DEFAULT_QUERY_TIMEOUT,
-                );
+                  if (!cacheSource || cacheSource.storeType !== "xyz") {
+                    throw new Error(`Cache xyz data "${item.xyz}" is invalid`);
+                  }
 
-                /* Get MBTiles metadata */
-                dataInfo.tileJSON = createTileMetadata({
-                  ...cacheSource.metadata,
-                  cacheCoverages: getTileBounds({
-                    coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds,
-                  }).targetCoverages,
-                  ...(item.tilejson ?? {}),
-                });
-              } else {
-                /* Get MBTiles path */
-                dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
+                  if (item.cache.forward) {
+                    dataInfo.sourceURL = cacheSource.url;
+                    dataInfo.headers = cacheSource.headers;
+                    dataInfo.scheme = cacheSource.scheme;
+                    dataInfo.storeCache = item.cache.store;
+                    dataInfo.storeTransparent = cacheSource.storeTransparent;
+                  }
 
-                /* Open MBTiles */
-                dataInfo.source = await openMBTilesDB(
-                  dataInfo.path,
-                  true,
-                  DEFAULT_QUERY_TIMEOUT,
-                );
+                  /* Get XYZ path */
+                  dataInfo.path = `${process.env.DATA_DIR}/caches/xyzs/${item.xyz}`;
 
-                /* Get MBTiles metadata */
-                dataInfo.tileJSON = {
-                  ...(await getMBTilesMetadata(dataInfo.source)),
-                  ...(item.tilejson ?? {}),
-                };
+                  dataInfo.source = dataInfo.path;
+
+                  /* Open XYZ MD5 */
+                  dataInfo.md5Source = await openXYZMD5DB(
+                    `${dataInfo.path}/${item.xyz}.sqlite`,
+                    true,
+                  );
+
+                  /* Get XYZ metadata */
+                  dataInfo.tileJSON = createTileMetadata({
+                    ...cacheSource.metadata,
+                    cacheCoverages: getTileBounds({
+                      coverages: cacheSource.coverages,
+                      limitedBBox: cacheSource.metadata.bounds,
+                    }).targetCoverages,
+                    ...(item.tilejson ?? {}),
+                  });
+                } else {
+                  /* Get XYZ path */
+                  dataInfo.path = `${process.env.DATA_DIR}/xyzs/${item.xyz}`;
+
+                  dataInfo.source = dataInfo.path;
+
+                  /* Open XYZ MD5 */
+                  dataInfo.md5Source = await openXYZMD5DB(
+                    `${dataInfo.path}/${item.xyz}.sqlite`,
+                    true,
+                    DEFAULT_QUERY_TIMEOUT,
+                  );
+
+                  /* Get XYZ metadata */
+                  dataInfo.tileJSON = {
+                    ...(await getXYZMetadata(
+                      dataInfo.source,
+                      dataInfo.md5Source,
+                    )),
+                    ...(item.tilejson ?? {}),
+                  };
+                }
+              } else if (item.pg !== undefined) {
+                dataInfo.sourceType = "pg";
+                dataInfo.database = item.pg;
+
+                if (item.cache) {
+                  /* Get PostgreSQL cache options */
+                  const cacheSource = seed.datas?.[item.pg];
+
+                  if (!cacheSource || cacheSource.storeType !== "pg") {
+                    throw new Error(`Cache pg data "${item.pg}" is invalid`);
+                  }
+
+                  if (item.cache.forward) {
+                    dataInfo.sourceURL = cacheSource.url;
+                    dataInfo.headers = cacheSource.headers;
+                    dataInfo.scheme = cacheSource.scheme;
+                    dataInfo.storeCache = item.cache.store;
+                    dataInfo.storeTransparent = cacheSource.storeTransparent;
+                  }
+
+                  /* Get XYZ path */
+                  dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${item.pg}`;
+
+                  /* Open PostgreSQL */
+                  dataInfo.source = await openPostgreSQLDB(
+                    dataInfo.path,
+                    true,
+                    DEFAULT_QUERY_TIMEOUT,
+                    {
+                      pool: true,
+                    },
+                  );
+
+                  /* Get PostgreSQL metadata */
+                  dataInfo.tileJSON = createTileMetadata({
+                    ...cacheSource.metadata,
+                    cacheCoverages: getTileBounds({
+                      coverages: cacheSource.coverages,
+                      limitedBBox: cacheSource.metadata.bounds,
+                    }).targetCoverages,
+                    ...(item.tilejson ?? {}),
+                  });
+                } else {
+                  /* Get XYZ path */
+                  dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${item.pg}`;
+
+                  /* Open PostgreSQL */
+                  dataInfo.source = await openPostgreSQLDB(
+                    dataInfo.path,
+                    false,
+                    DEFAULT_QUERY_TIMEOUT,
+                    {
+                      pool: true,
+                    },
+                  );
+
+                  /* Get PostgreSQL metadata */
+                  dataInfo.tileJSON = {
+                    ...(await getPostgreSQLMetadata(dataInfo.source)),
+                    ...(item.tilejson ?? {}),
+                  };
+                }
               }
-            } else if (item.pmtiles !== undefined) {
-              dataInfo.sourceType = "pmtiles";
 
-              if (
-                HTTP_SCHEMES.some((scheme) => {
-                  return item.pmtiles.startsWith(scheme);
-                })
-              ) {
-                /* Get PMTiles path */
-                dataInfo.path = item.pmtiles;
-
-                /* Open PMTiles */
-                dataInfo.source = openPMTiles(dataInfo.path);
-
-                /* Get PMTiles metadata */
-                dataInfo.tileJSON = {
-                  ...(await getPMTilesMetadata(dataInfo.source)),
-                  ...(item.tilejson ?? {}),
-                };
-              } else {
-                /* Get PMTiles path */
-                dataInfo.path = `${process.env.DATA_DIR}/pmtiles/${item.pmtiles}`;
-
-                /* Open PMTiles */
-                dataInfo.source = openPMTiles(dataInfo.path);
-
-                /* Get PMTiles metadata */
-                dataInfo.tileJSON = {
-                  ...(await getPMTilesMetadata(dataInfo.source)),
-                  ...(item.tilejson ?? {}),
-                };
+              /* Validate tile metadata */
+              if (item.validate) {
+                validateTileMetadata(dataInfo.tileJSON);
               }
-            } else if (item.xyz !== undefined) {
-              dataInfo.sourceType = "xyz";
 
-              if (item.cache) {
-                /* Get XYZ cache options */
-                const cacheSource = seed.datas?.[item.xyz];
-
-                if (!cacheSource || cacheSource.storeType !== "xyz") {
-                  throw new Error(`Cache xyz data "${item.xyz}" is invalid`);
+              /* Add to repo */
+              repos[id] = dataInfo;
+            } catch (error) {
+              try {
+                if (dataInfo.sourceType === "mbtiles" && dataInfo.source) {
+                  closeMBTilesDB(dataInfo.source);
+                } else if (
+                  dataInfo.sourceType === "xyz" &&
+                  dataInfo.md5Source
+                ) {
+                  closeXYZMD5DB(dataInfo.md5Source);
+                } else if (dataInfo.sourceType === "pg" && dataInfo.source) {
+                  await closePostgreSQLDB(dataInfo.source);
                 }
-
-                if (item.cache.forward) {
-                  dataInfo.sourceURL = cacheSource.url;
-                  dataInfo.headers = cacheSource.headers;
-                  dataInfo.scheme = cacheSource.scheme;
-                  dataInfo.storeCache = item.cache.store;
-                  dataInfo.storeTransparent = cacheSource.storeTransparent;
-                }
-
-                /* Get XYZ path */
-                dataInfo.path = `${process.env.DATA_DIR}/caches/xyzs/${item.xyz}`;
-
-                dataInfo.source = dataInfo.path;
-
-                /* Open XYZ MD5 */
-                dataInfo.md5Source = await openXYZMD5DB(
-                  `${dataInfo.path}/${item.xyz}.sqlite`,
-                  true,
+              } catch (closeError) {
+                printLog(
+                  "warn",
+                  `Failed to close data id "${id}" after load error: ${closeError}`,
                 );
-
-                /* Get XYZ metadata */
-                dataInfo.tileJSON = createTileMetadata({
-                  ...cacheSource.metadata,
-                  cacheCoverages: getTileBounds({
-                    coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds,
-                  }).targetCoverages,
-                  ...(item.tilejson ?? {}),
-                });
-              } else {
-                /* Get XYZ path */
-                dataInfo.path = `${process.env.DATA_DIR}/xyzs/${item.xyz}`;
-
-                dataInfo.source = dataInfo.path;
-
-                /* Open XYZ MD5 */
-                const md5Source = await openXYZMD5DB(
-                  `${dataInfo.path}/${item.xyz}.sqlite`,
-                  true,
-                  DEFAULT_QUERY_TIMEOUT,
-                );
-
-                /* Get XYZ metadata */
-                dataInfo.tileJSON = dataInfo.tileJSON = {
-                  ...(await getXYZMetadata(dataInfo.source, md5Source)),
-                  ...(item.tilejson ?? {}),
-                };
               }
-            } else if (item.pg !== undefined) {
-              dataInfo.sourceType = "pg";
 
-              if (item.cache) {
-                /* Get PostgreSQL cache options */
-                const cacheSource = seed.datas?.[item.pg];
-
-                if (!cacheSource || cacheSource.storeType !== "pg") {
-                  throw new Error(`Cache pg data "${item.pg}" is invalid`);
-                }
-
-                if (item.cache.forward) {
-                  dataInfo.sourceURL = cacheSource.url;
-                  dataInfo.headers = cacheSource.headers;
-                  dataInfo.scheme = cacheSource.scheme;
-                  dataInfo.storeCache = item.cache.store;
-                  dataInfo.storeTransparent = cacheSource.storeTransparent;
-                }
-
-                /* Get XYZ path */
-                dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
-
-                /* Open PostgreSQL */
-                dataInfo.source = await openPostgreSQLDB(
-                  dataInfo.path,
-                  true,
-                  DEFAULT_QUERY_TIMEOUT,
-                );
-
-                /* Get PostgreSQL metadata */
-                dataInfo.tileJSON = createTileMetadata({
-                  ...cacheSource.metadata,
-                  cacheCoverages: getTileBounds({
-                    coverages: cacheSource.coverages,
-                    limitedBBox: cacheSource.metadata.bounds,
-                  }).targetCoverages,
-                  ...(item.tilejson ?? {}),
-                });
-              } else {
-                /* Get XYZ path */
-                dataInfo.path = `${process.env.POSTGRESQL_BASE_URI}/${id}`;
-
-                /* Open PostgreSQL */
-                dataInfo.source = await openPostgreSQLDB(
-                  dataInfo.path,
-                  false,
-                  DEFAULT_QUERY_TIMEOUT,
-                );
-
-                /* Get PostgreSQL metadata */
-                dataInfo.tileJSON = {
-                  ...(await getPostgreSQLMetadata(dataInfo.source)),
-                  ...(item.tilejson ?? {}),
-                };
-              }
+              printLog(
+                "error",
+                `Failed to load data id "${id}": ${error}. Skipping...`,
+              );
             }
-
-            /* Validate tile metadata */
-            if (item.validate) {
-              validateTileMetadata(dataInfo.tileJSON);
-            }
-
-            /* Add to repo */
-            repos[id] = dataInfo;
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to load data id "${id}": ${error}. Skipping...`,
-            );
-          }
+          };
         }),
+        DEFAULT_CONCURRENCY,
       );
 
       config.datas = repos;

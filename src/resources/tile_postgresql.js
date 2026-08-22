@@ -1,10 +1,9 @@
 "use strict";
 
 import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
+import { getVectorTileProto } from "./vector_tile.js";
 import { limitValue } from "../utils/number.js";
 import { config } from "../configs/index.js";
-import { readFile } from "node:fs/promises";
-import protobuf from "protocol-buffers";
 import {
   closePostgreSQLTransaction,
   openPostgreSQLTransaction,
@@ -13,6 +12,7 @@ import {
   detectFormatAndHeaders,
   getBBoxFromTiles,
   closePostgreSQL,
+  runSingleFlight,
   openPostgreSQL,
   getDataFromURL,
   FALLBACK_BBOX,
@@ -41,31 +41,46 @@ export const POSTGRESQL_DELETE_TILE_QUERY =
  */
 async function getPostgreSQLLayersFromTiles(source) {
   const layerNames = new Set();
-  let offset = 0;
+  let lastTile;
 
-  const vectorTileProto = protobuf(
-    await readFile("public/protos/vector_tile.proto"),
-  );
-
-  const selectSQL = "SELECT tile_data FROM tiles LIMIT $1 OFFSET $2;";
+  const vectorTileProto = await getVectorTileProto();
 
   while (true) {
-    const data = await source.query(selectSQL, [BATCH_SIZE, offset]);
+    const data = lastTile
+      ? await source.query(
+          `
+            SELECT zoom_level, tile_column, tile_row, tile_data
+            FROM tiles
+            WHERE (zoom_level, tile_column, tile_row) > ($1, $2, $3)
+            ORDER BY zoom_level, tile_column, tile_row
+            LIMIT $4;
+          `,
+          [...lastTile, BATCH_SIZE],
+        )
+      : await source.query(
+          `
+            SELECT zoom_level, tile_column, tile_row, tile_data
+            FROM tiles
+            ORDER BY zoom_level, tile_column, tile_row
+            LIMIT $1;
+          `,
+          [BATCH_SIZE],
+        );
 
     if (!data.rows.length) {
       break;
     }
 
-    data.rows.forEach((row) => {
-      return vectorTileProto.tile
-        .decode(row.tile_data)
-        .layers.map((layer) => {
-          return layer.name;
-        })
-        .forEach(layerNames.add);
-    });
+    for (const row of data.rows) {
+      const { layers } = vectorTileProto.tile.decode(row.tile_data);
+      for (const layer of layers) {
+        layerNames.add(layer.name);
+      }
+    }
 
-    offset += BATCH_SIZE;
+    const lastRow = data.rows.at(-1);
+
+    lastTile = [lastRow.zoom_level, lastRow.tile_column, lastRow.tile_row];
   }
 
   return Array.from(layerNames);
@@ -203,31 +218,68 @@ export async function getPostgreSQLTileExtraInfo(options) {
  * @returns {Promise<void>}
  */
 export async function calculatePostgreSQLTileExtraInfo(source) {
-  const selectSQL =
-    "SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles WHERE hash IS NULL LIMIT $1;";
-  const updateSQL =
-    "UPDATE tiles SET hash = $1, created = $2 WHERE zoom_level = $3 AND tile_column = $4 AND tile_row = $5;";
-
   const created = Date.now();
 
+  let lastTile;
+
   while (true) {
-    const data = await source.query(selectSQL, [BATCH_SIZE]);
+    const data = lastTile
+      ? await source.query(
+          `
+            SELECT zoom_level, tile_column, tile_row, tile_data
+            FROM tiles
+            WHERE (zoom_level, tile_column, tile_row) > ($1, $2, $3)
+            ORDER BY zoom_level, tile_column, tile_row
+            LIMIT $4;
+          `,
+          [...lastTile, BATCH_SIZE],
+        )
+      : await source.query(
+          `
+            SELECT zoom_level, tile_column, tile_row, tile_data
+            FROM tiles
+            ORDER BY zoom_level, tile_column, tile_row
+            LIMIT $1;
+          `,
+          [BATCH_SIZE],
+        );
 
     if (!data.rows.length) {
       break;
     }
 
-    await Promise.all(
-      data.rows.map((row) => {
-        return source.query(updateSQL, [
-          calculateMD5(row.tile_data),
-          created,
-          row.zoom_level,
-          row.tile_column,
-          row.tile_row,
-        ]);
-      }),
+    const values = [];
+
+    const placeholders = data.rows.map((row, index) => {
+      const offset = index * 5;
+
+      values.push(
+        calculateMD5(row.tile_data),
+        created,
+        row.zoom_level,
+        row.tile_column,
+        row.tile_row,
+      );
+
+      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+    });
+
+    await source.query(
+      `
+      UPDATE tiles AS target
+      SET hash = source.hash, created = source.created
+      FROM (VALUES ${placeholders.join(",")})
+        AS source(hash, created, zoom_level, tile_column, tile_row)
+      WHERE target.zoom_level = source.zoom_level
+        AND target.tile_column = source.tile_column
+        AND target.tile_row = source.tile_row;
+      `,
+      values,
     );
+
+    const lastRow = data.rows.at(-1);
+
+    lastTile = [lastRow.zoom_level, lastRow.tile_column, lastRow.tile_row];
   }
 }
 
@@ -240,7 +292,11 @@ export async function calculatePostgreSQLTileExtraInfo(source) {
  * @returns {Promise<void>}
  */
 export async function removePostgreSQLTile(z, x, y, option) {
-  await option.source.query(POSTGRESQL_DELETE_TILE_QUERY, [z, x, y]);
+  await option.source.query({
+    name: "delete-tile",
+    text: POSTGRESQL_DELETE_TILE_QUERY,
+    values: [z, x, y],
+  });
 }
 
 /**
@@ -248,10 +304,11 @@ export async function removePostgreSQLTile(z, x, y, option) {
  * @param {string} uri Database URI
  * @param {boolean} isCreate Is create database?
  * @param {number} timeout Timeout in milliseconds
+ * @param {{ pool?: boolean, max?: number }} options Connection options
  * @returns {Promise<object>}
  */
-export async function openPostgreSQLDB(uri, isCreate, timeout) {
-  const source = await openPostgreSQL(uri, isCreate, timeout);
+export async function openPostgreSQLDB(uri, isCreate, timeout, options) {
+  const source = await openPostgreSQL(uri, isCreate, timeout, options);
 
   if (isCreate) {
     await source.query(
@@ -315,7 +372,11 @@ export async function openPostgreSQLDB(uri, isCreate, timeout) {
  * @returns {Promise<object>}
  */
 export async function getPostgreSQLTile(source, z, x, y) {
-  let data = await source.query(POSTGRESQL_SELECT_TILE_QUERY, [z, x, y]);
+  const data = await source.query({
+    name: "select-tile",
+    text: POSTGRESQL_SELECT_TILE_QUERY,
+    values: [z, x, y],
+  });
 
   if (!data.rows.length || !data.rows[0].tile_data) {
     throw new Error("Not Found");
@@ -505,22 +566,26 @@ export async function updatePostgreSQLMetadata(source, metadataAdds) {
 
   await openPostgreSQLTransaction(source);
 
-  await Promise.all(
-    Object.entries(metadataAdds).map(([name, value]) => {
+  try {
+    for (const [name, value] of Object.entries(metadataAdds)) {
       if (name === "center" || name === "bounds") {
-        source.query(sql, [name, value.join(",")]);
+        await source.query(sql, [name, value.join(",")]);
       } else {
-        source.query(sql, [
+        await source.query(sql, [
           name,
           typeof value === "object" ? JSON.stringify(value) : value,
         ]);
       }
-    }),
-  );
+    }
 
-  await source.query(sql, ["scheme", "tms"]);
+    await source.query(sql, ["scheme", "tms"]);
 
-  await closePostgreSQLTransaction(source);
+    await closePostgreSQLTransaction(source);
+  } catch (error) {
+    await source.query("ROLLBACK;").catch(() => {});
+
+    throw error;
+  }
 }
 
 /**
@@ -538,16 +603,13 @@ export async function storePostgreSQLTileData(z, x, y, data, option) {
     (await isFullTransparentImage(data))
   ) {
     return;
-  } else {
-    await option.source.query(POSTGRESQL_INSERT_TILE_QUERY, [
-      z,
-      x,
-      y,
-      data,
-      calculateMD5(data),
-      option.created ? option.created : Date.now(),
-    ]);
   }
+
+  await option.source.query({
+    name: "upsert-tile",
+    text: POSTGRESQL_INSERT_TILE_QUERY,
+    values: [z, x, y, data, calculateMD5(data), option.created ?? Date.now()],
+  });
 }
 
 /**
@@ -574,12 +636,14 @@ export async function getPostgreSQLSize(source, dbName) {
 export async function countPostgreSQLTiles(uri) {
   const source = await openPostgreSQL(uri, false, DEFAULT_QUERY_TIMEOUT);
 
-  const data = await source.query("SELECT COUNT(*) AS count FROM tiles;");
+  try {
+    const data = await source.query("SELECT COUNT(*) AS count FROM tiles;");
 
-  closePostgreSQLDB(source);
-
-  if (data.rows.length !== 0) {
-    return +data.rows[0].count;
+    if (data.rows.length !== 0) {
+      return +data.rows[0].count;
+    }
+  } finally {
+    await closePostgreSQLDB(source);
   }
 }
 
@@ -610,39 +674,39 @@ export async function getAndCachePostgreSQLTileData(id, z, x, y) {
         .replace("{x}", `${x}`)
         .replace("{y}", `${tmpY}`);
 
-      printLog(
-        "info",
-        `Forwarding data id "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
-      );
+      return runSingleFlight(`pg:${id}:${tileName}`, async () => {
+        printLog(
+          "info",
+          `Forwarding data id "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
+        );
 
-      /* Get data */
-      const data = await getDataFromURL(targetURL, {
-        method: "GET",
-        responseType: "arraybuffer",
-        timeout: DEFAULT_QUERY_TIMEOUT,
-        headers: item.headers,
-        decompress: false,
-      });
-
-      /* Cache */
-      if (item.storeCache) {
-        printLog("info", `Caching data id "${id}" - Tile "${tileName}"...`);
-
-        storePostgreSQLTileData(z, x, tmpY, data, {
-          source: item.source,
-          storeTransparent: item.storeTransparent,
-        }).catch((error) => {
-          return printLog(
-            "error",
-            `Failed to cache data id "${id}" - Tile "${tileName}": ${error}`,
-          );
+        const data = await getDataFromURL(targetURL, {
+          method: "GET",
+          responseType: "arraybuffer",
+          timeout: DEFAULT_QUERY_TIMEOUT,
+          headers: item.headers,
+          decompress: false,
         });
-      }
 
-      return {
-        data,
-        headers: detectFormatAndHeaders(data).headers,
-      };
+        if (item.storeCache) {
+          try {
+            await storePostgreSQLTileData(z, x, y, data, {
+              source: item.source,
+              storeTransparent: item.storeTransparent,
+            });
+          } catch (cacheError) {
+            printLog(
+              "error",
+              `Failed to cache data id "${id}" - Tile "${tileName}": ${cacheError}`,
+            );
+          }
+        }
+
+        return {
+          data,
+          headers: detectFormatAndHeaders(data).headers,
+        };
+      });
     }
 
     throw error;

@@ -7,6 +7,7 @@ import {
   DEFAULT_QUERY_TIMEOUT,
   DEFAULT_CONCURRENCY,
   DEFAULT_MAX_TRY,
+  DEFAULT_TILE_BATCH_SIZE,
 } from "./defaults/index.js";
 import {
   getTileBoundsBatches,
@@ -220,7 +221,7 @@ export async function exportAll(dirPath, options) {
             }
           }
 
-          for (const fontID of Array.from(new Set(fonts))) {
+          for (const fontID of new Set(fonts)) {
             const fontFolder = `${fontID}_cache`;
 
             configObj.fonts[fontID] = {
@@ -732,7 +733,7 @@ export async function exportAll(dirPath, options) {
 
 /**
  * Export tile datas
- * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", storePath: string, metadata: { [key: string]: any }, coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, storeTransparent?: boolean, refreshBefore?: string|number|boolean }} options Options
+ * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", storePath: string, metadata: { [key: string]: any }, coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, batch?: number, storeTransparent?: boolean, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
 export async function exportTileDatas({
@@ -742,6 +743,7 @@ export async function exportTileDatas({
   metadata,
   coverages,
   concurrency = DEFAULT_CONCURRENCY,
+  batch = DEFAULT_TILE_BATCH_SIZE,
   storeTransparent = DEFAULT_STORE_TRANSPARENT,
   refreshBefore,
 }) {
@@ -759,7 +761,7 @@ export async function exportTileDatas({
     let log = `Exporting ${total} tiles of data id "${id}" to ${storeType} with:`;
     log += `\n\tSource path: ${storePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tConcurrency: ${concurrency}`;
+    log += `\n\tConcurrency: ${concurrency} - Batch: ${batch}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)}`;
 
     let refreshTimestamp;
@@ -1046,7 +1048,7 @@ export async function exportTileDatas({
     /* Export and store tile datas */
     printLog("info", "Exporting and storing tile datas...");
 
-    for (const batchTileBounds of getTileBoundsBatches(tileBounds)) {
+    for (const batchTileBounds of getTileBoundsBatches(tileBounds, batch)) {
       let targetTileExtraInfo = {};
       let tileExtraInfo = {};
 

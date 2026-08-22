@@ -17,6 +17,8 @@ import {
   printLog,
 } from "../utils/index.js";
 
+const PBF_RANGE_FILE_REGEX = /^\d{1,5}-\d{1,5}\.pbf$/;
+
 let glyphsProto;
 
 if (!cluster.isPrimary) {
@@ -58,8 +60,8 @@ export async function storeFontFile(filePath, data) {
  * @param {string} pbfDirPath PBF font dir path to get
  * @returns {Promise<number>}
  */
-export async function getFontCreated(pbfDirPath) {
-  return await getFileCreated(pbfDirPath);
+export function getFontCreated(pbfDirPath) {
+  return getFileCreated(pbfDirPath);
 }
 
 /**
@@ -67,8 +69,8 @@ export async function getFontCreated(pbfDirPath) {
  * @param {string} pbfDirPath PBF font dir path to get
  * @returns {Promise<string>}
  */
-export async function getFontMD5(pbfDirPath) {
-  return await calculateMD5OfFiles(
+export function getFontMD5(pbfDirPath) {
+  return calculateMD5OfFiles(
     Array.from(
       {
         length: 256,
@@ -116,23 +118,23 @@ export async function getFont(filePath) {
  * @param {string} fileName Font file name
  * @returns {Promise<Buffer>}
  */
-export async function getFallbackFont(fontName, fileName) {
+export function getFallbackFont(fontName, fileName) {
   let fallbackFont = "Open Sans";
   fontName = fontName.toLowerCase();
 
-  if (fontName.indexOf("extrabold")) {
+  if (fontName.includes("extrabold")) {
     fallbackFont += " Extrabold";
-  } else if (fontName.indexOf("semibold")) {
+  } else if (fontName.includes("semibold")) {
     fallbackFont += " Semibold";
-  } else if (fontName.indexOf("bold")) {
+  } else if (fontName.includes("bold")) {
     fallbackFont += " Bold";
-  } else if (fontName.indexOf("medium")) {
+  } else if (fontName.includes("medium")) {
     fallbackFont += " Medium";
-  } else if (fontName.indexOf("light")) {
+  } else if (fontName.includes("light")) {
     fallbackFont += " Light";
   }
 
-  if (fontName.indexOf("italic")) {
+  if (fontName.includes("italic")) {
     fallbackFont += " Italic";
   }
 
@@ -140,7 +142,7 @@ export async function getFallbackFont(fontName, fileName) {
     fallbackFont += " Regular";
   }
 
-  return await readFile(`public/resources/fonts/${fallbackFont}/${fileName}`);
+  return readFile(`public/resources/fonts/${fallbackFont}/${fileName}`);
 }
 
 /**
@@ -188,7 +190,7 @@ export function mergePBFFontDatas(pbfBuffers) {
  * @returns {Promise<void>}
  */
 export async function validatePBFFont(pbfDirPath) {
-  const pbfFileNames = await findFiles(pbfDirPath, /^\d{1,5}-\d{1,5}\.pbf$/);
+  const pbfFileNames = await findFiles(pbfDirPath, PBF_RANGE_FILE_REGEX);
 
   if (!pbfFileNames.length) {
     throw new Error("Missing some PBF files");
@@ -203,7 +205,7 @@ export async function validatePBFFont(pbfDirPath) {
 export async function getPBFFontSize(pbfDirPath) {
   const fileNames = await findFiles(
     pbfDirPath,
-    /^\d{1,5}-\d{1,5}\.pbf$/,
+    PBF_RANGE_FILE_REGEX,
     false,
     true,
   );

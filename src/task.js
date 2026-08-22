@@ -62,6 +62,17 @@ import {
   printLog,
 } from "./utils/index.js";
 
+const SPRITE_FILES = [
+  "sprite.json",
+  "sprite.png",
+  "sprite@2x.json",
+  "sprite@2x.png",
+];
+const GEOJSON_FILE_REGEX = /^.*\.geojson$/;
+const SPRITE_FILE_REGEX = /^.*\.(json|png)$/;
+const FONT_FILE_REGEX = /^.*\.pbf$/;
+const STYLE_FILE_REGEX = /^.*\.json$/;
+
 /**
  * Run cleanup and seed tasks
  * @param {{ cleanUpSprites: boolean, cleanUpFonts: boolean, cleanUpStyles: boolean, cleanUpGeoJSONs: boolean, cleanUpDatas: boolean, seedSprites: boolean, seedFonts: boolean, seedStyles: boolean, seedGeoJSONs: boolean, seedDatas: boolean }} opts Options
@@ -298,6 +309,7 @@ export async function runTasks(opts) {
                   metadata: seedDataItem.metadata,
                   coverages: cleanUpDataItem.coverages,
                   concurrency: cleanUpDataItem.concurrency,
+                  batch: cleanUpDataItem.batch,
                   skipWhenError: cleanUpDataItem.skipWhenError,
                   cleanUpBefore:
                     cleanUpDataItem.cleanUpBefore?.time ??
@@ -781,7 +793,7 @@ async function seedTileDatas({
 
       case "xyz": {
         const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
-        const filePath = `${sourcePath}/${id}.mbtiles`;
+        const filePath = `${sourcePath}/${id}.sqlite`;
 
         /* Create database */
         printLog("info", "Creating database...");
@@ -848,15 +860,18 @@ async function seedTileDatas({
             completeTasks++;
 
             const taskNumber = completeTasks;
+            const tileName = `${z}/${xCount}/${yCount}`;
 
             if (skipWhenError && skipWhenError.skipLoop > 0) {
               skipWhenError.skipLoop--;
+
+              delete tileExtraInfo[tileName];
+              delete targetTileExtraInfo[tileName];
 
               continue;
             }
 
             yield async () => {
-              const tileName = `${z}/${xCount}/${yCount}`;
               const currentTileExtraInfo = tileExtraInfo[tileName];
               const currentTargetTileExtraInfo = targetTileExtraInfo[tileName];
 
@@ -887,7 +902,7 @@ async function seedTileDatas({
                   await storeTileDataFunc(
                     z,
                     xCount,
-                    tmpY,
+                    yCount,
                     await getDataFromURL(targetURL, tileOption),
                     tileOption,
                   );
@@ -1148,7 +1163,7 @@ async function seedGeoJSON({
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(sourcePath, /^.*\.geojson$/);
+  await removeEmptyFolders(sourcePath, GEOJSON_FILE_REGEX);
 
   printLog(
     "info",
@@ -1278,15 +1293,11 @@ async function seedSprite({
     }
 
     // Batch run
-    await Promise.all(
-      ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-        downloadAndStoreSpriteData,
-      ),
-    );
+    await Promise.all(SPRITE_FILES.map(downloadAndStoreSpriteData));
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(sourcePath, /^.*\.(json|png)$/);
+  await removeEmptyFolders(sourcePath, SPRITE_FILE_REGEX);
 
   printLog(
     "info",
@@ -1466,7 +1477,7 @@ async function seedFont({
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(sourcePath, /^.*\.pbf$/);
+  await removeEmptyFolders(sourcePath, FONT_FILE_REGEX);
 
   printLog(
     "info",
@@ -1591,7 +1602,7 @@ async function seedStyle({
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(sourcePath, /^.*\.json$/);
+  await removeEmptyFolders(sourcePath, STYLE_FILE_REGEX);
 
   printLog(
     "info",
@@ -1603,7 +1614,7 @@ async function seedStyle({
 
 /**
  * Cleanup tile datas
- * @param {{ storeType: "mbtiles"|"xyz"|"pg", id: string, metadata: object, coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, skipWhenError?: object, cleanUpBefore?: string|number }} options Options
+ * @param {{ storeType: "mbtiles"|"xyz"|"pg", id: string, metadata: object, coverages: { zoom: number, bbox: [number, number, number, number]}[], concurrency?: number, batch?: number, skipWhenError?: object, cleanUpBefore?: string|number }} options Options
  * @returns {Promise<void>}
  */
 async function cleanUpTileDatas({
@@ -1612,6 +1623,7 @@ async function cleanUpTileDatas({
   metadata,
   coverages,
   concurrency = DEFAULT_CONCURRENCY,
+  batch = DEFAULT_TILE_BATCH_SIZE,
   skipWhenError,
   cleanUpBefore,
 }) {
@@ -1628,7 +1640,7 @@ async function cleanUpTileDatas({
     });
 
     let log = `Cleaning up ${total} tiles of ${storeType} "${id}" with:`;
-    log += `\n\tConcurrency: ${concurrency} - Skip when error: ${JSON.stringify(skipWhenError)}`;
+    log += `\n\tConcurrency: ${concurrency} - Batch: ${batch} - Skip when error: ${JSON.stringify(skipWhenError)}`;
     log += `\n\tCoverages: ${JSON.stringify(coverages)} - Target coverages: ${JSON.stringify(targetCoverages)}`;
 
     let cleanUpTimestamp;
@@ -1734,7 +1746,7 @@ async function cleanUpTileDatas({
 
       case "xyz": {
         const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
-        const filePath = `${sourcePath}/${id}.mbtiles`;
+        const filePath = `${sourcePath}/${id}.sqlite`;
 
         /* Open database */
         printLog("info", "Opening database...");
@@ -1858,7 +1870,7 @@ async function cleanUpTileDatas({
     /* Remove tile datas */
     printLog("info", "Removing tiles...");
 
-    for (const batchTileBounds of getTileBoundsBatches(tileBounds)) {
+    for (const batchTileBounds of getTileBoundsBatches(tileBounds, batch)) {
       let tileExtraInfo = {};
 
       if (cleanUpTimestamp) {
@@ -1966,7 +1978,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(sourcePath, /^.*\.geojson$/);
+  await removeEmptyFolders(sourcePath, GEOJSON_FILE_REGEX);
 
   printLog(
     "info",
@@ -2044,15 +2056,11 @@ async function cleanUpSprite(id, cleanUpBefore) {
     }
 
     // Batch run
-    await Promise.all(
-      ["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"].map(
-        removeSpriteData,
-      ),
-    );
+    await Promise.all(SPRITE_FILES.map(removeSpriteData));
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(sourcePath, /^.*\.(json|png)$/);
+  await removeEmptyFolders(sourcePath, SPRITE_FILE_REGEX);
 
   printLog(
     "info",
@@ -2186,7 +2194,7 @@ async function cleanUpFont(id, concurrency, skipWhenError, cleanUpBefore) {
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(sourcePath, /^.*\.pbf$/);
+  await removeEmptyFolders(sourcePath, FONT_FILE_REGEX);
 
   printLog(
     "info",
@@ -2265,7 +2273,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
   }
 
   /* Remove parent folders if empty */
-  await removeEmptyFolders(sourcePath, /^.*\.json$/);
+  await removeEmptyFolders(sourcePath, STYLE_FILE_REGEX);
 
   printLog(
     "info",

@@ -1,8 +1,15 @@
 "use strict";
 
+import { MAX_LON, MAX_LAT } from "./spatial.js";
 import { readFile } from "node:fs/promises";
 import { isSameNumber } from "./number.js";
 import Ajv from "ajv";
+
+const ajv = new Ajv({
+  allErrors: true,
+});
+const schemaCache = new Map();
+const validatorCache = new WeakMap();
 
 /**
  * Validate tileJSON
@@ -11,20 +18,21 @@ import Ajv from "ajv";
  * @returns {void}
  */
 export function validateJSON(schema, jsonData) {
-  try {
-    const validate = new Ajv({
-      allErrors: true,
-    }).compile(schema);
+  let validate = validatorCache.get(schema);
+  if (!validate) {
+    validate = ajv.compile(schema);
 
-    if (!validate(jsonData)) {
-      throw validate.errors
+    validatorCache.set(schema, validate);
+  }
+
+  if (!validate(jsonData)) {
+    throw new Error(
+      validate.errors
         .map((error) => {
           return `\n\tPath ${error.instancePath || "/"}: ${error.keyword} - ${error.message} - ${JSON.stringify(error.params)}`;
         })
-        .join();
-    }
-  } catch (error) {
-    throw error;
+        .join(""),
+    );
   }
 }
 
@@ -33,8 +41,21 @@ export function validateJSON(schema, jsonData) {
  * @param {"delete"|"cleanup"|"config"|"seed"|"style_render"|"render_svg"|"render_pdf"|"render_stylejson"|"data_export"|"export_all"|"render_high_quality_pdf"|"coverages"|"tile_bounds"|"sprite"|"add_frame"} schema
  * @returns {Promise<object>}
  */
-export async function getJSONSchema(schema) {
-  return JSON.parse(await readFile(`public/schemas/${schema}.json`, "utf8"));
+export function getJSONSchema(schema) {
+  let schemaPromise = schemaCache.get(schema);
+  if (!schemaPromise) {
+    schemaPromise = readFile(`public/schemas/${schema}.json`, "utf8").then(
+      JSON.parse,
+    );
+
+    schemaCache.set(schema, schemaPromise);
+
+    schemaPromise.catch(() => {
+      schemaCache.delete(schema);
+    });
+  }
+
+  return schemaPromise;
 }
 
 /**
@@ -73,7 +94,7 @@ export function isValidNumber(value, checkInteger, min, max) {
  */
 export function isValidLongitude(lon, isWGS84) {
   return isWGS84
-    ? isValidNumber(lon, false, -180, 180)
+    ? isValidNumber(lon, false, -MAX_LON, MAX_LON)
     : isValidNumber(lon, false);
 }
 
@@ -85,7 +106,7 @@ export function isValidLongitude(lon, isWGS84) {
  */
 export function isValidLatitude(lat, isWGS84) {
   return isWGS84
-    ? isValidNumber(lat, false, -90, 90)
+    ? isValidNumber(lat, false, -MAX_LAT, MAX_LAT)
     : isValidNumber(lat, false);
 }
 

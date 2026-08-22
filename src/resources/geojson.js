@@ -56,8 +56,8 @@ export async function getGeoJSON(filePath) {
  * @param {string} filePath GeoJSON file path to get
  * @returns {Promise<number>}
  */
-export async function getGeoJSONCreated(filePath) {
-  return await getFileCreated(filePath);
+export function getGeoJSONCreated(filePath) {
+  return getFileCreated(filePath);
 }
 
 /**
@@ -65,8 +65,8 @@ export async function getGeoJSONCreated(filePath) {
  * @param {string} filePath GeoJSON file path to get
  * @returns {Promise<string>}
  */
-export async function getGeoJSONMD5(filePath) {
-  return await calculateMD5OfFile(filePath);
+export function getGeoJSONMD5(filePath) {
+  return calculateMD5OfFile(filePath);
 }
 
 /**
@@ -74,8 +74,8 @@ export async function getGeoJSONMD5(filePath) {
  * @param {string} filePath GeoJSON file path to get
  * @returns {Promise<number>}
  */
-export async function getGeoJSONSize(filePath) {
-  return await getFileSize(filePath);
+export function getGeoJSONSize(filePath) {
+  return getFileSize(filePath);
 }
 
 /**

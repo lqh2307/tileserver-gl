@@ -3,6 +3,8 @@
 import { readFile } from "node:fs/promises";
 import handlebars from "handlebars";
 
+const templateCache = new Map();
+
 function toSafeJavaScriptLiteral(value) {
   return JSON.stringify(value ?? "")
     .replace(/</g, "\\u003C")
@@ -27,7 +29,21 @@ handlebars.registerHelper("urlSegment", (value) => {
  * @returns {Promise<string>}
  */
 export async function compileHandleBarsTemplate(template, data) {
-  return handlebars.compile(
-    await readFile(`public/templates/${template}.tmpl`, "utf8"),
-  )(data);
+  let compiledTemplatePromise = templateCache.get(template);
+  if (!compiledTemplatePromise) {
+    compiledTemplatePromise = readFile(
+      `public/templates/${template}.tmpl`,
+      "utf8",
+    ).then((source) => {
+      return handlebars.compile(source);
+    });
+
+    templateCache.set(template, compiledTemplatePromise);
+
+    compiledTemplatePromise.catch(() => {
+      templateCache.delete(template);
+    });
+  }
+
+  return (await compiledTemplatePromise)(data);
 }

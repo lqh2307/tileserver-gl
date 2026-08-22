@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import {
@@ -12,6 +13,7 @@ import {
   detectContentTypeFromFormat,
   isFileNotModified,
   sendTextResponse,
+  runAllWithLimit,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -318,44 +320,47 @@ export const serve_sprite = {
 
       const repos = {};
 
-      await Promise.all(
-        ids.map(async (id) => {
-          const item = config.sprites[id];
-          const spriteInfo = {};
+      await runAllWithLimit(
+        ids.map((id) => {
+          return async () => {
+            const item = config.sprites[id];
+            const spriteInfo = {};
 
-          try {
-            if (item.cache) {
-              spriteInfo.path = `${process.env.DATA_DIR}/caches/sprites/${item.sprite}`;
+            try {
+              if (item.cache) {
+                spriteInfo.path = `${process.env.DATA_DIR}/caches/sprites/${item.sprite}`;
 
-              const cacheSource = seed.sprites?.[item.sprite];
+                const cacheSource = seed.sprites?.[item.sprite];
 
-              if (!cacheSource) {
-                throw new Error(`Cache sprite "${item.sprite}" is invalid`);
+                if (!cacheSource) {
+                  throw new Error(`Cache sprite "${item.sprite}" is invalid`);
+                }
+
+                if (item.cache.forward) {
+                  spriteInfo.sourceURL = cacheSource.url;
+                  spriteInfo.headers = cacheSource.headers;
+                  spriteInfo.storeCache = item.cache.store;
+                }
+              } else {
+                spriteInfo.path = `${process.env.DATA_DIR}/sprites/${item.sprite}`;
+
+                /* Validate sprite */
+                if (item.validate) {
+                  await validateSprite(spriteInfo.path);
+                }
               }
 
-              if (item.cache.forward) {
-                spriteInfo.sourceURL = cacheSource.url;
-                spriteInfo.headers = cacheSource.headers;
-                spriteInfo.storeCache = item.cache.store;
-              }
-            } else {
-              spriteInfo.path = `${process.env.DATA_DIR}/sprites/${item.sprite}`;
-
-              /* Validate sprite */
-              if (item.validate) {
-                await validateSprite(spriteInfo.path);
-              }
+              /* Add to repo */
+              repos[id] = spriteInfo;
+            } catch (error) {
+              printLog(
+                "error",
+                `Failed to load sprite id "${id}": ${error}. Skipping...`,
+              );
             }
-
-            /* Add to repo */
-            repos[id] = spriteInfo;
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to load sprite id "${id}": ${error}. Skipping...`,
-            );
-          }
+          };
         }),
+        DEFAULT_CONCURRENCY,
       );
 
       config.sprites = repos;

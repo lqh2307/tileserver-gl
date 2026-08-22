@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import {
@@ -12,6 +13,7 @@ import {
   detectFormatAndHeaders,
   isFileNotModified,
   sendTextResponse,
+  runAllWithLimit,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -380,44 +382,47 @@ export const serve_font = {
 
       const repos = {};
 
-      await Promise.all(
-        ids.map(async (id) => {
-          const item = config.fonts[id];
-          const fontInfo = {};
+      await runAllWithLimit(
+        ids.map((id) => {
+          return async () => {
+            const item = config.fonts[id];
+            const fontInfo = {};
 
-          try {
-            if (item.cache) {
-              fontInfo.path = `${process.env.DATA_DIR}/caches/fonts/${item.font}`;
+            try {
+              if (item.cache) {
+                fontInfo.path = `${process.env.DATA_DIR}/caches/fonts/${item.font}`;
 
-              const cacheSource = seed.fonts?.[item.font];
+                const cacheSource = seed.fonts?.[item.font];
 
-              if (!cacheSource) {
-                throw new Error(`Cache font "${item.font}" is invalid`);
+                if (!cacheSource) {
+                  throw new Error(`Cache font "${item.font}" is invalid`);
+                }
+
+                if (item.cache.forward) {
+                  fontInfo.sourceURL = cacheSource.url;
+                  fontInfo.headers = cacheSource.headers;
+                  fontInfo.storeCache = item.cache.store;
+                }
+              } else {
+                fontInfo.path = `${process.env.DATA_DIR}/fonts/${item.font}`;
+
+                /* Validate font */
+                if (item.validate) {
+                  await validatePBFFont(fontInfo.path);
+                }
               }
 
-              if (item.cache.forward) {
-                fontInfo.sourceURL = cacheSource.url;
-                fontInfo.headers = cacheSource.headers;
-                fontInfo.storeCache = item.cache.store;
-              }
-            } else {
-              fontInfo.path = `${process.env.DATA_DIR}/fonts/${item.font}`;
-
-              /* Validate font */
-              if (item.validate) {
-                await validatePBFFont(fontInfo.path);
-              }
+              /* Add to repo */
+              repos[id] = fontInfo;
+            } catch (error) {
+              printLog(
+                "error",
+                `Failed to load font id "${id}": ${error}. Skipping...`,
+              );
             }
-
-            /* Add to repo */
-            repos[id] = fontInfo;
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to load font id "${id}": ${error}. Skipping...`,
-            );
-          }
+          };
         }),
+        DEFAULT_CONCURRENCY,
       );
 
       config.fonts = repos;

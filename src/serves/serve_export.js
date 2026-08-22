@@ -181,6 +181,7 @@ function exportDataHandler() {
             metadata: req.body.metadata,
             coverages: req.body.coverages,
             concurrency: req.body.concurrency,
+            batch: req.body.batch,
             storeTransparent: req.body.storeTransparent,
             refreshBefore,
           })
@@ -298,6 +299,7 @@ function renderStyleHandler() {
             metadata: req.body.metadata,
             maxRendererPoolSize: req.body.maxRendererPoolSize,
             concurrency: req.body.concurrency,
+            batch: req.body.batch,
             storeTransparent: req.body.storeTransparent,
             tileScale: req.body.tileScale,
             tileSize: req.body.tileSize,

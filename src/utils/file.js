@@ -142,7 +142,7 @@ export function base64ToBuffer(base64) {
  * @returns {string}
  */
 export function getFileExt(fileName) {
-  return fileName?.slice(fileName.lastIndexOf(".") + 1);
+  return fileName.slice(fileName.lastIndexOf(".") + 1);
 }
 
 /**
@@ -180,7 +180,7 @@ export async function removeFolders(dirPaths) {
  * Recursively removes empty folders in a directory
  * @param {string} folderPath The root directory to check for empty folders
  * @param {RegExp} regex The regex to match files
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} Whether the folder still contains a matching file
  */
 export async function removeEmptyFolders(folderPath, regex) {
   const entries = await readdir(folderPath, {
@@ -189,24 +189,22 @@ export async function removeEmptyFolders(folderPath, regex) {
 
   let hasMatchingFile = false;
 
-  await Promise.all(
-    entries.map(async (entry) => {
-      const fullPath = `${folderPath}/${entry.name}`;
-
-      if (entry.isFile() && (regex === undefined || regex.test(entry.name))) {
-        hasMatchingFile = true;
-      } else if (entry.isDirectory()) {
-        await removeEmptyFolders(fullPath, regex);
-
-        const subEntries = await readdir(fullPath).catch(() => {
-          return [];
-        });
-        if (subEntries.length) {
-          hasMatchingFile = true;
-        }
+  for (const entry of entries) {
+    if (entry.isFile()) {
+      if (regex?.global || regex?.sticky) {
+        regex.lastIndex = 0;
       }
-    }),
-  );
+
+      if (regex === undefined || regex.test(entry.name)) {
+        hasMatchingFile = true;
+      }
+    } else if (
+      entry.isDirectory() &&
+      (await removeEmptyFolders(`${folderPath}/${entry.name}`, regex))
+    ) {
+      hasMatchingFile = true;
+    }
+  }
 
   if (!hasMatchingFile) {
     await rm(folderPath, {
@@ -214,6 +212,8 @@ export async function removeEmptyFolders(folderPath, regex) {
       force: true,
     });
   }
+
+  return hasMatchingFile;
 }
 
 /**
@@ -221,14 +221,14 @@ export async function removeEmptyFolders(folderPath, regex) {
  * @returns {Promise<void>}
  */
 export async function removeOldLocks() {
-  const fileNames = await findFiles(
+  for await (const fileName of walkFiles(
     process.env.DATA_DIR || "data",
     /^.*\.lock$/,
-    true,
-    true,
-  );
-
-  await removeFolders(fileNames);
+  )) {
+    await rm(fileName, {
+      force: true,
+    });
+  }
 }
 
 /**
@@ -309,7 +309,7 @@ export async function findFiles(
 
       if (includeDirPath) {
         subEntries.forEach((sub) => {
-          results.push(`${fullPath}/${sub}`);
+          results.push(sub);
         });
       } else {
         subEntries.forEach((sub) => {
@@ -320,6 +320,31 @@ export async function findFiles(
   }
 
   return results;
+}
+
+/**
+ * Iterate matching files without materializing the whole directory tree.
+ * @param {string} filePath Directory path
+ * @param {RegExp} regex File name matcher
+ * @returns {AsyncGenerator<string>} Matching absolute or relative paths
+ */
+export async function* walkFiles(filePath, regex) {
+  const entries = await readdir(filePath, {
+    withFileTypes: true,
+  });
+
+  for (const entry of entries) {
+    const fullPath = `${filePath}/${entry.name}`;
+
+    if (entry.isDirectory()) {
+      yield* walkFiles(fullPath, regex);
+    } else {
+      regex.lastIndex = 0;
+      if (regex.test(entry.name)) {
+        yield fullPath;
+      }
+    }
+  }
 }
 
 /**
@@ -388,7 +413,14 @@ export async function createFileWithLock(filePath, data, timeout) {
   const startTime = Date.now();
 
   const lockFilePath = `${filePath}.lock`;
+
+  const parentPath = path.dirname(filePath);
+
   let lockFileHandle;
+
+  await mkdir(parentPath, {
+    recursive: true,
+  });
 
   while (Date.now() - startTime <= timeout) {
     try {
@@ -397,10 +429,6 @@ export async function createFileWithLock(filePath, data, timeout) {
       const tempFilePath = `${filePath}.tmp`;
 
       try {
-        await mkdir(path.dirname(filePath), {
-          recursive: true,
-        });
-
         await writeFile(tempFilePath, data);
 
         await rename(tempFilePath, filePath);
@@ -414,12 +442,24 @@ export async function createFileWithLock(filePath, data, timeout) {
 
       await lockFileHandle.close();
 
+      lockFileHandle = undefined;
+
       return await rm(lockFilePath, {
         force: true,
       });
     } catch (error) {
+      if (lockFileHandle) {
+        await lockFileHandle.close();
+
+        lockFileHandle = undefined;
+
+        await rm(lockFilePath, {
+          force: true,
+        });
+      }
+
       if (error.code === "ENOENT") {
-        await mkdir(path.dirname(filePath), {
+        await mkdir(parentPath, {
           recursive: true,
         });
 
@@ -427,14 +467,6 @@ export async function createFileWithLock(filePath, data, timeout) {
       } else if (error.code === "EEXIST") {
         await delay(5);
       } else {
-        if (lockFileHandle) {
-          await lockFileHandle.close();
-
-          await rm(lockFilePath, {
-            force: true,
-          });
-        }
-
         throw error;
       }
     }
@@ -464,6 +496,8 @@ export async function removeFileWithLock(filePath, timeout) {
       });
 
       await lockFileHandle.close();
+
+      lockFileHandle = undefined;
 
       return await rm(lockFilePath, {
         force: true,

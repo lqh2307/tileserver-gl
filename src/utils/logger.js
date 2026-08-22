@@ -14,12 +14,16 @@ if (!logger) {
       },
       timestamp: pino.stdTimeFunctions.isoTime,
     },
-    pretty({
-      colorize: true,
-      translateTime: "SYS:standard",
-      ignore: "hostname",
-      sync: true,
-    }),
+    process.env.LOG_PRETTY !== "false"
+      ? pretty({
+          colorize: true,
+          translateTime: "SYS:standard",
+          ignore: "hostname",
+          sync: false,
+        })
+      : pino.destination({
+          sync: false,
+        }),
   );
 }
 

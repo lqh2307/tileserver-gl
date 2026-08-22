@@ -38,31 +38,35 @@ Các nhóm chức năng chính:
 
 ### Kiểu storage
 
-| Kiểu | Mục đích | Ghi dữ liệu | Ghi chú |
-| --- | --- | --- | --- |
-| `mbtiles` | SQLite theo chuẩn MBTiles | Có | Hỗ trợ metadata, tile và MD5/created |
-| `xyz` | Cây thư mục `{z}/{x}/{y}.{format}` | Có | MD5/created được lưu trong SQLite phụ |
-| `pg` | PostgreSQL | Có | URI gốc lấy từ `postgreSQLBaseURI` |
-| `pmtiles` | PMTiles local hoặc remote | Không | Phù hợp nguồn chỉ đọc |
+| Kiểu      | Mục đích                           | Ghi dữ liệu | Ghi chú                               |
+| --------- | ---------------------------------- | ----------- | ------------------------------------- |
+| `mbtiles` | SQLite theo chuẩn MBTiles          | Có          | Hỗ trợ metadata, tile và MD5/created  |
+| `xyz`     | Cây thư mục `{z}/{x}/{y}.{format}` | Có          | MD5/created được lưu trong SQLite phụ |
+| `pg`      | PostgreSQL                         | Có          | URI gốc lấy từ `postgreSQLBaseURI`    |
+| `pmtiles` | PMTiles local hoặc remote          | Không       | Phù hợp nguồn chỉ đọc                 |
 
 ## Truy cập dịch vụ
 
 Với cấu hình mặc định, base URL là `http://localhost:8080`.
 
-| URL | Chức năng |
-| --- | --- |
-| `/` | Trang quản trị và danh sách resource |
-| `/swagger` | Swagger UI và chức năng Try it out |
-| `/health` | Liveness probe |
-| `/ready` | Readiness probe sau khi resource đã load |
-| `/version` | Phiên bản ứng dụng |
-| `/prometheus` | Prometheus metrics |
-| `/summary?type=service` | Tóm tắt resource đang phục vụ |
-| `/datas/datas.json` | Danh sách data source |
-| `/styles/styles.json` | Danh sách style |
-| `/geojsons/geojsons.json` | Danh sách GeoJSON group |
-| `/sprites/sprites.json` | Danh sách sprite |
-| `/fonts/fonts.json` | Danh sách font |
+| URL                       | Chức năng                                |
+| ------------------------- | ---------------------------------------- |
+| `/`                       | Trang quản trị và danh sách resource     |
+| `/swagger`                | Swagger UI và chức năng Try it out       |
+| `/health`                 | Liveness probe                           |
+| `/ready`                  | Readiness probe sau khi resource đã load |
+| `/version`                | Phiên bản ứng dụng                       |
+| `/prometheus`             | Prometheus metrics                       |
+| `/summary?type=service`   | Tóm tắt resource đang phục vụ            |
+| `/datas/datas.json`       | Danh sách data source                    |
+| `/styles/styles.json`     | Danh sách style                          |
+| `/geojsons/geojsons.json` | Danh sách GeoJSON group                  |
+| `/sprites/sprites.json`   | Danh sách sprite                         |
+| `/fonts/fonts.json`       | Danh sách font                           |
+
+Histogram HTTP chỉ dùng các label `method`, route đã chuẩn hóa và `status_code`
+để tránh tăng cardinality theo từng URL tile, IP hoặc user-agent. Endpoint
+`/prometheus` cũng cung cấp các process/runtime metric mặc định của Node.js.
 
 Một số request thường dùng:
 
@@ -90,11 +94,11 @@ sẵn sàng trả `503`.
 ### Swagger
 
 Swagger UI được mount tại `/swagger`. OpenAPI document lấy server URL từ request
-hiện tại để nút **Try it out** gọi đúng public domain. Khi có query `proxy`, giá
-trị này được ưu tiên hơn header proxy, ví dụ:
+hiện tại để nút **Try it out** gọi đúng public domain. Khi có query `referer`,
+giá trị này được ưu tiên hơn các header do reverse proxy gửi, ví dụ:
 
 ```text
-https://release.c4i.vn/tile-server/swagger/?proxy=https://release.c4i.vn/tile-server
+https://release.c4i.vn/tile-server/swagger/?referer=https://release.c4i.vn/tile-server
 ```
 
 Swagger mô tả request body bằng cùng JSON Schema đang được server dùng để
@@ -142,11 +146,11 @@ curl -fsS https://release.c4i.vn/tile-server/health
 
 Ứng dụng đọc ba file trong `DATA_DIR` và validate trước khi khởi động:
 
-| File | Nội dung |
-| --- | --- |
-| `config.json` | Resource được phục vụ, storage, cache và tùy chọn process |
-| `seed.json` | Nguồn tải, coverage, retry, timeout và chiến lược refresh |
-| `cleanup.json` | Coverage và mốc thời gian dùng để xóa cache cũ |
+| File           | Nội dung                                                  |
+| -------------- | --------------------------------------------------------- |
+| `config.json`  | Resource được phục vụ, storage, cache và tùy chọn process |
+| `seed.json`    | Nguồn tải, coverage, retry, timeout và chiến lược refresh |
+| `cleanup.json` | Coverage và mốc thời gian dùng để xóa cache cũ            |
 
 Các JSON Schema tương ứng nằm trong `public/schemas`. Khi thay đổi file cấu
 hình và `RESTART_AFTER_CONFIG_CHANGE=true`, process được restart tự động sau khi
@@ -154,26 +158,32 @@ file thay đổi.
 
 Các thư mục thường gặp bên trong `DATA_DIR`:
 
-| Đường dẫn | Nội dung |
-| --- | --- |
-| `config.json`, `seed.json`, `cleanup.json` | Cấu hình runtime |
-| `mbtiles/`, `pmtiles/`, `xyzs/` | Nguồn tile local |
-| `styles/`, `sprites/`, `fonts/`, `geojsons/` | Resource local |
-| `caches/` | Dữ liệu forward/seed được cache |
-| `exports/` | Kết quả export và render |
-| `statics/` | Static file do người vận hành cung cấp |
+| Đường dẫn                                    | Nội dung                               |
+| -------------------------------------------- | -------------------------------------- |
+| `config.json`, `seed.json`, `cleanup.json`   | Cấu hình runtime                       |
+| `mbtiles/`, `pmtiles/`, `xyzs/`              | Nguồn tile local                       |
+| `styles/`, `sprites/`, `fonts/`, `geojsons/` | Resource local                         |
+| `caches/`                                    | Dữ liệu forward/seed được cache        |
+| `exports/`                                   | Kết quả export và render               |
+| `statics/`                                   | Static file do người vận hành cung cấp |
 
 ## Các giá trị mặc định
 
-| Giá trị | Mặc định | Ý nghĩa |
-| --- | ---: | --- |
-| HTTP query/request timeout | `60000 ms` | Timeout request tile/resource và thao tác query thông thường |
-| Extra-info timeout | `1800000 ms` | Timeout riêng cho mỗi batch MD5/created |
-| Retry | `5` | Số lần thử request lỗi |
-| Concurrency | Số CPU | Số task chạy đồng thời nếu không cấu hình |
-| Store transparent | `true` | Có lưu tile trong suốt |
-| Tile batch size | `100000` | Số tile tối đa trong một batch extra-info |
-| Cache TTL | `300000 ms` | TTL cache metadata trong RAM |
+| Giá trị                    |          Mặc định | Ý nghĩa                                                         |
+| -------------------------- | ----------------: | --------------------------------------------------------------- |
+| HTTP query/request timeout |        `60000 ms` | Timeout request tile/resource và thao tác query thông thường    |
+| Extra-info timeout         |      `1800000 ms` | Timeout riêng cho mỗi batch MD5/created                         |
+| Retry                      |               `5` | Số lần thử request lỗi                                          |
+| Concurrency                | `min(số CPU, 16)` | Số task chạy đồng thời nếu không cấu hình                       |
+| Store transparent          |            `true` | Có lưu tile trong suốt                                          |
+| Tile batch size            |           `10000` | Số tile mặc định mỗi batch; API extra-info nhận tối đa `100000` |
+| Cache TTL                  |       `300000 ms` | TTL cache metadata trong RAM                                    |
+
+Cùng cơ chế batch được dùng cho seed, cleanup, export data và render style. Có
+thể cấu hình `batch` từ `1` đến `100000`; nếu bỏ qua sẽ dùng `10000`.
+
+Có thể kiểm tra nhanh chi phí sinh lazy batch cho một triệu tile bằng
+`npm run benchmark:batch`; truyền thêm `-- <total> <batch>` để đổi dữ liệu đo.
 
 ## Build & Run
 
@@ -256,6 +266,7 @@ source ~/.bashrc;
 ```
 
 Fix install global package:
+
 ```bash
 mkdir -p ~/.npm-global
 npm config set prefix ~/.npm-global
@@ -277,19 +288,28 @@ npm run server
 
 Biến môi trường:
 
-| Tên | Mặc định | Mô tả |
-| --- | --- | --- |
-| `LISTEN_PORT` | `8080` | Cổng HTTP, ghi đè `options.listenPort` |
-| `DATA_DIR` | `data` | Thư mục chứa config và resource |
-| `SERVICE_NAME` | `tile-server` | Tên service dùng trong log/metrics |
-| `RESTART_AFTER_CONFIG_CHANGE` | `true` | Restart khi `config.json`, `seed.json` hoặc `cleanup.json` thay đổi |
-| `NUM_OF_THREAD` | Số CPU | Ghi đè `options.thread` và đặt `UV_THREADPOOL_SIZE` |
-| `NUM_OF_PROCESS` | `1` | Ghi đè `options.process` |
-| `LOG_LEVEL` | `info` | Mức log runtime |
+| Tên                           | Mặc định        | Mô tả                                                                                           |
+| ----------------------------- | --------------- | ----------------------------------------------------------------------------------------------- |
+| `LISTEN_PORT`                 | `8080`          | Cổng HTTP, ghi đè `options.listenPort`                                                          |
+| `DATA_DIR`                    | `data`          | Thư mục chứa config và resource                                                                 |
+| `SERVICE_NAME`                | `tile-server`   | Tên service dùng trong log/metrics                                                              |
+| `RESTART_AFTER_CONFIG_CHANGE` | `true`          | Restart khi `config.json`, `seed.json` hoặc `cleanup.json` thay đổi                             |
+| `NUM_OF_THREAD`               | Số CPU          | Ghi đè `options.thread` và đặt `UV_THREADPOOL_SIZE`                                             |
+| `NUM_OF_PROCESS`              | `1`             | Ghi đè `options.process`                                                                        |
+| `LOG_LEVEL`                   | `info`          | Mức log runtime                                                                                 |
+| `LOG_PRETTY`                  | Theo môi trường | Đặt `true` để pretty log hoặc `false` để ghi JSON bất đồng bộ                                   |
+| `JSON_BODY_LIMIT`             | `100mb`         | Giới hạn body cho API config, extra-info, export và render; request tile không chạy JSON parser |
+| `SHARP_CONCURRENCY`           | `2`             | Số native thread Sharp trên mỗi worker                                                          |
+| `SHARP_CACHE_MEMORY_MB`       | `32`            | Giới hạn memory cache của Sharp trên mỗi worker                                                 |
 
 Thứ tự ưu tiên thường là biến môi trường, giá trị trong `config.json`, sau đó
 mới đến default trong code. Riêng PostgreSQL URI được lấy từ
 `options.postgreSQLBaseURI` và mặc định là `postgresql://localhost:5432`.
+
+SQLite ghi cache luôn dùng rollback journal `DELETE` và `synchronous=FULL`,
+không dùng WAL hoặc memory-mapped I/O. Thiết lập này phù hợp hơn khi nhiều pod
+dùng chung NFS; NFS vẫn phải hỗ trợ POSIX advisory locking và các thao tác ghi
+vào cùng một database sẽ được SQLite tuần tự hóa.
 
 ### Run with docker
 
@@ -569,13 +589,13 @@ docker push quanghuy2307/tile-server:1.0.0
 
 Luồng batch được dùng để tránh tải toàn bộ `extra-info` của hàng triệu tile vào
 RAM và tránh gửi một response JSON quá lớn giữa tile-server con và tile-server
-cha. Kích thước mặc định của một batch là `100000` tile.
+cha. Kích thước mặc định của một batch là `10000` tile.
 
 ### Tổng quan
 
 Tile-server con nhận `coverages` từ `seed.json`, chuyển chúng thành các khoảng
 tile XYZ gọn (`tileBounds`), sau đó sinh lần lượt từng batch. Mỗi batch chứa tối
-đa `100000` tile và được xử lý xong hoàn toàn trước khi chuyển sang batch tiếp
+đa `10000` tile và được xử lý xong hoàn toàn trước khi chuyển sang batch tiếp
 theo.
 
 ```text
@@ -588,7 +608,7 @@ Giới hạn theo metadata.bounds
 Tính total + các tileBounds dạng z/xMin/xMax/yMin/yMax
         |
         v
-Sinh lazy từng batch <= 100000 tile
+Sinh lazy từng batch <= 10000 tile
         |
         +--> Lấy extra-info trên tile-server cha (khi so sánh MD5)
         |
@@ -628,15 +648,14 @@ Ví dụ một khoảng tile compact:
 
 `getTileBoundsBatches()` tiếp tục chia các khoảng lớn thành hình chữ nhật nhỏ
 và gom chúng vào batch sao cho tổng `total` của mỗi batch không vượt quá
-`100000`. Hàm này là generator lazy: batch chỉ được tạo khi vòng seed yêu cầu
-batch tiếp theo, không tạo danh sách hàng triệu tile và cũng không giữ toàn bộ
-các batch trong RAM.
+`10000` theo mặc định. Hàm này là generator lazy: batch chỉ được tạo khi vòng
+seed yêu cầu batch tiếp theo, không tạo danh sách hàng triệu tile và cũng không
+giữ toàn bộ các batch trong RAM.
 
 Vì vậy, luồng hiện tại không cần tính trước và lưu `batchCount`. Với một khoảng
-liên tục gồm `255000` tile, thông thường sẽ có ba batch gồm `100000`, `100000`
-và `55000` tile. Khi có nhiều coverage hoặc nhiều khoảng hình dạng khác nhau,
-số batch thực tế có thể lớn hơn `ceil(total / 100000)` do một số batch cuối của
-mỗi khoảng không lấp đầy hoàn toàn.
+liên tục gồm `255000` tile và batch mặc định, sẽ cần khoảng 26 batch. Khi có
+nhiều coverage hoặc nhiều khoảng hình dạng khác nhau, số batch thực tế có thể
+lớn hơn `ceil(total / 10000)` do một số phần hình chữ nhật không ghép đầy batch.
 
 ### Luồng so sánh MD5 với tile-server cha
 
@@ -647,14 +666,14 @@ Luồng này được kích hoạt khi cấu hình:
   "refreshBefore": {
     "md5": true
   },
-  "batch": 100000,
+  "batch": 10000,
   "timeout": 60000,
   "infoTimeout": 1800000
 }
 ```
 
 `batch` là số tile tối đa trong mỗi request extra-info, nhận giá trị từ `1` đến
-`100000` và mặc định là `100000`. Có thể giảm giá trị này khi tile-server cha
+`100000` và mặc định là `10000`. Có thể giảm giá trị này khi tile-server cha
 có giới hạn request hoặc RAM thấp. `timeout` là timeout của request download
 từng tile. `infoTimeout` là timeout riêng cho mỗi request lấy extra-info của một
 batch từ tile-server cha, tính bằng milliseconds. Nếu không cấu hình,
@@ -685,9 +704,9 @@ Request gửi lên tile-server cha sử dụng exact tile bounds, không gửi l
   "tileBounds": [
     {
       "z": 12,
-      "x": [3200, 3399],
+      "x": [3200, 3219],
       "y": [1500, 1999],
-      "total": 100000
+      "total": 10000
     }
   ]
 }
@@ -759,7 +778,7 @@ khi parse có thể chiếm RAM lớn ở cả server cha và server con.
 Sau khi chia batch, lượng extra-info được giữ gần với:
 
 ```text
-O(100000 hash remote + 100000 hash local + concurrency tile đang xử lý)
+O(10000 hash remote + 10000 hash local + concurrency tile đang xử lý)
 ```
 
 thay vì `O(tổng số tile trong coverage)`. `delete` làm key/value đủ điều kiện để
@@ -900,59 +919,99 @@ thay đổi.
           "zoom": 17
         },
         {
-          "bbox": [102.46948242187501, 21.54506606426624, 108.02307128906251, 22.01436065310322],
+          "bbox": [
+            102.46948242187501, 21.54506606426624, 108.02307128906251,
+            22.01436065310322
+          ],
           "zoom": 17
         },
         {
-          "bbox": [102.81005859375, 20.673905264672843, 108.02307128906251, 21.54506606426624],
+          "bbox": [
+            102.81005859375, 20.673905264672843, 108.02307128906251,
+            21.54506606426624
+          ],
           "zoom": 17
         },
         {
-          "bbox": [104.36183562406808, 19.896331213634156, 106.62066771804632, 20.673905264672843],
+          "bbox": [
+            104.36183562406808, 19.896331213634156, 106.62066771804632,
+            20.673905264672843
+          ],
           "zoom": 17
         },
         {
-          "bbox": [103.85627556338335, 18.675174012686966, 105.949538812777, 19.896331213634156],
+          "bbox": [
+            103.85627556338335, 18.675174012686966, 105.949538812777,
+            19.896331213634156
+          ],
           "zoom": 17
         },
         {
-          "bbox": [105.09033044608685, 18.247006521537713, 106.11631501265589, 18.675174012686966],
+          "bbox": [
+            105.09033044608685, 18.247006521537713, 106.11631501265589,
+            18.675174012686966
+          ],
           "zoom": 17
         },
         {
-          "bbox": [105.08569377073371, 17.682479646533977, 106.54541015625, 18.247006521537713],
+          "bbox": [
+            105.08569377073371, 17.682479646533977, 106.54541015625,
+            18.247006521537713
+          ],
           "zoom": 17
         },
         {
-          "bbox": [105.72940942553402, 17.012506420381214, 107.1332187063714, 17.682479646533977],
+          "bbox": [
+            105.72940942553402, 17.012506420381214, 107.1332187063714,
+            17.682479646533977
+          ],
           "zoom": 17
         },
         {
-          "bbox": [106.52474296141287, 16.525632239869275, 107.73742675781251, 17.012506420381214],
+          "bbox": [
+            106.52474296141287, 16.525632239869275, 107.73742675781251,
+            17.012506420381214
+          ],
           "zoom": 17
         },
         {
-          "bbox": [106.52474296141287, 15.87336009641129, 108.4130859375, 16.525632239869275],
+          "bbox": [
+            106.52474296141287, 15.87336009641129, 108.4130859375,
+            16.525632239869275
+          ],
           "zoom": 17
         },
         {
-          "bbox": [107.19248569402788, 12.367312668121698, 109.5, 15.87336009641129],
+          "bbox": [
+            107.19248569402788, 12.367312668121698, 109.5, 15.87336009641129
+          ],
           "zoom": 17
         },
         {
-          "bbox": [105.780413191197, 11.055370895327243, 109.37751394557404, 12.367312668121698],
+          "bbox": [
+            105.780413191197, 11.055370895327243, 109.37751394557404,
+            12.367312668121698
+          ],
           "zoom": 17
         },
         {
-          "bbox": [104.40660624946082, 10.293301000109102, 108.36364746093751, 11.055370895327243],
+          "bbox": [
+            104.40660624946082, 10.293301000109102, 108.36364746093751,
+            11.055370895327243
+          ],
           "zoom": 17
         },
         {
-          "bbox": [104.40660624946082, 8.5, 106.80872190635347, 10.293301000109102],
+          "bbox": [
+            104.40660624946082, 8.5, 106.80872190635347, 10.293301000109102
+          ],
           "zoom": 17
         },
         {
-          "bbox": [103.82593390474472, 9.89372811153305, 104.08596902176743, 10.466205555063882],
+          "bbox": [
+            103.82593390474472, 9.89372811153305, 104.08596902176743,
+            10.466205555063882
+          ],
           "zoom": 17
         },
         {
@@ -964,59 +1023,99 @@ thay đổi.
           "zoom": 18
         },
         {
-          "bbox": [102.46948242187501, 21.54506606426624, 108.02307128906251, 22.01436065310322],
+          "bbox": [
+            102.46948242187501, 21.54506606426624, 108.02307128906251,
+            22.01436065310322
+          ],
           "zoom": 18
         },
         {
-          "bbox": [102.81005859375, 20.673905264672843, 108.02307128906251, 21.54506606426624],
+          "bbox": [
+            102.81005859375, 20.673905264672843, 108.02307128906251,
+            21.54506606426624
+          ],
           "zoom": 18
         },
         {
-          "bbox": [104.36183562406808, 19.896331213634156, 106.62066771804632, 20.673905264672843],
+          "bbox": [
+            104.36183562406808, 19.896331213634156, 106.62066771804632,
+            20.673905264672843
+          ],
           "zoom": 18
         },
         {
-          "bbox": [103.85627556338335, 18.675174012686966, 105.949538812777, 19.896331213634156],
+          "bbox": [
+            103.85627556338335, 18.675174012686966, 105.949538812777,
+            19.896331213634156
+          ],
           "zoom": 18
         },
         {
-          "bbox": [105.09033044608685, 18.247006521537713, 106.11631501265589, 18.675174012686966],
+          "bbox": [
+            105.09033044608685, 18.247006521537713, 106.11631501265589,
+            18.675174012686966
+          ],
           "zoom": 18
         },
         {
-          "bbox": [105.08569377073371, 17.682479646533977, 106.54541015625, 18.247006521537713],
+          "bbox": [
+            105.08569377073371, 17.682479646533977, 106.54541015625,
+            18.247006521537713
+          ],
           "zoom": 18
         },
         {
-          "bbox": [105.72940942553402, 17.012506420381214, 107.1332187063714, 17.682479646533977],
+          "bbox": [
+            105.72940942553402, 17.012506420381214, 107.1332187063714,
+            17.682479646533977
+          ],
           "zoom": 18
         },
         {
-          "bbox": [106.52474296141287, 16.525632239869275, 107.73742675781251, 17.012506420381214],
+          "bbox": [
+            106.52474296141287, 16.525632239869275, 107.73742675781251,
+            17.012506420381214
+          ],
           "zoom": 18
         },
         {
-          "bbox": [106.52474296141287, 15.87336009641129, 108.4130859375, 16.525632239869275],
+          "bbox": [
+            106.52474296141287, 15.87336009641129, 108.4130859375,
+            16.525632239869275
+          ],
           "zoom": 18
         },
         {
-          "bbox": [107.19248569402788, 12.367312668121698, 109.5, 15.87336009641129],
+          "bbox": [
+            107.19248569402788, 12.367312668121698, 109.5, 15.87336009641129
+          ],
           "zoom": 18
         },
         {
-          "bbox": [105.780413191197, 11.055370895327243, 109.37751394557404, 12.367312668121698],
+          "bbox": [
+            105.780413191197, 11.055370895327243, 109.37751394557404,
+            12.367312668121698
+          ],
           "zoom": 18
         },
         {
-          "bbox": [104.40660624946082, 10.293301000109102, 108.36364746093751, 11.055370895327243],
+          "bbox": [
+            104.40660624946082, 10.293301000109102, 108.36364746093751,
+            11.055370895327243
+          ],
           "zoom": 18
         },
         {
-          "bbox": [104.40660624946082, 8.5, 106.80872190635347, 10.293301000109102],
+          "bbox": [
+            104.40660624946082, 8.5, 106.80872190635347, 10.293301000109102
+          ],
           "zoom": 18
         },
         {
-          "bbox": [103.82593390474472, 9.89372811153305, 104.08596902176743, 10.466205555063882],
+          "bbox": [
+            103.82593390474472, 9.89372811153305, 104.08596902176743,
+            10.466205555063882
+          ],
           "zoom": 18
         },
         {
@@ -1360,7 +1459,10 @@ thay đổi.
     "name": "osm_style",
     "description": "osm_style",
     "format": "png",
-    "bounds": [104.55758541249514, 20.40418806657307, 106.68188322743384, 22.266067290668104],
+    "bounds": [
+      104.55758541249514, 20.40418806657307, 106.68188322743384,
+      22.266067290668104
+    ],
     "center": [108, 5, 10],
     "minzoom": 10,
     "maxzoom": 10
@@ -1652,7 +1754,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "waterway",
-        "filter": ["all", ["==", "class", "river"], ["!=", "brunnel", "tunnel"]],
+        "filter": [
+          "all",
+          ["==", "class", "river"],
+          ["!=", "brunnel", "tunnel"]
+        ],
         "layout": {
           "line-cap": "round"
         },
@@ -1672,7 +1778,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "waterway",
-        "filter": ["all", ["!=", "class", "river"], ["!=", "brunnel", "tunnel"]],
+        "filter": [
+          "all",
+          ["!=", "class", "river"],
+          ["!=", "brunnel", "tunnel"]
+        ],
         "layout": {
           "line-cap": "round"
         },
@@ -1725,7 +1835,11 @@ thay đổi.
         "source": "source",
         "source-layer": "aeroway",
         "minzoom": 11,
-        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "runway"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["==", "class", "runway"]
+        ],
         "paint": {
           "line-color": "#f0ede9",
           "line-width": {
@@ -1743,7 +1857,11 @@ thay đổi.
         "source": "source",
         "source-layer": "aeroway",
         "minzoom": 11,
-        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "taxiway"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["==", "class", "taxiway"]
+        ],
         "paint": {
           "line-color": "#f0ede9",
           "line-width": {
@@ -1760,7 +1878,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "tunnel"]],
+        "filter": [
+          "all",
+          ["==", "class", "motorway"],
+          ["==", "ramp", 1],
+          ["==", "brunnel", "tunnel"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -1783,7 +1906,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "service", "track"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "service", "track"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -1827,7 +1954,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "street", "street_limited"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "street", "street_limited"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -1855,7 +1986,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "secondary", "tertiary"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "secondary", "tertiary"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -1875,7 +2010,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "primary", "trunk"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "primary", "trunk"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -1897,7 +2036,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "motorway"], ["!=", "ramp", 1], ["==", "brunnel", "tunnel"]],
+        "filter": [
+          "all",
+          ["==", "class", "motorway"],
+          ["!=", "ramp", 1],
+          ["==", "brunnel", "tunnel"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -1920,7 +2064,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "tunnel"], ["in", "class", "path", "pedestrian"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "path", "pedestrian"]
+        ],
         "paint": {
           "line-color": "hsl(0, 0%, 100%)",
           "line-dasharray": [1, 0.75],
@@ -1938,7 +2087,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "tunnel"]],
+        "filter": [
+          "all",
+          ["==", "class", "motorway"],
+          ["==", "ramp", 1],
+          ["==", "brunnel", "tunnel"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -1960,7 +2114,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "service", "track"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "service", "track"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2003,7 +2161,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "minor"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "minor"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2024,7 +2186,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "secondary", "tertiary"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "secondary", "tertiary"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2045,7 +2211,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "primary", "trunk"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "primary", "trunk"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2066,7 +2236,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "motorway"], ["!=", "ramp", 1], ["==", "brunnel", "tunnel"]],
+        "filter": [
+          "all",
+          ["==", "class", "motorway"],
+          ["!=", "ramp", 1],
+          ["==", "brunnel", "tunnel"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2124,7 +2299,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["in", "class", "transit"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["in", "class", "transit"]
+        ],
         "paint": {
           "line-color": "#bbb",
           "line-width": {
@@ -2142,7 +2321,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "tunnel"], ["==", "class", "transit"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "tunnel"],
+          ["==", "class", "transit"]
+        ],
         "paint": {
           "line-color": "#bbb",
           "line-dasharray": [0.2, 8],
@@ -2172,7 +2355,12 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 12,
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["==", "ramp", 1]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "class", "motorway"],
+          ["==", "ramp", 1]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2195,7 +2383,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "service", "track"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "service", "track"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2218,7 +2410,20 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 13,
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["!in", "class", "pedestrian", "path", "track", "service", "motorway"], ["==", "ramp", 1]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          [
+            "!in",
+            "class",
+            "pedestrian",
+            "path",
+            "track",
+            "service",
+            "motorway"
+          ],
+          ["==", "ramp", 1]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2241,7 +2446,13 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "minor"], ["!=", "ramp", 1]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "minor"],
+          ["!=", "ramp", 1]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2270,7 +2481,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary", "tertiary"], ["!=", "ramp", 1]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "secondary", "tertiary"],
+          ["!=", "ramp", 1]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2291,7 +2507,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "primary", "trunk"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "primary", "trunk"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2314,7 +2534,12 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 5,
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["!=", "ramp", 1]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "class", "motorway"],
+          ["!=", "ramp", 1]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2338,7 +2563,12 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 14,
-        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "path", "pedestrian"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "path", "pedestrian"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2360,7 +2590,12 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 12,
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["==", "ramp", 1]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "class", "motorway"],
+          ["==", "ramp", 1]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2383,7 +2618,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "service", "track"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "service", "track"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2406,7 +2645,12 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 13,
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "ramp", 1], ["!in", "class", "pedestrian", "path", "track", "service", "motorway"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "ramp", 1],
+          ["!in", "class", "pedestrian", "path", "track", "service", "motorway"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2429,7 +2673,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "$type", "LineString"], ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "minor"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "minor"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2451,7 +2700,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "secondary", "tertiary"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "secondary", "tertiary"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2473,7 +2726,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["in", "class", "primary", "trunk"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["in", "class", "primary", "trunk"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2495,7 +2752,12 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 5,
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"], ["!=", "ramp", 1]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "class", "motorway"],
+          ["!=", "ramp", 1]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round"
@@ -2523,7 +2785,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "rail"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "class", "rail"]
+        ],
         "paint": {
           "line-color": "#bbb",
           "line-width": {
@@ -2541,7 +2807,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "rail"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "class", "rail"]
+        ],
         "paint": {
           "line-color": "#bbb",
           "line-dasharray": [0.2, 8],
@@ -2560,7 +2830,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "transit"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "class", "transit"]
+        ],
         "paint": {
           "line-color": "#bbb",
           "line-width": {
@@ -2578,7 +2852,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "transit"]],
+        "filter": [
+          "all",
+          ["!in", "brunnel", "bridge", "tunnel"],
+          ["==", "class", "transit"]
+        ],
         "paint": {
           "line-color": "#bbb",
           "line-dasharray": [0.2, 8],
@@ -2622,7 +2900,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "bridge"]],
+        "filter": [
+          "all",
+          ["==", "class", "motorway"],
+          ["==", "ramp", 1],
+          ["==", "brunnel", "bridge"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2644,7 +2927,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "service", "track"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "service", "track"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2687,7 +2974,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "street", "street_limited"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "street", "street_limited"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2715,7 +3006,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path", "pedestrian"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "path", "pedestrian"]
+        ],
         "paint": {
           "line-color": "hsl(35, 6%, 80%)",
           "line-dasharray": [1, 0],
@@ -2733,7 +3029,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary", "tertiary"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "secondary", "tertiary"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2753,7 +3053,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "primary", "trunk"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "primary", "trunk"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2775,7 +3079,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "motorway"], ["!=", "ramp", 1], ["==", "brunnel", "bridge"]],
+        "filter": [
+          "all",
+          ["==", "class", "motorway"],
+          ["!=", "ramp", 1],
+          ["==", "brunnel", "bridge"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2797,7 +3106,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "$type", "LineString"], ["==", "brunnel", "bridge"], ["in", "class", "path", "pedestrian"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "path", "pedestrian"]
+        ],
         "paint": {
           "line-color": "hsl(0, 0%, 100%)",
           "line-dasharray": [1, 0.3],
@@ -2815,7 +3129,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "motorway"], ["==", "ramp", 1], ["==", "brunnel", "bridge"]],
+        "filter": [
+          "all",
+          ["==", "class", "motorway"],
+          ["==", "ramp", 1],
+          ["==", "brunnel", "bridge"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2837,7 +3156,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "service", "track"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "service", "track"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2880,7 +3203,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "minor"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "minor"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2901,7 +3228,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "secondary", "tertiary"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "secondary", "tertiary"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2922,7 +3253,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "brunnel", "bridge"], ["in", "class", "primary", "trunk"]],
+        "filter": [
+          "all",
+          ["==", "brunnel", "bridge"],
+          ["in", "class", "primary", "trunk"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -2943,7 +3278,12 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "motorway"], ["!=", "ramp", 1], ["==", "brunnel", "bridge"]],
+        "filter": [
+          "all",
+          ["==", "class", "motorway"],
+          ["!=", "ramp", 1],
+          ["==", "brunnel", "bridge"]
+        ],
         "layout": {
           "line-join": "round"
         },
@@ -3001,7 +3341,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "transit"], ["==", "brunnel", "bridge"]],
+        "filter": [
+          "all",
+          ["==", "class", "transit"],
+          ["==", "brunnel", "bridge"]
+        ],
         "paint": {
           "line-color": "#bbb",
           "line-width": {
@@ -3019,7 +3363,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "class", "transit"], ["==", "brunnel", "bridge"]],
+        "filter": [
+          "all",
+          ["==", "class", "transit"],
+          ["==", "brunnel", "bridge"]
+        ],
         "paint": {
           "line-color": "#bbb",
           "line-dasharray": [0.2, 8],
@@ -3198,7 +3546,13 @@ thay đổi.
         "minzoom": 16,
         "filter": ["all", ["==", "$type", "Point"], [">=", "rank", 20]],
         "layout": {
-          "icon-image": ["match", ["get", "subclass"], ["florist", "furniture", "soccer", "tennis"], ["get", "subclass"], ["get", "class"]],
+          "icon-image": [
+            "match",
+            ["get", "subclass"],
+            ["florist", "furniture", "soccer", "tennis"],
+            ["get", "subclass"],
+            ["get", "class"]
+          ],
           "text-anchor": "top",
           "text-field": "{name}",
           "text-font": ["Roboto Condensed Italic"],
@@ -3219,9 +3573,20 @@ thay đổi.
         "source": "source",
         "source-layer": "poi",
         "minzoom": 15,
-        "filter": ["all", ["==", "$type", "Point"], [">=", "rank", 7], ["<", "rank", 20]],
+        "filter": [
+          "all",
+          ["==", "$type", "Point"],
+          [">=", "rank", 7],
+          ["<", "rank", 20]
+        ],
         "layout": {
-          "icon-image": ["match", ["get", "subclass"], ["florist", "furniture", "soccer", "tennis"], ["get", "subclass"], ["get", "class"]],
+          "icon-image": [
+            "match",
+            ["get", "subclass"],
+            ["florist", "furniture", "soccer", "tennis"],
+            ["get", "subclass"],
+            ["get", "class"]
+          ],
           "text-anchor": "top",
           "text-field": "{name}",
           "text-font": ["Roboto Condensed Italic"],
@@ -3242,9 +3607,20 @@ thay đổi.
         "source": "source",
         "source-layer": "poi",
         "minzoom": 14,
-        "filter": ["all", ["==", "$type", "Point"], [">=", "rank", 1], ["<", "rank", 7]],
+        "filter": [
+          "all",
+          ["==", "$type", "Point"],
+          [">=", "rank", 1],
+          ["<", "rank", 7]
+        ],
         "layout": {
-          "icon-image": ["match", ["get", "subclass"], ["florist", "furniture", "soccer", "tennis"], ["get", "subclass"], ["get", "class"]],
+          "icon-image": [
+            "match",
+            ["get", "subclass"],
+            ["florist", "furniture", "soccer", "tennis"],
+            ["get", "subclass"],
+            ["get", "class"]
+          ],
           "text-anchor": "top",
           "text-field": "{name}",
           "text-font": ["Roboto Condensed Italic"],
@@ -3338,7 +3714,19 @@ thay đổi.
         "type": "symbol",
         "source": "source",
         "source-layer": "place",
-        "filter": ["all", ["in", "class", "hamlet", "island", "islet", "neighbourhood", "suburb", "quarter"]],
+        "filter": [
+          "all",
+          [
+            "in",
+            "class",
+            "hamlet",
+            "island",
+            "islet",
+            "neighbourhood",
+            "suburb",
+            "quarter"
+          ]
+        ],
         "layout": {
           "text-field": "{name_en}",
           "text-font": ["Roboto Condensed Italic"],
@@ -3619,7 +4007,11 @@ thay đổi.
         "source": "source",
         "source-layer": "landcover",
         "maxzoom": 8,
-        "filter": ["all", ["==", "$type", "Polygon"], ["==", "subclass", "ice_shelf"]],
+        "filter": [
+          "all",
+          ["==", "$type", "Polygon"],
+          ["==", "subclass", "ice_shelf"]
+        ],
         "layout": { "visibility": "visible" },
         "paint": { "fill-color": "hsl(232, 33%, 34%)", "fill-opacity": 0.4 }
       },
@@ -3629,7 +4021,11 @@ thay đổi.
         "source": "source",
         "source-layer": "landuse",
         "maxzoom": 16,
-        "filter": ["all", ["==", "$type", "Polygon"], ["==", "subclass", "residential"]],
+        "filter": [
+          "all",
+          ["==", "$type", "Polygon"],
+          ["==", "subclass", "residential"]
+        ],
         "layout": { "visibility": "visible" },
         "paint": {
           "fill-color": "rgb(234, 234, 230)",
@@ -3710,7 +4106,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 6,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "brunnel", "tunnel"], ["==", "class", "motorway"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["all", ["==", "brunnel", "tunnel"], ["==", "class", "motorway"]]
+        ],
         "layout": {
           "line-cap": "butt",
           "line-join": "miter",
@@ -3735,7 +4135,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 6,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "brunnel", "tunnel"], ["==", "class", "motorway"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["all", ["==", "brunnel", "tunnel"], ["==", "class", "motorway"]]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round",
@@ -3807,7 +4211,11 @@ thay đổi.
         "source": "source",
         "source-layer": "aeroway",
         "minzoom": 4,
-        "filter": ["all", ["==", "$type", "Polygon"], ["in", "class", "runway", "taxiway"]],
+        "filter": [
+          "all",
+          ["==", "$type", "Polygon"],
+          ["in", "class", "runway", "taxiway"]
+        ],
         "layout": { "visibility": "visible" },
         "paint": { "fill-color": "hsl(224, 20%, 29%)", "fill-opacity": 1 }
       },
@@ -3818,7 +4226,11 @@ thay đổi.
         "source-layer": "aeroway",
         "minzoom": 11,
         "maxzoom": 24,
-        "filter": ["all", ["in", "class", "runway"], ["==", "$type", "LineString"]],
+        "filter": [
+          "all",
+          ["in", "class", "runway"],
+          ["==", "$type", "LineString"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round",
@@ -3850,7 +4262,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "pier"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["in", "class", "pier"]
+        ],
         "layout": { "line-cap": "round", "line-join": "round" },
         "paint": {
           "line-color": "#45516E",
@@ -3868,7 +4284,11 @@ thay đổi.
         "type": "line",
         "source": "source",
         "source-layer": "transportation",
-        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "path"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["==", "class", "path"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round",
@@ -3893,7 +4313,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 8,
-        "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "minor", "service", "track"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["in", "class", "minor", "service", "track"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round",
@@ -3917,7 +4341,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 11,
-        "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "primary", "secondary", "tertiary", "trunk"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["in", "class", "primary", "secondary", "tertiary", "trunk"]
+        ],
         "layout": {
           "line-cap": "butt",
           "line-join": "miter",
@@ -3941,7 +4369,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 11,
-        "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "primary", "secondary", "tertiary", "trunk"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["in", "class", "primary", "secondary", "tertiary", "trunk"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round",
@@ -3964,7 +4396,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "maxzoom": 11,
-        "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "primary", "secondary", "tertiary", "trunk"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["in", "class", "primary", "secondary", "tertiary", "trunk"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round",
@@ -3982,7 +4418,15 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 6,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          [
+            "all",
+            ["!in", "brunnel", "bridge", "tunnel"],
+            ["==", "class", "motorway"]
+          ]
+        ],
         "layout": {
           "line-cap": "butt",
           "line-join": "miter",
@@ -4008,7 +4452,15 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 6,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["!in", "brunnel", "bridge", "tunnel"], ["==", "class", "motorway"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          [
+            "all",
+            ["!in", "brunnel", "bridge", "tunnel"],
+            ["==", "class", "motorway"]
+          ]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round",
@@ -4038,7 +4490,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "maxzoom": 6,
-        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "motorway"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["==", "class", "motorway"]
+        ],
         "layout": {
           "line-cap": "round",
           "line-join": "round",
@@ -4061,7 +4517,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 16,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "class", "transit"], ["!in", "brunnel", "tunnel"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["all", ["==", "class", "transit"], ["!in", "brunnel", "tunnel"]]
+        ],
         "layout": { "line-join": "round", "visibility": "visible" },
         "paint": { "line-color": "hsl(200, 65%, 11%)", "line-width": 3 }
       },
@@ -4071,7 +4531,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 16,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "class", "transit"], ["!in", "brunnel", "tunnel"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["all", ["==", "class", "transit"], ["!in", "brunnel", "tunnel"]]
+        ],
         "layout": { "line-join": "round", "visibility": "visible" },
         "paint": {
           "line-color": "hsl(193, 63%, 26%)",
@@ -4085,7 +4549,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 16,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "class", "rail"], ["has", "service"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["all", ["==", "class", "rail"], ["has", "service"]]
+        ],
         "layout": { "line-join": "round", "visibility": "visible" },
         "paint": { "line-color": "hsl(200, 65%, 11%)", "line-width": 3 }
       },
@@ -4095,7 +4563,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 16,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["==", "class", "rail"], ["has", "service"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["all", ["==", "class", "rail"], ["has", "service"]]
+        ],
         "layout": { "line-join": "round", "visibility": "visible" },
         "paint": {
           "line-color": "hsl(193, 63%, 26%)",
@@ -4109,7 +4581,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 13,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["!has", "service"], ["==", "class", "rail"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["all", ["!has", "service"], ["==", "class", "rail"]]
+        ],
         "layout": { "line-join": "round", "visibility": "visible" },
         "paint": {
           "line-color": "hsl(200, 10%, 18%)",
@@ -4128,7 +4604,11 @@ thay đổi.
         "source": "source",
         "source-layer": "transportation",
         "minzoom": 13,
-        "filter": ["all", ["==", "$type", "LineString"], ["all", ["!has", "service"], ["==", "class", "rail"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["all", ["!has", "service"], ["==", "class", "rail"]]
+        ],
         "layout": { "line-join": "round", "visibility": "visible" },
         "paint": {
           "line-color": "hsl(224, 20%, 41%)",
@@ -4169,7 +4649,11 @@ thay đổi.
         "type": "symbol",
         "source": "source",
         "source-layer": "transportation_name",
-        "filter": ["all", ["!=", "class", "motorway"], ["==", "$type", "LineString"]],
+        "filter": [
+          "all",
+          ["!=", "class", "motorway"],
+          ["==", "$type", "LineString"]
+        ],
         "layout": {
           "symbol-placement": "line",
           "symbol-spacing": 350,
@@ -4196,7 +4680,11 @@ thay đổi.
         "type": "symbol",
         "source": "source",
         "source-layer": "transportation_name",
-        "filter": ["all", ["==", "$type", "LineString"], ["==", "class", "motorway"]],
+        "filter": [
+          "all",
+          ["==", "$type", "LineString"],
+          ["==", "class", "motorway"]
+        ],
         "layout": {
           "symbol-placement": "line",
           "symbol-spacing": 350,
@@ -4301,7 +4789,11 @@ thay đổi.
         "source": "source",
         "source-layer": "place",
         "maxzoom": 14,
-        "filter": ["all", ["in", "class", "hamlet", "neighbourhood", "isolated_dwelling"], ["==", "$type", "Point"]],
+        "filter": [
+          "all",
+          ["in", "class", "hamlet", "neighbourhood", "isolated_dwelling"],
+          ["==", "$type", "Point"]
+        ],
         "layout": {
           "text-anchor": "center",
           "text-field": "{name:latin}",
@@ -4415,7 +4907,11 @@ thay đổi.
         "source": "source",
         "source-layer": "place",
         "maxzoom": 14,
-        "filter": ["all", ["==", "$type", "Point"], ["all", ["==", "class", "city"], [">", "rank", 3]]],
+        "filter": [
+          "all",
+          ["==", "$type", "Point"],
+          ["all", ["==", "class", "city"], [">", "rank", 3]]
+        ],
         "layout": {
           "icon-size": 0.4,
           "text-anchor": {
@@ -4447,7 +4943,11 @@ thay đổi.
         "source": "source",
         "source-layer": "place",
         "maxzoom": 12,
-        "filter": ["all", ["==", "$type", "Point"], ["all", ["<=", "rank", 3], ["==", "class", "city"]]],
+        "filter": [
+          "all",
+          ["==", "$type", "Point"],
+          ["all", ["<=", "rank", 3], ["==", "class", "city"]]
+        ],
         "layout": {
           "icon-size": 0.4,
           "text-anchor": {
@@ -4500,7 +5000,12 @@ thay đổi.
         "source": "source",
         "source-layer": "place",
         "maxzoom": 8,
-        "filter": ["all", ["==", "$type", "Point"], ["==", "class", "country"], ["!has", "iso_a2"]],
+        "filter": [
+          "all",
+          ["==", "$type", "Point"],
+          ["==", "class", "country"],
+          ["!has", "iso_a2"]
+        ],
         "layout": {
           "text-field": "{name:latin}",
           "text-font": ["Metropolis Light Italic", "Noto Sans Italic"],
@@ -4533,7 +5038,13 @@ thay đổi.
         "source": "source",
         "source-layer": "place",
         "maxzoom": 8,
-        "filter": ["all", ["==", "$type", "Point"], ["==", "class", "country"], [">=", "rank", 2], ["has", "iso_a2"]],
+        "filter": [
+          "all",
+          ["==", "$type", "Point"],
+          ["==", "class", "country"],
+          [">=", "rank", 2],
+          ["has", "iso_a2"]
+        ],
         "layout": {
           "text-field": "{name:latin}",
           "text-font": ["Metropolis Regular", "Noto Sans Regular"],
@@ -4566,7 +5077,13 @@ thay đổi.
         "source": "source",
         "source-layer": "place",
         "maxzoom": 6,
-        "filter": ["all", ["==", "$type", "Point"], ["<=", "rank", 1], ["==", "class", "country"], ["has", "iso_a2"]],
+        "filter": [
+          "all",
+          ["==", "$type", "Point"],
+          ["<=", "rank", 1],
+          ["==", "class", "country"],
+          ["has", "iso_a2"]
+        ],
         "layout": {
           "text-anchor": "center",
           "text-field": "{name:latin}",
@@ -4601,7 +5118,11 @@ thay đổi.
         "source": "source",
         "source-layer": "place",
         "maxzoom": 6,
-        "filter": ["all", ["==", "$type", "Point"], ["==", "class", "continent"]],
+        "filter": [
+          "all",
+          ["==", "$type", "Point"],
+          ["==", "class", "continent"]
+        ],
         "layout": {
           "text-anchor": "center",
           "text-field": "{name:latin}",

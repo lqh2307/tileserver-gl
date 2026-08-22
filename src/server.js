@@ -1,8 +1,8 @@
 "use strict";
 
+import { jsonBodyMiddleware, loggerMiddleware } from "./middlewares/index.js";
 import { printLog, setupWSServer } from "./utils/index.js";
 import { setupPrimary } from "@socket.io/cluster-adapter";
-import { loggerMiddleware } from "./middlewares/index.js";
 import { setupMaster } from "@socket.io/sticky";
 import { Worker } from "node:worker_threads";
 import { config } from "./configs/index.js";
@@ -172,11 +172,7 @@ export async function startServer() {
             origin: "*",
           }),
         )
-        .use(
-          express.json({
-            limit: "500mb",
-          }),
-        )
+        .use(jsonBodyMiddleware())
         .use(loggerMiddleware());
 
       setupStaticFolders(app);

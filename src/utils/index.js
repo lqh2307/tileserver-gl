@@ -1,9 +1,10 @@
 "use strict";
 
+export * from "./singleflight.js";
 export * from "./concurrency.js";
-export * from "./transform.js";
 export * from "./prometheus.js";
 export * from "./postgresql.js";
+export * from "./transform.js";
 export * from "./handlebar.js";
 export * from "./debounce.js";
 export * from "./validate.js";

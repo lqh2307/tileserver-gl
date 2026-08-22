@@ -1,44 +1,57 @@
 "use strict";
 
 import { printLog, setMetrics } from "../utils/index.js";
+import express from "express";
+
+const jsonParser = express.json({
+  limit: "500mb",
+});
+
+/**
+ * Parse and limit JSON bodies for POST requests.
+ * @returns {express.RequestHandler} Middleware
+ */
+export function jsonBodyMiddleware() {
+  return (req, res, next) => {
+    if (req.method === "POST") {
+      jsonParser(req, res, next);
+    } else {
+      next();
+    }
+  };
+}
 
 /**
  * Logger middleware
  * @returns {void}
  */
 export function loggerMiddleware() {
-  return async (req, res, next) => {
-    const start = process.hrtime();
+  return (req, res, next) => {
+    const start = process.hrtime.bigint();
 
-    res.on("finish", () => {
-      const diff = process.hrtime(start);
-      const method = req.method || "-";
-      const protocol = req.protocol || "-";
-      const path = req.originalUrl || "-";
-      const statusCode = res.statusCode || "-";
-      const contentLength = res.get("content-length") || "-";
-      const duration = diff[0] * 1e3 + diff[1] / 1e6;
-      const origin = req.headers["origin"] || req.headers["referer"] || "-";
-      const ip = req.ip || "-";
-      const userID = req.headers["userid"] || "-";
-      const userAgent = req.headers["user-agent"] || "-";
+    res.once("finish", () => {
+      const duration = Number(process.hrtime.bigint() - start) / 1e6;
+      const method = req.method;
+      const routePath = req.route?.path;
+      const route =
+        typeof routePath === "string"
+          ? `${req.baseUrl || ""}${routePath}`
+          : routePath instanceof RegExp
+            ? routePath.toString()
+            : "unmatched";
+      const statusCode = res.statusCode;
+      const isTileRoute = route.includes(":z") && route.includes(":x");
 
-      printLog(
-        "info",
-        `${method} ${protocol} ${path} ${statusCode} ${duration} ${contentLength} ${origin} ${ip} ${userAgent}`,
-      );
+      if (!isTileRoute || statusCode >= 400) {
+        const contentLength = res.get("content-length") || "-";
 
-      setMetrics(
-        method,
-        protocol,
-        path,
-        statusCode,
-        origin,
-        ip,
-        userID,
-        userAgent,
-        duration,
-      );
+        printLog(
+          statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info",
+          `${method} ${req.originalUrl} ${statusCode} ${duration.toFixed(3)}ms ${contentLength}`,
+        );
+      }
+
+      setMetrics(method, route, statusCode, duration);
     });
 
     next();

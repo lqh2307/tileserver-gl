@@ -1,7 +1,7 @@
 {
   "name": "ms-tile-server",
   "description": "Vector/Raster tile server for serving/caching xyz/wmts tiles",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "license": "MIT",
   "author": "Huy Le <lqh23072000@gmail.com>",
   "keywords": [
@@ -15,7 +15,11 @@
   },
   "scripts": {
     "server": "./entrypoint.sh",
-    "lint": "eslint \"src/**/*.{json,js,ts,tsx,css}\" --fix",
+    "test": "node --test test/*.test.js",
+    "lint:check": "eslint \"src/**/*.js\"",
+    "check": "npm run lint:check && npm test",
+    "benchmark:batch": "node scripts/benchmark_batch.js",
+    "lint:fix": "eslint \"src/**/*.{json,js,ts,tsx,css}\" --fix",
     "format": "prettier --write \"src/**/*.{json,js,ts,tsx,css}\"",
     "newest": "npx npm-check-updates -u && npx json -I -f package.json -e \"if(this.dependencies){Object.keys(this.dependencies).forEach(k=>this.dependencies[k]=this.dependencies[k].replace(/^[~^]/,''))} if(this.devDependencies){Object.keys(this.devDependencies).forEach(k=>this.devDependencies[k]=this.devDependencies[k].replace(/^[~^]/,''))}\"",
     "prepare": "husky"
@@ -59,7 +63,7 @@
     "swagger-ui-express": "5.0.1"
   },
   "devDependencies": {
-    "eslint": "10.8.1",
+    "eslint": "10.9.0",
     "globals": "17.11.0",
     "husky": "9.1.7",
     "lint-staged": "17.3.0",

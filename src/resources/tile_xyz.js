@@ -1,10 +1,14 @@
 "use strict";
 
-import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
-import { maxValue, minValue } from "../utils/number.js";
+import { getVectorTileProto } from "./vector_tile.js";
+import { maxs, mins } from "../utils/number.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
-import protobuf from "protocol-buffers";
+import path from "node:path";
+import {
+  DEFAULT_QUERY_TIMEOUT,
+  DEFAULT_CONCURRENCY,
+} from "../defaults/index.js";
 import {
   FALLBACK_VECTOR_LAYERS,
   isFullTransparentImage,
@@ -16,6 +20,7 @@ import {
   getCenterFromBBox,
   getBBoxFromTiles,
   runAllWithLimit,
+  runSingleFlight,
   getDataFromURL,
   FALLBACK_BBOX,
   getTileBounds,
@@ -24,15 +29,34 @@ import {
   getFileSize,
   openSQLite,
   findFiles,
+  walkFiles,
   printLog,
 } from "../utils/index.js";
 
 const BATCH_SIZE = 1000;
+const NUMERIC_PATH_REGEX = /^\d+$/;
+const PBF_TILE_FILE_REGEX = /^\d+\.pbf$/;
+const TILE_FILE_REGEX = /^\d+\.(png|jpg|jpeg|webp|pbf)$/;
+const tileStatementCaches = new WeakMap();
 
 export const XYZ_INSERT_MD5_QUERY =
   "INSERT INTO md5s (zoom_level, tile_column, tile_row, hash, created) VALUES (?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET hash = excluded.hash, created = excluded.created;";
 export const XYZ_DELETE_MD5_QUERY =
   "DELETE FROM md5s WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;";
+
+function getTileStatement(source, name, query) {
+  let statements = tileStatementCaches.get(source);
+  if (!statements) {
+    statements = {};
+    tileStatementCaches.set(source, statements);
+  }
+
+  if (!statements[name]) {
+    statements[name] = source.prepare(query);
+  }
+
+  return statements[name];
+}
 
 /*********************************** XYZ *************************************/
 
@@ -42,29 +66,28 @@ export const XYZ_DELETE_MD5_QUERY =
  * @returns {Promise<[string, string, string, string]>}
  */
 async function getXYZLayersFromTiles(sourcePath) {
-  const vectorTileProto = protobuf(
-    await readFile("public/protos/vector_tile.proto"),
-  );
-
-  const pbfFilePaths = await findFiles(sourcePath, /^\d+\.pbf$/, true, true);
+  const vectorTileProto = await getVectorTileProto();
 
   const layerNames = new Set();
 
-  function* getLayerGenerator() {
-    for (const pbfFilePath of pbfFilePaths) {
+  async function* getLayerGenerator() {
+    for await (const pbfFilePath of walkFiles(
+      sourcePath,
+      PBF_TILE_FILE_REGEX,
+    )) {
       yield async () => {
-        vectorTileProto.tile
-          .decode(await readFile(pbfFilePath))
-          .layers.map((layer) => {
-            return layer.name;
-          })
-          .forEach(layerNames.add);
+        const { layers } = vectorTileProto.tile.decode(
+          await readFile(pbfFilePath),
+        );
+        for (const layer of layers) {
+          layerNames.add(layer.name);
+        }
       };
     }
   }
 
   // Batch run
-  await runAllWithLimit(getLayerGenerator(), BATCH_SIZE);
+  await runAllWithLimit(getLayerGenerator(), DEFAULT_CONCURRENCY);
 
   return Array.from(layerNames);
 }
@@ -75,21 +98,33 @@ async function getXYZLayersFromTiles(sourcePath) {
  * @returns {Promise<[number, number, number, number]>} Bounding box in format [minLon, minLat, maxLon, maxLat]
  */
 async function getXYZBBoxFromTiles(sourcePath) {
-  const zFolders = await findFiles(sourcePath, /^\d+$/, false, false, true);
+  const zFolders = await findFiles(
+    sourcePath,
+    NUMERIC_PATH_REGEX,
+    false,
+    false,
+    true,
+  );
   if (!zFolders.length) {
     return;
   }
 
-  const zMax = maxValue(zFolders.map(Number));
+  const zMax = maxs(zFolders.map(Number));
   const zPath = `${sourcePath}/${zMax}`;
 
-  const xFolders = await findFiles(zPath, /^\d+$/, false, false, true);
+  const xFolders = await findFiles(
+    zPath,
+    NUMERIC_PATH_REGEX,
+    false,
+    false,
+    true,
+  );
   if (!xFolders.length) {
     return;
   }
 
-  const xMin = minValue(xFolders.map(Number));
-  const xMax = maxValue(xFolders.map(Number));
+  const xMin = mins(xFolders.map(Number));
+  const xMax = maxs(xFolders.map(Number));
 
   let yMin;
   let yMax;
@@ -97,7 +132,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
   for (const xFolder of xFolders) {
     let yFiles = await findFiles(
       `${zPath}/${xFolder}`,
-      /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
+      TILE_FILE_REGEX,
       false,
       false,
     );
@@ -109,8 +144,8 @@ async function getXYZBBoxFromTiles(sourcePath) {
       return Number(f.split(".")[0]);
     });
 
-    const yMinLocal = minValue(ys);
-    const yMaxLocal = maxValue(ys);
+    const yMinLocal = mins(ys);
+    const yMaxLocal = maxs(ys);
 
     if (yMin === undefined || yMinLocal < yMin) {
       yMin = yMinLocal;
@@ -134,7 +169,13 @@ async function getXYZBBoxFromTiles(sourcePath) {
  * @returns {Promise<number>}
  */
 async function getXYZZoomLevelFromTiles(sourcePath, zoomType) {
-  const folders = await findFiles(sourcePath, /^\d+$/, false, false, true);
+  const folders = await findFiles(
+    sourcePath,
+    NUMERIC_PATH_REGEX,
+    false,
+    false,
+    true,
+  );
 
   const zooms = folders.map(Number);
   if (zooms.length) {
@@ -162,12 +203,18 @@ async function getXYZZoomLevelFromTiles(sourcePath, zoomType) {
  * @returns {Promise<string>}
  */
 export async function getXYZFormatFromTiles(sourcePath) {
-  const zFolders = await findFiles(sourcePath, /^\d+$/, false, false, true);
+  const zFolders = await findFiles(
+    sourcePath,
+    NUMERIC_PATH_REGEX,
+    false,
+    false,
+    true,
+  );
 
   for (const zFolder of zFolders) {
     const xFolders = await findFiles(
       `${sourcePath}/${zFolder}`,
-      /^\d+$/,
+      NUMERIC_PATH_REGEX,
       false,
       false,
       true,
@@ -176,7 +223,7 @@ export async function getXYZFormatFromTiles(sourcePath) {
     for (const xFolder of xFolders) {
       const yFiles = await findFiles(
         `${sourcePath}/${zFolder}/${xFolder}`,
-        /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
+        TILE_FILE_REGEX,
       );
       if (yFiles.length) {
         return yFiles[0].split(".")[1];
@@ -244,68 +291,66 @@ export function getXYZTileExtraInfo(options) {
  * @returns {Promise<void>}
  */
 export async function calculateXYZTileExtraInfo(sourcePath, source) {
-  const format = await getXYZFormatFromTiles(sourcePath);
-
-  const selectSQL = source.prepare(
-    `
-    SELECT
-      rowid, zoom_level, tile_column, tile_row
-    FROM
-      md5s
-    WHERE
-      rowid > ?
-    ORDER BY
-      rowid
-    LIMIT
-      ${BATCH_SIZE};
-    `,
-  );
-  const updateSQL = source.prepare(
-    `
-    UPDATE
-      md5s
-    SET
-      hash = ?,
-      created = ?
-    WHERE
-      zoom_level = ? AND tile_column = ? AND tile_row = ?;
-    `,
-  );
-
-  let lastRowID = 0;
-
   const created = Date.now();
 
-  while (true) {
-    const rows = selectSQL.all([lastRowID]);
+  const upsertSQL = source.prepare(XYZ_INSERT_MD5_QUERY);
+  const upsertRows = source.transaction((updates) => {
+    updates.forEach((update) => {
+      upsertSQL.run(update);
+    });
+  });
 
-    const len = rows.length;
-    if (!len) {
-      break;
-    }
+  async function processBatch(filePaths) {
+    const updates = Array(filePaths.length);
 
-    await Promise.all(
-      rows.map(async (row) => {
-        const data = await getXYZTile(
-          sourcePath,
-          row.zoom_level,
-          row.tile_column,
-          row.tile_row,
-          format,
-        );
+    await runAllWithLimit(
+      filePaths.map((filePath, index) => {
+        return async () => {
+          const relativeParts = path
+            .relative(sourcePath, filePath)
+            .split(path.sep);
+          const z = Number(relativeParts[0]);
+          const x = Number(relativeParts[1]);
+          const y = Number.parseInt(relativeParts[2], 10);
+          const data = await readFile(filePath);
 
-        updateSQL.run([
-          calculateMD5(data),
-          created,
-          row.zoom_level,
-          row.tile_column,
-          row.tile_row,
-        ]);
+          updates[index] = [z, x, y, calculateMD5(data), created];
+        };
       }),
+      DEFAULT_CONCURRENCY,
     );
 
-    lastRowID = rows[len - 1].rowid;
+    upsertRows(updates);
   }
+
+  let filePaths = [];
+  for await (const filePath of walkFiles(sourcePath, TILE_FILE_REGEX)) {
+    const relativePath = path.relative(sourcePath, filePath).split(path.sep);
+    if (
+      relativePath.length !== 3 ||
+      relativePath.some((part, index) => {
+        return index < 2 && !NUMERIC_PATH_REGEX.test(part);
+      })
+    ) {
+      continue;
+    }
+
+    filePaths.push(filePath);
+
+    if (filePaths.length >= BATCH_SIZE) {
+      await processBatch(filePaths);
+
+      filePaths = [];
+    }
+  }
+
+  if (filePaths.length) {
+    await processBatch(filePaths);
+  }
+
+  source
+    .prepare("DELETE FROM md5s WHERE created IS NULL OR created != ?;")
+    .run(created);
 }
 
 /**
@@ -325,7 +370,11 @@ export async function removeXYZTile(z, x, y, option) {
   if (option.statement) {
     option.statement.run([z, x, y]);
   } else {
-    option.source.prepare(XYZ_DELETE_MD5_QUERY).run([z, x, y]);
+    getTileStatement(option.source, "delete", XYZ_DELETE_MD5_QUERY).run([
+      z,
+      x,
+      y,
+    ]);
   }
 }
 
@@ -619,7 +668,7 @@ export function updateXYZMetadata(source, metadataAdds) {
 
   openSQLiteTransaction(source);
 
-  Object.entries(metadataAdds).map(([name, value]) => {
+  for (const [name, value] of Object.entries(metadataAdds)) {
     if (name === "center" || name === "bounds") {
       insertSQL.run([name, value.join(",")]);
     } else {
@@ -628,7 +677,7 @@ export function updateXYZMetadata(source, metadataAdds) {
         typeof value === "object" ? JSON.stringify(value) : value,
       ]);
     }
-  });
+  }
 
   insertSQL.run(["scheme", "tms"]);
 
@@ -650,20 +699,24 @@ export async function storeXYZTileFile(z, x, y, data, option) {
     (await isFullTransparentImage(data))
   ) {
     return;
-  } else {
-    await createFileWithLock(
-      `${option.sourcePath}/${z}/${x}/${y}.${option.format}`,
-      data,
-      DEFAULT_QUERY_TIMEOUT,
-    );
+  }
 
-    if (option.statement) {
-      option.statement.run([z, x, y, calculateMD5(data), option.created]);
-    } else {
-      option.source
-        .prepare(XYZ_INSERT_MD5_QUERY)
-        .run([z, x, y, calculateMD5(data), Date.now()]);
-    }
+  await createFileWithLock(
+    `${option.sourcePath}/${z}/${x}/${y}.${option.format}`,
+    data,
+    DEFAULT_QUERY_TIMEOUT,
+  );
+
+  if (option.statement) {
+    option.statement.run([z, x, y, calculateMD5(data), option.created]);
+  } else {
+    getTileStatement(option.source, "insert", XYZ_INSERT_MD5_QUERY).run([
+      z,
+      x,
+      y,
+      calculateMD5(data),
+      Date.now(),
+    ]);
   }
 }
 
@@ -673,14 +726,13 @@ export async function storeXYZTileFile(z, x, y, data, option) {
  * @returns {Promise<number>}
  */
 export async function countXYZTiles(sourcePath) {
-  const fileNames = await findFiles(
-    sourcePath,
-    /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
-    true,
-    false,
-  );
+  let count = 0;
 
-  return fileNames.length;
+  for await (const _fileName of walkFiles(sourcePath, TILE_FILE_REGEX)) {
+    count += 1;
+  }
+
+  return count;
 }
 
 /**
@@ -689,18 +741,18 @@ export async function countXYZTiles(sourcePath) {
  * @returns {Promise<number>}
  */
 export async function getXYZSize(sourcePath) {
-  const fileNames = await findFiles(
-    sourcePath,
-    /^\d+\.(png|jpg|jpeg|webp|pbf)$/,
-    true,
-    true,
-  );
-
   let size = 0;
 
-  for (const fileName of fileNames) {
-    size += await getFileSize(fileName);
+  async function* getSizeGenerator() {
+    for await (const fileName of walkFiles(sourcePath, TILE_FILE_REGEX)) {
+      yield async () => {
+        const fileSize = await getFileSize(fileName);
+        size += fileSize;
+      };
+    }
   }
+
+  await runAllWithLimit(getSizeGenerator(), DEFAULT_CONCURRENCY);
 
   return size;
 }
@@ -732,41 +784,41 @@ export async function getAndCacheXYZTileData(id, z, x, y) {
         .replace("{x}", `${x}`)
         .replace("{y}", `${tmpY}`);
 
-      printLog(
-        "info",
-        `Forwarding data id "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
-      );
+      return runSingleFlight(`xyz:${id}:${tileName}`, async () => {
+        printLog(
+          "info",
+          `Forwarding data id "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
+        );
 
-      /* Get data */
-      const data = await getDataFromURL(targetURL, {
-        method: "GET",
-        responseType: "arraybuffer",
-        timeout: DEFAULT_QUERY_TIMEOUT,
-        headers: item.headers,
-        decompress: false,
-      });
-
-      /* Cache */
-      if (item.storeCache) {
-        printLog("info", `Caching data id "${id}" - Tile "${tileName}"...`);
-
-        storeXYZTileFile(z, x, tmpY, data, {
-          source: item.md5Source,
-          sourcePath: item.source,
-          format: item.tileJSON.format,
-          storeTransparent: item.storeTransparent,
-        }).catch((error) => {
-          return printLog(
-            "error",
-            `Failed to cache data id "${id}" - Tile "${tileName}": ${error}`,
-          );
+        const data = await getDataFromURL(targetURL, {
+          method: "GET",
+          responseType: "arraybuffer",
+          timeout: DEFAULT_QUERY_TIMEOUT,
+          headers: item.headers,
+          decompress: false,
         });
-      }
 
-      return {
-        data,
-        headers: detectFormatAndHeaders(data).headers,
-      };
+        if (item.storeCache) {
+          try {
+            await storeXYZTileFile(z, x, y, data, {
+              source: item.md5Source,
+              sourcePath: item.source,
+              format: item.tileJSON.format,
+              storeTransparent: item.storeTransparent,
+            });
+          } catch (cacheError) {
+            printLog(
+              "error",
+              `Failed to cache data id "${id}" - Tile "${tileName}": ${cacheError}`,
+            );
+          }
+        }
+
+        return {
+          data,
+          headers: detectFormatAndHeaders(data).headers,
+        };
+      });
     }
 
     throw error;

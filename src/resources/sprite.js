@@ -45,8 +45,8 @@ export async function storeSpriteFile(filePath, data) {
  * @param {string} spriteDirPath Sprite dir path to get
  * @returns {Promise<number>}
  */
-export async function getSpriteCreated(spriteDirPath) {
-  return await getFileCreated(spriteDirPath);
+export function getSpriteCreated(spriteDirPath) {
+  return getFileCreated(spriteDirPath);
 }
 
 /**
@@ -54,8 +54,8 @@ export async function getSpriteCreated(spriteDirPath) {
  * @param {string} spriteDirPath Sprite dir path to get
  * @returns {Promise<string>}
  */
-export async function getSpriteMD5(spriteDirPath) {
-  return await calculateMD5OfFiles([
+export function getSpriteMD5(spriteDirPath) {
+  return calculateMD5OfFiles([
     `${spriteDirPath}/sprite.json`,
     `${spriteDirPath}/sprite.png`,
     `${spriteDirPath}/sprite@2x.json`,

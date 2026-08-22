@@ -18,6 +18,8 @@ proj4.defs(
   "+proj=utm +zone=49 +ellps=WGS84 +towgs84=-191.90441429,-39.30318279,-111.45032835,-0.00928836,0.01975479,-0.00427372,0.252906278 +units=m +no_defs +type=crs",
 );
 
+export const TOTAL_DEGREES = 360;
+
 /** Maximum longitude in degrees for EPSG:4326 normalization. */
 export const MAX_LON = 180;
 /** Maximum latitude in degrees for EPSG:4326 normalization. */
@@ -76,7 +78,7 @@ export function lonLat4326ToXY3857(lon, lat) {
     Math.log(
       Math.tan(
         (Math.PI * (limitValue(lat, -MAX_CAL_LAT, MAX_CAL_LAT) + MAX_LAT)) /
-          (2 * MAX_LON),
+          TOTAL_DEGREES,
       ),
     ) * SPHERICAL_RADIUS,
   ];
@@ -139,13 +141,13 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme) {
 
   const maxTile = 1 << z;
 
-  let x = (0.5 + limitValue(lon, -MAX_LON, MAX_LON) / (2 * MAX_LON)) * maxTile;
+  let x = (0.5 + limitValue(lon, -MAX_LON, MAX_LON) / TOTAL_DEGREES) * maxTile;
   let y =
     (0.5 -
       Math.log(
         Math.tan(
           (Math.PI * (limitValue(lat, -MAX_CAL_LAT, MAX_CAL_LAT) + MAX_LAT)) /
-            (2 * MAX_LON),
+            TOTAL_DEGREES,
         ),
       ) /
         (2 * Math.PI)) *
@@ -244,10 +246,10 @@ export function getLonLatFromXYZ(x, y, z, position, scheme) {
   }
 
   const result = [
-    2 * MAX_LON * (x / maxTile - 0.5),
-    (2 * MAX_LON * Math.atan(Math.exp(Math.PI * (1 - (2 * y) / maxTile)))) /
+    TOTAL_DEGREES * (x / maxTile - 0.5),
+    (TOTAL_DEGREES * Math.atan(Math.exp(Math.PI * (1 - (2 * y) / maxTile)))) /
       Math.PI -
-      90,
+      MAX_LAT,
   ];
 
   return objectInput
@@ -837,7 +839,7 @@ export function getBBoxFromCircle(center, radius) {
  * @param {[number, number][]} points Array of points in the format [lon, lat]
  * @returns {[number, number, number, number]} Bounding box in the format [minLon, minLat, maxLon, maxLat]
  */
-export function getBBoxFromPoint(points) {
+export function getBBoxFromPoints(points) {
   let bbox;
 
   if (points.length) {
@@ -869,9 +871,6 @@ export function getBBoxFromPoint(points) {
 
   return bbox;
 }
-
-/** Maputnik-compatible plural alias. */
-export const getBBoxFromPoints = getBBoxFromPoint;
 
 /**
  * Get center from bbox

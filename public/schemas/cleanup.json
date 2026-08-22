@@ -191,6 +191,11 @@
           "concurrency": {
             "type": "integer",
             "minimum": 1
+          },
+          "batch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
           }
         }
       }

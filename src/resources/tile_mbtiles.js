@@ -1,10 +1,9 @@
 "use strict";
 
 import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
+import { getVectorTileProto } from "./vector_tile.js";
 import { limitValue } from "../utils/number.js";
 import { config } from "../configs/index.js";
-import { readFile } from "node:fs/promises";
-import protobuf from "protocol-buffers";
 import {
   FALLBACK_VECTOR_LAYERS,
   isFullTransparentImage,
@@ -14,6 +13,7 @@ import {
   calculateMD5OfFile,
   getCenterFromBBox,
   getBBoxFromTiles,
+  runSingleFlight,
   getDataFromURL,
   FALLBACK_BBOX,
   getTileBounds,
@@ -27,6 +27,7 @@ import {
 } from "../utils/index.js";
 
 const BATCH_SIZE = 1000;
+const tileStatementCaches = new WeakMap();
 
 export const MBTILES_INSERT_TILE_QUERY =
   "INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;";
@@ -34,6 +35,20 @@ const MBTILES_SELECT_TILE_QUERY =
   "SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;";
 export const MBTILES_DELETE_TILE_QUERY =
   "DELETE FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;";
+
+function getTileStatement(source, name, query) {
+  let statements = tileStatementCaches.get(source);
+  if (!statements) {
+    statements = {};
+    tileStatementCaches.set(source, statements);
+  }
+
+  if (!statements[name]) {
+    statements[name] = source.prepare(query);
+  }
+
+  return statements[name];
+}
 
 /*********************************** MBTiles *************************************/
 
@@ -43,9 +58,7 @@ export const MBTILES_DELETE_TILE_QUERY =
  * @returns {Promise<[string, string, string, string]>}
  */
 async function getMBTilesLayersFromTiles(source) {
-  const vectorTileProto = protobuf(
-    await readFile("public/protos/vector_tile.proto"),
-  );
+  const vectorTileProto = await getVectorTileProto();
 
   const layerNames = new Set();
 
@@ -74,14 +87,12 @@ async function getMBTilesLayersFromTiles(source) {
       break;
     }
 
-    rows.forEach((row) => {
-      return vectorTileProto.tile
-        .decode(row.tile_data)
-        .layers.map((layer) => {
-          return layer.name;
-        })
-        .forEach(layerNames.add);
-    });
+    for (const row of rows) {
+      const { layers } = vectorTileProto.tile.decode(row.tile_data);
+      for (const layer of layers) {
+        layerNames.add(layer.name);
+      }
+    }
 
     lastRowID = rows[len - 1].rowid;
   }
@@ -241,6 +252,17 @@ export function calculateMBTilesTileExtraInfo(source) {
       zoom_level = ? AND tile_column = ? AND tile_row = ?;
     `,
   );
+  const updateRows = source.transaction((rows, created) => {
+    rows.forEach((row) => {
+      updateSQL.run([
+        calculateMD5(row.tile_data),
+        created,
+        row.zoom_level,
+        row.tile_column,
+        row.tile_row,
+      ]);
+    });
+  });
 
   let lastRowID = 0;
 
@@ -254,15 +276,7 @@ export function calculateMBTilesTileExtraInfo(source) {
       break;
     }
 
-    rows.forEach((row) => {
-      return updateSQL.run([
-        calculateMD5(row.tile_data),
-        created,
-        row.zoom_level,
-        row.tile_column,
-        row.tile_row,
-      ]);
-    });
+    updateRows(rows, created);
 
     lastRowID = rows[len - 1].rowid;
   }
@@ -280,9 +294,11 @@ export function removeMBTilesTile(z, x, y, option) {
   if (option.statement) {
     option.statement.run([z, x, (1 << z) - 1 - y]);
   } else {
-    option.source
-      .prepare(MBTILES_DELETE_TILE_QUERY)
-      .run([z, x, (1 << z) - 1 - y]);
+    getTileStatement(option.source, "delete", MBTILES_DELETE_TILE_QUERY).run([
+      z,
+      x,
+      (1 << z) - 1 - y,
+    ]);
   }
 }
 
@@ -368,9 +384,11 @@ export async function openMBTilesDB(filePath, isCreate, timeout) {
  * @returns {Promise<{ data: Buffer, headers: { [key: string]: string } }>}
  */
 export function getMBTilesTile(source, z, x, y) {
-  const data = source
-    .prepare(MBTILES_SELECT_TILE_QUERY)
-    .get([z, x, (1 << z) - 1 - y]);
+  const data = getTileStatement(
+    source,
+    "select",
+    MBTILES_SELECT_TILE_QUERY,
+  ).get([z, x, (1 << z) - 1 - y]);
 
   if (!data?.tile_data) {
     throw new Error("Not Found");
@@ -573,7 +591,7 @@ export function updateMBTilesMetadata(source, metadataAdds) {
 
   openSQLiteTransaction(source);
 
-  Object.entries(metadataAdds).map(([name, value]) => {
+  for (const [name, value] of Object.entries(metadataAdds)) {
     if (name === "center" || name === "bounds") {
       insertSQL.run([name, value.join(",")]);
     } else {
@@ -582,7 +600,7 @@ export function updateMBTilesMetadata(source, metadataAdds) {
         typeof value === "object" ? JSON.stringify(value) : value,
       ]);
     }
-  });
+  }
 
   insertSQL.run(["scheme", "tms"]);
 
@@ -604,21 +622,26 @@ export async function storeMBtilesTileData(z, x, y, data, option) {
     (await isFullTransparentImage(data))
   ) {
     return;
+  }
+
+  if (option.statement) {
+    option.statement.run([
+      z,
+      x,
+      (1 << z) - 1 - y,
+      data,
+      calculateMD5(data),
+      option.created,
+    ]);
   } else {
-    if (option.statement) {
-      option.statement.run([
-        z,
-        x,
-        (1 << z) - 1 - y,
-        data,
-        calculateMD5(data),
-        option.created,
-      ]);
-    } else {
-      option.source
-        .prepare(MBTILES_INSERT_TILE_QUERY)
-        .run([z, x, (1 << z) - 1 - y, data, calculateMD5(data), Date.now()]);
-    }
+    getTileStatement(option.source, "insert", MBTILES_INSERT_TILE_QUERY).run([
+      z,
+      x,
+      (1 << z) - 1 - y,
+      data,
+      calculateMD5(data),
+      Date.now(),
+    ]);
   }
 }
 
@@ -630,11 +653,13 @@ export async function storeMBtilesTileData(z, x, y, data, option) {
 export async function countMBTilesTiles(filePath) {
   const source = await openSQLite(filePath, false, DEFAULT_QUERY_TIMEOUT);
 
-  const data = source.prepare("SELECT COUNT(*) AS count FROM tiles;").get();
+  try {
+    const data = source.prepare("SELECT COUNT(*) AS count FROM tiles;").get();
 
-  closeSQLite(source);
-
-  return data?.count;
+    return data?.count;
+  } finally {
+    closeSQLite(source);
+  }
 }
 
 /**
@@ -642,8 +667,8 @@ export async function countMBTilesTiles(filePath) {
  * @param {string} filePath MBTiles filepath
  * @returns {Promise<number>}
  */
-export async function getMBTilesSize(filePath) {
-  return await getFileSize(filePath);
+export function getMBTilesSize(filePath) {
+  return getFileSize(filePath);
 }
 
 /**
@@ -673,39 +698,39 @@ export async function getAndCacheMBTilesTileData(id, z, x, y) {
         .replace("{x}", `${x}`)
         .replace("{y}", `${tmpY}`);
 
-      printLog(
-        "info",
-        `Forwarding data id "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
-      );
+      return runSingleFlight(`mbtiles:${id}:${tileName}`, async () => {
+        printLog(
+          "info",
+          `Forwarding data id "${id}" - Tile "${tileName}" - To "${targetURL}"...`,
+        );
 
-      /* Get data */
-      const data = await getDataFromURL(targetURL, {
-        method: "GET",
-        responseType: "arraybuffer",
-        timeout: DEFAULT_QUERY_TIMEOUT,
-        headers: item.headers,
-        decompress: false,
-      });
-
-      /* Cache */
-      if (item.storeCache) {
-        printLog("info", `Caching data id "${id}" - Tile "${tileName}"...`);
-
-        storeMBtilesTileData(z, x, tmpY, data, {
-          source: item.source,
-          storeTransparent: item.storeTransparent,
-        }).catch((error) => {
-          return printLog(
-            "error",
-            `Failed to cache data id "${id}" - Tile "${tileName}": ${error}`,
-          );
+        const data = await getDataFromURL(targetURL, {
+          method: "GET",
+          responseType: "arraybuffer",
+          timeout: DEFAULT_QUERY_TIMEOUT,
+          headers: item.headers,
+          decompress: false,
         });
-      }
 
-      return {
-        data,
-        headers: detectFormatAndHeaders(data).headers,
-      };
+        if (item.storeCache) {
+          try {
+            await storeMBtilesTileData(z, x, y, data, {
+              source: item.source,
+              storeTransparent: item.storeTransparent,
+            });
+          } catch (cacheError) {
+            printLog(
+              "error",
+              `Failed to cache data id "${id}" - Tile "${tileName}": ${cacheError}`,
+            );
+          }
+        }
+
+        return {
+          data,
+          headers: detectFormatAndHeaders(data).headers,
+        };
+      });
     }
 
     throw error;
@@ -717,6 +742,6 @@ export async function getAndCacheMBTilesTileData(id, z, x, y) {
  * @param {string} filePath MBTiles file path to get
  * @returns {Promise<string>}
  */
-export async function getMBTilesMD5(filePath) {
-  return await calculateMD5OfFile(filePath);
+export function getMBTilesMD5(filePath) {
+  return calculateMD5OfFile(filePath);
 }

@@ -5,6 +5,8 @@ import { spawn } from "node:child_process";
 import { printLog } from "./logger.js";
 import mime from "mime";
 
+let versionPromise;
+
 /**
  * Delay execution for a number of milliseconds.
  * @param {number} ms Delay time in milliseconds (>= 0)
@@ -49,8 +51,20 @@ export async function retry(fn, maxTry, after = 0) {
  * Get version of server
  * @returns {Promise<string>}
  */
-export async function getVersion() {
-  return JSON.parse(await readFile("package.json", "utf8")).version;
+export function getVersion() {
+  if (!versionPromise) {
+    versionPromise = readFile("package.json", "utf8")
+      .then(JSON.parse)
+      .then((packageJSON) => {
+        return packageJSON.version;
+      });
+
+    versionPromise.catch(() => {
+      versionPromise = undefined;
+    });
+  }
+
+  return versionPromise;
 }
 
 /**

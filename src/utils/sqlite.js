@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { mkdir } from "node:fs/promises";
 import Database from "better-sqlite3";
 import { delay } from "./util.js";
@@ -12,7 +13,11 @@ import path from "node:path";
  * @param {number} timeout Timeout in milliseconds
  * @returns {Promise<Database>} SQLite database instance
  */
-export async function openSQLite(filePath, isCreate, timeout) {
+export async function openSQLite(
+  filePath,
+  isCreate,
+  timeout = DEFAULT_QUERY_TIMEOUT,
+) {
   if (isCreate) {
     await mkdir(path.dirname(filePath), {
       recursive: true,
@@ -27,23 +32,32 @@ export async function openSQLite(filePath, isCreate, timeout) {
     try {
       source = new Database(filePath, {
         fileMustExist: !isCreate,
+        readonly: !isCreate,
         timeout,
       });
 
-      source.exec("PRAGMA synchronous = NORMAL;"); // Set synchronous mode
-      source.exec("PRAGMA journal_mode = TRUNCATE;"); // Set truncate mode
-      source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
+      if (isCreate) {
+        // Rollback journal is compatible with a shared NFS volume. WAL relies
+        // on shared-memory files and is unsafe when different hosts open the DB.
+        source.exec("PRAGMA synchronous = NORMAL;"); // Set synchronous mode
+        source.exec("PRAGMA journal_mode = TRUNCATE;"); // Set truncate mode
+        source.exec("PRAGMA mmap_size = 0;"); // Disable memory mapping
+      } else {
+        source.pragma("query_only = ON");
+      }
+
       source.exec("PRAGMA foreign_keys = OFF;"); // Disable foreign keys
 
       return source;
     } catch (error) {
+      if (source) {
+        source.close();
+        source = undefined;
+      }
+
       if (error.code === "SQLITE_BUSY") {
         await delay(5);
       } else {
-        if (source) {
-          source.close();
-        }
-
         throw error;
       }
     }

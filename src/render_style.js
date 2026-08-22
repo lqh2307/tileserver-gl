@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import path from "node:path";
 import {
   DEFAULT_STORE_TRANSPARENT,
+  DEFAULT_TILE_BATCH_SIZE,
   DEFAULT_QUERY_TIMEOUT,
   DEFAULT_CONCURRENCY,
 } from "./defaults/index.js";
@@ -40,6 +41,7 @@ import {
 } from "./resources/index.js";
 import {
   detectFormatAndHeaders,
+  getTileBoundsBatches,
   FALLBACK_TILE_DATA,
   lonLat4326ToXY3857,
   xy3857ToLonLat4326,
@@ -609,7 +611,7 @@ export async function renderStyleJSON(option) {
 
 /**
  * Render tile datas
- * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", storePath: string, metadata: { [key: string]: any }, maxRendererPoolSize?: number, concurrency?: number, storeTransparent?: boolean, tileScale?: number, tileSize?: 256|512, refreshBefore?: string|number|boolean }} options Options
+ * @param {{ id: string, storeType: "mbtiles"|"xyz"|"pg", storePath: string, metadata: { [key: string]: any }, maxRendererPoolSize?: number, concurrency?: number, batch?: number, storeTransparent?: boolean, tileScale?: number, tileSize?: 256|512, refreshBefore?: string|number|boolean }} options Options
  * @returns {Promise<void>}
  */
 export async function renderTileDatas({
@@ -619,6 +621,7 @@ export async function renderTileDatas({
   metadata,
   maxRendererPoolSize,
   concurrency = DEFAULT_CONCURRENCY,
+  batch = DEFAULT_TILE_BATCH_SIZE,
   storeTransparent = DEFAULT_STORE_TRANSPARENT,
   tileScale = 1,
   tileSize = 256,
@@ -632,7 +635,7 @@ export async function renderTileDatas({
 
   try {
     /* Calculate summary */
-    const { targetCoverages, realBBox, total, tileBounds } = getTileBounds({
+    const { realBBox, total, tileBounds } = getTileBounds({
       bbox: metadata.bounds,
       minZoom: metadata.minzoom,
       maxZoom: metadata.maxzoom,
@@ -641,7 +644,7 @@ export async function renderTileDatas({
     let log = `Rendering ${total} tiles of style id "${id}" to ${storeType} with:`;
     log += `\n\tStore path: ${storePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency}`;
+    log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency} - Batch: ${batch}`;
     log += `\n\tFormat: ${metadata.format} - Tile scale: ${tileScale} - Tile size: ${tileSize}`;
     log += `\n\tBBox: ${JSON.stringify(metadata.bounds)}- Minzoom: ${metadata.minzoom} - Maxzoom: ${metadata.maxzoom}`;
 
@@ -664,7 +667,7 @@ export async function renderTileDatas({
 
     printLog("info", log);
 
-    let tileExtraInfo = {};
+    let getTileExtraInfoFunc;
     let storeTileDataFunc;
     let tileOption;
 
@@ -713,25 +716,13 @@ export async function renderTileDatas({
 
         updateMBTilesMetadata(source, newMetadata);
 
-        /* Get tile extra info */
-        if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${storePath}"...`);
-
-            tileExtraInfo = getMBTilesTileExtraInfo({
-              source,
-              coverages: targetCoverages,
-              isCreated: refreshTimestamp === true,
-            });
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${storePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds) => {
+          return getMBTilesTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated: refreshTimestamp === true,
+          });
+        };
 
         /* Assign tile option */
         tileOption = {
@@ -769,28 +760,17 @@ export async function renderTileDatas({
 
         await updatePostgreSQLMetadata(source, newMetadata);
 
-        /* Get tile extra info */
-        if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${storePath}"...`);
-
-            tileExtraInfo = await getPostgreSQLTileExtraInfo({
-              source,
-              coverages: targetCoverages,
-              isCreated: refreshTimestamp === true,
-            });
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${storePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds) => {
+          return await getPostgreSQLTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated: refreshTimestamp === true,
+          });
+        };
 
         /* Assign tile option */
         tileOption = {
+          source,
           created: Date.now(),
           storeTransparent,
           pool,
@@ -830,25 +810,13 @@ export async function renderTileDatas({
 
         updateXYZMetadata(source, newMetadata);
 
-        /* Get tile extra info */
-        if (refreshTimestamp) {
-          try {
-            printLog("info", `Get tile extra info from "${sqliteFilePath}"...`);
-
-            tileExtraInfo = getXYZTileExtraInfo({
-              source,
-              coverages: targetCoverages,
-              isCreated: refreshTimestamp === true,
-            });
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to get tile extra info from "${sqliteFilePath}": ${error}`,
-            );
-
-            tileExtraInfo = {};
-          }
-        }
+        getTileExtraInfoFunc = async (batchTileBounds) => {
+          return getXYZTileExtraInfo({
+            source,
+            tileBounds: batchTileBounds,
+            isCreated: refreshTimestamp === true,
+          });
+        };
 
         /* Assign tile option */
         tileOption = {
@@ -878,10 +846,10 @@ export async function renderTileDatas({
     }
 
     /* Render and store tile data generator */
-    function* renderAndStoreTileDataGenerator() {
-      let completeTasks = 0;
+    let completeTasks = 0;
 
-      for (const { z, x, y } of tileBounds) {
+    function* renderAndStoreTileDataGenerator(batchTileBounds, tileExtraInfo) {
+      for (const { z, x, y } of batchTileBounds) {
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
@@ -956,7 +924,42 @@ export async function renderTileDatas({
     /* Render and store tile datas */
     printLog("info", "Rendering and storing tile datas...");
 
-    await runAllWithLimit(renderAndStoreTileDataGenerator(), concurrency, item);
+    let batchNumber = 0;
+
+    for (const batchTileBounds of getTileBoundsBatches(tileBounds, batch)) {
+      if (!item.export) {
+        break;
+      }
+
+      batchNumber++;
+
+      let tileExtraInfo = {};
+      const batchTotal = batchTileBounds.reduce((sum, tileBound) => {
+        return sum + tileBound.total;
+      }, 0);
+
+      if (refreshTimestamp) {
+        try {
+          printLog(
+            "info",
+            `Getting render tile extra info for batch #${batchNumber} (${batchTotal} tiles)...`,
+          );
+
+          tileExtraInfo = await getTileExtraInfoFunc(batchTileBounds);
+        } catch (error) {
+          printLog(
+            "error",
+            `Failed to get render tile extra info for batch #${batchNumber}: ${error}`,
+          );
+        }
+      }
+
+      await runAllWithLimit(
+        renderAndStoreTileDataGenerator(batchTileBounds, tileExtraInfo),
+        concurrency,
+        item,
+      );
+    }
 
     printLog(
       "info",
@@ -974,7 +977,8 @@ export async function renderTileDatas({
   } finally {
     /* Destroy renderer pool */
     if (pool) {
-      pool.drain().then(pool.clear);
+      await pool.drain();
+      await pool.clear();
     }
 
     /* Close database */

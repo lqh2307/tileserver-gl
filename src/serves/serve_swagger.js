@@ -25,8 +25,7 @@ const tagDescriptions = {
   Sprite: "Sprite catalogs, JSON/PNG sprite sheets, and checksums.",
   Style:
     "MapLibre StyleJSON documents, WMTS capabilities, checksums, and style viewers.",
-  Summary:
-    "Runtime summaries for configured services, seed jobs, and cleanup jobs.",
+  Summary: "Runtime summaries for configured services and seed jobs.",
   Task: "Start or cancel background seed and cleanup tasks.",
 };
 
@@ -57,6 +56,17 @@ const operationDescriptions = {
     "Starts asynchronous rendering of every tile covered by the supplied style metadata.",
   "POST /renders/stylejson":
     "Renders a static image from an inline StyleJSON object or a configured style ID.",
+};
+
+const METHODS = new Set(["delete", "get", "patch", "post", "put"]);
+
+const swaggerUIOptions = {
+  customSiteTitle: "Tile Server API",
+  swaggerOptions: {
+    displayRequestDuration: true,
+    filter: true,
+    persistAuthorization: true,
+  },
 };
 
 const schemas = {
@@ -99,7 +109,7 @@ Important behavior:
 - A \`201\` export/render response acknowledges an asynchronous job; monitor logs or summaries for completion.
 - A \`204\` tile response means no tile content is available.
 - List and extra-info endpoints support gzip where the \`compression\` query parameter is documented.
-- When deployed behind a reverse proxy, forward \`X-Forwarded-Proto\`, \`X-Forwarded-Host\`, and \`X-Forwarded-Prefix\` so Try it out uses the public URL. The \`proxy\` query parameter has highest priority.`,
+- When deployed behind a reverse proxy, forward \`X-Forwarded-Proto\`, \`X-Forwarded-Host\`, and \`X-Forwarded-Prefix\` so Try it out uses the public URL. The \`referer\` query parameter has highest priority.`,
     },
     tags,
     components: {
@@ -111,7 +121,7 @@ Important behavior:
 
 for (const [path, pathItem] of Object.entries(swaggerDocument.paths || {})) {
   for (const [method, operation] of Object.entries(pathItem)) {
-    if (!["delete", "get", "patch", "post", "put"].includes(method)) {
+    if (!METHODS.has(method)) {
       continue;
     }
 
@@ -143,25 +153,43 @@ for (const [path, pathItem] of Object.entries(swaggerDocument.paths || {})) {
  * @returns {any} Swagger response
  */
 function serveSwagger(req, res, next) {
-  return swaggerUi.setup(
-    {
-      ...swaggerDocument,
-      servers: [
-        {
-          url: getRequestHost(req),
-          description: "Tile Server",
-        },
-      ],
-    },
-    {
-      customSiteTitle: "Tile Server API",
-      swaggerOptions: {
-        displayRequestDuration: true,
-        filter: true,
-        persistAuthorization: true,
+  const isInitializer = req.path.endsWith("/swagger-ui-init.js");
+  const isPage = req.path === "/" || req.path === "";
+  if (!isInitializer && !isPage) {
+    return next();
+  }
+
+  const requestDocument = {
+    ...swaggerDocument,
+    servers: [
+      {
+        url: getRequestHost(req),
+        description: "Tile Server",
       },
-    },
-  )(req, res, next);
+    ],
+  };
+
+  if (isInitializer) {
+    const [serveInitializer] = swaggerUi.serveFiles(
+      requestDocument,
+      swaggerUIOptions,
+    );
+
+    return serveInitializer(req, res, next);
+  }
+
+  if (isPage) {
+    let html = swaggerUi.generateHTML(requestDocument, swaggerUIOptions);
+
+    if (req.query.referer) {
+      html = html.replace(
+        "./swagger-ui-init.js",
+        `./swagger-ui-init.js?referer=${encodeURIComponent(req.query.referer)}`,
+      );
+    }
+
+    return res.send(html);
+  }
 }
 
 /**
@@ -171,7 +199,10 @@ function serveSwagger(req, res, next) {
  * @returns {void}
  */
 function redirectSwagger(req, res) {
-  res.redirect(308, `${getRequestPrefix(req)}/swagger/`);
+  const queryIndex = req.originalUrl.indexOf("?");
+  const query = queryIndex === -1 ? "" : req.originalUrl.slice(queryIndex);
+
+  res.redirect(308, `${getRequestPrefix(req)}/swagger/${query}`);
 }
 
 export const serve_swagger = {
@@ -184,7 +215,7 @@ export const serve_swagger = {
     /* Serve swagger */
     if (process.env.SERVE_SWAGGER !== "false") {
       app.get(/^\/swagger$/, redirectSwagger);
-      app.use("/swagger", swaggerUi.serve, serveSwagger);
+      app.use("/swagger", serveSwagger, swaggerUi.serve);
     }
   },
 };

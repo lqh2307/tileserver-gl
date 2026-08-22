@@ -1,5 +1,7 @@
 "use strict";
 
+import { MAX_LON, TOTAL_DEGREES } from "./spatial.js";
+
 const INTEGER_REGEX = /-?\d+/;
 const FLOAT_REGEX = /-?\d+(\.\d+)?/;
 const DMS_NUMBER_REGEX = /[-+]?\d+(?:\.\d+)?/g;
@@ -73,10 +75,10 @@ export function limitValue(value, min, max) {
  * @param {number[]} values Input values
  * @returns {number} Max value, or undefined if empty
  * @example
- * maxValue([1, 7, 3]); // 7
- * maxValue([]); // undefined
+ * maxs([1, 7, 3]); // 7
+ * maxs([]); // undefined
  */
-export function maxValue(values) {
+export function maxs(values) {
   if (values?.length) {
     let value = values[0];
 
@@ -90,18 +92,15 @@ export function maxValue(values) {
   }
 }
 
-/** Alias retained for compatibility with Maputnik utilities. */
-export const maxs = maxValue;
-
 /**
  * Get the minimum value in an array.
  * @param {number[]} values Input values
  * @returns {number} Min value, or undefined if empty
  * @example
- * minValue([1, 7, 3]); // 1
- * minValue([]); // undefined
+ * mins([1, 7, 3]); // 1
+ * mins([]); // undefined
  */
-export function minValue(values) {
+export function mins(values) {
   if (values?.length) {
     let value = values[0];
 
@@ -114,9 +113,6 @@ export function minValue(values) {
     return value;
   }
 }
-
-/** Alias retained for compatibility with Maputnik utilities. */
-export const mins = minValue;
 
 /**
  * Extract a number from a string.
@@ -144,11 +140,11 @@ export function fixNumber(strNumber, isFloat, defaultNumber) {
  * normalize180(-270); // 90
  */
 export function normalize180(deg) {
-  let d = deg % 360;
-  if (d > 180) {
-    d -= 360;
-  } else if (d < -180) {
-    d += 360;
+  let d = deg % TOTAL_DEGREES;
+  if (d > MAX_LON) {
+    d -= TOTAL_DEGREES;
+  } else if (d < -MAX_LON) {
+    d += TOTAL_DEGREES;
   }
 
   return d;
@@ -163,9 +159,9 @@ export function normalize180(deg) {
  * normalize360(-90); // 270
  */
 export function normalize360(deg) {
-  let d = deg % 360;
+  let d = deg % TOTAL_DEGREES;
   if (d < 0) {
-    d += 360;
+    d += TOTAL_DEGREES;
   }
 
   return d;
@@ -179,7 +175,7 @@ export function normalize360(deg) {
  * degToRad(180); // Math.PI
  */
 export function degToRad(angle) {
-  return (angle / 180) * Math.PI;
+  return (angle / MAX_LON) * Math.PI;
 }
 
 /**
@@ -190,7 +186,7 @@ export function degToRad(angle) {
  * radToDeg(Math.PI); // 180
  */
 export function radToDeg(angle) {
-  return (180 * angle) / Math.PI;
+  return (MAX_LON * angle) / Math.PI;
 }
 
 /**
@@ -202,7 +198,7 @@ export function radToDeg(angle) {
  * convertDEGToDMS(-181); // { degree: 179, minute: 0, second: 0 }
  */
 export function convertDEGToDMS(deg) {
-  const normalized = normalize180(deg % 360);
+  const normalized = normalize180(deg % TOTAL_DEGREES);
 
   const absolute = normalized > 0 ? normalized : -normalized;
   let degree = Math.floor(absolute);
@@ -236,7 +232,7 @@ export function convertDEGToDMS(deg) {
  * @returns {{degree: number, minute: number, second: number, hemisphere?: "N"|"S"|"E"|"W"}}
  */
 export function convertDEGToDMSH(deg, isLon) {
-  const normalized = normalize180(deg % 360);
+  const normalized = normalize180(deg % TOTAL_DEGREES);
   const dms = convertDEGToDMS(normalized);
 
   if (isLon === undefined) {
@@ -331,7 +327,7 @@ export function convertDMSHToDEG(dms) {
       ? decimal
       : -decimal;
 
-  return normalize180(signed % 360);
+  return normalize180(signed % TOTAL_DEGREES);
 }
 
 /**
@@ -343,7 +339,7 @@ export function convertDMSHToDEG(dms) {
  * convertDEGToDMSString(-181); // "179° 0' 0\""
  */
 export function convertDEGToDMSString(deg) {
-  const normalized = normalize180(deg % 360);
+  const normalized = normalize180(deg % TOTAL_DEGREES);
 
   const absolute = normalized > 0 ? normalized : -normalized;
   let degree = Math.floor(absolute);
@@ -379,7 +375,7 @@ export function convertDMSToDEG(dms) {
   const decimal = absDeg + dms.minute / 60 + dms.second / 3600;
   const signed = dms.degree >= 0 ? decimal : -decimal;
 
-  return normalize180(signed % 360);
+  return normalize180(signed % TOTAL_DEGREES);
 }
 
 /**

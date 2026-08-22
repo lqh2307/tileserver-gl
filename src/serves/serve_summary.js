@@ -1,7 +1,9 @@
 "use strict";
 
+import { DEFAULT_CACHE_TIMEOUT } from "../defaults/default.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
+import { createCache } from "cache-manager";
 import {
   getTileBounds,
   HTTP_SCHEMES,
@@ -22,6 +24,10 @@ import {
   getXYZSize,
 } from "../resources/index.js";
 
+const summaryCache = createCache({
+  ttl: DEFAULT_CACHE_TIMEOUT,
+});
+
 /**
  * Get summary handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
@@ -29,9 +35,18 @@ import {
 function serveSummaryHandler() {
   return async (req, res) => {
     try {
+      const summaryType = req.query.type === "seed" ? "seed" : "service";
+
+      const cached = await summaryCache.get(summaryType);
+      if (cached) {
+        res.set("content-type", "application/json");
+
+        return res.status(StatusCodes.OK).send(cached);
+      }
+
       let result;
 
-      if (req.query.type === "seed") {
+      if (summaryType === "seed") {
         result = {
           styles: {},
           geojsons: {},

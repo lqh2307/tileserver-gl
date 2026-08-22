@@ -3,32 +3,40 @@
 /**
  * Run all tasks with concurrency limit
  * @param {AsyncGenerator<function(): Promise<void>>} generator Async generator that yields tasks
- * @param {number} limit Concurrency limit. If limit < 1, it will be treated as Infinity
+ * @param {number} [limit=Infinity] Concurrency limit
  * @param {{ export: boolean }} item Item object
  * @returns {Promise<void>} Response
  */
-export async function runAllWithLimit(generator, limit, item) {
-  const concurrency = limit >= 1 ? limit : Infinity;
-
+export async function runAllWithLimit(generator, limit = Infinity, item) {
   const executing = new Set();
+  const errors = [];
 
   for await (const task of generator) {
     if (item && !item.export) {
       break;
     }
 
-    const p = Promise.resolve().then(task);
+    let taskPromise;
 
-    executing.add(p);
+    taskPromise = Promise.resolve()
+      .then(task)
+      .catch((error) => {
+        errors.push(error);
+      })
+      .finally(() => {
+        executing.delete(taskPromise);
+      });
 
-    p.finally(() => {
-      return executing.delete(p);
-    });
+    executing.add(taskPromise);
 
-    if (executing.size >= concurrency) {
+    if (executing.size >= limit) {
       await Promise.race(executing);
     }
   }
 
-  await Promise.allSettled(executing);
+  await Promise.all(executing);
+
+  if (errors.length) {
+    throw new AggregateError(errors, `${errors.length} task(s) failed`);
+  }
 }

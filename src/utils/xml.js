@@ -2,6 +2,12 @@
 
 import { max, min } from "./number.js";
 
+const COMMENT_END_REGEX = /-->/;
+const CDATA_END_REGEX = /\]>/;
+const OPEN_TAG_REGEX = /<\w/;
+const CLOSE_TAG_REGEX = /<\//;
+const SELF_CLOSING_TAG_REGEX = /\/>/;
+
 /**
  * Format XML with a lightweight regex-based formatter.
  * @param {string} value XML string
@@ -48,11 +54,11 @@ export function formatXML(value, indent) {
     if (part.search(/<!/) > -1) {
       resultParts.push(indentAt(depth) + part);
       inComment = !(
-        part.search(/-->/) > -1 ||
-        part.search(/\]>/) > -1 ||
+        COMMENT_END_REGEX.test(part) ||
+        CDATA_END_REGEX.test(part) ||
         part.search(/!DOCTYPE/) > -1
       );
-    } else if (part.search(/-->/) > -1 || part.search(/\]>/) > -1) {
+    } else if (COMMENT_END_REGEX.test(part) || CDATA_END_REGEX.test(part)) {
       resultParts.push(part);
       inComment = false;
     } else if (
@@ -65,9 +71,9 @@ export function formatXML(value, indent) {
         depth = max(depth - 1, 0);
       }
     } else if (
-      part.search(/<\w/) > -1 &&
-      part.search(/<\//) === -1 &&
-      part.search(/\/>/) === -1
+      OPEN_TAG_REGEX.test(part) &&
+      !CLOSE_TAG_REGEX.test(part) &&
+      !SELF_CLOSING_TAG_REGEX.test(part)
     ) {
       if (inComment) {
         resultParts.push(part);
@@ -75,12 +81,12 @@ export function formatXML(value, indent) {
         resultParts.push(indentAt(depth) + part);
         depth += 1;
       }
-    } else if (part.search(/<\w/) > -1 && part.search(/<\//) > -1) {
+    } else if (OPEN_TAG_REGEX.test(part) && CLOSE_TAG_REGEX.test(part)) {
       resultParts.push(inComment ? part : indentAt(depth) + part);
-    } else if (part.search(/<\//) > -1) {
+    } else if (CLOSE_TAG_REGEX.test(part)) {
       depth = max(depth - 1, 0);
       resultParts.push(inComment ? part : indentAt(depth) + part);
-    } else if (part.search(/\/>/) > -1) {
+    } else if (SELF_CLOSING_TAG_REGEX.test(part)) {
       resultParts.push(inComment ? part : indentAt(depth) + part);
     } else if (part.search(/<\?/) > -1) {
       resultParts.push(indentAt(depth) + part);

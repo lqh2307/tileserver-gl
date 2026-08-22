@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 // import path from "node:path";
@@ -13,6 +14,7 @@ import {
   compileHandleBarsTemplate,
   isFileNotModified,
   sendTextResponse,
+  runAllWithLimit,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -695,86 +697,96 @@ export const serve_geojson = {
 
       const repos = {};
 
-      await Promise.all(
-        ids.map(async (id) => {
-          try {
-            if (!config.geojsons[id]) {
+      await runAllWithLimit(
+        ids.map((id) => {
+          return async () => {
+            try {
+              if (!config.geojsons[id]) {
+                printLog(
+                  "info",
+                  `No geojson group in GeoJSON groups id "${id}". Skipping...`,
+                );
+              } else {
+                const layers = Object.keys(config.geojsons[id]);
+
+                printLog(
+                  "info",
+                  `Loading ${layers.length} GeoJSON in GeoJSON groups id "${id}"...`,
+                );
+
+                const geojsonsInfo = {};
+
+                /* Get GeoJSON infos */
+                await runAllWithLimit(
+                  layers.map((layer) => {
+                    return async () => {
+                      const item = config.geojsons[id][layer];
+
+                      /* Get GeoJSON path */
+                      const geojsonInfo = {};
+
+                      if (item.cache) {
+                        geojsonInfo.path = `${process.env.DATA_DIR}/caches/geojsons/${item.geojson}/${item.geojson}.geojson`;
+
+                        const cacheSource = seed.geojsons?.[item.geojson];
+
+                        if (!cacheSource) {
+                          throw new Error(
+                            `Cache GeoJSON "${item.geojson}" is invalid`,
+                          );
+                        }
+
+                        if (item.cache.forward) {
+                          geojsonInfo.sourceURL = cacheSource.url;
+                          geojsonInfo.headers = cacheSource.headers;
+                          geojsonInfo.storeCache = item.cache.store;
+                        }
+                      } else {
+                        geojsonInfo.path = `${process.env.DATA_DIR}/geojsons/${item.geojson}`;
+                      }
+
+                      /* Load GeoJSON */
+                      try {
+                        /* Open GeoJSON */
+                        const geoJSON = JSON.parse(
+                          await getGeoJSON(geojsonInfo.path),
+                        );
+
+                        /* Validate and Get GeoJSON info */
+                        geojsonInfo.geometryTypes =
+                          await validateAndGetGeometryTypes(geoJSON);
+
+                        geojsonsInfo[layer] = geojsonInfo;
+                      } catch (error) {
+                        if (item.cache && error.message.includes("Not Found")) {
+                          geojsonInfo.geometryTypes = [
+                            "polygon",
+                            "line",
+                            "circle",
+                          ];
+
+                          geojsonsInfo[layer] = geojsonInfo;
+                        } else {
+                          throw error;
+                        }
+                      }
+                    };
+                  }),
+                  DEFAULT_CONCURRENCY,
+                );
+
+                /* Add to repo */
+                repos[id] = geojsonsInfo;
+              }
+            } catch (error) {
               printLog(
-                "info",
-                `No geojson group in GeoJSON groups id "${id}". Skipping...`,
+                "error",
+                `Failed to load GeoJSON group id "${id}": ${error}. Skipping...`,
               );
-            } else {
-              const layers = Object.keys(config.geojsons[id]);
-
-              printLog(
-                "info",
-                `Loading ${layers.length} GeoJSON in GeoJSON groups id "${id}"...`,
-              );
-
-              const geojsonsInfo = {};
-
-              /* Get GeoJSON infos */
-              await Promise.all(
-                layers.map(async (layer) => {
-                  const item = config.geojsons[id][layer];
-
-                  /* Get GeoJSON path */
-                  const geojsonInfo = {};
-
-                  if (item.cache) {
-                    geojsonInfo.path = `${process.env.DATA_DIR}/caches/geojsons/${item.geojson}/${item.geojson}.geojson`;
-
-                    const cacheSource = seed.geojsons?.[item.geojson];
-
-                    if (!cacheSource) {
-                      throw new Error(
-                        `Cache GeoJSON "${item.geojson}" is invalid`,
-                      );
-                    }
-
-                    if (item.cache.forward) {
-                      geojsonInfo.sourceURL = cacheSource.url;
-                      geojsonInfo.headers = cacheSource.headers;
-                      geojsonInfo.storeCache = item.cache.store;
-                    }
-                  } else {
-                    geojsonInfo.path = `${process.env.DATA_DIR}/geojsons/${item.geojson}`;
-                  }
-
-                  /* Load GeoJSON */
-                  try {
-                    /* Open GeoJSON */
-                    const geoJSON = JSON.parse(
-                      await getGeoJSON(geojsonInfo.path),
-                    );
-
-                    /* Validate and Get GeoJSON info */
-                    geojsonInfo.geometryTypes =
-                      await validateAndGetGeometryTypes(geoJSON);
-
-                    geojsonsInfo[layer] = geojsonInfo;
-                  } catch (error) {
-                    if (item.cache && error.message.includes("Not Found")) {
-                      geojsonInfo.geometryTypes = ["polygon", "line", "circle"];
-
-                      geojsonsInfo[layer] = geojsonInfo;
-                    } else {
-                      throw error;
-                    }
-                  }
-                }),
-              );
-
-              /* Add to repo */
-              repos[id] = geojsonsInfo;
             }
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to load GeoJSON group id "${id}": ${error}. Skipping...`,
-            );
-          }
+          };
         }),
+        DEFAULT_CONCURRENCY,
       );
 
       config.geojsons = repos;

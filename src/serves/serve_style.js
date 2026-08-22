@@ -1,5 +1,6 @@
 "use strict";
 
+import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { renderImageTileData } from "../render_style.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
@@ -19,6 +20,7 @@ import {
   getXYZFromLonLatZ,
   isFileNotModified,
   sendTextResponse,
+  runAllWithLimit,
   getRequestHost,
   TILE_SIZES,
   isLocalURL,
@@ -940,107 +942,110 @@ export const serve_style = {
 
       const repos = {};
 
-      await Promise.all(
-        ids.map(async (id) => {
-          const item = config.styles[id];
+      await runAllWithLimit(
+        ids.map((id) => {
+          return async () => {
+            const item = config.styles[id];
 
-          let isCanServeRendered = false;
+            let isCanServeRendered = false;
 
-          const styleInfo = {};
+            const styleInfo = {};
 
-          let styleJSON;
+            let styleJSON;
 
-          /* Serve style */
-          try {
-            if (item.cache) {
-              styleInfo.path = `${process.env.DATA_DIR}/caches/styles/${item.style}/style.json`;
-
-              const cacheSource = seed.styles?.[item.style];
-
-              if (!cacheSource) {
-                throw new Error(`Cache style "${item.style}" is invalid`);
-              }
-
-              if (item.cache.forward) {
-                styleInfo.sourceURL = cacheSource.url;
-                styleInfo.headers = cacheSource.headers;
-                styleInfo.storeCache = item.cache.store;
-              }
-            } else {
-              styleInfo.path = `${process.env.DATA_DIR}/styles/${item.style}`;
-            }
-
+            /* Serve style */
             try {
-              /* Read style.json file */
-              styleJSON = JSON.parse(await getStyle(styleInfo.path));
+              if (item.cache) {
+                styleInfo.path = `${process.env.DATA_DIR}/caches/styles/${item.style}/style.json`;
 
-              /* Validate style */
-              if (item.validate) {
-                await validateStyle(styleJSON);
+                const cacheSource = seed.styles?.[item.style];
+
+                if (!cacheSource) {
+                  throw new Error(`Cache style "${item.style}" is invalid`);
+                }
+
+                if (item.cache.forward) {
+                  styleInfo.sourceURL = cacheSource.url;
+                  styleInfo.headers = cacheSource.headers;
+                  styleInfo.storeCache = item.cache.store;
+                }
+              } else {
+                styleInfo.path = `${process.env.DATA_DIR}/styles/${item.style}`;
               }
 
-              /* Store style info */
-              styleInfo.name = styleJSON.name ?? "Unknown";
-              styleInfo.zoom = styleJSON.zoom ?? 0;
-              styleInfo.center = styleJSON.center ?? [0, 0, 0];
+              try {
+                /* Read style.json file */
+                styleJSON = JSON.parse(await getStyle(styleInfo.path));
 
-              /* Mark to serve rendered */
-              isCanServeRendered = true;
-            } catch (error) {
-              if (item.cache && error.message.includes("Not Found")) {
-                const styleSeed = seed.styles[item.style];
+                /* Validate style */
+                if (item.validate) {
+                  await validateStyle(styleJSON);
+                }
 
-                styleInfo.name = styleSeed.metadata.name ?? "Unknown";
-                styleInfo.zoom = styleSeed.metadata.zoom ?? 0;
-                styleInfo.center = styleSeed.metadata.center ?? [0, 0, 0];
+                /* Store style info */
+                styleInfo.name = styleJSON.name ?? "Unknown";
+                styleInfo.zoom = styleJSON.zoom ?? 0;
+                styleInfo.center = styleJSON.center ?? [0, 0, 0];
 
                 /* Mark to serve rendered */
-                isCanServeRendered = false;
-              } else {
-                throw error;
-              }
-            }
+                isCanServeRendered = true;
+              } catch (error) {
+                if (item.cache && error.message.includes("Not Found")) {
+                  const styleSeed = seed.styles[item.style];
 
-            /* Add to repo */
-            repos[id] = styleInfo;
-          } catch (error) {
-            printLog(
-              "error",
-              `Failed to load style id "${id}": ${error}. Skipping...`,
-            );
-          }
+                  styleInfo.name = styleSeed.metadata.name ?? "Unknown";
+                  styleInfo.zoom = styleSeed.metadata.zoom ?? 0;
+                  styleInfo.center = styleSeed.metadata.center ?? [0, 0, 0];
 
-          /* Serve rendered */
-          if (process.env.BACKEND_RENDER === "true" && isCanServeRendered) {
-            try {
-              /* Rendered info */
-              const tileJSON = createTileMetadata({
-                name: styleInfo.name,
-                description: styleInfo.name,
-              });
-
-              /* Fix center */
-              if (
-                styleJSON.center?.length >= 2 &&
-                styleJSON.zoom !== undefined
-              ) {
-                tileJSON.center = [
-                  styleJSON.center[0],
-                  styleJSON.center[1],
-                  Math.floor(styleJSON.zoom),
-                ];
+                  /* Mark to serve rendered */
+                  isCanServeRendered = false;
+                } else {
+                  throw error;
+                }
               }
 
               /* Add to repo */
-              repos[id].tileJSON = tileJSON;
+              repos[id] = styleInfo;
             } catch (error) {
               printLog(
                 "error",
-                `Failed to load rendered of style id "${id}": ${error}. Skipping...`,
+                `Failed to load style id "${id}": ${error}. Skipping...`,
               );
             }
-          }
+
+            /* Serve rendered */
+            if (process.env.BACKEND_RENDER === "true" && isCanServeRendered) {
+              try {
+                /* Rendered info */
+                const tileJSON = createTileMetadata({
+                  name: styleInfo.name,
+                  description: styleInfo.name,
+                });
+
+                /* Fix center */
+                if (
+                  styleJSON.center?.length >= 2 &&
+                  styleJSON.zoom !== undefined
+                ) {
+                  tileJSON.center = [
+                    styleJSON.center[0],
+                    styleJSON.center[1],
+                    Math.floor(styleJSON.zoom),
+                  ];
+                }
+
+                /* Add to repo */
+                repos[id].tileJSON = tileJSON;
+              } catch (error) {
+                printLog(
+                  "error",
+                  `Failed to load rendered of style id "${id}": ${error}. Skipping...`,
+                );
+              }
+            }
+          };
         }),
+        DEFAULT_CONCURRENCY,
       );
 
       config.styles = repos;

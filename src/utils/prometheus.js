@@ -1,20 +1,11 @@
-import { Registry, Histogram } from "prom-client";
+import { collectDefaultMetrics, Registry, Histogram } from "prom-client";
 
 const register = new Registry();
 
 const httpRequestDuration = new Histogram({
   name: "http_request_duration",
   help: "Duration of HTTP requests in ms",
-  labelNames: [
-    "method",
-    "protocol",
-    "path",
-    "status_code",
-    "origin",
-    "ip",
-    "user_id",
-    "user_agent",
-  ],
+  labelNames: ["method", "route", "status_code"],
   buckets: [100, 300, 500, 1000],
 });
 
@@ -23,34 +14,20 @@ register.setDefaultLabels({
 });
 
 register.registerMetric(httpRequestDuration);
+collectDefaultMetrics({
+  register,
+});
 
 /**
  * Set metrics
  * @param {string} method HTTP method
- * @param {string} protocol HTTP protocol
- * @param {string} path HTTP path
+ * @param {string} route Normalized Express route
  * @param {number} statusCode HTTP status code
- * @param {string} origin Origin
- * @param {string} ip IP
- * @param {string} userID User ID
- * @param {string} userAgent User agent
  * @param {number} duration Duration
  * @returns {void}
  */
-export function setMetrics(
-  method,
-  protocol,
-  path,
-  statusCode,
-  origin,
-  ip,
-  userID,
-  userAgent,
-  duration,
-) {
-  httpRequestDuration
-    .labels(method, protocol, path, statusCode, origin, ip, userID, userAgent)
-    .observe(duration);
+export function setMetrics(method, route, statusCode, duration) {
+  httpRequestDuration.labels(method, route, statusCode).observe(duration);
 }
 
 /**

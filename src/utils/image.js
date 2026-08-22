@@ -9,6 +9,12 @@ import { jsPDF } from "jspdf";
 import path from "node:path";
 import sharp from "sharp";
 
+function getPositiveIntegerEnv(name, fallback) {
+  const value = Number.parseInt(process.env[name], 10);
+
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
 export const BACKGROUND_COLOR = {
   r: 255,
   g: 255,
@@ -16,10 +22,12 @@ export const BACKGROUND_COLOR = {
   alpha: 0,
 };
 
-sharp.cache(false);
-// sharp.timeout({
-//   seconds: 300,
-// });
+sharp.cache({
+  memory: getPositiveIntegerEnv("SHARP_CACHE_MEMORY_MB", 32),
+  files: getPositiveIntegerEnv("SHARP_CACHE_FILES", 20),
+  items: getPositiveIntegerEnv("SHARP_CACHE_ITEMS", 100),
+});
+sharp.concurrency(getPositiveIntegerEnv("SHARP_CONCURRENCY", 2));
 
 /**
  * Format degree

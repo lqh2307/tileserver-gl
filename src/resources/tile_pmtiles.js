@@ -1,7 +1,7 @@
 "use strict";
 
 import { PMTiles, FetchSource } from "pmtiles";
-import { openSync, readSync } from "node:fs";
+import { openSync, read } from "node:fs";
 import {
   FALLBACK_VECTOR_LAYERS,
   detectFormatAndHeaders,
@@ -25,10 +25,22 @@ class PMTilesFileSource {
     return this.fd;
   }
 
-  getBytes(offset, length) {
-    const buffer = Buffer.alloc(length);
+  async getBytes(offset, length) {
+    const buffer = Buffer.allocUnsafe(length);
 
-    readSync(this.fd, buffer, 0, buffer.length, offset);
+    const bytesRead = await new Promise((resolve, reject) => {
+      read(this.fd, buffer, 0, buffer.length, offset, (error, count) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(count);
+        }
+      });
+    });
+
+    if (bytesRead !== length) {
+      throw new Error(`Unable to read ${length} bytes at offset ${offset}`);
+    }
 
     return {
       data: buffer.buffer.slice(
@@ -188,6 +200,6 @@ export async function getPMTilesTile(pmtilesSource, z, x, y) {
  * @param {string} filePath PMTiles filepath
  * @returns {Promise<number>}
  */
-export async function getPMTilesSize(filePath) {
-  return await getFileSize(filePath);
+export function getPMTilesSize(filePath) {
+  return getFileSize(filePath);
 }

@@ -25,6 +25,20 @@ const renderedStyleJSONCaches = createCache({
   ttl: DEFAULT_CACHE_TIMEOUT,
 });
 
+async function getCachedRenderedStyleJSON(filePath) {
+  return await renderedStyleJSONCaches.wrap(filePath, async () => {
+    try {
+      return await createRenderedStyleJSON(filePath);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        throw new Error("Not Found");
+      }
+
+      throw error;
+    }
+  });
+}
+
 /*********************************** Style *************************************/
 
 /**
@@ -168,17 +182,7 @@ export async function createRenderedStyleJSON(filePath) {
  * @returns {Promise<object>}
  */
 export async function getRenderedStyleJSON(filePath) {
-  return await renderedStyleJSONCaches.wrap(filePath, async () => {
-    try {
-      return await createRenderedStyleJSON(filePath);
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        throw new Error("Not Found");
-      }
-
-      throw error;
-    }
-  });
+  return await getCachedRenderedStyleJSON(filePath);
 }
 
 /**
@@ -186,8 +190,8 @@ export async function getRenderedStyleJSON(filePath) {
  * @param {string} filePath Style file path to get
  * @returns {Promise<number>}
  */
-export async function getStyleCreated(filePath) {
-  return await getFileCreated(filePath);
+export function getStyleCreated(filePath) {
+  return getFileCreated(filePath);
 }
 
 /**
@@ -195,8 +199,8 @@ export async function getStyleCreated(filePath) {
  * @param {string} filePath Style file path to get
  * @returns {Promise<string>}
  */
-export async function getStyleMD5(filePath) {
-  return await calculateMD5OfFile(filePath);
+export function getStyleMD5(filePath) {
+  return calculateMD5OfFile(filePath);
 }
 
 /**
@@ -204,8 +208,8 @@ export async function getStyleMD5(filePath) {
  * @param {string} filePath Style file path to get
  * @returns {Promise<number>}
  */
-export async function getStyleSize(filePath) {
-  return await getFileSize(filePath);
+export function getStyleSize(filePath) {
+  return getFileSize(filePath);
 }
 
 /**
