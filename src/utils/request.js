@@ -158,9 +158,8 @@ export async function getDataFromURL(url, options) {
         return response.data;
       } catch (error) {
         if (
-          error.statusCode &&
-          (error.statusCode === StatusCodes.NO_CONTENT ||
-            error.statusCode === StatusCodes.NOT_FOUND)
+          error.statusCode >= StatusCodes.BAD_REQUEST &&
+          error.statusCode < StatusCodes.INTERNAL_SERVER_ERROR
         ) {
           throw error;
         }

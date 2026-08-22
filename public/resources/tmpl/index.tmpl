@@ -20,8 +20,9 @@
       <div class="tab" onclick="switchTab(event, 'datas-tab')">DATAS ({{data_count}})</div>
       <div class="tab" onclick="switchTab(event, 'fonts-tab')">FONTS ({{font_count}})</div>
       <div class="tab" onclick="switchTab(event, 'sprites-tab')">SPRITES ({{sprite_count}})</div>
-      <div class="tab" onclick="switchTab(event, 'actions-tab')">ACTIONS</div>
+      <div class="tab" onclick="switchTab(event, 'sync-tab')">SYNC</div>
       <div class="tab" onclick="switchTab(event, 'configs-tab')">CONFIGS</div>
+      <div class="tab" onclick="switchTab(event, 'utility-tab')">UTILITY</div>
     </div>
 
     <div id="styles-tab" class="tab-content active"></div>
@@ -30,8 +31,9 @@
     <div id="datas-tab" class="tab-content"></div>
     <div id="fonts-tab" class="tab-content"></div>
     <div id="sprites-tab" class="tab-content"></div>
-    <div id="actions-tab" class="tab-content"></div>
+    <div id="sync-tab" class="tab-content"></div>
     <div id="configs-tab" class="tab-content"></div>
+    <div id="utility-tab" class="tab-content"></div>
   </section>
 
   {{#*inline "jsonDialog"}}
@@ -160,7 +162,7 @@
       };
     }
 
-    const actionItems = [
+    const syncItems = [
       { title: "Cancel sync", description: "Cancel cleanup/seed tasks", buttons: [{ text: "Cancel sync", onClick: "handleAction(event, 'cancel')" }] },
       { title: "Sync all", description: "Start cleanup/seed tasks", buttons: [{ text: "Sync all", onClick: "handleAction(event, 'all')" }] },
       { title: "Clean styles", description: "Start cleanup styles", buttons: [{ text: "Clean styles", onClick: "handleAction(event, 'cleanUpStyles')" }] },
@@ -173,24 +175,27 @@
       { title: "Seed datas", description: "Start seed datas", buttons: [{ text: "Seed datas", onClick: "handleAction(event, 'seedDatas')" }] },
       { title: "Seed sprites", description: "Start seed sprites", buttons: [{ text: "Seed sprites", onClick: "handleAction(event, 'seedSprites')" }] },
       { title: "Seed fonts", description: "Start seed fonts", buttons: [{ text: "Seed fonts", onClick: "handleAction(event, 'seedFonts')" }] },
-      { title: "Summary service", description: "Summary service", buttons: [{ text: "View", href: `${baseURL}/summary?type=service` }] },
-      { title: "Summary seed", description: "Summary seed", buttons: [{ text: "View", href: `${baseURL}/summary?type=seed` }] },
-      { title: "Export image", description: "Export static image", buttons: [{ text: "Export", onClick: "handleExportImage(event)" }] },
     ];
 
     const configItems = [
-      { title: "Swagger", description: "View swagger", buttons: [{ text: "View", href: `${baseURL}/swagger` }] },
-      { title: "View config JSON", description: "View config.json content", buttons: [{ text: "View", href: `${baseURL}/config?type=config` }] },
-      { title: "View seed JSON", description: "View seed.json content", buttons: [{ text: "View", href: `${baseURL}/config?type=seed` }] },
-      { title: "View cleanup JSON", description: "View cleanup.json content", buttons: [{ text: "View", href: `${baseURL}/config?type=cleanup` }] },
-      { title: "Update config JSON", description: "Update config.json content", buttons: [{ text: "Update", onClick: "handleConfig(event, 'showUpdateConfig')" }] },
-      { title: "Update seed JSON", description: "Update seed.json content", buttons: [{ text: "Update", onClick: "handleConfig(event, 'showUpdateSeed')" }] },
-      { title: "Update cleanup JSON", description: "Update cleanup.json content", buttons: [{ text: "Update", onClick: "handleConfig(event, 'showUpdateCleanUp')" }] },
-      { title: "Delete config JSON", description: "Delete config.json content", buttons: [{ text: "Delete", onClick: "handleConfig(event, 'showDeleteConfig')" }] },
-      { title: "Delete seed JSON", description: "Delete seed.json content", buttons: [{ text: "Delete", onClick: "handleConfig(event, 'showDeleteSeed')" }] },
-      { title: "Delete cleanup JSON", description: "Delete cleanup.json content", buttons: [{ text: "Delete", onClick: "handleConfig(event, 'showDeleteCleanUp')" }] },
-      { title: "Kill", description: "Kill server", buttons: [{ text: "Kill server", onClick: "handleConfig(event, 'kill')" }] },
-      { title: "Restart", description: "Restart server", buttons: [{ text: "Restart server", onClick: "handleConfig(event, 'restart')" }] },
+      { title: "View config", description: "View config.json content", buttons: [{ text: "View config", href: `${baseURL}/config?type=config` }] },
+      { title: "View seed", description: "View seed.json content", buttons: [{ text: "View seed", href: `${baseURL}/config?type=seed` }] },
+      { title: "View cleanup", description: "View cleanup.json content", buttons: [{ text: "View cleanup", href: `${baseURL}/config?type=cleanup` }] },
+      { title: "Update config", description: "Update config.json content", buttons: [{ text: "Update config", onClick: "handleConfig(event, 'showUpdateConfig')" }] },
+      { title: "Update seed", description: "Update seed.json content", buttons: [{ text: "Update seed", onClick: "handleConfig(event, 'showUpdateSeed')" }] },
+      { title: "Update cleanup", description: "Update cleanup.json content", buttons: [{ text: "Update cleanup", onClick: "handleConfig(event, 'showUpdateCleanUp')" }] },
+      { title: "Delete config", description: "Delete config.json content", buttons: [{ text: "Delete config", onClick: "handleConfig(event, 'showDeleteConfig')" }] },
+      { title: "Delete seed", description: "Delete seed.json content", buttons: [{ text: "Delete seed", onClick: "handleConfig(event, 'showDeleteSeed')" }] },
+      { title: "Delete cleanup", description: "Delete cleanup.json content", buttons: [{ text: "Delete cleanup", onClick: "handleConfig(event, 'showDeleteCleanUp')" }] },
+    ];
+
+    const utilityItems = [
+      { title: "Swagger", description: "Open API documentation", buttons: [{ text: "Swagger", href: `${baseURL}/swagger` }] },
+      { title: "Export image", description: "Export a static map image", buttons: [{ text: "Export image", onClick: "handleExportImage(event)" }] },
+      { title: "Kill server", description: "Stop the server process", buttons: [{ text: "Kill server", onClick: "handleConfig(event, 'kill')" }] },
+      { title: "Restart server", description: "Restart the server process", buttons: [{ text: "Restart server", onClick: "handleConfig(event, 'restart')" }] },
+      { title: "Summary service", description: "View the service summary", buttons: [{ text: "Summary service", href: `${baseURL}/summary?type=service` }] },
+      { title: "Summary seed", description: "View the seed summary", buttons: [{ text: "Summary seed", href: `${baseURL}/summary?type=seed` }] },
     ];
 
     const taskActions = {
@@ -469,10 +474,12 @@
             {{/each}}
           </div>
         `;
-      } else if (tabId === "actions-tab" && !innerHTML) {
-        document.querySelector("#actions-tab").innerHTML = renderStaticBox(actionItems);
+      } else if (tabId === "sync-tab" && !innerHTML) {
+        document.querySelector("#sync-tab").innerHTML = renderStaticBox(syncItems);
       } else if (tabId === "configs-tab" && !innerHTML) {
         document.querySelector("#configs-tab").innerHTML = renderStaticBox(configItems);
+      } else if (tabId === "utility-tab" && !innerHTML) {
+        document.querySelector("#utility-tab").innerHTML = renderStaticBox(utilityItems);
       }
     }
 

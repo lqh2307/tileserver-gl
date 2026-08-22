@@ -19,3 +19,5 @@ export const DEFAULT_STORE_TRANSPARENT = true;
 export const DEFAULT_TILE_BATCH_SIZE = 10000;
 /** Default in-memory cache lifetime in milliseconds. @type {number} */
 export const DEFAULT_CACHE_TIMEOUT = 300000;
+/** Idle time before an unused renderer is released from a persistent pool. @type {number} */
+export const DEFAULT_RENDERER_IDLE_TIMEOUT = 60000;

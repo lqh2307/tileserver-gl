@@ -1,7 +1,7 @@
 "use strict";
 
+import { getTileRendererPool, renderImageTileData } from "../render_style.js";
 import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
-import { renderImageTileData } from "../render_style.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 // import path from "node:path";
@@ -344,12 +344,19 @@ function getRenderedTileHandler() {
 
     /* Render tile */
     try {
+      const tileScale = +req.query.tileScale || 1;
+      const styleJSON = await getRenderedStyleJSON(item.path);
       const image = await renderImageTileData({
         z: +req.params.z,
         x: +req.params.x,
         y: +req.params.y,
-        styleJSON: await getRenderedStyleJSON(item.path),
-        tileScale: +req.query.tileScale || 1,
+        pool: getTileRendererPool({
+          key: `${id}:${tileScale}`,
+          styleJSON,
+          tileScale,
+        }),
+        styleJSON,
+        tileScale,
         tileSize: +req.query.tileSize || 256,
         format: req.params.format,
       });

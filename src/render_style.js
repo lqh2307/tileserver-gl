@@ -6,6 +6,7 @@ import { createPool } from "generic-pool";
 import { nanoid } from "nanoid";
 import path from "node:path";
 import {
+  DEFAULT_RENDERER_IDLE_TIMEOUT,
   DEFAULT_STORE_TRANSPARENT,
   DEFAULT_TILE_BATCH_SIZE,
   DEFAULT_QUERY_TIMEOUT,
@@ -79,6 +80,8 @@ mlgl.on("message", (msg) => {
     }
   }
 });
+
+const tileRendererPools = new Map();
 
 /**
  * Create render
@@ -395,6 +398,124 @@ function createRenderer(option) {
 }
 
 /**
+ * Create a lazy renderer pool.
+ * @param {{ mode: "tile"|"static", styleJSON: object, ratio: number, max: number }} option Option object
+ * @returns {object} Renderer pool
+ */
+function createRendererPool(option) {
+  const poolOption = {
+    min: 0,
+    max: option.max,
+  };
+
+  if (option.idleTimeoutMillis) {
+    poolOption.idleTimeoutMillis = option.idleTimeoutMillis;
+    poolOption.evictionRunIntervalMillis = Math.round(
+      option.idleTimeoutMillis / 2,
+    );
+    poolOption.numTestsPerEvictionRun = option.max;
+  }
+
+  return createPool(
+    {
+      create: () => {
+        return createRenderer(option);
+      },
+      destroy: (renderer) => {
+        return renderer.release();
+      },
+    },
+    poolOption,
+  );
+}
+
+/**
+ * Get the persistent renderer pool for an HTTP tile render variant.
+ * @param {{ key: string, styleJSON: object, tileScale: number, max?: number }} option Option object
+ * @returns {object} Renderer pool
+ */
+export function getTileRendererPool({
+  key,
+  styleJSON,
+  tileScale,
+  max = DEFAULT_CONCURRENCY,
+}) {
+  const current = tileRendererPools.get(key);
+
+  if (current?.styleJSON === styleJSON) {
+    return current.pool;
+  }
+
+  const pool = createRendererPool({
+    mode: "tile",
+    ratio: tileScale,
+    styleJSON,
+    max,
+    idleTimeoutMillis: DEFAULT_RENDERER_IDLE_TIMEOUT,
+  });
+
+  tileRendererPools.set(key, {
+    styleJSON,
+    pool,
+  });
+
+  if (current) {
+    current.pool
+      .drain()
+      .then(() => {
+        return current.pool.clear();
+      })
+      .catch((error) => {
+        printLog("error", `Failed to clear renderer pool "${key}": ${error}`);
+      });
+  }
+
+  return pool;
+}
+
+/**
+ * Render with an acquired renderer and return it to the pool when successful.
+ * A renderer that failed is destroyed so it cannot poison later requests.
+ * @param {object} renderer Renderer
+ * @param {object|undefined} pool Renderer pool
+ * @param {object} option Native render options
+ * @returns {Promise<Buffer>} Raw image data
+ */
+async function renderWithRenderer(renderer, pool, option) {
+  let renderError;
+
+  try {
+    return await new Promise((resolve, reject) => {
+      try {
+        renderer.render(option, (error, data) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(data);
+          }
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  } catch (error) {
+    renderError = error;
+
+    throw error;
+  } finally {
+    if (pool) {
+      if (renderError) {
+        await pool.destroy(renderer);
+      } else {
+        await pool.release(renderer);
+      }
+    } else {
+      renderer.release();
+    }
+  }
+}
+
+/**
  * Render image tile data
  * @param {{ z: number, x: number, y: number, pool?: object, styleJSON: object, pitch?: number, bearing?: number, tileScale: number, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp", grayscale?: boolean, filePath?: string }} options Options
  * @returns {Promise<Buffer|string>}
@@ -408,50 +529,35 @@ export async function renderImageTileData({ z, x, y, ...option }) {
         styleJSON: option.styleJSON,
       });
 
-  return await new Promise((resolve, reject) => {
-    const isNeedHack = z === 0 && option.tileSize === 256;
-    const hackTileSize = isNeedHack ? option.tileSize * 2 : option.tileSize;
+  const isNeedHack = z === 0 && option.tileSize === 256;
+  const hackTileSize = isNeedHack ? option.tileSize * 2 : option.tileSize;
 
-    renderer.render(
-      {
-        zoom: z > 0 && option.tileSize === 256 ? z - 1 : z,
-        center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
-        width: hackTileSize,
-        height: hackTileSize,
-        pitch: option.pitch ?? 0,
-        bearing: option.bearing ?? 0,
-      },
-      (error, data) => {
-        option.pool ? option.pool.release(renderer) : renderer.release();
+  const data = await renderWithRenderer(renderer, option.pool, {
+    zoom: z > 0 && option.tileSize === 256 ? z - 1 : z,
+    center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
+    width: hackTileSize,
+    height: hackTileSize,
+    pitch: option.pitch ?? 0,
+    bearing: option.bearing ?? 0,
+  });
 
-        if (error) {
-          return reject(error);
-        }
+  const tileSize = hackTileSize * option.tileScale;
+  const originTileSize = Math.round(tileSize);
+  const targetTileSize = isNeedHack ? Math.round(tileSize / 2) : undefined;
 
-        const tileSize = hackTileSize * option.tileScale;
-        const originTileSize = Math.round(tileSize);
-        const targetTileSize = isNeedHack
-          ? Math.round(tileSize / 2)
-          : undefined;
-
-        createImageOutput({
-          data,
-          rawOption: {
-            premultiplied: true,
-            width: originTileSize,
-            height: originTileSize,
-            channels: 4,
-          },
-          format: option.format,
-          grayscale: option.grayscale,
-          filePath: option.filePath,
-          width: targetTileSize,
-          height: targetTileSize,
-        })
-          .then(resolve)
-          .catch(reject);
-      },
-    );
+  return await createImageOutput({
+    data,
+    rawOption: {
+      premultiplied: true,
+      width: originTileSize,
+      height: originTileSize,
+      channels: 4,
+    },
+    format: option.format,
+    grayscale: option.grayscale,
+    filePath: option.filePath,
+    width: targetTileSize,
+    height: targetTileSize,
   });
 }
 
@@ -469,46 +575,32 @@ export async function renderImageStaticData(option) {
         styleJSON: option.styleJSON,
       });
 
-  return await new Promise((resolve, reject) => {
-    const sizes = calculateSizes(option.zoom, option.bbox, option.tileSize);
+  const sizes = calculateSizes(option.zoom, option.bbox, option.tileSize);
+  const data = await renderWithRenderer(renderer, option.pool, {
+    zoom: option.zoom,
+    center: [
+      (option.bbox[0] + option.bbox[2]) / 2,
+      (option.bbox[1] + option.bbox[3]) / 2,
+    ],
+    width: sizes.width,
+    height: sizes.height,
+    pitch: option.pitch ?? 0,
+    bearing: option.bearing ?? 0,
+  });
 
-    renderer.render(
-      {
-        zoom: option.zoom,
-        center: [
-          (option.bbox[0] + option.bbox[2]) / 2,
-          (option.bbox[1] + option.bbox[3]) / 2,
-        ],
-        width: sizes.width,
-        height: sizes.height,
-        pitch: option.pitch ?? 0,
-        bearing: option.bearing ?? 0,
-      },
-      (error, data) => {
-        option.pool ? option.pool.release(renderer) : renderer.release();
-
-        if (error) {
-          return reject(error);
-        }
-
-        createImageOutput({
-          data,
-          rawOption: {
-            premultiplied: true,
-            width: Math.round(option.tileScale * sizes.width),
-            height: Math.round(option.tileScale * sizes.height),
-            channels: 4,
-          },
-          format: option.format,
-          grayscale: option.grayscale,
-          width: option.width,
-          height: option.height,
-          filePath: option.filePath,
-        })
-          .then(resolve)
-          .catch(reject);
-      },
-    );
+  return await createImageOutput({
+    data,
+    rawOption: {
+      premultiplied: true,
+      width: Math.round(option.tileScale * sizes.width),
+      height: Math.round(option.tileScale * sizes.height),
+      channels: 4,
+    },
+    format: option.format,
+    grayscale: option.grayscale,
+    width: option.width,
+    height: option.height,
+    filePath: option.filePath,
   });
 }
 
@@ -550,6 +642,13 @@ export async function renderStyleJSON(option) {
     const total = xSplits * ySplits;
     const compositesOption = Array(total);
 
+    const pool = createRendererPool({
+      mode: "static",
+      ratio: option.tileScale,
+      styleJSON: option.styleJSON,
+      max: Math.min(DEFAULT_CONCURRENCY, total),
+    });
+
     function* createCompositeOptionGenerator() {
       for (let idx = 0; idx < total; idx++) {
         yield async () => {
@@ -561,6 +660,7 @@ export async function renderStyleJSON(option) {
           const subFilePath = `${dirPath}/${idx}.${option.format}`;
 
           await renderImageStaticData({
+            pool,
             styleJSON: option.styleJSON,
             tileScale: option.tileScale,
             tileSize: option.tileSize,
@@ -585,27 +685,32 @@ export async function renderStyleJSON(option) {
       }
     }
 
-    // Batch run
-    await runAllWithLimit(
-      createCompositeOptionGenerator(),
-      DEFAULT_CONCURRENCY,
-    );
+    try {
+      // Batch run
+      await runAllWithLimit(
+        createCompositeOptionGenerator(),
+        DEFAULT_CONCURRENCY,
+      );
 
-    // Create image output
-    return await createImageOutput({
-      createOption: {
-        width: totalWidth,
-        height: totalHeight,
-        channels: 4,
-        background: BACKGROUND_COLOR,
-      },
-      filePath,
-      compositesOption,
-      format: option.format,
-      width: option.width,
-      height: option.height,
-      grayscale: option.grayscale,
-    });
+      // Create image output
+      return await createImageOutput({
+        createOption: {
+          width: totalWidth,
+          height: totalHeight,
+          channels: 4,
+          background: BACKGROUND_COLOR,
+        },
+        filePath,
+        compositesOption,
+        format: option.format,
+        width: option.width,
+        height: option.height,
+        grayscale: option.grayscale,
+      });
+    } finally {
+      await pool.drain();
+      await pool.clear();
+    }
   }
 }
 
@@ -640,11 +745,15 @@ export async function renderTileDatas({
       minZoom: metadata.minzoom,
       maxZoom: metadata.maxzoom,
     });
+    const rendererPoolSize = Math.min(
+      maxRendererPoolSize ?? concurrency,
+      concurrency,
+    );
 
     let log = `Rendering ${total} tiles of style id "${id}" to ${storeType} with:`;
     log += `\n\tStore path: ${storePath}`;
     log += `\n\tStore transparent: ${storeTransparent}`;
-    log += `\n\tMax renderer pool size: ${maxRendererPoolSize} - Concurrency: ${concurrency} - Batch: ${batch}`;
+    log += `\n\tRenderer pool size: ${rendererPoolSize} - Concurrency: ${concurrency} - Batch: ${batch}`;
     log += `\n\tFormat: ${metadata.format} - Tile scale: ${tileScale} - Tile size: ${tileSize}`;
     log += `\n\tBBox: ${JSON.stringify(metadata.bounds)}- Minzoom: ${metadata.minzoom} - Maxzoom: ${metadata.maxzoom}`;
 
@@ -679,26 +788,12 @@ export async function renderTileDatas({
     };
 
     /* Create renderer pool */
-    if (maxRendererPoolSize) {
-      pool = createPool(
-        {
-          create: () => {
-            return createRenderer({
-              mode: "tile",
-              ratio: tileScale,
-              styleJSON,
-            });
-          },
-          destroy: (renderer) => {
-            return renderer.release();
-          },
-        },
-        {
-          min: 1,
-          max: maxRendererPoolSize,
-        },
-      );
-    }
+    pool = createRendererPool({
+      mode: "tile",
+      ratio: tileScale,
+      styleJSON,
+      max: rendererPoolSize,
+    });
 
     switch (storeType) {
       default: {

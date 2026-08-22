@@ -3,7 +3,7 @@
   border-radius: 4px;
   overflow: hidden;
   background: #fff;
-  min-width: 420px;
+  min-width: 0;
 }
 
 .json-editor__toolbar {
