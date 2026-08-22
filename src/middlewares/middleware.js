@@ -1,6 +1,6 @@
 "use strict";
 
-import { printLog, setMetrics } from "../utils/index.js";
+import { isLogLevelEnabled, setMetrics, printLog } from "../utils/index.js";
 import express from "express";
 
 const jsonParser = express.json({
@@ -43,11 +43,19 @@ export function loggerMiddleware() {
             : "unmatched";
       const statusCode = res.statusCode;
       const contentLength = res.get("content-length") || "-";
+      const level =
+        statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info";
 
-      printLog(
-        statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info",
-        `${method} ${req.originalUrl} ${statusCode} ${duration} ${contentLength}`,
-      );
+      if (isLogLevelEnabled(level)) {
+        const ips = req.ips;
+        const clientIp = ips[0] || req.socket.remoteAddress || "-";
+        const proxies = ips.length > 1 ? ips.join(",") : "-";
+
+        printLog(
+          level,
+          `${method} ${req.originalUrl} ${statusCode} ${duration} ${contentLength} ${clientIp} ${proxies} ${req.headers["user-agent"] || "-"} ${req.headers.referer || "-"}`,
+        );
+      }
 
       setMetrics(method, route, statusCode, duration);
     });

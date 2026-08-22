@@ -36,3 +36,12 @@ if (!logger) {
 export function printLog(level, msg) {
   logger[level](msg);
 }
+
+/**
+ * Check whether a log level is enabled before building expensive messages.
+ * @param {"fatal"|"error"|"warn"|"info"|"debug"|"trace"} level Log level
+ * @returns {boolean} True when enabled
+ */
+export function isLogLevelEnabled(level) {
+  return logger.isLevelEnabled(level);
+}
