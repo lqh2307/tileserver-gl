@@ -1,5 +1,20 @@
 const baseURL = document.body.dataset.baseUrl;
 const id = document.body.dataset.id;
+const inspector = document.getElementById("featureInspector");
+let pinned = false;
+
+function renderCoordinate(point, latlng) {
+  inspector.hidden = false;
+  inspector.innerHTML = `<button class="inspector-close" type="button" aria-label="Close">&times;</button>
+    <strong>Map position</strong>
+    <dl><div class="property-row coordinate-row"><dt>Coordinates</dt><dd>[${latlng.lng}, ${latlng.lat}]</dd></div></dl>`;
+  const mapContainer = document.getElementById("map");
+  const width = Math.min(inspector.offsetWidth || 320, mapContainer.clientWidth - 16);
+  const height = inspector.offsetHeight || 120;
+  inspector.style.left = `${Math.max(8, Math.min(point.x + 14, mapContainer.clientWidth - width - 8))}px`;
+  inspector.style.top = `${Math.max(8, Math.min(point.y + 14, mapContainer.clientHeight - height - 8))}px`;
+  inspector.querySelector(".inspector-close").onclick = () => { pinned = false; inspector.hidden = true; };
+}
 
 function handleError(error) {
   if (error.response) {
@@ -116,6 +131,11 @@ fetch(`${baseURL}/datas/${id}.json`, {
 
     let currentMarker;
 
+    map.on("mousemove", (event) => {
+      if (!pinned) renderCoordinate(event.containerPoint, event.latlng);
+    });
+    map.on("mouseout", () => { if (!pinned) inspector.hidden = true; });
+
     map.on("click", (event) => {
       if (currentMarker) {
         currentMarker.remove();
@@ -124,17 +144,19 @@ fetch(`${baseURL}/datas/${id}.json`, {
       currentMarker = L.marker([event.latlng.lat, event.latlng.lng], {
         draggable: true,
       }).addTo(map);
-
-      alert(`Position: [${event.latlng.lng}, ${event.latlng.lat}]`);
+      pinned = true;
+      renderCoordinate(event.containerPoint, event.latlng);
 
       currentMarker.on("dragend", () => {
         const position = currentMarker.getLatLng();
-
-        alert(`Position: [${position.lng}, ${position.lat}]`);
+        const coordinate = inspector.querySelector(".coordinate-row dd");
+        if (coordinate) coordinate.textContent = `[${position.lng}, ${position.lat}]`;
       });
     });
 
     map.on("contextmenu", () => {
+      pinned = false;
+      inspector.hidden = true;
       if (currentMarker) {
         currentMarker.remove();
 

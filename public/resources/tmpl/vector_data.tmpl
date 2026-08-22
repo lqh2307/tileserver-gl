@@ -8,20 +8,19 @@
   <title>{{name}} - Tile Server</title>
 
   <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl.css" />
-  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl-inspect.css" />
-
   <link rel="stylesheet" href="{{base_url}}/css/map.css" />
   <link rel="stylesheet" href="{{base_url}}/css/vector_data.css" />
 
   <script src="{{base_url}}/maplibre-gl.js"></script>
-  <script src="{{base_url}}/maplibre-gl-inspect.js"></script>
+  <script src="{{base_url}}/js/inspect_colors.js"></script>
   <script src="{{base_url}}/js/map-controls.js"></script>
 </head>
 
 <body data-base-url="{{base_url}}" data-id="{{id}}">
   <h1>Layer list</h1>
   <div id="map"></div>
-  <div id="layerList">
+  <div id="layerList"></div>
+  <aside id="featureInspector" hidden></aside>
 
   <script src="{{base_url}}/js/vector_data.js"></script>
 </body>
