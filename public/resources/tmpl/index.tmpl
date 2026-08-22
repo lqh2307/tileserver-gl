@@ -153,39 +153,6 @@
         .catch(handleError);
     }
 
-    function submitJSONDialog({ dialogId, formId, inputId, url, method, message, loadUrl }) {
-      document.getElementById(dialogId).showModal();
-      if (loadUrl) {
-        fetch(loadUrl)
-          .then((response) => {
-            if (!response.ok) throw new Error(`Failed to load JSON: \${response.status}`);
-            return response.json();
-          })
-          .then((value) => jsonEditors[inputId].setValue(value))
-          .catch(handleError);
-      }
-
-      document.getElementById(formId).onsubmit = (event) => {
-        event.preventDefault();
-        const body = getJSONText(inputId);
-        if (body === null) return;
-
-        fetch(url, {
-          method,
-          headers: {
-            "content-type": "application/json",
-          },
-          body
-        })
-          .then(() => {
-            alert(message);
-
-            closeDialog(dialogId);
-          })
-          .catch(handleError);
-      };
-    }
-
     const syncItems = [
       { title: "Cancel sync", description: "Cancel queued or running synchronization", buttons: [{ text: "Cancel sync", onClick: "openSyncDialog(event, 'cancel')" }] },
       { title: "Sync", description: "Run cleanup and seed synchronization", buttons: [{ text: "Sync", onClick: "openSyncDialog(event, 'start')" }] },
@@ -203,16 +170,6 @@
       { title: "Summary service", description: "View the service summary", buttons: [{ text: "Summary service", href: `${baseURL}/summary?type=service` }] },
       { title: "Summary seed", description: "View the seed summary", buttons: [{ text: "Summary seed", href: `${baseURL}/summary?type=seed` }] },
     ];
-
-    const taskActions = {
-      all: { url: `${baseURL}/tasks/start?restart=true`, message: "Starting all sync tasks..." },
-      style: { url: `${baseURL}/tasks/start?type=style&restart=true`, message: "Starting style sync tasks..." },
-      geojson: { url: `${baseURL}/tasks/start?type=geojson&restart=true`, message: "Starting GeoJSON sync tasks..." },
-      data: { url: `${baseURL}/tasks/start?type=data&restart=true`, message: "Starting data sync tasks..." },
-      sprite: { url: `${baseURL}/tasks/start?type=sprite&restart=true`, message: "Starting sprite sync tasks..." },
-      font: { url: `${baseURL}/tasks/start?type=font&restart=true`, message: "Starting font sync tasks..." },
-      cancel: { url: `${baseURL}/tasks/cancel`, message: "Canceling cleanup/seed tasks..." },
-    };
 
     let syncDialogAction = "start";
 
@@ -289,7 +246,7 @@
       const body = getJSONText("selectedConfigInput");
       if (body === null) return;
 
-      fetch(baseURL + "/config?type=" + encodeURIComponent(type) + "&restart=true", {
+      fetch(baseURL + "/config?type=" + encodeURIComponent(type) + "&restart=true&overwrite=true", {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body,
@@ -305,60 +262,6 @@
    const configActions = {
       restart: { url: `${baseURL}/restart?type=restart`, message: "Server restarted successfully!" },
       kill: { url: `${baseURL}/restart?type=kill`, message: "Server killed successfully!" },
-    };
-
-    const configDialogActions = {
-      showUpdateConfig: {
-        dialogId: "updateConfigDialog",
-        formId: "updateConfigForm",
-        inputId: "updateConfigInput",
-        loadUrl: `${baseURL}/config?type=config`,
-        url: `${baseURL}/config?type=config&restart=true`,
-        method: "PUT",
-        message: "Updating config...",
-      },
-      showUpdateSeed: {
-        dialogId: "updateSeedDialog",
-        formId: "updateSeedForm",
-        inputId: "updateSeedInput",
-        loadUrl: `${baseURL}/config?type=seed`,
-        url: `${baseURL}/config?type=seed&restart=true`,
-        method: "PUT",
-        message: "Updating seed...",
-      },
-      showUpdateCleanUp: {
-        dialogId: "updateCleanUpDialog",
-        formId: "updateCleanUpForm",
-        inputId: "updateCleanUpInput",
-        loadUrl: `${baseURL}/config?type=cleanup`,
-        url: `${baseURL}/config?type=cleanup&restart=true`,
-        method: "PUT",
-        message: "Updating cleanup...",
-      },
-      showDeleteConfig: {
-        dialogId: "deleteConfigDialog",
-        formId: "deleteConfigForm",
-        inputId: "deleteConfigInput",
-        url: `${baseURL}/config?type=config&restart=true`,
-        method: "DELETE",
-        message: "Deleting config...",
-      },
-      showDeleteSeed: {
-        dialogId: "deleteSeedDialog",
-        formId: "deleteSeedForm",
-        inputId: "deleteSeedInput",
-        url: `${baseURL}/config?type=seed&restart=true`,
-        method: "DELETE",
-        message: "Deleting seed...",
-      },
-      showDeleteCleanUp: {
-        dialogId: "deleteCleanUpDialog",
-        formId: "deleteCleanUpForm",
-        inputId: "deleteCleanUpInput",
-        url: `${baseURL}/config?type=cleanup&restart=true`,
-        method: "DELETE",
-        message: "Deleting cleanup...",
-      },
     };
 
     function toggleURL(id, event) {
@@ -582,26 +485,13 @@
       }
     }
 
-    function handleAction(event, action) {
-      event.preventDefault();
-
-      const taskAction = taskActions[action];
-
-      if (taskAction) {
-        requestGET(taskAction.url, taskAction.message);
-      }
-    }
-
     function handleConfig(event, action) {
       event.preventDefault();
 
       const configAction = configActions[action];
-      const configDialogAction = configDialogActions[action];
 
       if (configAction) {
         requestGET(configAction.url, configAction.message);
-      } else if (configDialogAction) {
-        submitJSONDialog(configDialogAction);
       }
     }
 

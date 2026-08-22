@@ -7,13 +7,15 @@ const jsonParser = express.json({
   limit: "500mb",
 });
 
+const METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
 /**
- * Parse and limit JSON bodies for POST requests.
+ * Parse and limit JSON bodies for methods that can carry a JSON payload.
  * @returns {express.RequestHandler} Middleware
  */
 export function jsonBodyMiddleware() {
   return (req, res, next) => {
-    if (req.method === "POST") {
+    if (METHODS.has(req.method)) {
       jsonParser(req, res, next);
     } else {
       next();

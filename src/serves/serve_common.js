@@ -191,12 +191,41 @@ function serveConfigHandler() {
 }
 
 /**
- * Update config content handler
+ * Recursively merge plain JSON objects, replacing arrays and primitive values.
+ * @param {Record<string, any>} target Persisted configuration to mutate
+ * @param {Record<string, any>} updates Submitted configuration changes
+ * @returns {Record<string, any>} The merged configuration
+ */
+function mergeConfigValues(target, updates) {
+  for (const [key, value] of Object.entries(updates)) {
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      target[key] &&
+      typeof target[key] === "object" &&
+      !Array.isArray(target[key])
+    ) {
+      mergeConfigValues(target[key], value);
+    } else {
+      target[key] = value;
+    }
+  }
+
+  return target;
+}
+
+/**
+ * Update and validate a config, seed, or cleanup document.
+ *
+ * By default, submitted values merge into the persisted document. Supplying
+ * \`overwrite=true\` replaces the persisted document with the submitted value.
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
 function serveConfigUpdateHandler() {
   return async (req, res) => {
     const type = req.query.type || "config";
+    const overwrite = req.query.overwrite === "true";
 
     try {
       await validateConfig(type, req.body);
@@ -207,73 +236,21 @@ function serveConfigUpdateHandler() {
     }
 
     try {
-      const configJSON = readConfigFile(type, true);
+      const nextConfig = overwrite
+        ? req.body
+        : mergeConfigValues(readConfigFile(type, true), req.body);
 
-      if (!req.body.styles) {
-        printLog("info", `No styles to update in ${type}. Skipping...`);
-      } else {
-        const ids = Object.keys(req.body.styles);
+      await validateConfig(type, nextConfig);
 
-        printLog("info", `Updating ${ids.length} styles in ${type}...`);
-
-        ids.map((id) => {
-          configJSON.styles[id] = req.body.styles[id];
-        });
-      }
-
-      if (!req.body.geojsons) {
-        printLog("info", `No GeoJSONs to update in ${type}. Skipping...`);
-      } else {
-        const ids = Object.keys(req.body.geojsons);
-
-        printLog("info", `Updating ${ids.length} GeoJSONs in ${type}...`);
-
-        ids.map((id) => {
-          configJSON.geojsons[id] = req.body.geojsons[id];
-        });
-      }
-
-      if (!req.body.datas) {
-        printLog("info", `No datas to update in ${type}. Skipping...`);
-      } else {
-        const ids = Object.keys(req.body.datas);
-
-        printLog("info", `Updating ${ids.length} datas in ${type}...`);
-
-        ids.map((id) => {
-          configJSON.datas[id] = req.body.datas[id];
-        });
-      }
-
-      if (!req.body.sprites) {
-        printLog("info", `No sprites to update in ${type}. Skipping...`);
-      } else {
-        const ids = Object.keys(req.body.sprites);
-
-        printLog("info", `Updating ${ids.length} sprites in ${type}...`);
-
-        ids.map((id) => {
-          configJSON.sprites[id] = req.body.sprites[id];
-        });
-      }
-
-      if (!req.body.fonts) {
-        printLog("info", `No fonts to update in ${type}. Skipping...`);
-      } else {
-        const ids = Object.keys(req.body.fonts);
-
-        printLog("info", `Updating ${ids.length} fonts in ${type}...`);
-
-        ids.map((id) => {
-          configJSON.fonts[id] = req.body.fonts[id];
-        });
-      }
-
-      await updateConfigFile(type, configJSON, DEFAULT_QUERY_TIMEOUT);
+      printLog(
+        "info",
+        `${overwrite ? "Replacing" : "Merging"} ${type}.json with the validated request body...`,
+      );
+      await updateConfigFile(type, nextConfig, DEFAULT_QUERY_TIMEOUT);
 
       if (req.query.restart === "true") {
         setTimeout(() => {
-          return process.send({
+          process.send({
             action: "restartServer",
           });
         }, 0);
