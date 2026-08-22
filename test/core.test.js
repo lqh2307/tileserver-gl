@@ -7,14 +7,18 @@ import path from "node:path";
 import http from "node:http";
 import test from "node:test";
 import express from "express";
+import { StatusCodes } from "http-status-codes";
 import { serve_swagger } from "../src/serves/serve_swagger.js";
+import { serve_task } from "../src/serves/serve_task.js";
 import {
   findFiles,
   calculateMD5,
   getDataFromURL,
   getJSONSchema,
   getRequestHost,
+  getTaskTargets,
   getTileBoundsBatches,
+  isTaskTargetMatched,
   isExistFile,
   isLocalURL,
   isURL,
@@ -58,6 +62,142 @@ test("tile bounds use the 10000 tile default batch", () => {
     }, 0),
     501 * 51,
   );
+});
+
+test("task selectors expand and match individual sync resources", () => {
+  const seedConfig = {
+    datas: {
+      osm: {},
+      satellite: {},
+    },
+    styles: {
+      basic: {},
+    },
+  };
+  const cleanUpConfig = {
+    datas: {
+      osm: {},
+    },
+    geojsons: {
+      boundaries: {},
+    },
+  };
+
+  assert.deepEqual(
+    getTaskTargets(
+      {
+        type: "data",
+        id: "osm",
+      },
+      seedConfig,
+      cleanUpConfig,
+    ),
+    [
+      {
+        type: "data",
+        id: "osm",
+      },
+    ],
+  );
+  assert.deepEqual(
+    getTaskTargets(
+      {
+        type: "data",
+      },
+      seedConfig,
+      cleanUpConfig,
+    ),
+    [
+      {
+        type: "data",
+        id: "osm",
+      },
+      {
+        type: "data",
+        id: "satellite",
+      },
+    ],
+  );
+
+  const allTargets = getTaskTargets({}, seedConfig, cleanUpConfig);
+  assert.equal(allTargets.length, 4);
+  assert.equal(
+    isTaskTargetMatched(
+      {
+        type: "data",
+        id: "osm",
+      },
+      {
+        type: "data",
+        id: "osm",
+      },
+    ),
+    true,
+  );
+  assert.equal(
+    isTaskTargetMatched(
+      {
+        type: "style",
+        id: "basic",
+      },
+      {
+        type: "data",
+      },
+    ),
+    false,
+  );
+  assert.deepEqual(
+    getTaskTargets(
+      {
+        id: "osm",
+      },
+      seedConfig,
+      cleanUpConfig,
+    ),
+    [],
+  );
+});
+
+test("task API validates selectors and accepts empty type groups", async () => {
+  const app = express();
+  serve_task.init(app);
+  const server = app.listen(0, "127.0.0.1");
+
+  await new Promise((resolve) => {
+    server.once("listening", resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    const [
+      legacyResponse,
+      incompleteResponse,
+      invalidRestartResponse,
+      emptyTypeResponse,
+      missingIdResponse,
+    ] =
+      await Promise.all([
+        fetch(`http://127.0.0.1:${port}/tasks/start?seedDatas=true`),
+        fetch(`http://127.0.0.1:${port}/tasks/start?id=osm`),
+        fetch(`http://127.0.0.1:${port}/tasks/start?restart=yes`),
+        fetch(`http://127.0.0.1:${port}/tasks/start?type=style`),
+        fetch(
+          `http://127.0.0.1:${port}/tasks/start?type=style&id=__missing__`,
+        ),
+      ]);
+
+    assert.equal(legacyResponse.status, StatusCodes.BAD_REQUEST);
+    assert.equal(incompleteResponse.status, StatusCodes.BAD_REQUEST);
+    assert.equal(invalidRestartResponse.status, StatusCodes.BAD_REQUEST);
+    assert.equal(emptyTypeResponse.status, StatusCodes.OK);
+    assert.equal(missingIdResponse.status, StatusCodes.NOT_FOUND);
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => {
+        return error ? reject(error) : resolve();
+      });
+    });
+  }
 });
 
 test("SQLite writers use NFS-compatible pragmas", async () => {

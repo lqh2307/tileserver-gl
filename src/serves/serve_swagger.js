@@ -41,9 +41,9 @@ const operationDescriptions = {
   "GET /restart":
     "Requests a process restart or termination. This is an administrative operation and can interrupt active requests.",
   "GET /tasks/start":
-    "Starts one background worker with the selected seed and cleanup groups. Only one task worker can run at a time.",
+    "Queues resource-level cleanup and seed synchronization. Use type and id for one resource, only type for every ID of that type, or omit both for all configured resources.",
   "GET /tasks/cancel":
-    "Terminates the active seed or cleanup worker. It does not delete data already written by completed work.",
+    "Cancels matching queued or running synchronization tasks without stopping unmatched resources. Omit type and id to cancel all synchronization.",
   "POST /datas/{id}/extra-info":
     "Returns hash or creation-time information for exact XYZ tile ranges. A request is limited to 100000 tiles and can be gzip-compressed.",
   "GET /datas/{id}/extra-info":

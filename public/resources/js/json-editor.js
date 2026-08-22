@@ -10,6 +10,7 @@
 
   JSONEditor.prototype.render = function () {
     var self = this;
+    this.mode = "source";
     this.element.className = "json-editor";
     this.element.innerHTML =
       '<div class="json-editor__toolbar"><button type="button" data-mode="source" class="active">Source</button><button type="button" data-mode="tree">Tree</button></div><textarea class="json-editor__source" spellcheck="false"></textarea><div class="json-editor__tree" hidden></div><div class="json-editor__error" hidden></div>';
@@ -28,7 +29,7 @@
   };
 
   JSONEditor.prototype.setMode = function (mode) {
-    var self = this;
+    this.mode = mode;
     if (mode === "tree") {
       if (!this.parse()) return;
       this.tree.innerHTML = "";
@@ -58,6 +59,10 @@
     this.value = value == null ? {} : value;
     this.source.value = JSON.stringify(this.value, null, 2);
     this.error.hidden = true;
+    if (this.mode === "tree") {
+      this.tree.innerHTML = "";
+      this.renderNode(this.value, this.tree, "");
+    }
   };
 
   JSONEditor.prototype.getValue = function () {

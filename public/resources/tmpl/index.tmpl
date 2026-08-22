@@ -49,15 +49,38 @@
     </dialog>
   {{/inline}}
 
-  {{> jsonDialog dialogId="updateConfigDialog" formId="updateConfigForm" inputId="updateConfigInput" submitText="OK"}}
-  {{> jsonDialog dialogId="updateSeedDialog" formId="updateSeedForm" inputId="updateSeedInput" submitText="OK"}}
-  {{> jsonDialog dialogId="updateCleanUpDialog" formId="updateCleanUpForm" inputId="updateCleanUpInput" submitText="OK"}}
-  {{> jsonDialog dialogId="deleteConfigDialog" formId="deleteConfigForm" inputId="deleteConfigInput" submitText="OK"}}
-  {{> jsonDialog dialogId="deleteSeedDialog" formId="deleteSeedForm" inputId="deleteSeedInput" submitText="OK"}}
-  {{> jsonDialog dialogId="deleteCleanUpDialog" formId="deleteCleanUpForm" inputId="deleteCleanUpInput" submitText="OK"}}
-  {{> jsonDialog dialogId="exportRenderDialog" formId="exportRenderForm" inputId="exportRenderInput" submitText="Export"}}
-  {{> jsonDialog dialogId="exportImageDialog" formId="exportImageForm" inputId="exportImageInput" submitText="Export"}}
-  {{> jsonDialog dialogId="exportDataDialog" formId="exportDataForm" inputId="exportDataInput" submitText="Export"}}
+  <dialog id="configDialog">
+    <form id="configForm" method="dialog">
+      <h2>Update config</h2>
+      <label for="configTypeInput">Type</label>
+      <select id="configTypeInput" name="type">
+        <option value="config">Config</option>
+        <option value="seed">Seed</option>
+        <option value="cleanup">Cleanup</option>
+      </select>
+      <div id="selectedConfigInput" class="json-dialog-editor" data-json-editor></div>
+      <div class="dialog">
+        <button type="submit" class="btn-primary">Confirm</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('configDialog')">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  {{> jsonDialog dialogId="exportRenderDialog" formId="exportRenderForm" inputId="exportRenderInput" submitText="Confirm"}}
+  {{> jsonDialog dialogId="exportImageDialog" formId="exportImageForm" inputId="exportImageInput" submitText="Confirm"}}
+  {{> jsonDialog dialogId="exportDataDialog" formId="exportDataForm" inputId="exportDataInput" submitText="Confirm"}}
+  <dialog id="syncDialog">
+    <form id="syncForm" method="dialog">
+      <h2 id="syncDialogTitle">Sync</h2>
+      <label for="syncTypeInput">Type</label>
+      <select id="syncTypeInput" name="type"></select>
+      <label for="syncIDInput">ID</label>
+      <select id="syncIDInput" name="id"></select>
+      <div class="dialog">
+        <button type="submit" class="btn-primary" id="syncSubmitButton">Confirm</button>
+        <button type="button" class="btn-secondary" onclick="closeDialog('syncDialog')">Cancel</button>
+      </div>
+    </form>
+  </dialog>
 
   <a href="#" class="back-to-top" onclick="scrollToTop(event)">Back to top</a>
 
@@ -65,6 +88,7 @@
   <script src="{{base_url}}/js/json-editor.js"></script>
   <script>
     const baseURL = {{{js base_url}}};
+    const syncTargets = {{{js sync_targets}}};
     const emptyImageURL = `${baseURL}/images/placeholder.png`;
     const jsonEditors = {};
     document.querySelectorAll("[data-json-editor]").forEach((element) => {
@@ -163,31 +187,13 @@
     }
 
     const syncItems = [
-      { title: "Cancel sync", description: "Cancel cleanup/seed tasks", buttons: [{ text: "Cancel sync", onClick: "handleAction(event, 'cancel')" }] },
-      { title: "Sync all", description: "Start cleanup/seed tasks", buttons: [{ text: "Sync all", onClick: "handleAction(event, 'all')" }] },
-      { title: "Clean styles", description: "Start cleanup styles", buttons: [{ text: "Clean styles", onClick: "handleAction(event, 'cleanUpStyles')" }] },
-      { title: "Clean geojsons", description: "Start cleanup geojsons", buttons: [{ text: "Clean geojsons", onClick: "handleAction(event, 'cleanUpGeoJSONs')" }] },
-      { title: "Clean datas", description: "Start cleanup datas", buttons: [{ text: "Clean datas", onClick: "handleAction(event, 'cleanUpDatas')" }] },
-      { title: "Clean sprites", description: "Start cleanup sprites", buttons: [{ text: "Clean sprites", onClick: "handleAction(event, 'cleanUpSprites')" }] },
-      { title: "Clean fonts", description: "Start cleanup fonts", buttons: [{ text: "Clean fonts", onClick: "handleAction(event, 'cleanUpFonts')" }] },
-      { title: "Seed styles", description: "Start seed styles", buttons: [{ text: "Seed styles", onClick: "handleAction(event, 'seedStyles')" }] },
-      { title: "Seed geojsons", description: "Start seed geojsons", buttons: [{ text: "Seed geojsons", onClick: "handleAction(event, 'seedGeoJSONs')" }] },
-      { title: "Seed datas", description: "Start seed datas", buttons: [{ text: "Seed datas", onClick: "handleAction(event, 'seedDatas')" }] },
-      { title: "Seed sprites", description: "Start seed sprites", buttons: [{ text: "Seed sprites", onClick: "handleAction(event, 'seedSprites')" }] },
-      { title: "Seed fonts", description: "Start seed fonts", buttons: [{ text: "Seed fonts", onClick: "handleAction(event, 'seedFonts')" }] },
+      { title: "Cancel sync", description: "Cancel queued or running synchronization", buttons: [{ text: "Cancel sync", onClick: "openSyncDialog(event, 'cancel')" }] },
+      { title: "Sync", description: "Run cleanup and seed synchronization", buttons: [{ text: "Sync", onClick: "openSyncDialog(event, 'start')" }] },
     ];
 
-    const configItems = [
-      { title: "View config", description: "View config.json content", buttons: [{ text: "View config", href: `${baseURL}/config?type=config` }] },
-      { title: "View seed", description: "View seed.json content", buttons: [{ text: "View seed", href: `${baseURL}/config?type=seed` }] },
-      { title: "View cleanup", description: "View cleanup.json content", buttons: [{ text: "View cleanup", href: `${baseURL}/config?type=cleanup` }] },
-      { title: "Update config", description: "Update config.json content", buttons: [{ text: "Update config", onClick: "handleConfig(event, 'showUpdateConfig')" }] },
-      { title: "Update seed", description: "Update seed.json content", buttons: [{ text: "Update seed", onClick: "handleConfig(event, 'showUpdateSeed')" }] },
-      { title: "Update cleanup", description: "Update cleanup.json content", buttons: [{ text: "Update cleanup", onClick: "handleConfig(event, 'showUpdateCleanUp')" }] },
-      { title: "Delete config", description: "Delete config.json content", buttons: [{ text: "Delete config", onClick: "handleConfig(event, 'showDeleteConfig')" }] },
-      { title: "Delete seed", description: "Delete seed.json content", buttons: [{ text: "Delete seed", onClick: "handleConfig(event, 'showDeleteSeed')" }] },
-      { title: "Delete cleanup", description: "Delete cleanup.json content", buttons: [{ text: "Delete cleanup", onClick: "handleConfig(event, 'showDeleteCleanUp')" }] },
-    ];
+   const configItems = [
+      { title: "Update config", description: "View and update config, seed, or cleanup JSON", buttons: [{ text: "Update config", onClick: "openConfigDialog(event)" }] },
+   ];
 
     const utilityItems = [
       { title: "Swagger", description: "Open API documentation", buttons: [{ text: "Swagger", href: `${baseURL}/swagger` }] },
@@ -199,21 +205,104 @@
     ];
 
     const taskActions = {
-      all: { url: `${baseURL}/tasks/start?seedStyles=true&cleanUpStyles=true&cleanUpDatas=true&seedDatas=true&seedGeoJSONs=true&cleanUpGeoJSONs=true&seedSprites=true&cleanUpSprites=true&seedFonts=true&cleanUpFonts=true&restart=true`, message: "Starting cleanup/seed tasks..." },
-      cleanUpStyles: { url: `${baseURL}/tasks/start?cleanUpStyles=true&restart=true`, message: "Starting start cleanup styles..." },
-      cleanUpGeoJSONs: { url: `${baseURL}/tasks/start?cleanUpGeoJSONs=true&restart=true`, message: "Starting start cleanup geojsons..." },
-      cleanUpDatas: { url: `${baseURL}/tasks/start?cleanUpDatas=true&restart=true`, message: "Starting cleanup datas..." },
-      cleanUpSprites: { url: `${baseURL}/tasks/start?cleanUpSprites=true&restart=true`, message: "Starting cleanup sprites..." },
-      cleanUpFonts: { url: `${baseURL}/tasks/start?cleanUpFonts=true&restart=true`, message: "Starting cleanup fonts..." },
-      seedStyles: { url: `${baseURL}/tasks/start?seedStyles=true&restart=true`, message: "Starting seed styles..." },
-      seedGeoJSONs: { url: `${baseURL}/tasks/start?seedGeoJSONs=true&restart=true`, message: "Starting seed geojsons..." },
-      seedDatas: { url: `${baseURL}/tasks/start?seedDatas=true&restart=true`, message: "Starting seed datas..." },
-      seedSprites: { url: `${baseURL}/tasks/start?seedSprites=true&restart=true`, message: "Starting seed sprites..." },
-      seedFonts: { url: `${baseURL}/tasks/start?seedFonts=true&restart=true`, message: "Starting seed fonts..." },
+      all: { url: `${baseURL}/tasks/start?restart=true`, message: "Starting all sync tasks..." },
+      style: { url: `${baseURL}/tasks/start?type=style&restart=true`, message: "Starting style sync tasks..." },
+      geojson: { url: `${baseURL}/tasks/start?type=geojson&restart=true`, message: "Starting GeoJSON sync tasks..." },
+      data: { url: `${baseURL}/tasks/start?type=data&restart=true`, message: "Starting data sync tasks..." },
+      sprite: { url: `${baseURL}/tasks/start?type=sprite&restart=true`, message: "Starting sprite sync tasks..." },
+      font: { url: `${baseURL}/tasks/start?type=font&restart=true`, message: "Starting font sync tasks..." },
       cancel: { url: `${baseURL}/tasks/cancel`, message: "Canceling cleanup/seed tasks..." },
     };
 
-    const configActions = {
+    let syncDialogAction = "start";
+
+    function updateSyncIDOptions() {
+      const typeInput = document.getElementById("syncTypeInput");
+      const idInput = document.getElementById("syncIDInput");
+      const ids = syncTargets[typeInput.value] || [];
+
+      idInput.innerHTML = '<option value="">All</option>' +
+        ids.map((id) => '<option value="' + escapeAttr(id) + '">' + escapeHTML(id) + '</option>').join("");
+      idInput.disabled = !typeInput.value;
+    }
+
+    function openSyncDialog(event, action) {
+      event.preventDefault();
+      syncDialogAction = action;
+
+      const typeInput = document.getElementById("syncTypeInput");
+      const title = action === "start" ? "Sync" : "Cancel sync";
+      document.getElementById("syncDialogTitle").textContent = title;
+      document.getElementById("syncSubmitButton").textContent = title;
+      typeInput.innerHTML = '<option value="">All</option>' +
+        Object.keys(syncTargets).sort().map((type) =>
+          '<option value="' + escapeAttr(type) + '">' + escapeHTML(type) + '</option>'
+        ).join("");
+      typeInput.value = "";
+      updateSyncIDOptions();
+      document.getElementById("syncDialog").showModal();
+    }
+
+    document.getElementById("syncTypeInput").addEventListener("change", updateSyncIDOptions);
+    document.getElementById("syncForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const type = document.getElementById("syncTypeInput").value;
+      const id = document.getElementById("syncIDInput").value;
+      const query = new URLSearchParams();
+      if (type) query.set("type", type);
+      if (id) query.set("id", id);
+      if (syncDialogAction === "start") query.set("restart", "true");
+
+      const endpoint = baseURL + "/tasks/" +
+        (syncDialogAction === "start" ? "start" : "cancel") + "?" + query;
+      fetch(endpoint)
+        .then((response) => {
+          if (!response.ok) throw new Error("Failed to " + syncDialogAction + ": " + response.status);
+          alert(syncDialogAction === "start" ? "Starting sync..." : "Canceling sync...");
+          closeDialog("syncDialog");
+        })
+        .catch(handleError);
+    });
+
+    function loadSelectedConfig() {
+      const type = document.getElementById("configTypeInput").value;
+      fetch(baseURL + "/config?type=" + encodeURIComponent(type))
+        .then((response) => {
+          if (!response.ok) throw new Error("Failed to load " + type + " JSON: " + response.status);
+          return response.json();
+        })
+        .then((value) => jsonEditors.selectedConfigInput.setValue(value))
+        .catch(handleError);
+    }
+
+    function openConfigDialog(event) {
+      event.preventDefault();
+      document.getElementById("configTypeInput").value = "config";
+      loadSelectedConfig();
+      document.getElementById("configDialog").showModal();
+    }
+
+    document.getElementById("configTypeInput").addEventListener("change", loadSelectedConfig);
+    document.getElementById("configForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const type = document.getElementById("configTypeInput").value;
+      const body = getJSONText("selectedConfigInput");
+      if (body === null) return;
+
+      fetch(baseURL + "/config?type=" + encodeURIComponent(type) + "&restart=true", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body,
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error("Failed to update " + type + " JSON: " + response.status);
+          alert("Updated " + type + " JSON.");
+          closeDialog("configDialog");
+        })
+        .catch(handleError);
+    });
+
+   const configActions = {
       restart: { url: `${baseURL}/restart?type=restart`, message: "Server restarted successfully!" },
       kill: { url: `${baseURL}/restart?type=kill`, message: "Server killed successfully!" },
     };

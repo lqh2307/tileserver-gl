@@ -1,35 +1,97 @@
 "use strict";
 
+import { cleanUp, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-import { printLog } from "../utils/index.js";
+import {
+  sendTextResponse,
+  getTaskTargets,
+  TASK_TYPES,
+  printLog,
+} from "../utils/index.js";
 
 /**
- * Start task handler
- * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
+ * Parse and validate a task selector.
+ * @param {Request} req Express request
+ * @param {boolean} allowRestart Whether the restart query is allowed
+ * @returns {{ type?: string, id?: string }} Task selector
+ */
+function getTaskSelector(req, allowRestart = false) {
+  const allowedQueries = new Set(
+    allowRestart ? ["type", "id", "restart"] : ["type", "id"],
+  );
+  const unsupportedQueries = Object.keys(req.query).filter((query) => {
+    return !allowedQueries.has(query);
+  });
+
+  if (unsupportedQueries.length) {
+    throw new SyntaxError(
+      `Unsupported task query: "${unsupportedQueries.join('", "')}"`,
+    );
+  }
+
+  const { type, id } = req.query;
+
+  if (
+    (type !== undefined && typeof type !== "string") ||
+    (id !== undefined && typeof id !== "string")
+  ) {
+    throw new SyntaxError("Task type and id must be single string values");
+  }
+
+  if (id && !type) {
+    throw new SyntaxError('Task "type" is required when "id" is specified');
+  }
+
+  if (type !== undefined && !TASK_TYPES.has(type)) {
+    throw new SyntaxError(`Invalid task type "${type}"`);
+  }
+
+  if (
+    allowRestart &&
+    req.query.restart !== undefined &&
+    req.query.restart !== "true" &&
+    req.query.restart !== "false"
+  ) {
+    throw new SyntaxError('Task "restart" must be "true" or "false"');
+  }
+
+  return {
+    type,
+    id,
+  };
+}
+
+/**
+ * Start task handler.
+ * @returns {(req: Request, res: Response) => Promise<any>}
  */
 function startTaskHandler() {
   return async (req, res) => {
     try {
-      setTimeout(() => {
-        return process.send({
-          action: "startTask",
-          cleanUpSprites: req.query.cleanUpSprites === "true",
-          cleanUpFonts: req.query.cleanUpFonts === "true",
-          cleanUpStyles: req.query.cleanUpStyles === "true",
-          cleanUpGeoJSONs: req.query.cleanUpGeoJSONs === "true",
-          cleanUpDatas: req.query.cleanUpDatas === "true",
-          seedSprites: req.query.seedSprites === "true",
-          seedFonts: req.query.seedFonts === "true",
-          seedStyles: req.query.seedStyles === "true",
-          seedGeoJSONs: req.query.seedGeoJSONs === "true",
-          seedDatas: req.query.seedDatas === "true",
-          restart: req.query.restart === "true",
-        });
-      }, 0);
+      const selector = getTaskSelector(req, true);
+      const targets = getTaskTargets(selector, seed, cleanUp);
+
+      if (selector.id && !targets.length) {
+        return sendTextResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          "No configured sync task matched",
+        );
+      }
+
+      process.send?.({
+        action: "startTask",
+        ...selector,
+        restart: req.query.restart === "true",
+      });
 
       return res.status(StatusCodes.OK).send("OK");
     } catch (error) {
-      printLog("error", `Failed to start task": ${error}`);
+      if (error instanceof SyntaxError) {
+        return sendTextResponse(res, StatusCodes.BAD_REQUEST, error.message);
+      }
+
+      printLog("error", `Failed to start task: ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -39,21 +101,24 @@ function startTaskHandler() {
 }
 
 /**
- * Cancel task handler
- * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
+ * Cancel task handler.
+ * @returns {(req: Request, res: Response) => Promise<any>}
  */
 function cancelTaskHandler() {
-  return async (_, res) => {
+  return async (req, res) => {
     try {
-      setTimeout(() => {
-        return process.send({
-          action: "cancelTask",
-        });
-      }, 0);
+      process.send?.({
+        action: "cancelTask",
+        ...getTaskSelector(req),
+      });
 
       return res.status(StatusCodes.OK).send("OK");
     } catch (error) {
-      printLog("error", `Failed to cancel task": ${error}`);
+      if (error instanceof SyntaxError) {
+        return sendTextResponse(res, StatusCodes.BAD_REQUEST, error.message);
+      }
+
+      printLog("error", `Failed to cancel task: ${error}`);
 
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -64,7 +129,7 @@ function cancelTaskHandler() {
 
 export const serve_task = {
   /**
-   * Register task handlers
+   * Register task handlers.
    * @param {Express} app Express object
    * @returns {void}
    */
@@ -73,93 +138,43 @@ export const serve_task = {
      * @swagger
      * tags:
      *   - name: Task
-     *     description: Task related endpoints
+     *     description: Resource-level cleanup and seed synchronization
      * /tasks/start:
      *   get:
      *     tags:
      *       - Task
-     *     summary: Start task
+     *     summary: Start synchronization tasks
+     *     description: Runs cleanup and then seed for one resource, all resources of a type, or every configured resource.
      *     parameters:
      *       - in: query
-     *         name: cleanUpSprites
+     *         name: type
      *         schema:
-     *           type: boolean
+     *           type: string
+     *           enum: [data, style, geojson, sprite, font]
      *         required: false
-     *         description: Run cleanup sprites
+     *         description: Resource type. Omit to synchronize every type.
      *       - in: query
-     *         name: cleanUpFonts
+     *         name: id
      *         schema:
-     *           type: boolean
+     *           type: string
      *         required: false
-     *         description: Run cleanup fonts
-     *       - in: query
-     *         name: cleanUpStyles
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Run cleanup styles
-     *       - in: query
-     *         name: cleanUpGeoJSONs
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Run cleanup geojsons
-     *       - in: query
-     *         name: cleanUpDatas
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Run cleanup datas
-     *       - in: query
-     *         name: seedSprites
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Run seed sprites
-     *       - in: query
-     *         name: seedFonts
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Run seed fonts
-     *       - in: query
-     *         name: seedStyles
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Run seed styles
-     *       - in: query
-     *         name: seedGeoJSONs
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Run seed geojsons
-     *       - in: query
-     *         name: seedDatas
-     *         schema:
-     *           type: boolean
-     *         required: false
-     *         description: Run seed datas
+     *         description: Exact resource ID. Requires type; omit to synchronize every ID of the selected type.
      *       - in: query
      *         name: restart
      *         schema:
      *           type: boolean
+     *           default: false
      *         required: false
-     *         description: Restart server after run task
+     *         description: Restart after all accepted synchronization tasks finish.
      *     responses:
      *       200:
-     *         description: Task started successfully
+     *         description: Matching tasks were accepted
      *       400:
-     *         description: Bad request
+     *         description: Invalid type or id without type
      *       404:
-     *         description: Not found
+     *         description: The exact type and ID selector did not match a configured sync resource
      *       503:
      *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
      *       500:
      *         description: Internal server error
      */
@@ -167,28 +182,33 @@ export const serve_task = {
 
     /**
      * @swagger
-     * tags:
-     *   - name: Task
-     *     description: Task related endpoints
      * /tasks/cancel:
      *   get:
      *     tags:
      *       - Task
-     *     summary: Cancel the running task
+     *     summary: Cancel synchronization tasks
+     *     description: Cancels one resource, all queued/running resources of a type, or every synchronization task without affecting unmatched tasks.
+     *     parameters:
+     *       - in: query
+     *         name: type
+     *         schema:
+     *           type: string
+     *           enum: [data, style, geojson, sprite, font]
+     *         required: false
+     *         description: Resource type. Omit to cancel every type.
+     *       - in: query
+     *         name: id
+     *         schema:
+     *           type: string
+     *         required: false
+     *         description: Exact resource ID. Requires type; omit to cancel every ID of the selected type.
      *     responses:
      *       200:
-     *         description: Task cancelled successfully
+     *         description: Cancellation request was accepted
      *       400:
-     *         description: Bad request
-     *       404:
-     *         description: Not found
+     *         description: Invalid type or id without type
      *       503:
      *         description: Server is starting up
-     *         content:
-     *           text/plain:
-     *             schema:
-     *               type: string
-     *               example: Starting...
      *       500:
      *         description: Internal server error
      */

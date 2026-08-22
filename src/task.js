@@ -53,12 +53,14 @@ import {
   getFontMD5,
 } from "./resources/index.js";
 import {
+  getTileBoundsBatches,
   removeEmptyFolders,
   runAllWithLimit,
   getDataFromURL,
   getTileBounds,
-  getTileBoundsBatches,
   requestToURL,
+  getTaskIds,
+  TASK_TYPES,
   printLog,
 } from "./utils/index.js";
 
@@ -75,32 +77,21 @@ const STYLE_FILE_REGEX = /^.*\.json$/;
 
 /**
  * Run cleanup and seed tasks
- * @param {{ cleanUpSprites: boolean, cleanUpFonts: boolean, cleanUpStyles: boolean, cleanUpGeoJSONs: boolean, cleanUpDatas: boolean, seedSprites: boolean, seedFonts: boolean, seedStyles: boolean, seedGeoJSONs: boolean, seedDatas: boolean }} opts Options
+ * @param {{ type?: "sprite"|"font"|"style"|"geojson"|"data", id?: string }} opts Options
  * @returns {Promise<void>}
  */
 export async function runTasks(opts) {
   try {
     printLog("info", "Starting seed and cleanup tasks...");
 
-    if (
-      opts.cleanUpSprites ||
-      opts.cleanUpFonts ||
-      opts.cleanUpStyles ||
-      opts.cleanUpGeoJSONs ||
-      opts.cleanUpDatas ||
-      opts.seedSprites ||
-      opts.seedFonts ||
-      opts.seedStyles ||
-      opts.seedGeoJSONs ||
-      opts.seedDatas
-    ) {
+    if (!opts.type || TASK_TYPES.has(opts.type)) {
       /* Cleanup sprites */
-      if (opts.cleanUpSprites) {
+      if (!opts.type || opts.type === "sprite") {
         try {
           if (!cleanUp.sprites) {
             printLog("info", "No sprites in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUp.sprites);
+            const ids = getTaskIds(cleanUp, "sprite", opts.id);
 
             printLog("info", `Starting cleanup ${ids.length} sprites...`);
 
@@ -141,12 +132,12 @@ export async function runTasks(opts) {
       }
 
       /* Cleanup fonts */
-      if (opts.cleanUpFonts) {
+      if (!opts.type || opts.type === "font") {
         try {
           if (!cleanUp.fonts) {
             printLog("info", "No fonts in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUp.fonts);
+            const ids = getTaskIds(cleanUp, "font", opts.id);
 
             printLog("info", `Starting cleanup ${ids.length} fonts...`);
 
@@ -189,12 +180,12 @@ export async function runTasks(opts) {
       }
 
       /* Cleanup styles */
-      if (opts.cleanUpStyles) {
+      if (!opts.type || opts.type === "style") {
         try {
           if (!cleanUp.styles) {
             printLog("info", "No styles in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUp.styles);
+            const ids = getTaskIds(cleanUp, "style", opts.id);
 
             printLog("info", `Starting cleanup ${ids.length} styles...`);
 
@@ -235,12 +226,12 @@ export async function runTasks(opts) {
       }
 
       /* Cleanup geojsons */
-      if (opts.cleanUpGeoJSONs) {
+      if (!opts.type || opts.type === "geojson") {
         try {
           if (!cleanUp.geojsons) {
             printLog("info", "No geojsons in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUp.geojsons);
+            const ids = getTaskIds(cleanUp, "geojson", opts.id);
 
             printLog("info", `Starting cleanup ${ids.length} geojsons...`);
 
@@ -281,12 +272,12 @@ export async function runTasks(opts) {
       }
 
       /* Cleanup datas */
-      if (opts.cleanUpDatas) {
+      if (!opts.type || opts.type === "data") {
         try {
           if (!cleanUp.datas) {
             printLog("info", "No datas in cleanup. Skipping...");
           } else {
-            const ids = Object.keys(cleanUp.datas);
+            const ids = getTaskIds(cleanUp, "data", opts.id);
 
             printLog("info", `Starting cleanup ${ids.length} datas...`);
 
@@ -336,12 +327,12 @@ export async function runTasks(opts) {
       }
 
       /* Run seed sprites */
-      if (opts.seedSprites) {
+      if (!opts.type || opts.type === "sprite") {
         try {
           if (!seed.sprites) {
             printLog("info", "No sprites in seed. Skipping...");
           } else {
-            const ids = Object.keys(seed.sprites);
+            const ids = getTaskIds(seed, "sprite", opts.id);
 
             printLog("info", `Starting seed ${ids.length} sprites...`);
 
@@ -389,12 +380,12 @@ export async function runTasks(opts) {
       }
 
       /* Run seed fonts */
-      if (opts.seedFonts) {
+      if (!opts.type || opts.type === "font") {
         try {
           if (!seed.fonts) {
             printLog("info", "No fonts in seed. Skipping...");
           } else {
-            const ids = Object.keys(seed.fonts);
+            const ids = getTaskIds(seed, "font", opts.id);
 
             printLog("info", `Starting seed ${ids.length} fonts...`);
 
@@ -444,12 +435,12 @@ export async function runTasks(opts) {
       }
 
       /* Run seed styles */
-      if (opts.seedStyles) {
+      if (!opts.type || opts.type === "style") {
         try {
           if (!seed.styles) {
             printLog("info", "No styles in seed. Skipping...");
           } else {
-            const ids = Object.keys(seed.styles);
+            const ids = getTaskIds(seed, "style", opts.id);
 
             printLog("info", `Starting seed ${ids.length} styles...`);
 
@@ -497,12 +488,12 @@ export async function runTasks(opts) {
       }
 
       /* Run seed geojsons */
-      if (opts.seedGeoJSONs) {
+      if (!opts.type || opts.type === "geojson") {
         try {
           if (!seed.geojsons) {
             printLog("info", "No geojsons in seed. Skipping...");
           } else {
-            const ids = Object.keys(seed.geojsons);
+            const ids = getTaskIds(seed, "geojson", opts.id);
 
             printLog("info", `Starting seed ${ids.length} geojsons...`);
 
@@ -550,12 +541,12 @@ export async function runTasks(opts) {
       }
 
       /* Run seed datas */
-      if (opts.seedDatas) {
+      if (!opts.type || opts.type === "data") {
         try {
           if (!seed.datas) {
             printLog("info", "No datas in seed. Skipping...");
           } else {
-            const ids = Object.keys(seed.datas);
+            const ids = getTaskIds(seed, "data", opts.id);
 
             printLog("info", `Starting seed ${ids.length} datas...`);
 

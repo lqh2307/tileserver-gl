@@ -47,7 +47,7 @@ export function loggerMiddleware() {
 
         printLog(
           statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info",
-          `${method} ${req.originalUrl} ${statusCode} ${duration.toFixed(3)}ms ${contentLength}`,
+          `${method} ${req.originalUrl} ${statusCode} ${duration} ${contentLength}`,
         );
       }
 

@@ -368,7 +368,7 @@ export function isArray(value) {
   return Array.isArray(value);
 }
 
-const hasOwnKey = (value, key) => {
+export const hasOwnKey = (value, key) => {
   return Object.prototype.hasOwnProperty.call(value, key);
 };
 

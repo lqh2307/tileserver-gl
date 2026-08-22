@@ -135,16 +135,6 @@ async function startClusterServer() {
 
         startTaskInWorker({
           restart: true,
-          cleanUpSprites: true,
-          cleanUpFonts: true,
-          cleanUpStyles: true,
-          cleanUpGeoJSONs: true,
-          cleanUpDatas: true,
-          seedSprites: true,
-          seedFonts: true,
-          seedStyles: true,
-          seedGeoJSONs: true,
-          seedDatas: true,
         });
       });
     }
@@ -222,7 +212,7 @@ async function startClusterServer() {
               `Received "${message.action}" message from worker with PID = ${worker.process.pid}. Canceling task...`,
             );
 
-            cancelTaskInWorker();
+            cancelTaskInWorker(message);
 
             break;
           }

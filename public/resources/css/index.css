@@ -261,6 +261,22 @@ label {
   font-weight: bold;
 }
 
+select {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fff;
+  font: inherit;
+}
+
+select:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .json-dialog-editor {
   margin: 8px 0;
 }

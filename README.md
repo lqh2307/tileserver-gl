@@ -82,14 +82,58 @@ curl -o tile.png http://localhost:8080/datas/osm/10/806/483.png
 # Đọc config hiện tại
 curl -fsS 'http://localhost:8080/config?type=config'
 
-# Bắt đầu seed riêng data
-curl -fsS 'http://localhost:8080/tasks/start?seedDatas=true'
+# Đồng bộ riêng data osm (cleanup rồi seed)
+curl -fsS 'http://localhost:8080/tasks/start?type=data&id=osm'
 ```
 
 Các endpoint trả `201` cho export/render chỉ xác nhận job nền đã được nhận.
 Theo dõi log hoặc `/summary` để biết tiến trình. Tile không tồn tại có thể trả
 `204`; lỗi validation trả `400`; resource không tồn tại trả `404`; server chưa
 sẵn sàng trả `503`.
+
+### Đồng bộ và hủy task theo resource
+
+API task sử dụng hai query parameter `type` và `id`. Các giá trị `type` hợp lệ
+là `data`, `style`, `geojson`, `sprite` và `font`. Mỗi task resource thực hiện
+cleanup trước rồi mới seed; nếu resource chỉ xuất hiện trong một config thì chỉ
+phần tương ứng được chạy.
+
+```bash
+# Đồng bộ đúng một data
+curl -fsS 'http://localhost:8080/tasks/start?type=data&id=osm'
+
+# Đồng bộ tất cả data
+curl -fsS 'http://localhost:8080/tasks/start?type=data'
+
+# Đồng bộ tất cả type và ID đã cấu hình
+curl -fsS 'http://localhost:8080/tasks/start'
+
+# Hủy đúng task data osm, các task khác vẫn tiếp tục
+curl -fsS 'http://localhost:8080/tasks/cancel?type=data&id=osm'
+
+# Hủy toàn bộ task data đang chạy hoặc đang chờ
+curl -fsS 'http://localhost:8080/tasks/cancel?type=data'
+
+# Hủy tất cả task
+curl -fsS 'http://localhost:8080/tasks/cancel'
+```
+
+Không được truyền `id` mà thiếu `type`. Các query cũ như `seedDatas` hoặc
+`cleanUpSprites` không còn được hỗ trợ và sẽ trả `400`; endpoint chỉ nhận
+`type`, `id` và `restart` (riêng cancel không nhận `restart`). Task được quản lý
+theo khóa `type:id`; gửi start trùng khóa đang chạy hoặc đang chờ sẽ không tạo
+thêm bản sao. Các task được xếp hàng và chạy lần lượt để không tăng tải CPU, RAM, network
+và storage so với cơ chế sync cũ. Hủy task đang chờ sẽ xóa riêng task đó khỏi
+hàng đợi; hủy task đang chạy sẽ dừng worker của resource đó rồi tiếp tục task kế
+tiếp. Dữ liệu đã ghi trước thời điểm hủy không bị rollback.
+
+Start theo `type` hoặc không có selector vẫn trả `200` nếu nhóm tương ứng đang
+rỗng; khi đó không có worker nào được tạo. `404` chỉ áp dụng khi truyền cả
+`type` và `id` nhưng ID đó không tồn tại trong `seed.json` hoặc `cleanup.json`.
+
+Thêm `restart=true` vào request start nếu cần restart server sau khi toàn bộ task
+được request đó đưa vào hàng đợi đã kết thúc. Lịch cron vẫn đồng bộ tất cả
+resource và restart sau khi hàng đợi hoàn thành.
 
 ### Swagger
 

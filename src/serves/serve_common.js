@@ -8,12 +8,15 @@ import {
   updateConfigFile,
   readConfigFile,
   validateConfig,
+  cleanUp,
   config,
+  seed,
 } from "../configs/index.js";
 import {
   compileHandleBarsTemplate,
   getXYZFromLonLatZ,
   getRequestHost,
+  getTaskTargets,
   getVersion,
   printLog,
 } from "../utils/index.js";
@@ -35,6 +38,13 @@ function serveFrontPageHandler() {
       const datas = {};
       const sprites = {};
       const fonts = {};
+      const syncTargets = getTaskTargets({}, seed, cleanUp).reduce(
+        (targets, { type, id }) => {
+          (targets[type] ||= []).push(id);
+          return targets;
+        },
+        {},
+      );
 
       const requestHost = getRequestHost(req);
 
@@ -143,6 +153,7 @@ function serveFrontPageHandler() {
         data_count: Object.keys(datas).length,
         font_count: Object.keys(fonts).length,
         sprite_count: Object.keys(sprites).length,
+        sync_targets: syncTargets,
         base_url: requestHost,
       });
 

@@ -1,15 +1,21 @@
 "use strict";
 
 import { jsonBodyMiddleware, loggerMiddleware } from "./middlewares/index.js";
-import { printLog, setupWSServer } from "./utils/index.js";
+import { cleanUp, config, seed } from "./configs/index.js";
 import { setupPrimary } from "@socket.io/cluster-adapter";
 import { setupMaster } from "@socket.io/sticky";
 import { Worker } from "node:worker_threads";
-import { config } from "./configs/index.js";
 import cluster from "node:cluster";
 import express from "express";
 import http from "node:http";
 import cors from "cors";
+import {
+  isTaskTargetMatched,
+  getTaskTargets,
+  setupWSServer,
+  getTaskKey,
+  printLog,
+} from "./utils/index.js";
 import {
   serve_prometheus,
   serve_summary,
@@ -25,68 +31,166 @@ import {
   serve_task,
 } from "./serves/index.js";
 
-let currentTaskWorker;
+const taskJobs = new Map();
+const taskQueue = [];
+let currentTaskKey;
+let restartAfterTasks = false;
+
+/** Start the next queued resource-level task. */
+function startNextTaskWorker() {
+  if (currentTaskKey) {
+    return;
+  }
+
+  let job;
+  while (taskQueue.length && !job) {
+    const queuedJob = taskQueue.shift();
+
+    if (taskJobs.get(queuedJob.key) === queuedJob) {
+      job = queuedJob;
+    }
+  }
+
+  if (!job) {
+    if (restartAfterTasks) {
+      printLog("info", "All sync tasks completed. Restarting server...");
+
+      process.exit(1);
+    }
+
+    return;
+  }
+
+  currentTaskKey = job.key;
+  job.status = "running";
+
+  printLog("info", `Starting sync task "${job.key}"...`);
+
+  job.worker = new Worker("./src/task_worker.js", {
+    workerData: job.target,
+  })
+    .on("error", (error) => {
+      printLog("error", `Sync task "${job.key}" worker error: ${error}`);
+    })
+    .on("message", (message) => {
+      if (message.error) {
+        printLog(
+          "error",
+          `Sync task "${job.key}" failed: ${message.error.message || message.error}`,
+        );
+      }
+    })
+    .on("exit", (code) => {
+      taskJobs.delete(job.key);
+
+      currentTaskKey = undefined;
+
+      if (job.cancelled) {
+        printLog("info", `Canceled sync task "${job.key}".`);
+      } else if (code !== 0) {
+        printLog(
+          "error",
+          `Sync task "${job.key}" worker exited with code: ${code}`,
+        );
+      } else {
+        printLog("info", `Completed sync task "${job.key}".`);
+
+        if (job.restart) {
+          restartAfterTasks = true;
+        }
+      }
+
+      startNextTaskWorker();
+    });
+}
 
 /**
  * Start task in worker
  * @param {{ [key: string]: any }} opts Options
- * @returns {void}
+ * @returns {number} Number of newly queued tasks
  */
 export function startTaskInWorker(opts) {
-  if (!currentTaskWorker) {
-    currentTaskWorker = new Worker("./src/task_worker.js", {
-      workerData: opts,
-    })
-      .on("error", (error) => {
-        printLog("error", `Task worker error: ${error}`);
+  const targets = getTaskTargets(opts, seed, cleanUp);
+  let queuedTasks = 0;
 
-        currentTaskWorker = undefined;
-      })
-      .on("exit", (code) => {
-        currentTaskWorker = undefined;
+  for (const target of targets) {
+    const key = getTaskKey(target);
+    const current = taskJobs.get(key);
 
-        if (code !== 0) {
-          printLog("error", `Task worker exited with code: ${code}`);
-        }
-      })
-      .on("message", (message) => {
-        if (message.error) {
-          printLog("error", `Task worker error: ${message.error}`);
-        }
+    if (current) {
+      if (opts.restart === true) {
+        current.restart = true;
+      }
 
-        if (message.action === "restartServer") {
-          printLog(
-            "info",
-            `Received "${message.action}" message from task worker. Restarting server...`,
-          );
+      printLog("warn", `Sync task "${key}" is already queued or running.`);
 
-          process.exit(1);
-        }
+      continue;
+    }
 
-        currentTaskWorker = undefined;
-      });
-  } else {
-    printLog("warn", "A task is already running. Skipping start task...");
+    const job = {
+      key,
+      target,
+      restart: opts.restart === true,
+      status: "queued",
+    };
+
+    taskJobs.set(key, job);
+    taskQueue.push(job);
+
+    queuedTasks++;
   }
+
+  if (!queuedTasks) {
+    printLog("warn", "No new sync task matched. Skipping...");
+  }
+
+  startNextTaskWorker();
+
+  return queuedTasks;
 }
 
 /**
  * Cancel task in worker
- * @returns {void}
+ * @param {{ type?: string, id?: string }} selector Task selector
+ * @returns {number} Number of canceled tasks
  */
-export function cancelTaskInWorker() {
-  if (currentTaskWorker) {
-    currentTaskWorker
-      .terminate()
-      .catch((error) => {
-        printLog("error", `Task worker error: ${error}`);
-      })
-      .finally(() => {
-        currentTaskWorker = undefined;
+export function cancelTaskInWorker(selector = {}) {
+  let canceledTasks = 0;
+
+  for (const job of taskJobs.values()) {
+    if (job.cancelled || !isTaskTargetMatched(job.target, selector)) {
+      continue;
+    }
+
+    job.cancelled = true;
+    job.restart = false;
+
+    canceledTasks++;
+
+    if (job.status === "running") {
+      job.worker.terminate().catch((error) => {
+        printLog("error", `Failed to cancel sync task "${job.key}": ${error}`);
       });
-  } else {
-    printLog("warn", "No task is currently running. Skipping cancel task...");
+    } else {
+      taskJobs.delete(job.key);
+
+      printLog("info", `Canceled queued sync task "${job.key}".`);
+    }
   }
+
+  if (!selector.type && !selector.id) {
+    restartAfterTasks = false;
+  }
+
+  if (!canceledTasks) {
+    printLog("warn", "No matching sync task is running or queued.");
+  }
+
+  if (!currentTaskKey) {
+    startNextTaskWorker();
+  }
+
+  return canceledTasks;
 }
 
 /**
