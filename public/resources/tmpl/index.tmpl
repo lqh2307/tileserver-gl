@@ -311,6 +311,35 @@
       renderContents(tabId);
     }
 
+    const searchableTabIDs = new Set([
+      "styles-tab",
+      "geojsons-tab",
+      "geojson_groups-tab",
+      "datas-tab",
+      "fonts-tab",
+      "sprites-tab",
+    ]);
+
+    function addTabSearch(tabId) {
+      if (!searchableTabIDs.has(tabId)) return;
+
+      const tab = document.getElementById(tabId);
+      if (tab.querySelector(".tab-search")) return;
+
+      const search = document.createElement("div");
+      search.className = "tab-search";
+      search.innerHTML = '<input type="search" placeholder="Search..." aria-label="Search items" />';
+      const input = search.querySelector("input");
+      input.addEventListener("input", () => {
+        const query = input.value.trim().toLowerCase();
+        tab.querySelectorAll(".box > .item").forEach((item) => {
+          item.hidden = Boolean(query) && !item.textContent.toLowerCase().includes(query);
+        });
+      });
+
+      tab.prepend(search);
+    }
+
     function renderContents(tabId) {
       const innerHTML = document.querySelector(`#${tabId}`).innerHTML.trim();
 
@@ -473,6 +502,8 @@
       } else if (tabId === "utility-tab" && !innerHTML) {
         document.querySelector("#utility-tab").innerHTML = renderStaticBox(utilityItems);
       }
+
+      addTabSearch(tabId);
     }
 
     function handleError(error) {

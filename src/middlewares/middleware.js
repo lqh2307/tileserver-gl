@@ -42,16 +42,12 @@ export function loggerMiddleware() {
             ? routePath.toString()
             : "unmatched";
       const statusCode = res.statusCode;
-      const isTileRoute = route.includes(":z") && route.includes(":x");
+      const contentLength = res.get("content-length") || "-";
 
-      if (!isTileRoute || statusCode >= 400) {
-        const contentLength = res.get("content-length") || "-";
-
-        printLog(
-          statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info",
-          `${method} ${req.originalUrl} ${statusCode} ${duration} ${contentLength}`,
-        );
-      }
+      printLog(
+        statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info",
+        `${method} ${req.originalUrl} ${statusCode} ${duration} ${contentLength}`,
+      );
 
       setMetrics(method, route, statusCode, duration);
     });
