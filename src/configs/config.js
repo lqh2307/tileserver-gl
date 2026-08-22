@@ -8,8 +8,11 @@ import {
   printLog,
 } from "../utils/index.js";
 
+/** In-memory representation of config.json. @type {Record<string, any>} */
 let config;
+/** In-memory representation of seed.json. @type {Record<string, any>} */
 let seed;
+/** In-memory representation of cleanup.json. @type {Record<string, any>} */
 let cleanUp;
 
 /* Load config.json */

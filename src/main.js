@@ -1,5 +1,13 @@
 "use strict";
 
+/**
+ * Process entry point for the clustered Tile Server runtime.
+ *
+ * The primary process validates configuration, starts the optional sticky
+ * Socket.IO listener, supervises workers, and schedules maintenance tasks.
+ * Worker processes only start an HTTP server.
+ */
+
 import { removeOldLocks, printLog } from "./utils/index.js";
 import { validateConfig, config } from "./configs/index.js";
 import cluster from "node:cluster";
@@ -13,7 +21,11 @@ import {
 } from "./server.js";
 
 /**
- * Start cluster server
+ * Starts the primary or worker portion of the clustered server runtime.
+ *
+ * In the primary process this function initializes environment defaults,
+ * validates persisted configuration, starts scheduled tasks, and forks HTTP
+ * workers. In a worker process it starts the HTTP server only.
  * @returns {Promise<void>}
  */
 async function startClusterServer() {
@@ -222,5 +234,5 @@ async function startClusterServer() {
   }
 }
 
-/* Run start cluster server */
+/** Start the runtime immediately when this module is executed. */
 startClusterServer();

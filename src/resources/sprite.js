@@ -17,6 +17,7 @@ import {
   printLog,
 } from "../utils/index.js";
 
+/** Supported file formats in a MapLibre sprite bundle. @type {Set<string>} */
 export const SPRITE_FORMATS = new Set(["json", "png"]);
 
 /*********************************** Sprite *************************************/

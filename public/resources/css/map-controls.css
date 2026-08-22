@@ -1,0 +1,16 @@
+.leaflet-control-locate {
+  display: block;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 30px;
+  text-align: center;
+}
+
+.leaflet-control-locate:hover {
+  background: #f4f4f4;
+}

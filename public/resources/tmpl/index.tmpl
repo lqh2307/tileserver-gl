@@ -7,270 +7,12 @@
 
   <title>Preview - Tile Server</title>
 
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial,Helvetica,sans-serif;
-    }
-
-    p {
-      padding: 0;
-      margin: 0;
-    }
-
-    a {
-      color: #499dce;
-      text-decoration: none;
-    }
-
-    a:hover {
-      color: #395d73;
-    }
-
-    section {
-      margin: 15px auto;
-      width: 930px;
-      padding: 30px 0;
-    }
-
-    .title {
-      font-size: 28px;
-      font-weight: bold;
-      color: #ff6347;
-      text-align: center;
-      margin: 10px 0 55px 0;
-    }
-
-    .item {
-      height: 190px;
-      border-top: 1px dashed #cccccc;
-    }
-
-    .item:nth-child(odd) {
-      background: #efefef;
-    }
-
-    .item img {
-      position: absolute;
-      display: block;
-      margin: 30px;
-      width: 128px;
-      height: 128px;
-      border: 1px solid #cccccc;
-    }
-
-    .item .name {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .details {
-      float: left;
-      height: 128px;
-      padding: 20px 30px 20px 188px;
-    }
-
-    .details h3 {
-      font-size: 15px;
-      margin-top: 15px;
-      max-width: 550px;
-      word-break: break-all;
-    }
-
-    .services {
-      margin-top: 15px;
-    }
-
-    .viewers {
-      float: right;
-      text-align: center;
-      width: 130px;
-      margin-top: 25px;
-      padding-right: 30px;
-    }
-
-    .btn {
-      display: block;
-      line-height: 25px;
-      position: relative;
-      overflow: hidden;
-      border-radius: 4px;
-      margin-top: 15px;
-      margin-bottom: 15px;
-      background: #499dce;
-      color: #ffffff;
-      text-decoration: none;
-    }
-
-    .btn:hover {
-      background: #395d73;
-    }
-
-    .tabs {
-      display: flex;
-      cursor: pointer;
-    }
-
-    .tab {
-      border: 2px solid #cccccc;
-      background: #fefefe;
-      user-select: none;
-      padding: 10px 10px;
-      font-size: 14px;
-      z-index: 999;
-    }
-
-    .tab:hover {
-      background: #ffffff;
-    }
-
-    .tab.active {
-      font-weight: 700;
-    }
-
-    .tab-content {
-      display: none;
-      border: 2px solid #cccccc;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .back-to-top {
-      position: fixed;
-      bottom: 15px;
-      right: 20px;
-      border: 1px solid #dddddd;
-      padding: 10px 20px;
-      border-radius: 25px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      font-size: 13px;
-      text-decoration: none;
-      display: none;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .back-to-top:hover {
-      background: #f0f0f0;
-    }
-
-    /* Dialog Styling */
-    dialog {
-      border: none;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      max-width: 500px;
-      padding: 20px;
-      font-family: Arial, sans-serif;
-    }
-
-    dialog::backdrop {
-      background: rgba(0, 0, 0, 0.6);
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-    }
-
-    textarea {
-      width: 100%;
-      border: 1px solid #cccccc;
-      border-radius: 4px;
-      padding: 8px;
-      font-size: 1em;
-      resize: vertical;
-    }
-
-    .dialog {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .btn-primary {
-      background: #0056b3;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1em;
-    }
-
-    .btn-primary:hover {
-      background: #007bff;
-    }
-
-    .btn-secondary {
-      background: #f8f9fa;
-      color: #212529;
-      border: 1px solid #cccccc;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1em;
-    }
-
-    .btn-secondary:hover {
-      background: #e2e6ea;
-    }
-
-    /* Responsive */
-    @media (max-width: 950px) {
-      section {
-        margin: 0;
-        width: 96%;
-        padding: 2%;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .title {
-        font-weight: bold;
-        color: #ff6347;
-        text-align: center;
-        font-size: 20px;
-        margin: 10px 0 -5px 0;
-      }
-
-      .item {
-        height: 245px;
-      }
-
-      .viewers {
-        float: left;
-        text-align: left;
-        width: 100%;
-        margin-left: 30px;
-        margin-top: 15px;
-      }
-
-      .viewers a {
-        display: inline-block;
-        vertical-align: middle;
-      }
-
-      .btn {
-        margin: 0 20px 0 0;
-      }
-
-      .btn:first-child {
-        padding: 0 20px;
-      }
-    }
-  </style>
-</head>
+  <link rel="stylesheet" href="{{base_url}}/css/index.css" /></head>
 
 <body>
   <section>
     <h1 class="title">Tile server preview</h1>
+
     <div class="tabs">
       <div class="tab active" onclick="switchTab(event, 'styles-tab')">STYLES ({{style_count}})</div>
       <div class="tab" onclick="switchTab(event, 'geojsons-tab')">GEOJSONS ({{geojson_count}})</div>
@@ -281,6 +23,7 @@
       <div class="tab" onclick="switchTab(event, 'actions-tab')">ACTIONS</div>
       <div class="tab" onclick="switchTab(event, 'configs-tab')">CONFIGS</div>
     </div>
+
     <div id="styles-tab" class="tab-content active"></div>
     <div id="geojsons-tab" class="tab-content"></div>
     <div id="geojson_groups-tab" class="tab-content"></div>
@@ -295,7 +38,7 @@
     <dialog id="{{dialogId}}">
       <form id="{{formId}}" method="dialog">
         <label for="{{inputId}}">Enter JSON:</label>
-        <textarea id="{{inputId}}" name="options" rows="10" cols="50" placeholder='{"key":"value"}'></textarea>
+        <div id="{{inputId}}" class="json-dialog-editor" data-json-editor></div>
         <div class="dialog">
           <button type="submit" class="btn-primary">{{submitText}}</button>
           <button type="button" class="btn-secondary" onclick="closeDialog('{{dialogId}}')">Cancel</button>
@@ -316,9 +59,24 @@
 
   <a href="#" class="back-to-top" onclick="scrollToTop(event)">Back to top</a>
 
+  <link rel="stylesheet" href="{{base_url}}/css/json-editor.css" />
+  <script src="{{base_url}}/js/json-editor.js"></script>
   <script>
     const baseURL = {{{js base_url}}};
     const emptyImageURL = `${baseURL}/images/placeholder.png`;
+    const jsonEditors = {};
+    document.querySelectorAll("[data-json-editor]").forEach((element) => {
+      jsonEditors[element.id] = new JSONEditor(element);
+    });
+
+    function getJSONText(inputId) {
+      try {
+        return jsonEditors[inputId].getText();
+      } catch (error) {
+        alert(error.message);
+        return null;
+      }
+    }
 
     function escapeHTML(value) {
       return String(value ?? "")
@@ -346,22 +104,19 @@
     }
 
     function renderStaticItem({ title, description, buttons }) {
+      const action = buttons[0] || {};
+      const href = escapeAttr(action.href || "#");
+      const onClick = action.onClick ? ` onclick="${escapeAttr(action.onClick)}"` : "";
       return `
-        <div class="item">
-          <img src="${emptyImageURL}" alt="Empty image" />
-          <div class="details">
-            <h3 class="name">${escapeHTML(title)}</h3>
-            <p>description: ${escapeHTML(description)}</p>
-          </div>
-          <div class="viewers">
-            ${buttons.map(renderButton).join("")}
-          </div>
-        </div>
+        <a class="static-action" href="${href}"${onClick}>
+          <span class="static-action__title">${escapeHTML(title)}</span>
+          <span class="static-action__description">${escapeHTML(description)}</span>
+        </a>
       `;
     }
 
     function renderStaticBox(items) {
-      return `<div class="box">${items.map(renderStaticItem).join("")}</div>`;
+      return `<div class="static-box">${items.map(renderStaticItem).join("")}</div>`;
     }
 
     function requestGET(url, message) {
@@ -372,18 +127,29 @@
         .catch(handleError);
     }
 
-    function submitJSONDialog({ dialogId, formId, inputId, url, method, message }) {
+    function submitJSONDialog({ dialogId, formId, inputId, url, method, message, loadUrl }) {
       document.getElementById(dialogId).showModal();
+      if (loadUrl) {
+        fetch(loadUrl)
+          .then((response) => {
+            if (!response.ok) throw new Error(`Failed to load JSON: \${response.status}`);
+            return response.json();
+          })
+          .then((value) => jsonEditors[inputId].setValue(value))
+          .catch(handleError);
+      }
 
       document.getElementById(formId).onsubmit = (event) => {
         event.preventDefault();
+        const body = getJSONText(inputId);
+        if (body === null) return;
 
         fetch(url, {
           method,
           headers: {
             "content-type": "application/json",
           },
-          body: document.getElementById(inputId).value
+          body
         })
           .then(() => {
             alert(message);
@@ -428,10 +194,7 @@
     ];
 
     const taskActions = {
-      all: {
-        url: `${baseURL}/tasks/start?seedStyles=true&cleanUpStyles=true&cleanUpDatas=true&seedDatas=true&seedGeoJSONs=true&cleanUpGeoJSONs=true&seedSprites=true&cleanUpSprites=true&seedFonts=true&cleanUpFonts=true&restart=true`,
-        message: "Starting cleanup/seed tasks...",
-      },
+      all: { url: `${baseURL}/tasks/start?seedStyles=true&cleanUpStyles=true&cleanUpDatas=true&seedDatas=true&seedGeoJSONs=true&cleanUpGeoJSONs=true&seedSprites=true&cleanUpSprites=true&seedFonts=true&cleanUpFonts=true&restart=true`, message: "Starting cleanup/seed tasks..." },
       cleanUpStyles: { url: `${baseURL}/tasks/start?cleanUpStyles=true&restart=true`, message: "Starting start cleanup styles..." },
       cleanUpGeoJSONs: { url: `${baseURL}/tasks/start?cleanUpGeoJSONs=true&restart=true`, message: "Starting start cleanup geojsons..." },
       cleanUpDatas: { url: `${baseURL}/tasks/start?cleanUpDatas=true&restart=true`, message: "Starting cleanup datas..." },
@@ -455,6 +218,7 @@
         dialogId: "updateConfigDialog",
         formId: "updateConfigForm",
         inputId: "updateConfigInput",
+        loadUrl: `${baseURL}/config?type=config`,
         url: `${baseURL}/config?type=config&restart=true`,
         method: "PUT",
         message: "Updating config...",
@@ -463,6 +227,7 @@
         dialogId: "updateSeedDialog",
         formId: "updateSeedForm",
         inputId: "updateSeedInput",
+        loadUrl: `${baseURL}/config?type=seed`,
         url: `${baseURL}/config?type=seed&restart=true`,
         method: "PUT",
         message: "Updating seed...",
@@ -471,6 +236,7 @@
         dialogId: "updateCleanUpDialog",
         formId: "updateCleanUpForm",
         inputId: "updateCleanUpInput",
+        loadUrl: `${baseURL}/config?type=cleanup`,
         url: `${baseURL}/config?type=cleanup&restart=true`,
         method: "PUT",
         message: "Updating cleanup...",
@@ -751,13 +517,15 @@
 
         document.getElementById("exportRenderForm").onsubmit = (event) => {
           event.preventDefault();
+          const body = getJSONText("exportRenderInput");
+          if (body === null) return;
 
           fetch(`${baseURL}/exports/style-render/${styleID}`, {
             method: "POST",
             headers: {
               "content-type": "application/json",
             },
-            body: document.getElementById("exportRenderInput").value
+            body
           })
             .then(() => {
               alert("Exporting render style...");
@@ -786,15 +554,17 @@
 
       document.getElementById("exportImageDialog").showModal();
 
-      document.getElementById("exportImageForm").onsubmit = (event) => {
-        event.preventDefault();
+        document.getElementById("exportImageForm").onsubmit = (event) => {
+          event.preventDefault();
+          const body = getJSONText("exportImageInput");
+          if (body === null) return;
 
-        fetch(`${baseURL}/renders/stylejson`, {
+          fetch(`${baseURL}/renders/stylejson`, {
           method: "POST",
           headers: {
             "content-type": "application/json",
           },
-          body: document.getElementById("exportImageInput").value
+            body
         })
           .then(async (response) => {
             const contentDisposition = response.headers.get("content-disposition");
@@ -828,13 +598,15 @@
 
         document.getElementById("exportDataForm").onsubmit = (event) => {
           event.preventDefault();
+          const body = getJSONText("exportDataInput");
+          if (body === null) return;
 
           fetch(`${baseURL}/exports/data/${dataID}`, {
             method: "POST",
             headers: {
               "content-type": "application/json",
             },
-            body: document.getElementById("exportDataInput").value
+            body
           })
             .then(() => {
               alert("Exporting data...");

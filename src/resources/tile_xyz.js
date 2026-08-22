@@ -39,8 +39,10 @@ const PBF_TILE_FILE_REGEX = /^\d+\.pbf$/;
 const TILE_FILE_REGEX = /^\d+\.(png|jpg|jpeg|webp|pbf)$/;
 const tileStatementCaches = new WeakMap();
 
+/** Upserts the MD5 metadata associated with an XYZ tile. @type {string} */
 export const XYZ_INSERT_MD5_QUERY =
   "INSERT INTO md5s (zoom_level, tile_column, tile_row, hash, created) VALUES (?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET hash = excluded.hash, created = excluded.created;";
+/** Deletes MD5 metadata for an XYZ tile. @type {string} */
 export const XYZ_DELETE_MD5_QUERY =
   "DELETE FROM md5s WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;";
 

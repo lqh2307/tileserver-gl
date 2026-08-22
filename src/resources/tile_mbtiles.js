@@ -29,10 +29,12 @@ import {
 const BATCH_SIZE = 1000;
 const tileStatementCaches = new WeakMap();
 
+/** Upserts a tile and its content hash into an MBTiles database. @type {string} */
 export const MBTILES_INSERT_TILE_QUERY =
   "INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;";
 const MBTILES_SELECT_TILE_QUERY =
   "SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;";
+/** Deletes one tile by zoom, column, and row from an MBTiles database. @type {string} */
 export const MBTILES_DELETE_TILE_QUERY =
   "DELETE FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;";
 

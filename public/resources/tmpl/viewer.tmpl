@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>{{name}} - Tile Server</title>
+
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl.css" />
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/leaflet.css" />
+
+  <link rel="stylesheet" href="{{base_url}}/css/map.css" />
+  <link rel="stylesheet" href="{{base_url}}/css/map-controls.css" />
+  <link rel="stylesheet" href="{{base_url}}/css/viewer.css" />
+
+  <script src="{{base_url}}/maplibre-gl.js"></script>
+
+  <script src="{{base_url}}/leaflet.js"></script>
+  <script src="{{base_url}}/leaflet-hash.js"></script>
+  <script src="{{base_url}}/js/map-controls.js"></script>
+</head>
+
+<body data-base-url="{{base_url}}" data-id="{{id}}">
+  <div id="map"></div>
+
+  <script src="{{base_url}}/js/viewer.js"></script>
+</body>
+
+</html>

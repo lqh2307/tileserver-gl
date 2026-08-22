@@ -1,0 +1,65 @@
+{{#if layer}}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>{{layer}} - Tile Server</title>
+
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl.css" />
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl-inspect.css" />
+
+  <link rel="stylesheet" href="{{base_url}}/css/map.css" />
+  <link rel="stylesheet" href="{{base_url}}/css/geojson_data.css" />
+
+  <script src="{{base_url}}/maplibre-gl.js"></script>
+  <script src="{{base_url}}/maplibre-gl-inspect.js"></script>
+  <script src="{{base_url}}/js/map-controls.js"></script>
+</head>
+
+<body data-base-url="{{base_url}}" data-group="{{group}}" data-layer="{{layer}}">
+  <h1>Layer list</h1>
+
+  <div id="map"></div>
+
+  <div id="layerList">
+
+  <script src="{{base_url}}/js/geojson_data.js"></script>
+</body>
+
+</html>
+{{else}}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>{{group}} - Tile Server</title>
+
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl.css" />
+  <link rel="stylesheet" type="text/css" href="{{base_url}}/maplibre-gl-inspect.css" />
+
+  <link rel="stylesheet" href="{{base_url}}/css/map.css" />
+  <link rel="stylesheet" href="{{base_url}}/css/geojson_data.css" />
+
+  <script src="{{base_url}}/maplibre-gl.js"></script>
+  <script src="{{base_url}}/maplibre-gl-inspect.js"></script>
+  <script src="{{base_url}}/js/map-controls.js"></script>
+</head>
+
+<body data-base-url="{{base_url}}" data-group="{{group}}" data-layer="{{layer}}">
+  <h1>Layer list</h1>
+
+  <div id="map"></div>
+
+  <div id="layerList">
+
+  <script src="{{base_url}}/js/geojson_data.js"></script>
+</body>
+
+</html>
+{{/if}}

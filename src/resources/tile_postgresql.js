@@ -25,10 +25,12 @@ import {
 
 const BATCH_SIZE = 1000;
 
+/** Upserts a tile and its content hash into a PostgreSQL tile table. @type {string} */
 export const POSTGRESQL_INSERT_TILE_QUERY =
   "INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data, hash, created) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (zoom_level, tile_column, tile_row) DO UPDATE SET tile_data = excluded.tile_data, hash = excluded.hash, created = excluded.created;";
 const POSTGRESQL_SELECT_TILE_QUERY =
   "SELECT tile_data FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3;";
+/** Deletes one tile by zoom, column, and row from a PostgreSQL tile table. @type {string} */
 export const POSTGRESQL_DELETE_TILE_QUERY =
   "DELETE FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3;";
 
