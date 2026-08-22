@@ -39,6 +39,21 @@ const lastModifiedCaches = createCache({
   ttl: DEFAULT_CACHE_TIMEOUT,
 });
 
+/** Read a case-insensitive parameter from a query/body object. */
+export function getParameter(parameters, name, fallback) {
+  const key = Object.keys(parameters ?? {}).find((item) => {
+    return item.toLowerCase() === String(name).toLowerCase();
+  });
+
+  if (key === undefined) {
+    return fallback;
+  }
+
+  const value = parameters[key];
+
+  return Array.isArray(value) ? value.join(",") : value;
+}
+
 async function getCachedLastModified(fileOrFolderPath) {
   return await lastModifiedCaches.wrap(fileOrFolderPath, async () => {
     return new Date(await getFileCreated(fileOrFolderPath)).toUTCString();

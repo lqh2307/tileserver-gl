@@ -12,3 +12,6 @@ export * from "./serve_style.js";
 export * from "./serve_task.js";
 export * from "./serve_font.js";
 export * from "./serve_data.js";
+export * from "./serve_wmts.js";
+export * from "./serve_wms.js";
+export * from "./serve_wfs.js";

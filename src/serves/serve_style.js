@@ -65,44 +65,6 @@ function serveStyleHandler() {
 }
 
 /**
- * Serve WMTS handler
- * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
- */
-function serveWMTSHandler() {
-  return async (req, res) => {
-    const id = req.params.id;
-
-    try {
-      const item = config.styles[id].tileJSON;
-
-      if (!item) {
-        return sendTextResponse(
-          res,
-          StatusCodes.NOT_FOUND,
-          `WMTS of style id "${id}" does not exist`,
-        );
-      }
-
-      const compiled = await compileHandleBarsTemplate("wmts", {
-        id,
-        name: item.name,
-        base_url: getRequestHost(req),
-      });
-
-      res.set("content-type", "text/xml");
-
-      return res.status(StatusCodes.OK).send(compiled);
-    } catch (error) {
-      printLog("error", `Failed to serve WMTS of style id "${id}": ${error}`);
-
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .send("Internal server error");
-    }
-  };
-}
-
-/**
  * Get styleJSON handler
  * @returns {(req: Request, res: Response, next: NextFunction) => Promise<any>}
  */
@@ -635,45 +597,6 @@ export const serve_style = {
       /**
        * @swagger
        * tags:
-       *   - name: Style
-       *     description: Style related endpoints
-       * /styles/{id}/wmts.xml:
-       *   get:
-       *     tags:
-       *       - Style
-       *     summary: Get WMTS XML of style
-       *     parameters:
-       *       - in: path
-       *         name: id
-       *         schema:
-       *           type: string
-       *           example: id
-       *         required: true
-       *         description: ID of the style
-       *     responses:
-       *       200:
-       *         description: WMTS XML for the style
-       *         content:
-       *           text/xml:
-       *             schema:
-       *               type: string
-       *       404:
-       *         description: Not found
-       *       503:
-       *         description: Server is starting up
-       *         content:
-       *           text/plain:
-       *             schema:
-       *               type: string
-       *               example: Starting...
-       *       500:
-       *         description: Internal server error
-       */
-      app.get("/styles/:id/wmts.xml", serveWMTSHandler());
-
-      /**
-       * @swagger
-       * tags:
        *   - name: Rendered
        *     description: Rendered related endpoints
        * /styles/rendereds.json:
@@ -956,7 +879,11 @@ export const serve_style = {
 
             let isCanServeRendered = false;
 
-            const styleInfo = {};
+            const styleInfo = {
+              bbox: item.bbox,
+              wms: item.wms,
+              wmts: item.wmts,
+            };
 
             let styleJSON;
 

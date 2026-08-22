@@ -1037,23 +1037,30 @@ export function transformBBoxSRS(option) {
     return option.bounds;
   }
 
-  const corner1 = transformPointSRS({
-    srcSRS: option.srcSRS,
-    dstSRS: option.dstSRS,
-    point: [option.bounds[0], option.bounds[1]],
-  });
-  const corner2 = transformPointSRS({
-    srcSRS: option.srcSRS,
-    dstSRS: option.dstSRS,
-    point: [option.bounds[2], option.bounds[3]],
+  // Two corners are not sufficient for projections whose meridians or
+  // parallels are curved.  Transform all corners and calculate the envelope
+  // in the destination CRS.  This is particularly important for WMS BBOXes.
+  const points = [
+    [option.bounds[0], option.bounds[1]],
+    [option.bounds[0], option.bounds[3]],
+    [option.bounds[2], option.bounds[1]],
+    [option.bounds[2], option.bounds[3]],
+  ].map((point) => {
+    return transformPointSRS({
+      srcSRS: option.srcSRS,
+      dstSRS: option.dstSRS,
+      point,
+    });
   });
 
-  return [
-    min(corner1[0], corner2[0]),
-    min(corner1[1], corner2[1]),
-    max(corner1[0], corner2[0]),
-    max(corner1[1], corner2[1]),
-  ];
+  const xs = points.map((point) => {
+    return point[0];
+  });
+  const ys = points.map((point) => {
+    return point[1];
+  });
+
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
 
 /**

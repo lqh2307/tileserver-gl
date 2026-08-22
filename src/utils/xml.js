@@ -8,6 +8,16 @@ const OPEN_TAG_REGEX = /<\w/;
 const CLOSE_TAG_REGEX = /<\//;
 const SELF_CLOSING_TAG_REGEX = /\/>/;
 
+/** Escape a value for XML text or attribute content. */
+export function xmlEscape(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 /**
  * Format XML with a lightweight regex-based formatter.
  * @param {string} value XML string

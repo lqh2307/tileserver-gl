@@ -219,6 +219,153 @@ location /tile-server/ {
 }
 ```
 
+## OGC Web Map Service (WMS)
+
+The server exposes WMS 1.3.0 and the compatible WMS 1.1.1 profile:
+
+- `GET /wms` serves all configured styles as WMS layers.
+- `GET /styles/{id}/wms` serves one style and is convenient for clients that use a per-layer endpoint.
+- Implemented requests: `GetCapabilities`, `GetMap`, `GetFeatureInfo`, `GetLegendGraphic`, `GetStyles`, and `DescribeLayer`.
+- Supported map formats are `image/png`, `image/jpeg`, and `image/webp`. Feature information is available as GeoJSON, JSON, plain text, or HTML for GeoJSON sources.
+- `EPSG:4326`, `CRS:84`, `EPSG:3857`, and any CRS registered with `proj4` are accepted. WMS 1.3.0 correctly applies the latitude/longitude axis order for `EPSG:4326`.
+
+Optional service metadata can be configured under `options.wms`, and layer metadata under a style entry's `wms` object:
+
+```json
+{
+  "options": {
+    "wms": {
+      "title": "My map service",
+      "abstract": "Published map layers",
+      "keywords": ["map", "WMS"],
+      "maxWidth": 4096,
+      "maxHeight": 4096
+    }
+  },
+  "styles": {
+    "roads": {
+      "style": "roads/style.json",
+      "bbox": [-180, -85, 180, 85],
+      "wms": {
+        "title": "Roads",
+        "queryable": true,
+        "dimensions": {
+          "time": { "units": "ISO8601", "values": "2020-01-01/2025-01-01/P1D" }
+        }
+      }
+    }
+  }
+}
+```
+
+`GetFeatureInfo` performs spatial hit testing against GeoJSON sources. MapLibre vector tiles and raster tiles remain renderable through `GetMap`, but are not advertised as queryable unless explicitly configured and do not expose feature attributes without a vector-tile feature query backend.
+
+WMS KVP examples (all parameters are sent on the GET query string):
+
+```bash
+# Capabilities
+curl -fsS 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities'
+
+# Map in EPSG:4326. WMS 1.3.0 uses latitude,longitude axis order for this CRS.
+curl -fsS -o map.png 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=asia_full&STYLES=&CRS=EPSG:4326&BBOX=20,100,25,110&WIDTH=1024&HEIGHT=768&FORMAT=image/png&TRANSPARENT=TRUE'
+
+# The same map using the WMS 1.1.1 longitude,latitude order.
+curl -fsS -o map.jpg 'http://localhost:8080/styles/asia_full/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=asia_full&STYLES=&SRS=EPSG:4326&BBOX=100,20,110,25&WIDTH=1024&HEIGHT=768&FORMAT=image/jpeg'
+
+# Legend
+curl -fsS -o legend.png 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=asia_full&FORMAT=image/png'
+
+# Feature information at pixel I/J
+curl -fsS 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&LAYERS=roads&QUERY_LAYERS=roads&STYLES=&CRS=CRS:84&BBOX=100,20,110,25&WIDTH=1024&HEIGHT=768&I=512&J=384&INFO_FORMAT=application/json&FEATURE_COUNT=10'
+```
+
+## OGC Web Map Tile Service (WMTS)
+
+WMTS 1.0.0 is available through both the OGC KVP binding and the RESTful
+binding. Rendered styles are published as map layers; raster and vector tile
+data sources are also published when their native format is supported.
+
+- `GET /wmts?SERVICE=WMTS&REQUEST=GetCapabilities&VERSION=1.0.0`
+- `GET /wmts?SERVICE=WMTS&REQUEST=GetTile...` for KVP requests
+- `GET /wmts/{layer}/default/{tileMatrixSet}/{tileMatrix}/{tileRow}/{tileCol}.{format}` for RESTful tiles
+- `GET /styles/{id}/wmts.xml` for capabilities of one rendered style
+- `GoogleMapsCompatible_256` and `GoogleMapsCompatible_512` TileMatrixSets use EPSG:3857 and zoom levels 0–22.
+
+The WMTS layer metadata can be customized in a style entry:
+
+```json
+{
+  "styles": {
+    "roads": {
+      "style": "roads/style.json",
+      "wmts": {
+        "title": "Roads",
+        "abstract": "Road map",
+        "formats": ["image/png", "image/jpeg"]
+      }
+    }
+  }
+}
+```
+
+```bash
+# Capabilities through the KVP binding
+curl -fsS 'http://localhost:8080/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities'
+
+# KVP GetTile
+curl -fsS -o tile.png 'http://localhost:8080/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=roads&STYLE=default&FORMAT=image/png&TILEMATRIXSET=GoogleMapsCompatible_256&TILEMATRIX=10&TILEROW=511&TILECOL=806'
+
+# RESTful GetTile
+curl -fsS -o tile.jpg 'http://localhost:8080/wmts/roads/default/GoogleMapsCompatible_256/10/511/806.jpg'
+
+# Per-style capabilities and RESTful tile URL
+curl -fsS 'http://localhost:8080/styles/roads/wmts.xml'
+curl -fsS -o tile.png 'http://localhost:8080/styles/roads/wmts/GoogleMapsCompatible_256/10/511/806.png'
+```
+
+The implementation follows the mandatory WMTS 1.0.0 `GetCapabilities` and
+`GetTile` operations and advertises only TileMatrixSets and formats that the
+service can actually serve.
+
+## OGC Web Feature Service (WFS)
+
+WFS is exposed at `GET/POST /wfs`; a single feature type can also be addressed at
+`GET/POST /geojsons/{group}/{layer}/wfs`. Every configured GeoJSON layer is published
+as the feature type `{group}:{layer}`. The implementation supports WFS 2.0.0,
+1.1.0, and 1.0.0 discovery/query profiles and the following operations:
+
+`GetCapabilities`, `DescribeFeatureType`, `GetFeature`, `GetPropertyValue`,
+`GetFeatureWithLock`, `LockFeature`, `Transaction`, `ListStoredQueries`,
+`DescribeStoredQueries`, `CreateStoredQuery`, and `DropStoredQuery`.
+
+`GetFeature` supports GeoJSON and GML output, `TYPENAMES`/`TYPENAME`, `BBOX`,
+`FILTER`, simple `CQL_FILTER`, `PROPERTYNAME`, `SORTBY`, `COUNT`, `MAXFEATURES`,
+`STARTINDEX`, `FEATUREID`, `RESULTTYPE=hits`, and `SRSNAME`. Transactions are
+accepted as XML POST and are enabled for local GeoJSON files; forwarded/remote
+GeoJSON sources remain read-only.
+
+```bash
+# WFS capabilities
+curl -fsS 'http://localhost:8080/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities'
+
+# Feature type schema
+curl -fsS 'http://localhost:8080/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=DescribeFeatureType&TYPENAMES=admin:province'
+
+# GeoJSON features with paging and a spatial filter
+curl -fsS 'http://localhost:8080/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=admin:province&OUTPUTFORMAT=application/json&BBOX=102,8,110,24&COUNT=100&STARTINDEX=0&SRSNAME=EPSG:4326'
+
+# GML response
+curl -fsS 'http://localhost:8080/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=admin:province&OUTPUTFORMAT=application/gml%2Bxml%3B%20version%3D3.2'
+
+# Transaction insert (local GeoJSON sources only)
+curl -fsS -X POST 'http://localhost:8080/wfs' \
+  -H 'Content-Type: application/xml' \
+  --data-binary @insert-feature.xml
+```
+
+WFS is backed by GeoJSON resources. Raster/vector tile sources are not feature
+stores and therefore are intentionally not exposed as WFS feature types.
+
 Sau khi cấu hình, kiểm tra:
 
 ```bash

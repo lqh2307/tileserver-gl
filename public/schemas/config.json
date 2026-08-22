@@ -40,6 +40,33 @@
         "thread": {
           "type": "integer",
           "minimum": 1
+        },
+        "wms": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "abstract": { "type": "string" },
+            "keywords": { "type": "array", "items": { "type": "string" } },
+            "fees": { "type": "string" },
+            "accessConstraints": { "type": "string" },
+            "maxWidth": { "type": "integer", "minimum": 1 },
+            "maxHeight": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "wmts": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "abstract": { "type": "string" },
+            "formats": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["image/png", "image/jpeg", "image/webp"]
+              },
+              "minItems": 1
+            }
+          }
         }
       }
     },
@@ -78,6 +105,42 @@
           },
           "validate": {
             "type": "boolean"
+          },
+          "wms": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "abstract": { "type": "string" },
+              "bbox": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "queryable": { "type": "boolean" },
+              "dimensions": { "type": "object" }
+            }
+          },
+          "wmts": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "abstract": { "type": "string" },
+              "bbox": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "formats": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["image/png", "image/jpeg", "image/webp"]
+                },
+                "minItems": 1
+              }
+            }
           }
         }
       }

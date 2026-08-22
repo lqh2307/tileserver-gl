@@ -1,12 +1,18 @@
 "use strict";
 
-const ESCAPED_STRING_VALUES = {
-  "&": "&amp;",
-  '"': "&quot;",
-  "'": "&apos;",
-  "<": "&lt;",
-  ">": "&gt;",
-};
+/** Split a comma-delimited parameter into trimmed non-empty values. */
+export function splitParameter(value) {
+  if (!value) {
+    return [];
+  }
+
+  return String(value)
+    .split(",")
+    .map((item) => {
+      return item.trim();
+    })
+    .filter(Boolean);
+}
 
 /** Normalize a string for case- and diacritic-insensitive matching. */
 export function normalizeString(value, form) {
@@ -24,11 +30,4 @@ export function capitalizeWords(value) {
       return word.length > 0 ? word[0].toUpperCase() + word.slice(1) : "";
     })
     .join(" ");
-}
-
-/** Escape XML special characters. */
-export function escapeString(value) {
-  return value.replace(/[&"'<>]/g, (character) => {
-    return ESCAPED_STRING_VALUES[character];
-  });
 }

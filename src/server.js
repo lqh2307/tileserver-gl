@@ -29,6 +29,9 @@ import {
   serve_font,
   serve_data,
   serve_task,
+  serve_wmts,
+  serve_wms,
+  serve_wfs,
 } from "./serves/index.js";
 
 const taskJobs = new Map();
@@ -308,6 +311,9 @@ export async function startServer() {
       serve_style.init(app);
       serve_task.init(app);
       serve_render.init(app);
+      serve_wms.init(app);
+      serve_wfs.init(app);
+      serve_wmts.init(app);
     }
   } catch (error) {
     printLog("error", `Failed to start server: ${error}. Exited!`);

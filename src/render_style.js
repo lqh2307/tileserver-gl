@@ -82,6 +82,7 @@ mlgl.on("message", (msg) => {
 });
 
 const tileRendererPools = new Map();
+const staticRendererPools = new Map();
 
 /**
  * Create render
@@ -169,111 +170,45 @@ function createRenderer(option) {
           break;
         }
 
-        /* Get pmtiles tile */
-        case "pmtiles": {
-          const parts = decodeURIComponent(req.url).split("/");
-
-          const z = parts[3];
-          const x = parts[4];
-          const y = parts[5].slice(0, parts[5].indexOf("."));
-          const item = config.datas[parts[2]];
-
-          try {
-            const tileData = await getPMTilesTile(item.source, +z, +x, +y);
-
-            /* Unzip data */
-            data = tileData.headers["content-encoding"]
-              ? await unzipAsync(tileData.data)
-              : tileData.data;
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
-            );
-
-            data = FALLBACK_TILE_DATA[item.tileJSON.format];
-          }
-
-          break;
-        }
-
-        /* Get mbtiles tile */
-        case "mbtiles": {
-          const parts = decodeURIComponent(req.url).split("/");
-
-          const z = parts[3];
-          const x = parts[4];
-          const y = parts[5].slice(0, parts[5].indexOf("."));
-          const item = config.datas[parts[2]];
-
-          try {
-            const tileData = await getAndCacheMBTilesTileData(
-              parts[2],
-              +z,
-              +x,
-              +y,
-            );
-
-            /* Unzip data */
-            data = tileData.headers["content-encoding"]
-              ? await unzipAsync(tileData.data)
-              : tileData.data;
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
-            );
-
-            data = FALLBACK_TILE_DATA[item.tileJSON.format];
-          }
-
-          break;
-        }
-
-        /* Get xyz tile */
-        case "xyz": {
-          const parts = decodeURIComponent(req.url).split("/");
-
-          const z = parts[3];
-          const x = parts[4];
-          const y = parts[5].slice(0, parts[5].indexOf("."));
-          const item = config.datas[parts[2]];
-
-          try {
-            const tileData = await getAndCacheXYZTileData(parts[2], +z, +x, +y);
-
-            /* Unzip data */
-            data = tileData.headers["content-encoding"]
-              ? await unzipAsync(tileData.data)
-              : tileData.data;
-          } catch (error) {
-            printLog(
-              "warn",
-              `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
-            );
-
-            data = FALLBACK_TILE_DATA[item.tileJSON.format];
-          }
-
-          break;
-        }
-
-        /* Get pg tile */
+        /* Get local tile data */
+        case "pmtiles":
+        case "mbtiles":
+        case "xyz":
         case "pg": {
           const parts = decodeURIComponent(req.url).split("/");
-
-          const z = parts[3];
-          const x = parts[4];
-          const y = parts[5].slice(0, parts[5].indexOf("."));
-          const item = config.datas[parts[2]];
+          const id = parts[2];
+          const z = +parts[3];
+          const x = +parts[4];
+          const y = +parts[5].slice(0, parts[5].indexOf("."));
+          const item = config.datas[id];
 
           try {
-            const tileData = await getAndCachePostgreSQLTileData(
-              parts[2],
-              +z,
-              +x,
-              +y,
-            );
+            let tileData;
+
+            switch (scheme) {
+              case "pmtiles": {
+                tileData = await getPMTilesTile(item.source, z, x, y);
+
+                break;
+              }
+
+              case "mbtiles": {
+                tileData = await getAndCacheMBTilesTileData(id, z, x, y);
+
+                break;
+              }
+
+              case "xyz": {
+                tileData = await getAndCacheXYZTileData(id, z, x, y);
+
+                break;
+              }
+
+              case "pg":
+                tileData = await getAndCachePostgreSQLTileData(id, z, x, y);
+
+                break;
+            }
 
             /* Unzip data */
             data = tileData.headers["content-encoding"]
@@ -282,7 +217,7 @@ function createRenderer(option) {
           } catch (error) {
             printLog(
               "warn",
-              `Failed to get data "${parts[2]}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
+              `Failed to get data "${id}" - Tile "${`${z}/${x}/${y}`}": ${error}. Serving empty tile...`,
             );
 
             data = FALLBACK_TILE_DATA[item.tileJSON.format];
@@ -474,6 +409,54 @@ export function getTileRendererPool({
 }
 
 /**
+ * Get the persistent renderer pool used by WMS/static map requests.
+ * Static renderers use a different native map mode than tile renderers.
+ * @param {{ key: string, styleJSON: object, tileScale?: number, max?: number }} option Option object
+ * @returns {object} Renderer pool
+ */
+export function getStaticRendererPool({
+  key,
+  styleJSON,
+  tileScale = 1,
+  max = DEFAULT_CONCURRENCY,
+}) {
+  const current = staticRendererPools.get(key);
+
+  if (current?.styleJSON === styleJSON) {
+    return current.pool;
+  }
+
+  const pool = createRendererPool({
+    mode: "static",
+    ratio: tileScale,
+    styleJSON,
+    max,
+    idleTimeoutMillis: DEFAULT_RENDERER_IDLE_TIMEOUT,
+  });
+
+  staticRendererPools.set(key, {
+    styleJSON,
+    pool,
+  });
+
+  if (current) {
+    current.pool
+      .drain()
+      .then(() => {
+        return current.pool.clear();
+      })
+      .catch((error) => {
+        printLog(
+          "error",
+          `Failed to clear static renderer pool "${key}": ${error}`,
+        );
+      });
+  }
+
+  return pool;
+}
+
+/**
  * Render with an acquired renderer and return it to the pool when successful.
  * A renderer that failed is destroyed so it cannot poison later requests.
  * @param {object} renderer Renderer
@@ -520,32 +503,47 @@ async function renderWithRenderer(renderer, pool, option) {
  * @param {{ z: number, x: number, y: number, pool?: object, styleJSON: object, pitch?: number, bearing?: number, tileScale: number, tileSize: 256|512, format: "jpeg"|"jpg"|"png"|"webp", grayscale?: boolean, filePath?: string }} options Options
  * @returns {Promise<Buffer|string>}
  */
-export async function renderImageTileData({ z, x, y, ...option }) {
-  const renderer = option.pool
-    ? await option.pool.acquire()
+export async function renderImageTileData(option) {
+  const {
+    z,
+    x,
+    y,
+    pool,
+    pitch = 0,
+    bearing = 0,
+    format,
+    grayscale,
+    filePath,
+    tileScale,
+    tileSize,
+    styleJSON,
+  } = option;
+
+  const renderer = pool
+    ? await pool.acquire()
     : createRenderer({
         mode: "tile",
-        ratio: option.tileScale,
-        styleJSON: option.styleJSON,
+        ratio: tileScale,
+        styleJSON,
       });
 
-  const isNeedHack = z === 0 && option.tileSize === 256;
-  const hackTileSize = isNeedHack ? option.tileSize * 2 : option.tileSize;
+  const isNeedHack = z === 0 && tileSize === 256;
+  const hackTileSize = isNeedHack ? tileSize * 2 : tileSize;
 
-  const data = await renderWithRenderer(renderer, option.pool, {
-    zoom: z > 0 && option.tileSize === 256 ? z - 1 : z,
+  const data = await renderWithRenderer(renderer, pool, {
+    zoom: z > 0 && tileSize === 256 ? z - 1 : z,
     center: getLonLatFromXYZ(x, y, z, "center", "xyz"),
     width: hackTileSize,
     height: hackTileSize,
-    pitch: option.pitch ?? 0,
-    bearing: option.bearing ?? 0,
+    pitch,
+    bearing,
   });
 
-  const tileSize = hackTileSize * option.tileScale;
-  const originTileSize = Math.round(tileSize);
-  const targetTileSize = isNeedHack ? Math.round(tileSize / 2) : undefined;
+  const size = hackTileSize * tileScale;
+  const originTileSize = Math.round(size);
+  const targetTileSize = isNeedHack ? Math.round(size / 2) : undefined;
 
-  return await createImageOutput({
+  return createImageOutput({
     data,
     rawOption: {
       premultiplied: true,
@@ -553,9 +551,9 @@ export async function renderImageTileData({ z, x, y, ...option }) {
       height: originTileSize,
       channels: 4,
     },
-    format: option.format,
-    grayscale: option.grayscale,
-    filePath: option.filePath,
+    format,
+    grayscale,
+    filePath,
     width: targetTileSize,
     height: targetTileSize,
   });
@@ -567,40 +565,55 @@ export async function renderImageTileData({ z, x, y, ...option }) {
  * @returns {Promise<Buffer|string>}
  */
 export async function renderImageStaticData(option) {
-  const renderer = option.pool
-    ? await option.pool.acquire()
+  const {
+    pool,
+    pitch = 0,
+    bearing = 0,
+    format,
+    grayscale,
+    filePath,
+    tileScale,
+    tileSize,
+    styleJSON,
+    zoom,
+    bbox,
+    resizeOption,
+    width,
+    height,
+  } = option;
+
+  const renderer = pool
+    ? await pool.acquire()
     : createRenderer({
         mode: "static",
-        ratio: option.tileScale,
-        styleJSON: option.styleJSON,
+        ratio: tileScale,
+        styleJSON,
       });
 
-  const sizes = calculateSizes(option.zoom, option.bbox, option.tileSize);
-  const data = await renderWithRenderer(renderer, option.pool, {
-    zoom: option.zoom,
-    center: [
-      (option.bbox[0] + option.bbox[2]) / 2,
-      (option.bbox[1] + option.bbox[3]) / 2,
-    ],
+  const sizes = calculateSizes(zoom, bbox, tileSize);
+  const data = await renderWithRenderer(renderer, pool, {
+    zoom,
+    center: [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2],
     width: sizes.width,
     height: sizes.height,
-    pitch: option.pitch ?? 0,
-    bearing: option.bearing ?? 0,
+    pitch,
+    bearing,
   });
 
-  return await createImageOutput({
+  return createImageOutput({
     data,
     rawOption: {
       premultiplied: true,
-      width: Math.round(option.tileScale * sizes.width),
-      height: Math.round(option.tileScale * sizes.height),
+      width: Math.round(tileScale * sizes.width),
+      height: Math.round(tileScale * sizes.height),
       channels: 4,
     },
-    format: option.format,
-    grayscale: option.grayscale,
-    width: option.width,
-    height: option.height,
-    filePath: option.filePath,
+    format,
+    grayscale,
+    width,
+    height,
+    resizeOption,
+    filePath,
   });
 }
 
