@@ -11,10 +11,13 @@ import {
 import {
   calculateMaxZoom,
   transformBBoxSRS,
+  getGeometryBBox,
   getRequestHost,
   splitParameter,
   getParameter,
   xmlEscape,
+  min,
+  max,
 } from "../utils/index.js";
 import {
   getStaticRendererPool,
@@ -383,7 +386,7 @@ function legendSVG(styleJSON, title, width, height) {
     return layer.layout?.visibility !== "none";
   });
   const rowHeight = 26;
-  const totalHeight = Math.max(height, 32 + layers.length * rowHeight);
+  const totalHeight = max(height, 32 + layers.length * rowHeight);
   const rows = layers
     .map((layer, index) => {
       const y = 28 + index * rowHeight;
@@ -428,59 +431,15 @@ function styleToSLD(styleJSON, layerName, title) {
   return `<?xml version="1.0" encoding="UTF-8"?><StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><NamedLayer><Name>${xmlEscape(layerName)}</Name><UserStyle><Name>default</Name><Title>${xmlEscape(title)}</Title><FeatureTypeStyle>${rules}</FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>`;
 }
 
-function geometryBBox(geometry) {
-  const points = [];
-  const collect = (value) => {
-    if (!Array.isArray(value)) {
-      return;
-    }
-    if (
-      value.length >= 2 &&
-      typeof value[0] === "number" &&
-      typeof value[1] === "number"
-    ) {
-      points.push(value);
-      return;
-    }
-    value.forEach(collect);
-  };
-  collect(geometry?.coordinates);
-  if (!points.length) {
-    return undefined;
-  }
-  return [
-    Math.min(
-      ...points.map((point) => {
-        return point[0];
-      }),
-    ),
-    Math.min(
-      ...points.map((point) => {
-        return point[1];
-      }),
-    ),
-    Math.max(
-      ...points.map((point) => {
-        return point[0];
-      }),
-    ),
-    Math.max(
-      ...points.map((point) => {
-        return point[1];
-      }),
-    ),
-  ];
-}
-
 function distanceToSegment(point, start, end) {
   const dx = end[0] - start[0];
   const dy = end[1] - start[1];
   if (!dx && !dy) {
     return Math.hypot(point[0] - start[0], point[1] - start[1]);
   }
-  const t = Math.max(
+  const t = max(
     0,
-    Math.min(
+    min(
       1,
       ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) /
         (dx * dx + dy * dy),
@@ -518,7 +477,7 @@ function pointHitsGeometry(point, geometry, tolerance) {
   if (!geometry) {
     return false;
   }
-  const bbox = geometryBBox(geometry);
+  const bbox = getGeometryBBox(geometry);
   if (
     bbox &&
     (point[0] < bbox[0] - tolerance ||
@@ -609,11 +568,11 @@ async function getGeoJSONForSource(source) {
     typeof source?.data !== "string" ||
     !source.data.startsWith("geojson://")
   ) {
-    return undefined;
+    return;
   }
   const parts = source.data.split("/");
   if (!parts[2] || !parts[3]) {
-    return undefined;
+    return;
   }
   return JSON.parse(await getAndCacheDataGeoJSON(parts[2], parts[3]));
 }
@@ -628,22 +587,25 @@ async function queryGeoJSONLayers(layerIds, point, tolerance, featureCount) {
       continue;
     }
 
-    const sources = new Map();
-    for (const [sourceId, source] of Object.entries(styleJSON.sources ?? {})) {
-      const data = await getGeoJSONForSource(source).catch(() => {
-        return undefined;
-      });
-      if (data) {
-        sources.set(sourceId, data);
-      }
-    }
+    const sources = new Map(
+      await Promise.all(
+        Object.entries(styleJSON.sources ?? {}).map(
+          async ([sourceId, source]) => {
+            const data = await getGeoJSONForSource(source).catch(() => {
+              return;
+            });
+            return [sourceId, data ? asFeatureArray(data) : undefined];
+          },
+        ),
+      ),
+    );
 
     for (const styleLayer of styleJSON.layers ?? []) {
       const data = sources.get(styleLayer.source);
       if (!data) {
         continue;
       }
-      for (const feature of asFeatureArray(data)) {
+      for (const feature of data) {
         if (!pointHitsGeometry(point, feature.geometry, tolerance)) {
           continue;
         }
@@ -744,7 +706,7 @@ function parseMapRequest(layers, parameters, version) {
   );
   const dpi = Number(getParameter(parameters, "DPI", 96));
   const tileScale =
-    Number.isFinite(dpi) && dpi > 0 ? Math.min(Math.max(dpi / 96, 1), 4) : 1;
+    Number.isFinite(dpi) && dpi > 0 ? min(max(dpi / 96, 1), 4) : 1;
   const zoom = calculateMaxZoom(bbox, width, height, 256);
   return {
     bbox,
@@ -847,12 +809,12 @@ async function sendException(res, error, parameters) {
   ).toLowerCase();
 
   if (exceptionFormat.includes("se_inimage") || exceptionFormat === "inimage") {
-    const width = Math.min(
-      Math.max(Number(getParameter(parameters, "WIDTH", 256)) || 256, 1),
+    const width = min(
+      max(Number(getParameter(parameters, "WIDTH", 256)) || 256, 1),
       DEFAULT_MAX_SIZE,
     );
-    const height = Math.min(
-      Math.max(Number(getParameter(parameters, "HEIGHT", 256)) || 256, 1),
+    const height = min(
+      max(Number(getParameter(parameters, "HEIGHT", 256)) || 256, 1),
       DEFAULT_MAX_SIZE,
     );
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="white"/><text x="8" y="20" font-family="sans-serif" font-size="14" fill="red">${xmlEscape(`${code}: ${message}`)}</text></svg>`;
@@ -991,11 +953,11 @@ async function handleWMS(req, res, pathId) {
         mapResult.height - 1,
       );
       const tolerance =
-        (Math.max(
+        (max(
           mapResult.bbox[2] - mapResult.bbox[0],
           mapResult.bbox[3] - mapResult.bbox[1],
         ) /
-          Math.min(mapResult.width, mapResult.height)) *
+          min(mapResult.width, mapResult.height)) *
         5;
       const point = [
         mapResult.bbox[0] +
@@ -1097,6 +1059,58 @@ async function handleWMS(req, res, pathId) {
 
 export const serve_wms = {
   init: (app) => {
+    /**
+     * @swagger
+     * tags:
+     *   - name: WMS
+     *     description: OGC Web Map Service endpoints
+     * /wms:
+     *   get:
+     *     tags: [WMS]
+     *     summary: Execute a WMS request
+     *     description: Supports GetCapabilities, GetMap, GetFeatureInfo, GetLegendGraphic, GetStyles, and DescribeLayer.
+     *     parameters:
+     *       - in: query
+     *         name: REQUEST
+     *         required: true
+     *         schema:
+     *           type: string
+     *           enum: [GetCapabilities, GetMap, GetFeatureInfo, GetLegendGraphic, GetStyles, DescribeLayer]
+     *       - in: query
+     *         name: VERSION
+     *         schema:
+     *           type: string
+     *           enum: ['1.1.1', '1.3.0']
+     *           default: '1.3.0'
+     *       - in: query
+     *         name: LAYERS
+     *         schema: { type: string }
+     *         description: Comma-separated style layer IDs.
+     *       - in: query
+     *         name: BBOX
+     *         schema: { type: string }
+     *         description: Four comma-separated coordinates.
+     *       - in: query
+     *         name: WIDTH
+     *         schema: { type: integer, minimum: 1 }
+     *       - in: query
+     *         name: HEIGHT
+     *         schema: { type: integer, minimum: 1 }
+     *       - in: query
+     *         name: FORMAT
+     *         schema:
+     *           type: string
+     *           enum: [image/png, image/jpeg, image/webp, application/json, text/plain, text/html]
+     *     responses:
+     *       200:
+     *         description: WMS XML, raster image, or feature information.
+     *         content:
+     *           application/xml: { schema: { type: string } }
+     *           image/png: { schema: { type: string, format: binary } }
+     *           application/json: { schema: { type: object } }
+     *       400:
+     *         description: OGC service exception.
+     */
     const register = (route) => {
       app.get(route, (req, res) => {
         return handleWMS(req, res, req.params.id);

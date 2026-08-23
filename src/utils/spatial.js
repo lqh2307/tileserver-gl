@@ -1,18 +1,25 @@
 "use strict";
 
-import { limitValue, max, min } from "./number.js";
+import { limitValue, max, maxs, min, mins } from "./number.js";
 import proj4 from "proj4";
 
-const GEOGRAPHIC_REGEX = /\+proj=(?:longlat|latlong)\b/;
-
+/**
+ * https://epsg.io/4756
+ */
 proj4.defs(
   "EPSG:4756",
   "+proj=longlat +ellps=WGS84 +towgs84=-191.90441429,-39.30318279,-111.45032835,-0.00928836,0.01975479,-0.00427372,0.252906278 +no_defs +type=crs",
 );
+/**
+ * https://epsg.io/3405
+ */
 proj4.defs(
   "EPSG:3405",
   "+proj=utm +zone=48 +ellps=WGS84 +towgs84=-191.90441429,-39.30318279,-111.45032835,-0.00928836,0.01975479,-0.00427372,0.252906278 +units=m +no_defs +type=crs",
 );
+/**
+ * https://epsg.io/3406
+ */
 proj4.defs(
   "EPSG:3406",
   "+proj=utm +zone=49 +ellps=WGS84 +towgs84=-191.90441429,-39.30318279,-111.45032835,-0.00928836,0.01975479,-0.00427372,0.252906278 +units=m +no_defs +type=crs",
@@ -24,13 +31,17 @@ export const TOTAL_DEGREES = 360;
 export const MAX_LON = 180;
 /** Maximum latitude in degrees for EPSG:4326 normalization. */
 export const MAX_LAT = 90;
-/** Maximum latitude supported by Web Mercator (EPSG:3857) in degrees. */
-export const MAX_CAL_LAT = 85.051129;
 
+/**  */
+const GEOGRAPHIC_REGEX = /\+proj=(?:longlat|latlong)\b/;
 /** Radius of the Earth in meters for spherical calculations. */
-export const SPHERICAL_RADIUS = 6378137.0;
+const SPHERICAL_RADIUS = 6378137.0;
+/** */
+const TWO_PI = 2 * Math.PI;
 /** Circumference of the Earth in meters for spherical calculations. */
-export const MAX_GM = 2 * Math.PI * SPHERICAL_RADIUS;
+const MAX_GM = TWO_PI * SPHERICAL_RADIUS;
+/** Maximum latitude supported by Web Mercator (EPSG:3857) in degrees. */
+const MAX_CAL_LAT = 85.051129;
 
 /** Minimum zoom level for Web Mercator (EPSG:3857). */
 export const MIN_ZOOM = 0;
@@ -45,10 +56,6 @@ export const DEFAULT_PPI = 96;
 
 /** Check whether an SRS uses geographic longitude/latitude coordinates. */
 export function isGeographicSRS(srs) {
-  if (!srs) {
-    return false;
-  }
-
   if (GEOGRAPHIC_REGEX.test(srs)) {
     return true;
   }
@@ -67,13 +74,7 @@ export function isGeographicSRS(srs) {
  * @returns {[number, number]} Web Mercator x, y in meters
  */
 export function lonLat4326ToXY3857(lon, lat) {
-  const objectInput = typeof lon === "object" && lon !== null;
-  if (objectInput) {
-    lat = lon.lat;
-    lon = lon.lng;
-  }
-
-  const result = [
+  return [
     limitValue(lon, -MAX_LON, MAX_LON) * (Math.PI / MAX_LON) * SPHERICAL_RADIUS,
     Math.log(
       Math.tan(
@@ -82,13 +83,6 @@ export function lonLat4326ToXY3857(lon, lat) {
       ),
     ) * SPHERICAL_RADIUS,
   ];
-
-  return objectInput
-    ? {
-        x: result[0],
-        y: result[1],
-      }
-    : result;
 }
 
 /**
@@ -98,13 +92,7 @@ export function lonLat4326ToXY3857(lon, lat) {
  * @returns {[number, number]} Longitude and latitude in degrees
  */
 export function xy3857ToLonLat4326(x, y) {
-  const objectInput = typeof x === "object" && x !== null;
-  if (objectInput) {
-    y = x.y;
-    x = x.x;
-  }
-
-  const result = [
+  return [
     limitValue((x / SPHERICAL_RADIUS) * (MAX_LON / Math.PI), -MAX_LON, MAX_LON),
     limitValue(
       Math.atan(Math.sinh(y / SPHERICAL_RADIUS)) * (MAX_LON / Math.PI),
@@ -112,13 +100,6 @@ export function xy3857ToLonLat4326(x, y) {
       MAX_CAL_LAT,
     ),
   ];
-
-  return objectInput
-    ? {
-        lng: result[0],
-        lat: result[1],
-      }
-    : result;
 }
 
 /**
@@ -130,15 +111,6 @@ export function xy3857ToLonLat4326(x, y) {
  * @returns {[number, number, number]} Tile indices [x, y, z]
  */
 export function getXYZFromLonLatZ(lon, lat, z, scheme) {
-  const objectInput = typeof lon === "object" && lon !== null;
-  if (objectInput) {
-    const option = lon;
-    lon = option.lng;
-    lat = option.lat;
-    z = option.z;
-    scheme = option.scheme;
-  }
-
   const maxTile = 1 << z;
 
   let x = (0.5 + limitValue(lon, -MAX_LON, MAX_LON) / TOTAL_DEGREES) * maxTile;
@@ -150,26 +122,18 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme) {
             TOTAL_DEGREES,
         ),
       ) /
-        (2 * Math.PI)) *
+        TWO_PI) *
     maxTile;
 
   if (scheme === "tms") {
     y = maxTile - y;
   }
 
-  const result = [
+  return [
     limitValue(Math.floor(x), 0, maxTile - 1),
     limitValue(Math.floor(y), 0, maxTile - 1),
     z,
   ];
-
-  return objectInput
-    ? {
-        x: result[0],
-        y: result[1],
-        z: result[2],
-      }
-    : result;
 }
 
 /**
@@ -181,34 +145,14 @@ export function getXYZFromLonLatZ(lon, lat, z, scheme) {
  * @param {256|512} tileSize Tile size (Default: 256)
  * @returns {[number, number, number]} [x, y, z]
  */
-export function getXYZFromPixelZ(pixelX, pixelY, z, scheme, tileSize = 256) {
-  const objectInput = typeof pixelX === "object" && pixelX !== null;
-  if (objectInput) {
-    const option = pixelX;
-    pixelX = option.pxX;
-    pixelY = option.pxY;
-    z = option.z;
-    scheme = option.scheme;
-    tileSize = option.tileSize ?? DEFAULT_TILE_SIZE;
-  }
+export function getXYZFromPixelZ(pixelX, pixelY, z, scheme, tileSize) {
+  tileSize = tileSize || DEFAULT_TILE_SIZE;
 
   if (scheme === "tms") {
     pixelY = tileSize * (1 << z) - pixelY;
   }
 
-  const result = [
-    Math.floor(pixelX / tileSize),
-    Math.floor(pixelY / tileSize),
-    z,
-  ];
-
-  return objectInput
-    ? {
-        x: result[0],
-        y: result[1],
-        z: result[2],
-      }
-    : result;
+  return [Math.floor(pixelX / tileSize), Math.floor(pixelY / tileSize), z];
 }
 
 /**
@@ -221,16 +165,6 @@ export function getXYZFromPixelZ(pixelX, pixelY, z, scheme, tileSize = 256) {
  * @returns {[number, number]} [longitude, latitude] in EPSG:4326
  */
 export function getLonLatFromXYZ(x, y, z, position, scheme) {
-  const objectInput = typeof x === "object" && x !== null;
-  if (objectInput) {
-    const option = x;
-    x = option.x;
-    y = option.y;
-    z = option.z;
-    position = option.position;
-    scheme = option.scheme;
-  }
-
   const maxTile = 1 << z;
 
   if (scheme === "tms") {
@@ -245,19 +179,12 @@ export function getLonLatFromXYZ(x, y, z, position, scheme) {
     y += 1;
   }
 
-  const result = [
+  return [
     TOTAL_DEGREES * (x / maxTile - 0.5),
     (TOTAL_DEGREES * Math.atan(Math.exp(Math.PI * (1 - (2 * y) / maxTile)))) /
       Math.PI -
       MAX_LAT,
   ];
-
-  return objectInput
-    ? {
-        lng: result[0],
-        lat: result[1],
-      }
-    : result;
 }
 
 /**
@@ -269,14 +196,6 @@ export function getLonLatFromXYZ(x, y, z, position, scheme) {
  * @returns {[number, number, number, number]} [minLon, minLat, maxLon, maxLat] in EPSG:4326
  */
 export function getTileBounds4326(x, y, z, scheme) {
-  if (typeof x === "object" && x !== null) {
-    const option = x;
-    x = option.x;
-    y = option.y;
-    z = option.z;
-    scheme = option.scheme;
-  }
-
   const [minLon, maxLat] = getLonLatFromXYZ(x, y, z, "topLeft", scheme);
   const [maxLon, minLat] = getLonLatFromXYZ(x, y, z, "bottomRight", scheme);
 
@@ -292,14 +211,6 @@ export function getTileBounds4326(x, y, z, scheme) {
  * @returns {[number, number, number, number]} [minLon, minLat, maxLon, maxLat] in EPSG:3857
  */
 export function getTileBounds3857(x, y, z, scheme) {
-  if (typeof x === "object" && x !== null) {
-    const option = x;
-    x = option.x;
-    y = option.y;
-    z = option.z;
-    scheme = option.scheme;
-  }
-
   const [minLon, maxLat] = getLonLatFromXYZ(x, y, z, "topLeft", scheme);
   const [maxLon, minLat] = getLonLatFromXYZ(x, y, z, "bottomRight", scheme);
 
@@ -318,15 +229,6 @@ export function getTileBounds3857(x, y, z, scheme) {
  * @returns {number} Max zoom
  */
 export function calculateMaxZoom(bbox, width, height, tileSize = 256) {
-  if (typeof bbox === "object" && !Array.isArray(bbox) && "bounds" in bbox) {
-    const option = bbox;
-
-    bbox = option.bounds;
-    width = option.size.width;
-    height = option.size.height;
-    tileSize = option.tileSize || DEFAULT_TILE_SIZE;
-  }
-
   const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
   const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
   const xRes = (maxX - minX) / width;
@@ -446,15 +348,6 @@ export function pixelToLonLat4326(option) {
  * @returns {{ x: [number, number], y: [number, number] }}
  */
 export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
-  if (typeof z === "object" && z !== null) {
-    const option = z;
-    z = option.z;
-    x = option.x;
-    y = option.y;
-    scheme = option.scheme;
-    deltaZ = option.deltaZ;
-  }
-
   const factor = 1 << deltaZ;
 
   const minX = x * factor;
@@ -478,34 +371,23 @@ export function getPyramidTileRanges(z, x, y, scheme, deltaZ) {
 }
 
 /**
- * Calculate sizes
- * @param {number} z Zoom level
- * @param {[number, number, number, number]} bbox Bounding box in EPSG:4326
- * @param {256|512} tileSize Tile size (Default: 512)
- * @returns {{width: number, height: number}} Sizes
- */
-export function calculateSizes(z, bbox, tileSize = 512) {
-  const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
-  const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
-
-  const resolution = MAX_GM / (tileSize * Math.pow(2, z));
-
-  return {
-    width: Math.round((maxX - minX) / resolution),
-    height: Math.round((maxY - minY) / resolution),
-  };
-}
-
-/**
  * Calculate pixel size for bounds at a zoom level or map scale.
  * @param {{bounds: number[], zoom?: number, scale?: number, tileSize?: number, ppi?: number}} option Options
  * @returns {{width: number, height: number}}
  */
 export function calculateSize(option) {
   const tileSize = option.tileSize || DEFAULT_TILE_SIZE;
+
   const zoom = option.zoom ?? scaleToZoom(option.scale, option.ppi, tileSize);
 
-  return calculateSizes(zoom, option.bounds, tileSize);
+  const [minX, minY] = lonLat4326ToXY3857(option.bounds[0], option.bounds[1]);
+  const [maxX, maxY] = lonLat4326ToXY3857(option.bounds[2], option.bounds[3]);
+  const resolution = MAX_GM / (tileSize * Math.pow(2, zoom));
+
+  return {
+    width: Math.round((maxX - minX) / resolution),
+    height: Math.round((maxY - minY) / resolution),
+  };
 }
 
 /**
@@ -515,11 +397,15 @@ export function calculateSize(option) {
  */
 export function calculateBBox(option) {
   const tileSize = option.tileSize || DEFAULT_TILE_SIZE;
+
   const zoom = option.zoom ?? scaleToZoom(option.scale, option.ppi, tileSize);
   const resolution = MAX_GM / (tileSize * Math.pow(2, zoom));
+
   const widthM = option.size.width * resolution;
   const heightM = option.size.height * resolution;
+
   const center = lonLat4326ToXY3857(option.center[0], option.center[1]);
+
   const bottomLeft = xy3857ToLonLat4326(
     center[0] - widthM / 2,
     center[1] - heightM / 2,
@@ -545,13 +431,6 @@ export function calculateBBox(option) {
  * @returns {[number, number, number, number][]}
  */
 export function splitBBox(bbox, lonStep, latStep) {
-  if (typeof bbox === "object" && !Array.isArray(bbox) && "bounds" in bbox) {
-    const option = bbox;
-    bbox = option.bounds;
-    lonStep = option.lonStep;
-    latStep = option.latStep;
-  }
-
   const result = [];
 
   function splitStep(start, end, step) {
@@ -746,16 +625,6 @@ export function getTileBounds(options) {
  * @returns {[number, number, number, number]} Bounding box [lonMin, latMin, lonMax, latMax] in EPSG:4326
  */
 export function getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme) {
-  if (typeof xMin === "object" && xMin !== null) {
-    const option = xMin;
-    xMin = option.x[0];
-    xMax = option.x[1];
-    yMin = option.y[0];
-    yMax = option.y[1];
-    z = option.z;
-    scheme = option.scheme;
-  }
-
   let [lonMin, latMax] = getLonLatFromXYZ(xMin, yMin, z, "topLeft", scheme);
   let [lonMax, latMin] = getLonLatFromXYZ(xMax, yMax, z, "bottomRight", scheme);
 
@@ -778,13 +647,6 @@ export function getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme) {
  * @returns {[number, number, number, number]} Tiles [minX, maxX, minY, maxY]
  */
 export function getTilesFromBBox(bbox, z, scheme) {
-  if (typeof bbox === "object" && !Array.isArray(bbox) && "bounds" in bbox) {
-    const option = bbox;
-    bbox = option.bounds;
-    z = option.z;
-    scheme = option.scheme;
-  }
-
   let [xMin, yMin] = getXYZFromLonLatZ(bbox[0], bbox[3], z, scheme);
   let [xMax, yMax] = getXYZFromLonLatZ(bbox[2], bbox[1], z, scheme);
 
@@ -807,13 +669,6 @@ export function getTilesFromBBox(bbox, z, scheme) {
  * @returns {[number, number, number, number]} Bounding box [lonMin, latMin, lonMax, latMax] in EPSG:4326
  */
 export function getRealBBox(bbox, z, scheme) {
-  if (typeof bbox === "object" && !Array.isArray(bbox)) {
-    const option = bbox;
-    bbox = option.bounds;
-    z = option.z;
-    scheme = option.scheme;
-  }
-
   let [xMin, yMin, xMax, yMax] = getTilesFromBBox(bbox, z, scheme);
 
   return getBBoxFromTiles(xMin, yMin, xMax, yMax, z, scheme);
@@ -973,13 +828,6 @@ export function getCoverBBox(bbox1, bbox2) {
  * @returns {number} Scale
  */
 export function zoomToScale(zoom, ppi = 96, tileSize = 256) {
-  if (typeof zoom === "object" && zoom !== null) {
-    const option = zoom;
-    zoom = option.zoom;
-    ppi = option.ppi ?? DEFAULT_PPI;
-    tileSize = option.tileSize ?? DEFAULT_TILE_SIZE;
-  }
-
   return (ppi * (MAX_GM / tileSize / Math.pow(2, zoom))) / 0.0254;
 }
 
@@ -991,13 +839,6 @@ export function zoomToScale(zoom, ppi = 96, tileSize = 256) {
  * @returns {number} zoom
  */
 export function scaleToZoom(scale, ppi = 96, tileSize = 256) {
-  if (typeof scale === "object" && scale !== null) {
-    const option = scale;
-    scale = option.scale;
-    ppi = option.ppi ?? DEFAULT_PPI;
-    tileSize = option.tileSize ?? DEFAULT_TILE_SIZE;
-  }
-
   return Math.log2(ppi * (MAX_GM / tileSize / scale / 0.0254));
 }
 
@@ -1060,79 +901,5 @@ export function transformBBoxSRS(option) {
     return point[1];
   });
 
-  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-}
-
-/**
- * Ensure a ring of points is closed by checking if the first and last points are the same.
- * If they are not the same, append the first point to the end of the array to close the ring.
- * @param {number[][]} ring Array of points [x, y]
- * @returns {number[][]} The original ring if it's already closed, or a new array with the first point appended if it was not closed
- */
-export function makeValidCloseRing(ring) {
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-
-  if (first[0] === last[0] && first[1] === last[1]) {
-    return ring;
-  }
-
-  const newRing = ring.slice();
-  newRing.push(first);
-
-  return newRing;
-}
-
-/**
- * Calculate the area of a polygon defined by an array of rings (arrays of points).
- * Uses the shoelace formula to calculate the area of the outer ring (first array of points) and ignores holes.
- * @param {number[][][]} coords Array of rings, where each ring is an array of points [x, y]
- * @returns {number} The area of the polygon
- */
-export function getPolygonArea(coords) {
-  const ring = makeValidCloseRing(coords[0]);
-
-  if (ring.length < 4) {
-    return 0;
-  }
-
-  let area = 0;
-
-  for (let i = 0; i < ring.length - 1; i++) {
-    area += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
-  }
-
-  return Math.abs(area) * 0.5;
-}
-
-/**
- * Calculate the centroid of a polygon defined by an array of rings (arrays of points).
- * Uses the formula for polygon centroids, which accounts for the shape of the polygon.
- * Only considers the outer ring (first array of points) and ignores holes.
- * @param {number[][][]} coords Array of rings, where each ring is an array of points [x, y]
- * @returns {number[]} The centroid [x, y] of the polygon
- */
-export function getPolygonCentroid(coords) {
-  let area = 0;
-  let x = 0;
-  let y = 0;
-
-  const ring = makeValidCloseRing(coords[0]);
-
-  for (let i = 0; i < ring.length - 1; i++) {
-    const f = ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
-
-    x += (ring[i][0] + ring[i + 1][0]) * f;
-    y += (ring[i][1] + ring[i + 1][1]) * f;
-
-    area += f;
-  }
-
-  area *= 0.5;
-
-  if (!area) {
-    return ring[0];
-  }
-
-  return [x / (6 * area), y / (6 * area)];
+  return [mins(xs), mins(ys), maxs(xs), maxs(ys)];
 }

@@ -389,71 +389,12 @@ export function convertDMSToDEG(dms) {
  * createRangeNumber(0, 10); // [0, 10]
  */
 export function createRangeNumber(start, end, pointsPerSegment) {
-  if (typeof start !== "object" || start === null) {
-    const segmentCount = (pointsPerSegment ?? 0) + 1;
-    const step = (end - start) / segmentCount;
-    const points = new Array(segmentCount + 1);
+  const segmentCount = (pointsPerSegment ?? 0) + 1;
+  const step = (end - start) / segmentCount;
+  const points = new Array(segmentCount + 1);
 
-    for (let i = 0; i <= segmentCount; i++) {
-      points[i] = start + i * step;
-    }
-
-    return points;
-  }
-
-  const option = start;
-  const rangeStart = option.start;
-  const rangeEnd = option.end;
-  const interiorPointCount = option.pointsPerSegment ?? 0;
-
-  if (rangeEnd < rangeStart) {
-    return [];
-  }
-
-  if (rangeStart === rangeEnd) {
-    return option.excludeStart || option.excludeEnd ? [] : [rangeStart];
-  }
-
-  if (option.step !== undefined) {
-    if (option.step <= 0) {
-      return [];
-    }
-
-    const origin = option.origin ?? 0;
-    const values = option.excludeStart ? [] : [rangeStart];
-
-    for (
-      let value = Math.ceil((rangeStart - origin) / option.step) * option.step;
-      value <= rangeEnd - origin + option.step * DEFAULT_TOLERANCE;
-      value += option.step
-    ) {
-      const roundedValue = roundDecimal(
-        origin + roundToMultiple(value, option.step),
-        12,
-      );
-
-      if (roundedValue > rangeStart && roundedValue < rangeEnd) {
-        values.push(roundedValue);
-      }
-    }
-
-    if (!option.excludeEnd) {
-      values.push(rangeEnd);
-    }
-
-    return values;
-  }
-
-  const segmentCount = interiorPointCount + 1;
-  const step = (rangeEnd - rangeStart) / segmentCount;
-  const points = option.excludeStart ? [] : [rangeStart];
-
-  for (let i = 1; i < segmentCount; i++) {
-    points.push(rangeStart + i * step);
-  }
-
-  if (!option.excludeEnd) {
-    points.push(rangeEnd);
+  for (let i = 0; i <= segmentCount; i++) {
+    points[i] = start + i * step;
   }
 
   return points;

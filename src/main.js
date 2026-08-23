@@ -12,6 +12,7 @@ import { removeOldLocks, printLog } from "./utils/index.js";
 import { validateConfig, config } from "./configs/index.js";
 import cluster from "node:cluster";
 import chokidar from "chokidar";
+import path from "node:path";
 import cron from "node-cron";
 import os from "node:os";
 import {
@@ -103,9 +104,9 @@ async function startClusterServer() {
       chokidar
         .watch(
           [
-            `${process.env.DATA_DIR}/config.json`,
-            `${process.env.DATA_DIR}/seed.json`,
-            `${process.env.DATA_DIR}/cleanup.json`,
+            path.join(process.env.DATA_DIR, "config.json"),
+            path.join(process.env.DATA_DIR, "seed.json"),
+            path.join(process.env.DATA_DIR, "cleanup.json"),
           ],
           {
             usePolling: true,

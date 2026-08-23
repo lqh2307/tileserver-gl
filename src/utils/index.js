@@ -9,6 +9,7 @@ export * from "./handlebar.js";
 export * from "./debounce.js";
 export * from "./validate.js";
 export * from "./response.js";
+export * from "./geometry.js";
 export * from "./request.js";
 export * from "./spatial.js";
 export * from "./string.js";

@@ -3,7 +3,7 @@
 import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-// import path from "node:path";
+import path from "node:path";
 import {
   validateAndGetGeometryTypes,
   getAndCacheDataGeoJSON,
@@ -726,7 +726,12 @@ export const serve_geojson = {
                       const geojsonInfo = {};
 
                       if (item.cache) {
-                        geojsonInfo.path = `${process.env.DATA_DIR}/caches/geojsons/${item.geojson}/${item.geojson}.geojson`;
+                        geojsonInfo.path = path.join(
+                          process.env.DATA_DIR,
+                          "caches/geojsons",
+                          item.geojson,
+                          `${item.geojson}.geojson`,
+                        );
 
                         const cacheSource = seed.geojsons?.[item.geojson];
 
@@ -742,7 +747,11 @@ export const serve_geojson = {
                           geojsonInfo.storeCache = item.cache.store;
                         }
                       } else {
-                        geojsonInfo.path = `${process.env.DATA_DIR}/geojsons/${item.geojson}`;
+                        geojsonInfo.path = path.join(
+                          process.env.DATA_DIR,
+                          "geojsons",
+                          item.geojson,
+                        );
                       }
 
                       /* Load GeoJSON */

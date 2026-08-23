@@ -3,6 +3,7 @@
 import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import {
   calculateMD5OfFiles,
   removeFileWithLock,
@@ -57,10 +58,10 @@ export function getSpriteCreated(spriteDirPath) {
  */
 export function getSpriteMD5(spriteDirPath) {
   return calculateMD5OfFiles([
-    `${spriteDirPath}/sprite.json`,
-    `${spriteDirPath}/sprite.png`,
-    `${spriteDirPath}/sprite@2x.json`,
-    `${spriteDirPath}/sprite@2x.png`,
+    path.join(spriteDirPath, "sprite.json"),
+    path.join(spriteDirPath, "sprite.png"),
+    path.join(spriteDirPath, "sprite@2x.json"),
+    path.join(spriteDirPath, "sprite@2x.png"),
   ]);
 }
 
@@ -152,7 +153,7 @@ export async function getAndCacheDataSprite(id, fileName) {
     throw new Error(`Sprite id "${id}" does not exist`);
   }
 
-  const filePath = `${item.path}/${fileName}`;
+  const filePath = path.join(item.path, fileName);
 
   try {
     return await getSprite(filePath);

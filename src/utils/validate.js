@@ -3,6 +3,7 @@
 import { MAX_LON, MAX_LAT } from "./spatial.js";
 import { readFile } from "node:fs/promises";
 import { isSameNumber } from "./number.js";
+import path from "node:path";
 import Ajv from "ajv";
 
 const ajv = new Ajv({
@@ -44,9 +45,10 @@ export function validateJSON(schema, jsonData) {
 export function getJSONSchema(schema) {
   let schemaPromise = schemaCache.get(schema);
   if (!schemaPromise) {
-    schemaPromise = readFile(`public/schemas/${schema}.json`, "utf8").then(
-      JSON.parse,
-    );
+    schemaPromise = readFile(
+      path.join("public/schemas", `${schema}.json`),
+      "utf8",
+    ).then(JSON.parse);
 
     schemaCache.set(schema, schemaPromise);
 

@@ -1,6 +1,7 @@
 "use strict";
 
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import {
   createFileWithLock,
   getJSONSchema,
@@ -70,7 +71,7 @@ if (cleanUp === undefined) {
  */
 function readConfigFile(type, isParse) {
   const data = readFileSync(
-    `${process.env.DATA_DIR || "data"}/${type}.json`,
+    path.join(process.env.DATA_DIR || "data", `${type}.json`),
     "utf8",
   );
 
@@ -90,7 +91,7 @@ function readConfigFile(type, isParse) {
  */
 async function updateConfigFile(type, configObj, timeout) {
   await createFileWithLock(
-    `${process.env.DATA_DIR || "data"}/${type}.json`,
+    path.join(process.env.DATA_DIR || "data", `${type}.json`),
     JSON.stringify(configObj, null, 2),
     timeout,
   );

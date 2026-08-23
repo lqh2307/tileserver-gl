@@ -2,6 +2,7 @@
 
 import { readFile } from "node:fs/promises";
 import handlebars from "handlebars";
+import path from "node:path";
 
 const templateCache = new Map();
 
@@ -32,7 +33,7 @@ export async function compileHandleBarsTemplate(template, data) {
   let compiledTemplatePromise = templateCache.get(template);
   if (!compiledTemplatePromise) {
     compiledTemplatePromise = readFile(
-      `public/resources/tmpl/${template}.tmpl`,
+      path.join("public/resources/tmpl", `${template}.tmpl`),
       "utf8",
     ).then((source) => {
       return handlebars.compile(source);

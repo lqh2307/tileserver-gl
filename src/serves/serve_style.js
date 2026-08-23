@@ -4,7 +4,7 @@ import { getTileRendererPool, renderImageTileData } from "../render_style.js";
 import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
-// import path from "node:path";
+import path from "node:path";
 import {
   getAndCacheDataStyleJSON,
   getRenderedStyleJSON,
@@ -890,7 +890,12 @@ export const serve_style = {
             /* Serve style */
             try {
               if (item.cache) {
-                styleInfo.path = `${process.env.DATA_DIR}/caches/styles/${item.style}/style.json`;
+                styleInfo.path = path.join(
+                  process.env.DATA_DIR,
+                  "caches/styles",
+                  item.style,
+                  "style.json",
+                );
 
                 const cacheSource = seed.styles?.[item.style];
 
@@ -904,7 +909,11 @@ export const serve_style = {
                   styleInfo.storeCache = item.cache.store;
                 }
               } else {
-                styleInfo.path = `${process.env.DATA_DIR}/styles/${item.style}`;
+                styleInfo.path = path.join(
+                  process.env.DATA_DIR,
+                  "styles",
+                  item.style,
+                );
               }
 
               try {

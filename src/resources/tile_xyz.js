@@ -112,7 +112,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
   }
 
   const zMax = maxs(zFolders.map(Number));
-  const zPath = `${sourcePath}/${zMax}`;
+  const zPath = path.join(sourcePath, String(zMax));
 
   const xFolders = await findFiles(
     zPath,
@@ -133,7 +133,7 @@ async function getXYZBBoxFromTiles(sourcePath) {
 
   for (const xFolder of xFolders) {
     let yFiles = await findFiles(
-      `${zPath}/${xFolder}`,
+      path.join(zPath, xFolder),
       TILE_FILE_REGEX,
       false,
       false,
@@ -215,7 +215,7 @@ export async function getXYZFormatFromTiles(sourcePath) {
 
   for (const zFolder of zFolders) {
     const xFolders = await findFiles(
-      `${sourcePath}/${zFolder}`,
+      path.join(sourcePath, zFolder),
       NUMERIC_PATH_REGEX,
       false,
       false,
@@ -224,7 +224,7 @@ export async function getXYZFormatFromTiles(sourcePath) {
 
     for (const xFolder of xFolders) {
       const yFiles = await findFiles(
-        `${sourcePath}/${zFolder}/${xFolder}`,
+        path.join(sourcePath, zFolder, xFolder),
         TILE_FILE_REGEX,
       );
       if (yFiles.length) {
@@ -365,7 +365,7 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
  */
 export async function removeXYZTile(z, x, y, option) {
   await removeFileWithLock(
-    `${option.sourcePath}/${z}/${x}/${y}.${option.format}`,
+    path.join(option.sourcePath, String(z), String(x), `${y}.${option.format}`),
     DEFAULT_QUERY_TIMEOUT,
   );
 
@@ -463,7 +463,9 @@ export async function openXYZMD5DB(filePath, isCreate, timeout) {
  */
 export async function getXYZTile(sourcePath, z, x, y, format) {
   try {
-    const data = await readFile(`${sourcePath}/${z}/${x}/${y}.${format}`);
+    const data = await readFile(
+      path.join(sourcePath, String(z), String(x), `${y}.${format}`),
+    );
 
     return {
       data,
@@ -704,7 +706,7 @@ export async function storeXYZTileFile(z, x, y, data, option) {
   }
 
   await createFileWithLock(
-    `${option.sourcePath}/${z}/${x}/${y}.${option.format}`,
+    path.join(option.sourcePath, String(z), String(x), `${y}.${option.format}`),
     data,
     DEFAULT_QUERY_TIMEOUT,
   );

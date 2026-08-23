@@ -5,6 +5,7 @@ import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
 import cluster from "node:cluster";
+import path from "node:path";
 import {
   calculateMD5OfFiles,
   removeFileWithLock,
@@ -79,7 +80,7 @@ export function getFontMD5(pbfDirPath) {
         const rangeStart = idx * 256;
         const rangeEnd = rangeStart + 255;
 
-        return `${pbfDirPath}/${rangeStart}-${rangeEnd}.pbf`;
+        return path.join(pbfDirPath, `${rangeStart}-${rangeEnd}.pbf`);
       },
     ),
   );
@@ -142,7 +143,7 @@ export function getFallbackFont(fontName, fileName) {
     fallbackFont += " Regular";
   }
 
-  return readFile(`public/resources/fonts/${fallbackFont}/${fileName}`);
+  return readFile(path.join("public/resources/fonts", fallbackFont, fileName));
 }
 
 /**
@@ -239,7 +240,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
         return await getFallbackFont(id, fileName);
       }
 
-      const filePath = `${item.path}/${fileName}`;
+      const filePath = path.join(item.path, fileName);
 
       try {
         return await getFont(filePath);

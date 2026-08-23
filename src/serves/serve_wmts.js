@@ -16,6 +16,7 @@ import {
   getParameter,
   xmlEscape,
   printLog,
+  min,
 } from "../utils/index.js";
 
 const WMTS_VERSION = "1.0.0";
@@ -173,7 +174,7 @@ function normalizeBBox(value) {
 function clampZoom(value, fallback) {
   const zoom = Number(value);
   return Number.isInteger(zoom) && zoom >= 0
-    ? Math.min(zoom, DEFAULT_MAX_ZOOM)
+    ? min(zoom, DEFAULT_MAX_ZOOM)
     : fallback;
 }
 
@@ -741,6 +742,74 @@ function restTileHandler({ pathStyle = false, compact = false } = {}) {
 
 export const serve_wmts = {
   init: (app) => {
+    /**
+     * @swagger
+     * tags:
+     *   - name: WMTS
+     *     description: OGC Web Map Tile Service endpoints
+     * /wmts:
+     *   get:
+     *     tags: [WMTS]
+     *     summary: Execute a WMTS KVP request
+     *     parameters:
+     *       - in: query
+     *         name: REQUEST
+     *         required: true
+     *         schema: { type: string, enum: [GetCapabilities, GetTile] }
+     *       - in: query
+     *         name: VERSION
+     *         schema: { type: string, default: '1.0.0' }
+     *       - in: query
+     *         name: LAYER
+     *         schema: { type: string }
+     *       - in: query
+     *         name: FORMAT
+     *         schema: { type: string, example: image/png }
+     *       - in: query
+     *         name: TILEMATRIXSET
+     *         schema: { type: string, example: GoogleMapsCompatible_256 }
+     *       - in: query
+     *         name: TILEMATRIX
+     *         schema: { type: string, example: '0' }
+     *       - in: query
+     *         name: TILEROW
+     *         schema: { type: integer, minimum: 0 }
+     *       - in: query
+     *         name: TILECOL
+     *         schema: { type: integer, minimum: 0 }
+     *     responses:
+     *       200:
+     *         description: WMTS capabilities XML or tile bytes.
+     *         content:
+     *           application/xml: { schema: { type: string } }
+     *           image/png: { schema: { type: string, format: binary } }
+     *           application/x-protobuf: { schema: { type: string, format: binary } }
+     *       400:
+     *         description: OGC exception report.
+     */
+    /**
+     * @swagger
+     * /wmts/{layer}/{style}/{tileMatrixSet}/{tileMatrix}/{tileRow}/{tileCol}.{format}:
+     *   get:
+     *     tags: [WMTS]
+     *     summary: Get a WMTS REST tile
+     *     parameters:
+     *       - { in: path, name: layer, required: true, schema: { type: string } }
+     *       - { in: path, name: style, required: true, schema: { type: string, default: default } }
+     *       - { in: path, name: tileMatrixSet, required: true, schema: { type: string } }
+     *       - { in: path, name: tileMatrix, required: true, schema: { type: string } }
+     *       - { in: path, name: tileRow, required: true, schema: { type: integer, minimum: 0 } }
+     *       - { in: path, name: tileCol, required: true, schema: { type: integer, minimum: 0 } }
+     *       - { in: path, name: format, required: true, schema: { type: string, enum: [png, jpg, jpeg, webp, pbf] } }
+     *     responses:
+     *       200:
+     *         description: Tile bytes.
+     *         content:
+     *           image/png: { schema: { type: string, format: binary } }
+     *           application/x-protobuf: { schema: { type: string, format: binary } }
+     *       400:
+     *         description: OGC exception report.
+     */
     app.get("/wmts", kvpHandler());
     app.get("/wmts/1.0.0/WMTSCapabilities.xml", capabilitiesHandler());
     app.get("/styles/:id/wmts.xml", capabilitiesHandler());

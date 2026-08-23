@@ -4,6 +4,7 @@ import { exportTileDatas, exportAll } from "../export.js";
 import { renderTileDatas } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { config } from "../configs/index.js";
+import path from "node:path";
 import {
   sendTextResponse,
   getJSONSchema,
@@ -73,7 +74,7 @@ function exportAllHandler() {
       }
 
       exportAll(
-        `${process.env.DATA_DIR}/exports/alls/${req.body.id}`,
+        path.join(process.env.DATA_DIR, "exports/alls", req.body.id),
         req.body,
       );
 
@@ -156,13 +157,22 @@ function exportDataHandler() {
 
           switch (req.body.storeType) {
             case "xyz": {
-              storePath = `${process.env.DATA_DIR}/exports/datas/xyzs/${req.body.id}`;
+              storePath = path.join(
+                process.env.DATA_DIR,
+                "exports/datas/xyzs",
+                req.body.id,
+              );
 
               break;
             }
 
             case "mbtiles": {
-              storePath = `${process.env.DATA_DIR}/exports/datas/mbtiles/${req.body.id}/${req.body.id}.mbtiles`;
+              storePath = path.join(
+                process.env.DATA_DIR,
+                "exports/datas/mbtiles",
+                req.body.id,
+                `${req.body.id}.mbtiles`,
+              );
 
               break;
             }
@@ -274,13 +284,22 @@ function renderStyleHandler() {
 
           switch (req.body.storeType) {
             case "xyz": {
-              storePath = `${process.env.DATA_DIR}/exports/style_renders/xyzs/${req.body.id}`;
+              storePath = path.join(
+                process.env.DATA_DIR,
+                "exports/style_renders/xyzs",
+                req.body.id,
+              );
 
               break;
             }
 
             case "mbtiles": {
-              storePath = `${process.env.DATA_DIR}/exports/style_renders/mbtiles/${req.body.id}/${req.body.id}.mbtiles`;
+              storePath = path.join(
+                process.env.DATA_DIR,
+                "exports/style_renders/mbtiles",
+                req.body.id,
+                `${req.body.id}.mbtiles`,
+              );
 
               break;
             }

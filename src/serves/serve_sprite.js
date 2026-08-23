@@ -3,6 +3,7 @@
 import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
+import path from "node:path";
 import {
   getAndCacheDataSprite,
   SPRITE_FORMATS,
@@ -328,7 +329,11 @@ export const serve_sprite = {
 
             try {
               if (item.cache) {
-                spriteInfo.path = `${process.env.DATA_DIR}/caches/sprites/${item.sprite}`;
+                spriteInfo.path = path.join(
+                  process.env.DATA_DIR,
+                  "caches/sprites",
+                  item.sprite,
+                );
 
                 const cacheSource = seed.sprites?.[item.sprite];
 
@@ -342,7 +347,11 @@ export const serve_sprite = {
                   spriteInfo.storeCache = item.cache.store;
                 }
               } else {
-                spriteInfo.path = `${process.env.DATA_DIR}/sprites/${item.sprite}`;
+                spriteInfo.path = path.join(
+                  process.env.DATA_DIR,
+                  "sprites",
+                  item.sprite,
+                );
 
                 /* Validate sprite */
                 if (item.validate) {

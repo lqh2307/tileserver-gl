@@ -50,13 +50,14 @@ import {
   getLonLatFromXYZ,
   BACKGROUND_COLOR,
   runAllWithLimit,
-  calculateSizes,
   getDataFromURL,
   base64ToBuffer,
+  calculateSize,
   getTileBounds,
   calculateMD5,
   unzipAsync,
   printLog,
+  min,
 } from "./utils/index.js";
 
 mlgl.on("message", (msg) => {
@@ -460,7 +461,7 @@ export function getStaticRendererPool({
  * Render with an acquired renderer and return it to the pool when successful.
  * A renderer that failed is destroyed so it cannot poison later requests.
  * @param {object} renderer Renderer
- * @param {object|undefined} pool Renderer pool
+ * @param {object} pool Renderer pool
  * @param {object} option Native render options
  * @returns {Promise<Buffer>} Raw image data
  */
@@ -590,7 +591,11 @@ export async function renderImageStaticData(option) {
         styleJSON,
       });
 
-  const sizes = calculateSizes(zoom, bbox, tileSize);
+  const sizes = calculateSize({
+    zoom,
+    bounds: bbox,
+    tileSize,
+  });
   const data = await renderWithRenderer(renderer, pool, {
     zoom,
     center: [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2],
@@ -625,13 +630,22 @@ export async function renderImageStaticData(option) {
 export async function renderStyleJSON(option) {
   const MAX_TILE_PX = 8192;
 
-  const sizes = calculateSizes(option.zoom, option.bbox, option.tileSize);
+  const sizes = calculateSize({
+    zoom: option.zoom,
+    bounds: option.bbox,
+    tileSize: option.tileSize,
+  });
   const totalWidth = Math.round(option.tileScale * sizes.width);
   const totalHeight = Math.round(option.tileScale * sizes.height);
 
   const id = nanoid();
-  const dirPath = `${process.env.DATA_DIR}/exports/style_renders/${option.format}s/${id}`;
-  const filePath = `${dirPath}/${id}.${option.format}`;
+  const dirPath = path.join(
+    process.env.DATA_DIR,
+    "exports/style_renders",
+    `${option.format}s`,
+    id,
+  );
+  const filePath = path.join(dirPath, `${id}.${option.format}`);
 
   if (totalWidth <= MAX_TILE_PX && totalHeight <= MAX_TILE_PX) {
     return await renderImageStaticData({
@@ -659,7 +673,7 @@ export async function renderStyleJSON(option) {
       mode: "static",
       ratio: option.tileScale,
       styleJSON: option.styleJSON,
-      max: Math.min(DEFAULT_CONCURRENCY, total),
+      max: min(DEFAULT_CONCURRENCY, total),
     });
 
     function* createCompositeOptionGenerator() {
@@ -670,7 +684,7 @@ export async function renderStyleJSON(option) {
 
           const subMinX = minX + xi * xStep;
           const subMinY = minY + yi * yStep;
-          const subFilePath = `${dirPath}/${idx}.${option.format}`;
+          const subFilePath = path.join(dirPath, `${idx}.${option.format}`);
 
           await renderImageStaticData({
             pool,
@@ -758,7 +772,7 @@ export async function renderTileDatas({
       minZoom: metadata.minzoom,
       maxZoom: metadata.maxzoom,
     });
-    const rendererPoolSize = Math.min(
+    const rendererPoolSize = min(
       maxRendererPoolSize ?? concurrency,
       concurrency,
     );
@@ -902,7 +916,10 @@ export async function renderTileDatas({
       }
 
       case "xyz": {
-        const sqliteFilePath = `${storePath}/${path.basename(storePath)}.sqlite`;
+        const sqliteFilePath = path.join(
+          storePath,
+          `${path.basename(storePath)}.sqlite`,
+        );
 
         /* Create database */
         printLog("info", "Creating database...");

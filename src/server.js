@@ -8,6 +8,7 @@ import { Worker } from "node:worker_threads";
 import cluster from "node:cluster";
 import express from "express";
 import http from "node:http";
+import path from "node:path";
 import cors from "cors";
 import {
   isTaskTargetMatched,
@@ -230,7 +231,10 @@ function setupStaticFolders(app) {
   printLog("info", "Setting statics...");
 
   app.use(express.static("public/resources"));
-  app.use("/statics", express.static(`${process.env.DATA_DIR}/statics`));
+  app.use(
+    "/statics",
+    express.static(path.join(process.env.DATA_DIR, "statics")),
+  );
 }
 
 /**

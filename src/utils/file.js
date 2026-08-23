@@ -200,7 +200,7 @@ export async function removeEmptyFolders(folderPath, regex) {
       }
     } else if (
       entry.isDirectory() &&
-      (await removeEmptyFolders(`${folderPath}/${entry.name}`, regex))
+      (await removeEmptyFolders(path.join(folderPath, entry.name), regex))
     ) {
       hasMatchingFile = true;
     }
@@ -285,7 +285,7 @@ export async function findFiles(
   const results = [];
 
   for (const entry of entries) {
-    const fullPath = `${filePath}/${entry.name}`;
+    const fullPath = path.join(filePath, entry.name);
     const isDirectory = entry.isDirectory();
 
     if (isDir) {
@@ -313,7 +313,7 @@ export async function findFiles(
         });
       } else {
         subEntries.forEach((sub) => {
-          results.push(`${entry.name}/${sub}`);
+          results.push(path.join(entry.name, sub));
         });
       }
     }
@@ -334,7 +334,7 @@ export async function* walkFiles(filePath, regex) {
   });
 
   for (const entry of entries) {
-    const fullPath = `${filePath}/${entry.name}`;
+    const fullPath = path.join(filePath, entry.name);
 
     if (entry.isDirectory()) {
       yield* walkFiles(fullPath, regex);

@@ -3,6 +3,7 @@
 import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
+import path from "node:path";
 import {
   getAndCacheDataFonts,
   validatePBFFont,
@@ -32,7 +33,7 @@ function getFontHandler() {
       const fontIDs = ids.split(",");
       if (fontIDs.length === 1) {
         const item = config.fonts[fontIDs[0]];
-        const filePath = item ? `${item.path}/${fileName}` : undefined;
+        const filePath = item ? path.join(item.path, fileName) : undefined;
 
         if (filePath && (await isFileNotModified(req, res, filePath))) {
           return res.status(StatusCodes.NOT_MODIFIED).end();
@@ -109,7 +110,12 @@ function getFontStaticHandler() {
   return async (req, res) => {
     const id = req.params.id;
     const format = req.params.format;
-    const filePath = `${process.env.DATA_DIR}/${format}fonts/${id}/${req.params.name}.${format}`;
+    const filePath = path.join(
+      process.env.DATA_DIR,
+      `${format}fonts`,
+      id,
+      `${req.params.name}.${format}`,
+    );
 
     try {
       if (await isFileNotModified(req, res, filePath)) {
@@ -390,7 +396,11 @@ export const serve_font = {
 
             try {
               if (item.cache) {
-                fontInfo.path = `${process.env.DATA_DIR}/caches/fonts/${item.font}`;
+                fontInfo.path = path.join(
+                  process.env.DATA_DIR,
+                  "caches/fonts",
+                  item.font,
+                );
 
                 const cacheSource = seed.fonts?.[item.font];
 
@@ -404,7 +414,11 @@ export const serve_font = {
                   fontInfo.storeCache = item.cache.store;
                 }
               } else {
-                fontInfo.path = `${process.env.DATA_DIR}/fonts/${item.font}`;
+                fontInfo.path = path.join(
+                  process.env.DATA_DIR,
+                  "fonts",
+                  item.font,
+                );
 
                 /* Validate font */
                 if (item.validate) {

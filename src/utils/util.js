@@ -2,6 +2,7 @@
 
 import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
+import { DEFAULT_PPI } from "./spatial.js";
 import { printLog } from "./logger.js";
 import mime from "mime";
 
@@ -312,19 +313,9 @@ export function convertLength(value, from, to) {
  * @returns {number} Value in pixel
  */
 export function toPixel(value, unit, ppi) {
-  if (typeof value === "object" && value !== null) {
-    const option = value;
-    const result =
-      (option.value *
-        (option.ppi ?? 96) *
-        (UNIT_FACTORS[option.unit] ?? UNIT_FACTORS["m"])) /
-      0.0254;
-
-    return option.round ? Math.round(result) : result;
-  }
-
   return (
-    (value * (ppi ?? 96) * (UNIT_FACTORS[unit] ?? UNIT_FACTORS["m"])) / 0.0254
+    (value * (ppi ?? DEFAULT_PPI) * (UNIT_FACTORS[unit] ?? UNIT_FACTORS["m"])) /
+    0.0254
   );
 }
 
@@ -336,17 +327,8 @@ export function toPixel(value, unit, ppi) {
  * @returns {number} Value in the given unit
  */
 export function fromPixel(pixels, unit, ppi) {
-  if (typeof pixels === "object" && pixels !== null) {
-    const option = pixels;
-    const result =
-      (option.value * 0.0254) /
-      ((option.ppi ?? 96) * (UNIT_FACTORS[option.unit] ?? UNIT_FACTORS["m"]));
-
-    return option.round ? Math.round(result) : result;
-  }
-
   return (
     (pixels * 0.0254) /
-    ((ppi ?? 96) * (UNIT_FACTORS[unit] ?? UNIT_FACTORS["m"]))
+    ((ppi ?? DEFAULT_PPI) * (UNIT_FACTORS[unit] ?? UNIT_FACTORS["m"]))
   );
 }

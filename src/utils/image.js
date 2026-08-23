@@ -1136,7 +1136,12 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
 export async function mergeTilesToImage(input, output) {
   // Detect origin tile size
   const { width, height } = await getImageMetadata(
-    `${input.dirPath}/${input.z}/${input.xMin}/${input.yMin}.${input.format}`,
+    path.join(
+      input.dirPath,
+      String(input.z),
+      String(input.xMin),
+      `${input.yMin}.${input.format}`,
+    ),
   );
 
   // Calculate target width, height
@@ -1150,7 +1155,12 @@ export async function mergeTilesToImage(input, output) {
     for (let y = input.yMin; y <= input.yMax; y++) {
       compositesOption.push({
         limitInputPixels: false,
-        input: `${input.dirPath}/${input.z}/${x}/${y}.${input.format}`,
+        input: path.join(
+          input.dirPath,
+          String(input.z),
+          String(x),
+          `${y}.${input.format}`,
+        ),
         top: (y - input.yMin) * height,
         left: (x - input.xMin) * width,
       });

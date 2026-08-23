@@ -2,6 +2,7 @@
 
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
+import path from "node:path";
 import {
   DEFAULT_QUERY_TIMEOUT,
   DEFAULT_CONCURRENCY,
@@ -130,7 +131,12 @@ function getTileDataHandler() {
           req,
           res,
           item.sourceType === "xyz"
-            ? `${item.path}/${z}/${x}/${y}.${req.params.format}`
+            ? path.join(
+                item.path,
+                String(z),
+                String(x),
+                `${y}.${req.params.format}`,
+              )
             : item.sourceType === "mbtiles" || item.sourceType === "pmtiles"
               ? item.path
               : undefined,
@@ -949,7 +955,12 @@ export const serve_data = {
                   }
 
                   /* Get MBTiles path */
-                  dataInfo.path = `${process.env.DATA_DIR}/caches/mbtiles/${item.mbtiles}/${item.mbtiles}.mbtiles`;
+                  dataInfo.path = path.join(
+                    process.env.DATA_DIR,
+                    "caches/mbtiles",
+                    item.mbtiles,
+                    `${item.mbtiles}.mbtiles`,
+                  );
 
                   /* Open MBTiles */
                   dataInfo.source = await openMBTilesDB(
@@ -969,7 +980,11 @@ export const serve_data = {
                   });
                 } else {
                   /* Get MBTiles path */
-                  dataInfo.path = `${process.env.DATA_DIR}/mbtiles/${item.mbtiles}`;
+                  dataInfo.path = path.join(
+                    process.env.DATA_DIR,
+                    "mbtiles",
+                    item.mbtiles,
+                  );
 
                   /* Open MBTiles */
                   dataInfo.source = await openMBTilesDB(
@@ -1005,7 +1020,11 @@ export const serve_data = {
                   };
                 } else {
                   /* Get PMTiles path */
-                  dataInfo.path = `${process.env.DATA_DIR}/pmtiles/${item.pmtiles}`;
+                  dataInfo.path = path.join(
+                    process.env.DATA_DIR,
+                    "pmtiles",
+                    item.pmtiles,
+                  );
 
                   /* Open PMTiles */
                   dataInfo.source = openPMTiles(dataInfo.path);
@@ -1036,13 +1055,17 @@ export const serve_data = {
                   }
 
                   /* Get XYZ path */
-                  dataInfo.path = `${process.env.DATA_DIR}/caches/xyzs/${item.xyz}`;
+                  dataInfo.path = path.join(
+                    process.env.DATA_DIR,
+                    "caches/xyzs",
+                    item.xyz,
+                  );
 
                   dataInfo.source = dataInfo.path;
 
                   /* Open XYZ MD5 */
                   dataInfo.md5Source = await openXYZMD5DB(
-                    `${dataInfo.path}/${item.xyz}.sqlite`,
+                    path.join(dataInfo.path, `${item.xyz}.sqlite`),
                     true,
                   );
 
@@ -1057,13 +1080,17 @@ export const serve_data = {
                   });
                 } else {
                   /* Get XYZ path */
-                  dataInfo.path = `${process.env.DATA_DIR}/xyzs/${item.xyz}`;
+                  dataInfo.path = path.join(
+                    process.env.DATA_DIR,
+                    "xyzs",
+                    item.xyz,
+                  );
 
                   dataInfo.source = dataInfo.path;
 
                   /* Open XYZ MD5 */
                   dataInfo.md5Source = await openXYZMD5DB(
-                    `${dataInfo.path}/${item.xyz}.sqlite`,
+                    path.join(dataInfo.path, `${item.xyz}.sqlite`),
                     true,
                     DEFAULT_QUERY_TIMEOUT,
                   );

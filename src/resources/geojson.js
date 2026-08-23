@@ -15,6 +15,15 @@ import {
 
 /*********************************** GeoJSON *************************************/
 
+const GEOMETRY_TYPES = new Set([
+  "Polygon",
+  "MultiPolygon",
+  "LineString",
+  "MultiLineString",
+  "Point",
+  "MultiPoint",
+]);
+
 /**
  * Remove GeoJSON data file with lock
  * @param {string} filePath GeoJSON file path to remove
@@ -88,15 +97,6 @@ export async function validateAndGetGeometryTypes(data) {
     typeof data === "object" ? data : JSON.parse(await readFile(data));
 
   const geometryTypes = new Set();
-
-  const GEOMETRY_TYPES = new Set([
-    "Polygon",
-    "MultiPolygon",
-    "LineString",
-    "MultiLineString",
-    "Point",
-    "MultiPoint",
-  ]);
 
   function addGeometryType(geometryType) {
     switch (geometryType) {

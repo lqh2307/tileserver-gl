@@ -10,10 +10,15 @@ import {
 import {
   transformPointSRS,
   transformBBoxSRS,
+  getGeometryBBox,
   splitParameter,
   getRequestHost,
   getParameter,
   xmlEscape,
+  mins,
+  maxs,
+  min,
+  max,
 } from "../utils/index.js";
 
 const WFS_1_0_0 = "1.0.0";
@@ -168,55 +173,6 @@ function featureId(feature, type, index) {
   return String(feature.id ?? `${type.group}.${type.layer}.${index + 1}`);
 }
 
-function geometryBBox(geometry) {
-  const points = [];
-  const collect = (value) => {
-    if (!Array.isArray(value)) {
-      return;
-    }
-    if (typeof value[0] === "number" && typeof value[1] === "number") {
-      points.push(value);
-      return;
-    }
-    value.forEach(collect);
-  };
-  if (geometry?.type === "GeometryCollection") {
-    geometry.geometries?.forEach((item) => {
-      const bbox = geometryBBox(item);
-      if (bbox) {
-        points.push([bbox[0], bbox[1]], [bbox[2], bbox[3]]);
-      }
-    });
-  } else {
-    collect(geometry?.coordinates);
-  }
-  if (!points.length) {
-    return undefined;
-  }
-  return [
-    Math.min(
-      ...points.map((point) => {
-        return point[0];
-      }),
-    ),
-    Math.min(
-      ...points.map((point) => {
-        return point[1];
-      }),
-    ),
-    Math.max(
-      ...points.map((point) => {
-        return point[0];
-      }),
-    ),
-    Math.max(
-      ...points.map((point) => {
-        return point[1];
-      }),
-    ),
-  ];
-}
-
 function bboxIntersects(first, second) {
   return !(
     first[2] < second[0] ||
@@ -228,7 +184,7 @@ function bboxIntersects(first, second) {
 
 function parseBBox(value) {
   if (!value) {
-    return undefined;
+    return;
   }
   const parts = String(value).split(",");
   const values = parts.slice(0, 4).map(Number);
@@ -295,7 +251,7 @@ function tagValue(xml, tag) {
 
 function filterFromXML(xml) {
   if (!xml) {
-    return undefined;
+    return;
   }
   const source = String(xml).replace(/\s+/g, " ");
   const resource = source.match(/ResourceId[^>]+(?:rid|fid)=["']([^"']+)["']/i);
@@ -378,18 +334,18 @@ function filterFromXML(xml) {
       wildcard: like[1],
     };
   }
-  return undefined;
+  return;
 }
 
 function filterFromCQL(value) {
   if (!value) {
-    return undefined;
+    return;
   }
   const match = String(value).match(
     /^\s*([\w.-]+)\s*(=|<>|<=|>=|<|>)\s*['"]?([^'"]+)['"]?\s*$/i,
   );
   if (!match) {
-    return undefined;
+    return;
   }
   return {
     type: "comparison",
@@ -415,8 +371,8 @@ function matchesFilter(feature, filter, type, index) {
       return featureId(feature, type, index) === filter.value;
     case "bbox":
       return Boolean(
-        geometryBBox(feature.geometry) &&
-        bboxIntersects(geometryBBox(feature.geometry), filter.value),
+        getGeometryBBox(feature.geometry) &&
+        bboxIntersects(getGeometryBBox(feature.geometry), filter.value),
       );
     case "comparison":
       return compareValue(
@@ -622,28 +578,28 @@ async function descriptor(type) {
   const features = await readFeatures(type);
   const points = features
     .map((feature) => {
-      return geometryBBox(feature.geometry);
+      return getGeometryBBox(feature.geometry);
     })
     .filter(Boolean);
   const bbox = points.length
     ? [
-        Math.min(
-          ...points.map((item) => {
+        mins(
+          points.map((item) => {
             return item[0];
           }),
         ),
-        Math.min(
-          ...points.map((item) => {
+        mins(
+          points.map((item) => {
             return item[1];
           }),
         ),
-        Math.max(
-          ...points.map((item) => {
+        maxs(
+          points.map((item) => {
             return item[2];
           }),
         ),
-        Math.max(
-          ...points.map((item) => {
+        maxs(
+          points.map((item) => {
             return item[3];
           }),
         ),
@@ -756,11 +712,15 @@ function applyQuery(features, type, parameters) {
       : undefined);
   const bbox = parseBBox(getParameter(parameters, "BBOX"));
   let result = features.filter((feature, index) => {
-    const geometry = geometryBBox(feature.geometry);
-    return (
-      matchesFilter(feature, filter, type, index) &&
-      (!bbox || (geometry && bboxIntersects(geometry, bbox)))
-    );
+    if (!matchesFilter(feature, filter, type, index)) {
+      return false;
+    }
+    if (!bbox) {
+      return true;
+    }
+    const geometry = getGeometryBBox(feature.geometry);
+
+    return Boolean(geometry && bboxIntersects(geometry, bbox));
   });
   const sort = getParameter(parameters, "SORTBY");
   if (sort) {
@@ -1155,13 +1115,13 @@ async function handleWFS(req, res, pathName) {
         );
       });
       const matched = all.length;
-      const startIndex = Math.max(
+      const startIndex = max(
         0,
         Number(getParameter(parameters, "STARTINDEX", 0)) || 0,
       );
-      const count = Math.min(
+      const count = min(
         MAX_FEATURES,
-        Math.max(
+        max(
           0,
           Number(
             getParameter(
@@ -1263,6 +1223,48 @@ async function handleWFS(req, res, pathName) {
 
 export const serve_wfs = {
   init: (app) => {
+    /**
+     * @swagger
+     * tags:
+     *   - name: WFS
+     *     description: OGC Web Feature Service endpoints
+     * /wfs:
+     *   get:
+     *     tags: [WFS]
+     *     summary: Execute a WFS request
+     *     description: Supports GetCapabilities, DescribeFeatureType, GetFeature, GetPropertyValue, locking, stored queries, and transactions.
+     *     parameters:
+     *       - { in: query, name: REQUEST, required: true, schema: { type: string, example: GetFeature } }
+     *       - { in: query, name: VERSION, schema: { type: string, enum: ['1.0.0', '1.1.0', '2.0.0'], default: '2.0.0' } }
+     *       - { in: query, name: TYPENAMES, schema: { type: string }, description: Comma-separated feature type names. }
+     *       - { in: query, name: OUTPUTFORMAT, schema: { type: string, example: application/json } }
+     *       - { in: query, name: BBOX, schema: { type: string }, description: Four coordinates with optional CRS. }
+     *       - { in: query, name: COUNT, schema: { type: integer, minimum: 0 } }
+     *       - { in: query, name: STARTINDEX, schema: { type: integer, minimum: 0 } }
+     *     responses:
+     *       200:
+     *         description: WFS XML or GeoJSON response.
+     *         content:
+     *           application/json: { schema: { type: object } }
+     *           application/xml: { schema: { type: string } }
+     *       400:
+     *         description: OGC exception report.
+     *   post:
+     *     tags: [WFS]
+     *     summary: Execute a WFS XML request
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/xml:
+     *           schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: WFS XML response.
+     *         content:
+     *           application/xml: { schema: { type: string } }
+     *       400:
+     *         description: OGC exception report.
+     */
     const bodyParser = [
       express.urlencoded({
         extended: false,

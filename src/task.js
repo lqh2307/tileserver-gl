@@ -1,6 +1,7 @@
 "use strict";
 
 import { cleanUp, seed } from "./configs/index.js";
+import path from "node:path";
 import {
   DEFAULT_STORE_TRANSPARENT,
   DEFAULT_TILE_BATCH_SIZE,
@@ -689,7 +690,12 @@ async function seedTileDatas({
       }
 
       case "mbtiles": {
-        const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
+        const filePath = path.join(
+          process.env.DATA_DIR,
+          "caches/mbtiles",
+          id,
+          `${id}.mbtiles`,
+        );
 
         /* Open database */
         printLog("info", "Creating database...");
@@ -783,8 +789,8 @@ async function seedTileDatas({
       }
 
       case "xyz": {
-        const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
-        const filePath = `${sourcePath}/${id}.sqlite`;
+        const sourcePath = path.join(process.env.DATA_DIR, "caches/xyzs", id);
+        const filePath = path.join(sourcePath, `${id}.sqlite`);
 
         /* Create database */
         printLog("info", "Creating database...");
@@ -1077,8 +1083,8 @@ async function seedGeoJSON({
   printLog("info", log);
 
   /* Download and store GeoJSON file */
-  const sourcePath = `${process.env.DATA_DIR}/caches/geojsons/${id}`;
-  const filePath = `${sourcePath}/${id}.geojson`;
+  const sourcePath = path.join(process.env.DATA_DIR, "caches/geojsons", id);
+  const filePath = path.join(sourcePath, `${id}.geojson`);
 
   printLog("info", "Get extra info...");
 
@@ -1201,7 +1207,7 @@ async function seedSprite({
   printLog("info", log);
 
   /* Download and store sprite files */
-  const sourcePath = `${process.env.DATA_DIR}/caches/sprites/${id}`;
+  const sourcePath = path.join(process.env.DATA_DIR, "caches/sprites", id);
 
   printLog("info", "Get extra info...");
 
@@ -1269,7 +1275,7 @@ async function seedSprite({
         );
 
         await storeSpriteFile(
-          `${sourcePath}/${fileName}`,
+          path.join(sourcePath, fileName),
           await getDataFromURL(targetURL, {
             ...option,
             decompress: fileName.endsWith(".json") ? true : false,
@@ -1339,7 +1345,7 @@ async function seedFont({
   printLog("info", log);
 
   /* Download and store font files */
-  const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
+  const sourcePath = path.join(process.env.DATA_DIR, "caches/fonts", id);
 
   printLog("info", "Get extra info...");
 
@@ -1431,7 +1437,7 @@ async function seedFont({
             );
 
             await storeFontFile(
-              `${sourcePath}/${fileName}`,
+              path.join(sourcePath, fileName),
               await getDataFromURL(targetURL, option),
             );
 
@@ -1517,8 +1523,8 @@ async function seedStyle({
   printLog("info", log);
 
   /* Download and store StyleJSON file */
-  const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
-  const filePath = `${sourcePath}/style.json`;
+  const sourcePath = path.join(process.env.DATA_DIR, "caches/styles", id);
+  const filePath = path.join(sourcePath, "style.json");
 
   printLog("info", "Get extra info...");
 
@@ -1660,7 +1666,12 @@ async function cleanUpTileDatas({
       }
 
       case "mbtiles": {
-        const filePath = `${process.env.DATA_DIR}/caches/mbtiles/${id}/${id}.mbtiles`;
+        const filePath = path.join(
+          process.env.DATA_DIR,
+          "caches/mbtiles",
+          id,
+          `${id}.mbtiles`,
+        );
 
         /* Open database */
         printLog("info", "Opening database...");
@@ -1736,8 +1747,8 @@ async function cleanUpTileDatas({
       }
 
       case "xyz": {
-        const sourcePath = `${process.env.DATA_DIR}/caches/xyzs/${id}`;
-        const filePath = `${sourcePath}/${id}.sqlite`;
+        const sourcePath = path.join(process.env.DATA_DIR, "caches/xyzs", id);
+        const filePath = path.join(sourcePath, `${id}.sqlite`);
 
         /* Open database */
         printLog("info", "Opening database...");
@@ -1929,8 +1940,8 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove GeoJSON file */
-  const sourcePath = `${process.env.DATA_DIR}/caches/geojsons/${id}`;
-  const filePath = `${sourcePath}/${id}.geojson`;
+  const sourcePath = path.join(process.env.DATA_DIR, "caches/geojsons", id);
+  const filePath = path.join(sourcePath, `${id}.geojson`);
 
   printLog("info", "Get extra info...");
 
@@ -2006,7 +2017,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove sprite files */
-  const sourcePath = `${process.env.DATA_DIR}/caches/sprites/${id}`;
+  const sourcePath = path.join(process.env.DATA_DIR, "caches/sprites", id);
 
   printLog("info", "Get extra info...");
 
@@ -2037,7 +2048,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
       try {
         printLog("info", `Removing sprite id "${id}" - File "${fileName}"...`);
 
-        await removeSpriteFile(`${sourcePath}/${fileName}`);
+        await removeSpriteFile(path.join(sourcePath, fileName));
       } catch (error) {
         printLog(
           "error",
@@ -2093,7 +2104,7 @@ async function cleanUpFont(id, concurrency, skipWhenError, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove font files */
-  const sourcePath = `${process.env.DATA_DIR}/caches/fonts/${id}`;
+  const sourcePath = path.join(process.env.DATA_DIR, "caches/fonts", id);
 
   printLog("info", "Get extra info...");
 
@@ -2150,7 +2161,7 @@ async function cleanUpFont(id, concurrency, skipWhenError, cleanUpBefore) {
               `Removing font id "${id}" - Filename "${fileName}" - ${completeTasks}/${total}...`,
             );
 
-            await removeFontFile(`${sourcePath}/${fileName}`);
+            await removeFontFile(path.join(sourcePath, fileName));
 
             if (skipWhenError) {
               skipWhenError.errCount = 0;
@@ -2222,8 +2233,8 @@ async function cleanUpStyle(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove StyleJSON file */
-  const sourcePath = `${process.env.DATA_DIR}/caches/styles/${id}`;
-  const filePath = `${sourcePath}/style.json`;
+  const sourcePath = path.join(process.env.DATA_DIR, "caches/styles", id);
+  const filePath = path.join(sourcePath, "style.json");
 
   printLog("info", "Get extra info...");
 
