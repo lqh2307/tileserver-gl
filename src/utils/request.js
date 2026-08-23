@@ -1,7 +1,8 @@
 "use strict";
 
-import { DEFAULT_CACHE_TIMEOUT } from "../defaults/default.js";
+import { DEFAULT_CACHE_TIMEOUT } from "../defaults/index.js";
 import { StatusCodes } from "http-status-codes";
+import { isErrorNotFound } from "./error.js";
 import { createCache } from "cache-manager";
 import { getFileCreated } from "./file.js";
 import axios, { isCancel } from "axios";
@@ -22,17 +23,14 @@ export const HTTP_SCHEMES = ["https://", "http://"];
 const MAX_ERROR_RESPONSE_LENGTH = 2000;
 const MAX_HTTP_SOCKETS = 256;
 const MAX_HTTP_FREE_SOCKETS = 64;
+const HTTP_OPTION = {
+  keepAlive: true,
+  maxSockets: MAX_HTTP_SOCKETS,
+  maxFreeSockets: MAX_HTTP_FREE_SOCKETS,
+};
 
-const httpAgent = new http.Agent({
-  keepAlive: true,
-  maxSockets: MAX_HTTP_SOCKETS,
-  maxFreeSockets: MAX_HTTP_FREE_SOCKETS,
-});
-const httpsAgent = new https.Agent({
-  keepAlive: true,
-  maxSockets: MAX_HTTP_SOCKETS,
-  maxFreeSockets: MAX_HTTP_FREE_SOCKETS,
-});
+const httpAgent = new http.Agent(HTTP_OPTION);
+const httpsAgent = new https.Agent(HTTP_OPTION);
 
 const lastModifiedCaches = createCache({
   ttl: DEFAULT_CACHE_TIMEOUT,
@@ -143,12 +141,11 @@ export async function requestToURL(url, options) {
         responseMessage = `${responseMessage.slice(0, MAX_ERROR_RESPONSE_LENGTH)}...`;
       }
 
-      const statusMessage =
+      error.message = `Status code: ${error.statusCode} - ${
         error.statusCode === StatusCodes.NO_CONTENT
           ? "Not Found"
-          : error.response.statusText || "Request failed";
-
-      error.message = `Status code: ${error.statusCode} - ${statusMessage}${responseMessage ? ` - Response: ${responseMessage}` : ""}`;
+          : error.response.statusText || "Request failed"
+      }${responseMessage ? ` - Response: ${responseMessage}` : ""}`;
     } else if (error.request) {
       error.message = "No response received";
     }
@@ -272,7 +269,7 @@ export async function isFileNotModified(req, res, fileOrFolderPath) {
 
     return Date.parse(lastModified) <= Date.parse(ifModifiedSince);
   } catch (error) {
-    if (error.message === "Not Found") {
+    if (isErrorNotFound(error)) {
       return false;
     }
 

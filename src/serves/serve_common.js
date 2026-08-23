@@ -1,6 +1,6 @@
 "use strict";
 
-import { DEFAULT_QUERY_TIMEOUT } from "../defaults/default.js";
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { StatusCodes } from "http-status-codes";
 import { rm } from "node:fs/promises";
 import path from "node:path";

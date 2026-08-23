@@ -12,6 +12,7 @@ import {
   removeFileWithLock,
   createFileWithLock,
   calculateMD5OfFile,
+  isErrorNotFound,
   getDataFromURL,
   getFileCreated,
   HTTP_SCHEMES,
@@ -375,7 +376,7 @@ export async function getAndCacheDataStyleJSON(id) {
   try {
     return await getStyle(item.path);
   } catch (error) {
-    if (item.sourceURL && error.message.includes("Not Found")) {
+    if (item.sourceURL && isErrorNotFound(error)) {
       printLog(
         "info",
         `Forwarding style id "${id}" - To "${item.sourceURL}"...`,

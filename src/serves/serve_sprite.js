@@ -14,6 +14,7 @@ import {
   detectContentTypeFromFormat,
   isFileNotModified,
   sendTextResponse,
+  isErrorNotFound,
   runAllWithLimit,
   getRequestHost,
   gzipAsync,
@@ -101,7 +102,7 @@ function getSpriteMD5Handler() {
     } catch (error) {
       printLog("error", `Failed to get md5 of sprite id "${id}": ${error}`);
 
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
@@ -331,7 +332,8 @@ export const serve_sprite = {
               if (item.cache) {
                 spriteInfo.path = path.join(
                   process.env.DATA_DIR,
-                  "caches/sprites",
+                  "caches",
+                  "sprites",
                   item.sprite,
                 );
 

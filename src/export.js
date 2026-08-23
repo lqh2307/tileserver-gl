@@ -15,6 +15,7 @@ import {
   runAllWithLimit,
   createFolders,
   getTileBounds,
+  getDuration,
   isLocalURL,
   printLog,
 } from "./utils/index.js";
@@ -75,13 +76,13 @@ export async function exportAll(dirPath, options) {
 
     // Create folders
     await createFolders([
-      path.join(dirPath, "caches/fonts"),
-      path.join(dirPath, "caches/geojsons"),
-      path.join(dirPath, "caches/mbtiles"),
-      path.join(dirPath, "caches/pmtiles"),
-      path.join(dirPath, "caches/sprites"),
-      path.join(dirPath, "caches/styles"),
-      path.join(dirPath, "caches/xyzs"),
+      path.join(dirPath, "caches", "fonts"),
+      path.join(dirPath, "caches", "geojsons"),
+      path.join(dirPath, "caches", "mbtiles"),
+      path.join(dirPath, "caches", "pmtiles"),
+      path.join(dirPath, "caches", "sprites"),
+      path.join(dirPath, "caches", "styles"),
+      path.join(dirPath, "caches", "xyzs"),
       path.join(dirPath, "exports"),
       path.join(dirPath, "fonts"),
       path.join(dirPath, "geojsons"),
@@ -163,7 +164,7 @@ export async function exportAll(dirPath, options) {
           const styleBuffer = await getStyle(style.path);
 
           await storeStyleFile(
-            path.join(dirPath, "caches/styles", styleFolder, "style.json"),
+            path.join(dirPath, "caches", "styles", styleFolder, "style.json"),
             styleBuffer,
           );
         }
@@ -202,7 +203,8 @@ export async function exportAll(dirPath, options) {
               storeSpriteFile(
                 path.join(
                   dirPath,
-                  "caches/sprites",
+                  "caches",
+                  "sprites",
                   spriteFolder,
                   "sprite.json",
                 ),
@@ -211,7 +213,8 @@ export async function exportAll(dirPath, options) {
               storeSpriteFile(
                 path.join(
                   dirPath,
-                  "caches/sprites",
+                  "caches",
+                  "sprites",
                   spriteFolder,
                   "sprite.png",
                 ),
@@ -261,7 +264,13 @@ export async function exportAll(dirPath, options) {
                     const fileName = `${rangeStart}-${rangeEnd}.pbf`;
 
                     await storeFontFile(
-                      path.join(dirPath, "caches/fonts", fontFolder, fileName),
+                      path.join(
+                        dirPath,
+                        "caches",
+                        "fonts",
+                        fontFolder,
+                        fileName,
+                      ),
                       await getAndCacheDataFonts(fontID, fileName),
                     );
                   };
@@ -312,7 +321,8 @@ export async function exportAll(dirPath, options) {
                 await storeGeoJSONFile(
                   path.join(
                     dirPath,
-                    "caches/geojsons",
+                    "caches",
+                    "geojsons",
                     geojsonFolder,
                     `${geojsonFolder}.geojson`,
                   ),
@@ -367,7 +377,8 @@ export async function exportAll(dirPath, options) {
                     if (options.exportData) {
                       storePath = path.join(
                         dirPath,
-                        "caches/datas/xyzs",
+                        "caches",
+                        "datas/xyzs",
                         dataFolder,
                       );
                     }
@@ -401,7 +412,8 @@ export async function exportAll(dirPath, options) {
                     if (options.exportData) {
                       storePath = path.join(
                         dirPath,
-                        "caches/datas/mbtiles",
+                        "caches",
+                        "datas/mbtiles",
                         dataFolder,
                         `${dataFolder}.mbtiles`,
                       );
@@ -506,7 +518,12 @@ export async function exportAll(dirPath, options) {
             };
 
             if (options.exportData) {
-              storePath = path.join(dirPath, "caches/datas/xyzs", dataFolder);
+              storePath = path.join(
+                dirPath,
+                "caches",
+                "datas/xyzs",
+                dataFolder,
+              );
             }
 
             break;
@@ -538,7 +555,8 @@ export async function exportAll(dirPath, options) {
             if (options.exportData) {
               storePath = path.join(
                 dirPath,
-                "caches/datas/mbtiles",
+                "caches",
+                "datas/mbtiles",
                 dataFolder,
                 `${dataFolder}.mbtiles`,
               );
@@ -631,7 +649,8 @@ export async function exportAll(dirPath, options) {
             await storeGeoJSONFile(
               path.join(
                 dirPath,
-                "caches/geojsons",
+                "caches",
+                "geojsons",
                 geojsonFolder,
                 `${geojsonFolder}.geojson`,
               ),
@@ -674,11 +693,23 @@ export async function exportAll(dirPath, options) {
 
           await Promise.all([
             storeSpriteFile(
-              path.join(dirPath, "caches/sprites", spriteFolder, "sprite.json"),
+              path.join(
+                dirPath,
+                "caches",
+                "sprites",
+                spriteFolder,
+                "sprite.json",
+              ),
               spriteJSONBuffer,
             ),
             storeSpriteFile(
-              path.join(dirPath, "caches/sprites", spriteFolder, "sprite.png"),
+              path.join(
+                dirPath,
+                "caches",
+                "sprites",
+                spriteFolder,
+                "sprite.png",
+              ),
               spritePNGBuffer,
             ),
           ]);
@@ -721,7 +752,7 @@ export async function exportAll(dirPath, options) {
                 const fileName = `${rangeStart}-${rangeEnd}.pbf`;
 
                 await storeFontFile(
-                  path.join(dirPath, "caches/fonts", fontFolder, fileName),
+                  path.join(dirPath, "caches", "fonts", fontFolder, fileName),
                   await getAndCacheDataFonts(fontID, fileName),
                 );
               };
@@ -753,14 +784,11 @@ export async function exportAll(dirPath, options) {
       ),
     ]);
 
-    printLog(
-      "info",
-      `Completed all after ${(Date.now() - startTime) / 1000}s!`,
-    );
+    printLog("info", `Completed all after ${getDuration(startTime)}s!`);
   } catch (error) {
     printLog(
       "error",
-      `Failed to export all after ${(Date.now() - startTime) / 1000}s: ${error}`,
+      `Failed to export all after ${getDuration(startTime)}s: ${error}`,
     );
   }
 }
@@ -1125,16 +1153,16 @@ export async function exportTileDatas({
 
     printLog(
       "info",
-      `Completed export ${total} tiles of data id "${id}" to ${storeType} after ${
-        (Date.now() - startTime) / 1000
-      }s!`,
+      `Completed export ${total} tiles of data id "${id}" to ${storeType} after ${getDuration(
+        startTime,
+      )}s!`,
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to export data id "${id}" to ${storeType} after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`,
+      `Failed to export data id "${id}" to ${storeType} after ${getDuration(
+        startTime,
+      )}s: ${error}`,
     );
   } finally {
     /* Close database */

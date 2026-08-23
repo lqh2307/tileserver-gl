@@ -33,7 +33,7 @@ export async function compileHandleBarsTemplate(template, data) {
   let compiledTemplatePromise = templateCache.get(template);
   if (!compiledTemplatePromise) {
     compiledTemplatePromise = readFile(
-      path.join("public/resources/tmpl", `${template}.tmpl`),
+      path.join("public", "resources", "tmpl", `${template}.tmpl`),
       "utf8",
     ).then((source) => {
       return handlebars.compile(source);

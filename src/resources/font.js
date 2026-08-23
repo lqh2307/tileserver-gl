@@ -10,6 +10,7 @@ import {
   calculateMD5OfFiles,
   removeFileWithLock,
   createFileWithLock,
+  isErrorNotFound,
   getDataFromURL,
   getFileCreated,
   getFileSize,
@@ -23,7 +24,7 @@ const PBF_RANGE_FILE_REGEX = /^\d{1,5}-\d{1,5}\.pbf$/;
 let glyphsProto;
 
 if (!cluster.isPrimary) {
-  readFile(path.join("public/protos", "glyphs.proto"))
+  readFile(path.join("public", "protos", "glyphs.proto"))
     .then((data) => {
       glyphsProto = protobuf(data);
     })
@@ -143,7 +144,9 @@ export function getFallbackFont(fontName, fileName) {
     fallbackFont += " Regular";
   }
 
-  return readFile(path.join("public/resources/fonts", fallbackFont, fileName));
+  return readFile(
+    path.join("public", "resources", "fonts", fallbackFont, fileName),
+  );
 }
 
 /**
@@ -246,7 +249,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
         return await getFont(filePath);
       } catch (error) {
         try {
-          if (item.sourceURL && error.message.includes("Not Found")) {
+          if (item.sourceURL && isErrorNotFound(error)) {
             const targetURL = item.sourceURL.replace("{range}.pbf", fileName);
 
             printLog(

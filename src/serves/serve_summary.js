@@ -1,6 +1,6 @@
 "use strict";
 
-import { DEFAULT_CACHE_TIMEOUT } from "../defaults/default.js";
+import { DEFAULT_CACHE_TIMEOUT } from "../defaults/index.js";
 import { config, seed } from "../configs/index.js";
 import { StatusCodes } from "http-status-codes";
 import { createCache } from "cache-manager";
@@ -60,7 +60,7 @@ function serveSummaryHandler() {
           ...Object.keys(seed.styles ?? {}).map(async (id) => {
             if (
               await isExistFile(
-                path.join(process.env.DATA_DIR, "caches/styles", id),
+                path.join(process.env.DATA_DIR, "caches", "styles", id),
                 true,
               )
             ) {
@@ -78,7 +78,7 @@ function serveSummaryHandler() {
           ...Object.keys(seed.geojsons ?? {}).map(async (id) => {
             if (
               await isExistFile(
-                path.join(process.env.DATA_DIR, "caches/geojsons", id),
+                path.join(process.env.DATA_DIR, "caches", "geojsons", id),
                 true,
               )
             ) {
@@ -109,7 +109,8 @@ function serveSummaryHandler() {
                     actual: await countMBTilesTiles(
                       path.join(
                         process.env.DATA_DIR,
-                        "caches/mbtiles",
+                        "caches",
+                        "mbtiles",
                         id,
                         `${id}.mbtiles`,
                       ),
@@ -139,7 +140,7 @@ function serveSummaryHandler() {
                 try {
                   result.datas[id] = {
                     actual: await countXYZTiles(
-                      path.join(process.env.DATA_DIR, "caches/xyzs", id),
+                      path.join(process.env.DATA_DIR, "caches", "xyzs", id),
                     ),
                     expect,
                   };
@@ -177,7 +178,7 @@ function serveSummaryHandler() {
           ...Object.keys(seed.sprites ?? {}).map(async (id) => {
             if (
               await isExistFile(
-                path.join(process.env.DATA_DIR, "caches/sprites", id),
+                path.join(process.env.DATA_DIR, "caches", "sprites", id),
                 true,
               )
             ) {
@@ -195,7 +196,7 @@ function serveSummaryHandler() {
           ...Object.keys(seed.fonts ?? {}).map(async (id) => {
             if (
               await isExistFile(
-                path.join(process.env.DATA_DIR, "caches/fonts", id),
+                path.join(process.env.DATA_DIR, "caches", "fonts", id),
                 true,
               )
             ) {

@@ -45,3 +45,12 @@ export function printLog(level, msg) {
 export function isLogLevelEnabled(level) {
   return logger.isLevelEnabled(level);
 }
+
+/**
+ * Get duration in seconds
+ * @param {number} startTime Start time in milliseconds
+ * @returns {number} Duration in seconds
+ */
+export function getDuration(startTime) {
+  return (Date.now() - startTime) / 1000;
+}

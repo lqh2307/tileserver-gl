@@ -1,9 +1,8 @@
 "use strict";
 
 import { DEFAULT_TILE_BATCH_SIZE } from "../src/defaults/index.js";
-import { getTileBoundsBatches } from "../src/utils/tile.js";
+import { getTileBoundsBatches, min } from "../src/utils/index.js";
 import { performance } from "node:perf_hooks";
-import { min } from "../src/utils/number.js";
 
 const totalTiles = Number.parseInt(process.argv[2] ?? "1000000", 10);
 const batchSize = Number.parseInt(

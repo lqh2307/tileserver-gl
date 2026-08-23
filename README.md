@@ -12,6 +12,7 @@ PostgreSQL; server cũng hỗ trợ seed/cleanup theo lịch, export dữ liệu
 - [Trang quản trị](#trang-quản-trị)
 - [Chạy sau reverse proxy](#chạy-sau-reverse-proxy)
 - [Cấu hình và thư mục dữ liệu](#cấu-hình-và-thư-mục-dữ-liệu)
+- [Mẫu đầy đủ cho ba file cấu hình](#mẫu-đầy-đủ-cho-ba-file-cấu-hình)
 - [Các giá trị mặc định](#các-giá-trị-mặc-định)
 - [Build và chạy](#build--run)
 - [Ví dụ config.json](#example-configjson)
@@ -397,6 +398,265 @@ Các thư mục thường gặp bên trong `DATA_DIR`:
 | `caches/`                                    | Dữ liệu forward/seed được cache        |
 | `exports/`                                   | Kết quả export và render               |
 | `statics/`                                   | Static file do người vận hành cung cấp |
+
+### Mẫu đầy đủ cho ba file cấu hình
+
+Ba object gốc luôn dùng cùng cấu trúc. Có thể bỏ các nhóm không dùng, nhưng
+các field trong ví dụ dưới đây là những field được schema và runtime hỗ trợ.
+
+#### `config.json`
+
+```json
+{
+  "options": {
+    "listenPort": 8080,
+    "enableSocket": true,
+    "serveFrontPage": true,
+    "serveSwagger": true,
+    "restartSchedule": "00 00 00 * * *",
+    "taskSchedule": "00 00 00 * * *",
+    "postgreSQLBaseURI": "postgresql://user:password@localhost:5432",
+    "process": 1,
+    "thread": 8,
+    "wms": {
+      "title": "Tile Server WMS",
+      "abstract": "Configured map layers",
+      "keywords": ["maps", "tiles"],
+      "fees": "NONE",
+      "accessConstraints": "NONE",
+      "maxWidth": 4096,
+      "maxHeight": 4096
+    },
+    "wmts": {
+      "title": "Tile Server WMTS",
+      "abstract": "Configured tile layers",
+      "formats": ["image/png", "image/jpeg", "image/webp"]
+    }
+  },
+  "styles": {
+    "roads": {
+      "style": "roads_cache",
+      "bbox": [-180, -85.051129, 180, 85.051129],
+      "cache": {"forward": true, "store": true},
+      "validate": true,
+      "wms": {
+        "title": "Roads",
+        "abstract": "Road style",
+        "bbox": [-180, -85.051129, 180, 85.051129],
+        "queryable": false,
+        "dimensions": {}
+      },
+      "wmts": {
+        "title": "Roads",
+        "abstract": "Road tiles",
+        "bbox": [-180, -85.051129, 180, 85.051129],
+        "formats": ["image/png"]
+      }
+    }
+  },
+  "geojsons": {
+    "boundaries": {
+      "country": {
+        "geojson": "country_cache",
+        "cache": {"forward": true, "store": true},
+        "validate": true
+      }
+    }
+  },
+  "datas": {
+    "local_mbtiles": {
+      "mbtiles": "local_mbtiles_cache",
+      "cache": {"forward": true, "store": true},
+      "tilejson": {
+        "name": "Local tiles",
+        "description": "Cached remote raster tiles",
+        "attribution": "Example",
+        "version": "1.0.0",
+        "type": "baselayer",
+        "scheme": "xyz",
+        "format": "png",
+        "minzoom": 0,
+        "maxzoom": 14,
+        "bounds": [-180, -85.051129, 180, 85.051129],
+        "center": [0, 0, 0],
+        "vector_layers": [],
+        "tilestats": {"layerCount": 0}
+      },
+      "validate": true
+    },
+    "remote_pmtiles": {
+      "pmtiles": "https://example.com/tiles.pmtiles"
+    },
+    "local_xyz": {
+      "xyz": "tiles/xyz"
+    },
+    "postgres_tiles": {
+      "pg": "postgres_tiles"
+    }
+  },
+  "sprites": {
+    "main": {
+      "sprite": "main_cache",
+      "cache": {"forward": true, "store": true, "validate": true}
+    }
+  },
+  "fonts": {
+    "Open Sans Regular": {
+      "font": "Open Sans Regular_cache",
+      "cache": {"forward": true, "store": true, "validate": true}
+    }
+  }
+}
+```
+
+`config.json` mô tả resource được phục vụ. `styles` dùng file style; `geojsons`
+là object hai tầng `group -> layer`; `datas` chọn đúng một backend `mbtiles`,
+`pmtiles`, `xyz` hoặc `pg`; `sprites` và `fonts` trỏ tới resource local.
+Khi bật `cache`, giá trị `style`, `geojson`, `mbtiles`, `xyz`, `pg`, `sprite`
+hoặc `font` phải trùng với key tương ứng trong `seed.json`; các key này cũng
+được dùng trong `cleanup.json`. Các giá trị này thường là tên thư mục cache như
+`roads_cache`, không phải đường dẫn resource gốc; `config.geojsons` vẫn giữ
+cấu trúc `group -> layer`.
+
+#### `seed.json`
+
+```json
+{
+  "styles": {
+    "roads_cache": {
+      "metadata": {"name": "Roads", "zoom": 10, "center": [105.8, 21, 10]},
+      "url": "https://example.com/styles/roads/style.json",
+      "headers": {"Authorization": "Bearer token"},
+      "skip": false,
+      "refreshBefore": {"time": "2025-01-01T00:00:00Z"},
+      "timeout": 60000,
+      "maxTry": 5
+    }
+  },
+  "geojsons": {
+    "country_cache": {
+      "url": "https://example.com/geojson/country.geojson",
+      "headers": {},
+      "skip": false,
+      "refreshBefore": {"day": 7},
+      "timeout": 60000,
+      "maxTry": 5
+    }
+  },
+  "datas": {
+    "local_mbtiles_cache": {
+      "metadata": {
+        "name": "Remote tiles",
+        "description": "Example raster source",
+        "attribution": "Example provider",
+        "version": "1.0.0",
+        "type": "baselayer",
+        "scheme": "xyz",
+        "format": "png",
+        "minzoom": 0,
+        "maxzoom": 14,
+        "bounds": [-180, -85.051129, 180, 85.051129],
+        "center": [0, 0, 0],
+        "vector_layers": [],
+        "tilestats": {"layerCount": 0}
+      },
+      "url": "https://example.com/tiles/{z}/{x}/{y}.png",
+      "headers": {"User-Agent": "tile-server"},
+      "scheme": "xyz",
+      "skipWhenError": {"count": 5, "skip": 20},
+      "skip": false,
+      "refreshBefore": {"md5": true},
+      "coverages": [
+        {"zoom": 0, "bbox": [-180, -85.051129, 180, 85.051129]},
+        {"zoom": 1, "circle": {"center": [105.8, 21], "radius": 50000}}
+      ],
+      "timeout": 60000,
+      "infoTimeout": 1800000,
+      "batch": 10000,
+      "concurrency": 16,
+      "maxTry": 5,
+      "storeType": "mbtiles",
+      "storeTransparent": true
+    }
+  },
+  "sprites": {
+    "main_cache": {
+      "url": "https://example.com/sprites/main/{name}",
+      "headers": {},
+      "refreshBefore": {"time": "2025-01-01T00:00:00Z"},
+      "timeout": 60000,
+      "maxTry": 5,
+      "skip": false
+    }
+  },
+  "fonts": {
+    "Open Sans Regular_cache": {
+      "url": "https://example.com/fonts/Open%20Sans%20Regular/{range}.pbf",
+      "headers": {},
+      "refreshBefore": {"day": 30},
+      "timeout": 60000,
+      "concurrency": 8,
+      "maxTry": 5,
+      "skipWhenError": {"count": 3, "skip": 10},
+      "skip": false
+    }
+  }
+}
+```
+
+`refreshBefore` hỗ trợ `time`, `day` hoặc `md5`; chỉ chọn một. Khi không chỉ
+định `refreshBefore`, seed chỉ tải các tile chưa tồn tại trong local store.
+
+#### `cleanup.json`
+
+```json
+{
+  "styles": {
+    "roads_cache": {
+      "skip": false,
+      "cleanUpBefore": {"day": 30}
+    }
+  },
+  "geojsons": {
+    "country_cache": {
+      "skip": false,
+      "cleanUpBefore": {"time": "2025-01-01T00:00:00Z"}
+    }
+  },
+  "datas": {
+    "local_mbtiles_cache": {
+      "coverages": [
+        {"zoom": 0, "bbox": [-180, -85.051129, 180, 85.051129]},
+        {"zoom": 1, "circle": {"center": [105.8, 21], "radius": 50000}}
+      ],
+      "skipWhenError": {"count": 5, "skip": 20},
+      "skip": false,
+      "cleanUpBefore": {"day": 90},
+      "concurrency": 16,
+      "batch": 10000
+    }
+  },
+  "sprites": {
+    "main_cache": {
+      "skip": false,
+      "cleanUpBefore": {"day": 30}
+    }
+  },
+  "fonts": {
+    "Open Sans Regular_cache": {
+      "skipWhenError": {"count": 3, "skip": 10},
+      "skip": false,
+      "cleanUpBefore": {"time": "2025-01-01T00:00:00Z"},
+      "concurrency": 8
+    }
+  }
+}
+```
+
+Khi `cleanUpBefore` không được chỉ định, cleanup tile chỉ xoá các tile đang
+tồn tại trong vùng `coverages`; tọa độ chưa có sẽ được bỏ qua. Khi có `time`
+hoặc `day`, chỉ dữ liệu cũ hơn mốc được xoá. Với style, GeoJSON, sprite và
+font, cleanup chỉ tác động tới file thực sự tồn tại; `skip: true` bỏ qua resource.
 
 ## Các giá trị mặc định
 
@@ -986,9 +1246,9 @@ cache local theo từng batch:
 - Tile có `created >= refreshTimestamp` được skip.
 - Tile cũ hơn hoặc chưa có `created` được download lại.
 
-Nếu không có `refreshBefore`, luồng không lấy extra-info. Tất cả tile trong
-coverage được download và lưu theo `concurrency`, nhưng vẫn đi qua từng batch để
-giữ cách thực thi nhất quán.
+Nếu không có `refreshBefore`, luồng lấy metadata local theo từng batch và chỉ
+download các tile chưa tồn tại. Tile đã có trong local store được skip; các tile
+chưa có vẫn được download và lưu theo `concurrency`.
 
 ### Xử lý lỗi
 

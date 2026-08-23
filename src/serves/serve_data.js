@@ -15,6 +15,7 @@ import {
   getXYZFromLonLatZ,
   ALL_TILE_FORMATS,
   sendTextResponse,
+  isErrorNotFound,
   runAllWithLimit,
   getRequestHost,
   getTileBounds,
@@ -203,7 +204,7 @@ function getTileDataHandler() {
         `Failed to get data id "${id}" - Tile "${req.params.z}/${req.params.x}/${req.params.y}": ${error}`,
       );
 
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
@@ -317,7 +318,7 @@ function getDataMD5Handler() {
     } catch (error) {
       printLog("error", `Failed to get md5 of data id "${id}": ${error}`);
 
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
@@ -957,7 +958,8 @@ export const serve_data = {
                   /* Get MBTiles path */
                   dataInfo.path = path.join(
                     process.env.DATA_DIR,
-                    "caches/mbtiles",
+                    "caches",
+                    "mbtiles",
                     item.mbtiles,
                     `${item.mbtiles}.mbtiles`,
                   );
@@ -1057,7 +1059,8 @@ export const serve_data = {
                   /* Get XYZ path */
                   dataInfo.path = path.join(
                     process.env.DATA_DIR,
-                    "caches/xyzs",
+                    "caches",
+                    "xyzs",
                     item.xyz,
                   );
 

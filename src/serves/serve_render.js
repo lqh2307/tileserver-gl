@@ -1,6 +1,6 @@
 "use strict";
 
-import { getRenderedStyleJSON } from "../resources/style.js";
+import { getRenderedStyleJSON } from "../resources/index.js";
 import { renderStyleJSON } from "../render_style.js";
 import { StatusCodes } from "http-status-codes";
 import { readFile, rm } from "node:fs/promises";

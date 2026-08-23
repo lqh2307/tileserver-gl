@@ -9,6 +9,7 @@ import {
   removeFileWithLock,
   createFileWithLock,
   getImageMetadata,
+  isErrorNotFound,
   getDataFromURL,
   getFileCreated,
   getJSONSchema,
@@ -20,6 +21,10 @@ import {
 
 /** Supported file formats in a MapLibre sprite bundle. @type {Set<string>} */
 export const SPRITE_FORMATS = new Set(["json", "png"]);
+
+const ALL_SPRITE_FILE_REGEX = /^sprite(@\d+x)?\.(json|png)$/;
+const JSON_SPRITE_FILE_REGEX = /^sprite(@\d+x)?\.json$/;
+const PNG_SPRITE_FILE_REGEX = /^sprite(@\d+x)?\.png$/;
 
 /*********************************** Sprite *************************************/
 
@@ -90,7 +95,7 @@ export async function getSprite(filePath) {
 export async function getSpriteSize(spriteDirPath) {
   const fileNames = await findFiles(
     spriteDirPath,
-    /^sprite(@\d+x)?\.(json|png)$/,
+    ALL_SPRITE_FILE_REGEX,
     false,
     true,
   );
@@ -111,8 +116,8 @@ export async function getSpriteSize(spriteDirPath) {
  */
 export async function validateSprite(spriteDirPath) {
   const [jsonSpriteFileNames, pngSpriteNames] = await Promise.all([
-    findFiles(spriteDirPath, /^sprite(@\d+x)?\.json$/, false, true),
-    findFiles(spriteDirPath, /^sprite(@\d+x)?\.png$/, false, true),
+    findFiles(spriteDirPath, JSON_SPRITE_FILE_REGEX, false, true),
+    findFiles(spriteDirPath, PNG_SPRITE_FILE_REGEX, false, true),
   ]);
 
   if (jsonSpriteFileNames.length !== pngSpriteNames.length) {
@@ -174,7 +179,7 @@ export async function getAndCacheDataSprite(id, fileName) {
   try {
     return await getSprite(filePath);
   } catch (error) {
-    if (item.sourceURL && error.message.includes("Not Found")) {
+    if (item.sourceURL && isErrorNotFound(error)) {
       const targetURL = item.sourceURL.replace("{name}", `${fileName}`);
 
       printLog(

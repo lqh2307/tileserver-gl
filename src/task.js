@@ -57,9 +57,11 @@ import {
   getTileBoundsBatches,
   removeEmptyFolders,
   runAllWithLimit,
+  isErrorNotFound,
   getDataFromURL,
   getTileBounds,
   requestToURL,
+  getDuration,
   getTaskIds,
   TASK_TYPES,
   printLog,
@@ -85,46 +87,48 @@ export async function runTasks(opts) {
   try {
     printLog("info", "Starting seed and cleanup tasks...");
 
-    if (!opts.type || TASK_TYPES.has(opts.type)) {
+    const { id, type } = opts;
+
+    if (!type || TASK_TYPES.has(type)) {
       /* Cleanup sprites */
-      if (!opts.type || opts.type === "sprite") {
+      if (!type || type === "sprite") {
         try {
           if (!cleanUp.sprites) {
             printLog("info", "No sprites in cleanup. Skipping...");
           } else {
-            const ids = getTaskIds(cleanUp, "sprite", opts.id);
+            const spriteIds = getTaskIds(cleanUp, "sprite", id);
 
-            printLog("info", `Starting cleanup ${ids.length} sprites...`);
+            printLog("info", `Starting cleanup ${spriteIds.length} sprites...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = cleanUp.sprites[id];
+            for (const spriteId of spriteIds) {
+              const item = cleanUp.sprites[spriteId];
 
               if (item.skip) {
-                printLog("info", `Skipping cleanup sprite id "${id}"...`);
+                printLog("info", `Skipping cleanup sprite id "${spriteId}"...`);
 
                 continue;
               }
 
               try {
                 await cleanUpSprite(
-                  id,
+                  spriteId,
                   item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup sprite id "${id}": ${error}. Skipping...`,
+                  `Failed to cleanup sprite id "${spriteId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} sprites after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed cleanup ${spriteIds.length} sprites after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -133,29 +137,29 @@ export async function runTasks(opts) {
       }
 
       /* Cleanup fonts */
-      if (!opts.type || opts.type === "font") {
+      if (!type || type === "font") {
         try {
           if (!cleanUp.fonts) {
             printLog("info", "No fonts in cleanup. Skipping...");
           } else {
-            const ids = getTaskIds(cleanUp, "font", opts.id);
+            const fontIds = getTaskIds(cleanUp, "font", id);
 
-            printLog("info", `Starting cleanup ${ids.length} fonts...`);
+            printLog("info", `Starting cleanup ${fontIds.length} fonts...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = cleanUp.fonts[id];
+            for (const fontId of fontIds) {
+              const item = cleanUp.fonts[fontId];
 
               if (item.skip) {
-                printLog("info", `Skipping cleanup font id "${id}"...`);
+                printLog("info", `Skipping cleanup font id "${fontId}"...`);
 
                 continue;
               }
 
               try {
                 await cleanUpFont(
-                  id,
+                  fontId,
                   item.concurrency || DEFAULT_CONCURRENCY,
                   item.skipWhenError,
                   item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
@@ -163,16 +167,16 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup font id "${id}": ${error}. Skipping...`,
+                  `Failed to cleanup font id "${fontId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} fonts after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed cleanup ${fontIds.length} fonts after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -181,44 +185,44 @@ export async function runTasks(opts) {
       }
 
       /* Cleanup styles */
-      if (!opts.type || opts.type === "style") {
+      if (!type || type === "style") {
         try {
           if (!cleanUp.styles) {
             printLog("info", "No styles in cleanup. Skipping...");
           } else {
-            const ids = getTaskIds(cleanUp, "style", opts.id);
+            const styleIds = getTaskIds(cleanUp, "style", id);
 
-            printLog("info", `Starting cleanup ${ids.length} styles...`);
+            printLog("info", `Starting cleanup ${styleIds.length} styles...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = cleanUp.styles[id];
+            for (const styleId of styleIds) {
+              const item = cleanUp.styles[styleId];
 
               if (item.skip) {
-                printLog("info", `Skipping cleanup style id "${id}"...`);
+                printLog("info", `Skipping cleanup style id "${styleId}"...`);
 
                 continue;
               }
 
               try {
                 await cleanUpStyle(
-                  id,
+                  styleId,
                   item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup style id "${id}": ${error}. Skipping...`,
+                  `Failed to cleanup style id "${styleId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} styles after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed cleanup ${styleIds.length} styles after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -227,44 +231,50 @@ export async function runTasks(opts) {
       }
 
       /* Cleanup geojsons */
-      if (!opts.type || opts.type === "geojson") {
+      if (!type || type === "geojson") {
         try {
           if (!cleanUp.geojsons) {
             printLog("info", "No geojsons in cleanup. Skipping...");
           } else {
-            const ids = getTaskIds(cleanUp, "geojson", opts.id);
+            const geojsonIds = getTaskIds(cleanUp, "geojson", id);
 
-            printLog("info", `Starting cleanup ${ids.length} geojsons...`);
+            printLog(
+              "info",
+              `Starting cleanup ${geojsonIds.length} geojsons...`,
+            );
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = cleanUp.geojsons[id];
+            for (const geojsonId of geojsonIds) {
+              const item = cleanUp.geojsons[geojsonId];
 
               if (item.skip) {
-                printLog("info", `Skipping cleanup geojson id "${id}"...`);
+                printLog(
+                  "info",
+                  `Skipping cleanup geojson id "${geojsonId}"...`,
+                );
 
                 continue;
               }
 
               try {
                 await cleanUpGeoJSON(
-                  id,
+                  geojsonId,
                   item.cleanUpBefore?.time ?? item.cleanUpBefore?.day,
                 );
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup geojson id "${id}": ${error}. Skipping...`,
+                  `Failed to cleanup geojson id "${geojsonId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} geojsons after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed cleanup ${geojsonIds.length} geojsons after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -273,30 +283,30 @@ export async function runTasks(opts) {
       }
 
       /* Cleanup datas */
-      if (!opts.type || opts.type === "data") {
+      if (!type || type === "data") {
         try {
           if (!cleanUp.datas) {
             printLog("info", "No datas in cleanup. Skipping...");
           } else {
-            const ids = getTaskIds(cleanUp, "data", opts.id);
+            const dataIds = getTaskIds(cleanUp, "data", id);
 
-            printLog("info", `Starting cleanup ${ids.length} datas...`);
+            printLog("info", `Starting cleanup ${dataIds.length} datas...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const seedDataItem = seed.datas[id];
-              const cleanUpDataItem = cleanUp.datas[id];
+            for (const dataId of dataIds) {
+              const seedDataItem = seed.datas[dataId];
+              const cleanUpDataItem = cleanUp.datas[dataId];
 
               if (cleanUpDataItem.skip) {
-                printLog("info", `Skipping cleanup data id "${id}"...`);
+                printLog("info", `Skipping cleanup data id "${dataId}"...`);
 
                 continue;
               }
 
               try {
                 await cleanUpTileDatas({
-                  id,
+                  id: dataId,
                   storeType: seedDataItem.storeType,
                   metadata: seedDataItem.metadata,
                   coverages: cleanUpDataItem.coverages,
@@ -310,16 +320,16 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to cleanup data id "${id}": ${error}. Skipping...`,
+                  `Failed to cleanup data id "${dataId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed cleanup ${ids.length} datas after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed cleanup ${dataIds.length} datas after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -328,29 +338,29 @@ export async function runTasks(opts) {
       }
 
       /* Run seed sprites */
-      if (!opts.type || opts.type === "sprite") {
+      if (!type || type === "sprite") {
         try {
           if (!seed.sprites) {
             printLog("info", "No sprites in seed. Skipping...");
           } else {
-            const ids = getTaskIds(seed, "sprite", opts.id);
+            const spriteIds = getTaskIds(seed, "sprite", id);
 
-            printLog("info", `Starting seed ${ids.length} sprites...`);
+            printLog("info", `Starting seed ${spriteIds.length} sprites...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = seed.sprites[id];
+            for (const spriteId of spriteIds) {
+              const item = seed.sprites[spriteId];
 
               if (item.skip) {
-                printLog("info", `Skipping seed font id "${id}"...`);
+                printLog("info", `Skipping seed font id "${spriteId}"...`);
 
                 continue;
               }
 
               try {
                 await seedSprite({
-                  id,
+                  id: spriteId,
                   url: item.url,
                   maxTry: item.maxTry,
                   timeout: item.timeout,
@@ -363,16 +373,16 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed sprite id "${id}": ${error}. Skipping...`,
+                  `Failed to seed sprite id "${spriteId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} sprites after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed seed ${spriteIds.length} sprites after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -381,29 +391,29 @@ export async function runTasks(opts) {
       }
 
       /* Run seed fonts */
-      if (!opts.type || opts.type === "font") {
+      if (!type || type === "font") {
         try {
           if (!seed.fonts) {
             printLog("info", "No fonts in seed. Skipping...");
           } else {
-            const ids = getTaskIds(seed, "font", opts.id);
+            const fontIds = getTaskIds(seed, "font", id);
 
-            printLog("info", `Starting seed ${ids.length} fonts...`);
+            printLog("info", `Starting seed ${fontIds.length} fonts...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = seed.fonts[id];
+            for (const fontId of fontIds) {
+              const item = seed.fonts[fontId];
 
               if (item.skip) {
-                printLog("info", `Skipping seed font id "${id}"...`);
+                printLog("info", `Skipping seed font id "${fontId}"...`);
 
                 continue;
               }
 
               try {
                 await seedFont({
-                  id,
+                  id: fontId,
                   url: item.url,
                   concurrency: item.concurrency,
                   maxTry: item.maxTry,
@@ -418,16 +428,16 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed font id "${id}": ${error}. Skipping...`,
+                  `Failed to seed font id "${fontId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} fonts after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed seed ${fontIds.length} fonts after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -436,29 +446,29 @@ export async function runTasks(opts) {
       }
 
       /* Run seed styles */
-      if (!opts.type || opts.type === "style") {
+      if (!type || type === "style") {
         try {
           if (!seed.styles) {
             printLog("info", "No styles in seed. Skipping...");
           } else {
-            const ids = getTaskIds(seed, "style", opts.id);
+            const styleIds = getTaskIds(seed, "style", id);
 
-            printLog("info", `Starting seed ${ids.length} styles...`);
+            printLog("info", `Starting seed ${styleIds.length} styles...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = seed.styles[id];
+            for (const styleId of styleIds) {
+              const item = seed.styles[styleId];
 
               if (item.skip) {
-                printLog("info", `Skipping seed style id "${id}"...`);
+                printLog("info", `Skipping seed style id "${styleId}"...`);
 
                 continue;
               }
 
               try {
                 await seedStyle({
-                  id,
+                  id: styleId,
                   url: item.url,
                   maxTry: item.maxTry,
                   timeout: item.timeout,
@@ -471,16 +481,16 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed style id "${id}": ${error}. Skipping...`,
+                  `Failed to seed style id "${styleId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} styles after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed seed ${styleIds.length} styles after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -489,29 +499,29 @@ export async function runTasks(opts) {
       }
 
       /* Run seed geojsons */
-      if (!opts.type || opts.type === "geojson") {
+      if (!type || type === "geojson") {
         try {
           if (!seed.geojsons) {
             printLog("info", "No geojsons in seed. Skipping...");
           } else {
-            const ids = getTaskIds(seed, "geojson", opts.id);
+            const geojsonIds = getTaskIds(seed, "geojson", id);
 
-            printLog("info", `Starting seed ${ids.length} geojsons...`);
+            printLog("info", `Starting seed ${geojsonIds.length} geojsons...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = seed.geojsons[id];
+            for (const geojsonId of geojsonIds) {
+              const item = seed.geojsons[geojsonId];
 
               if (item.skip) {
-                printLog("info", `Skipping seed geojson id "${id}"...`);
+                printLog("info", `Skipping seed geojson id "${geojsonId}"...`);
 
                 continue;
               }
 
               try {
                 await seedGeoJSON({
-                  id,
+                  id: geojsonId,
                   url: item.url,
                   maxTry: item.maxTry,
                   timeout: item.timeout,
@@ -524,16 +534,16 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed geojson id "${id}": ${error}. Skipping...`,
+                  `Failed to seed geojson id "${geojsonId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} geojsons after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed seed ${geojsonIds.length} geojsons after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -542,29 +552,29 @@ export async function runTasks(opts) {
       }
 
       /* Run seed datas */
-      if (!opts.type || opts.type === "data") {
+      if (!type || type === "data") {
         try {
           if (!seed.datas) {
             printLog("info", "No datas in seed. Skipping...");
           } else {
-            const ids = getTaskIds(seed, "data", opts.id);
+            const dataIds = getTaskIds(seed, "data", id);
 
-            printLog("info", `Starting seed ${ids.length} datas...`);
+            printLog("info", `Starting seed ${dataIds.length} datas...`);
 
             const startTime = Date.now();
 
-            for (const id of ids) {
-              const item = seed.datas[id];
+            for (const dataId of dataIds) {
+              const item = seed.datas[dataId];
 
               if (item.skip) {
-                printLog("info", `Skipping seed data id "${id}"...`);
+                printLog("info", `Skipping seed data id "${dataId}"...`);
 
                 continue;
               }
 
               try {
                 await seedTileDatas({
-                  id,
+                  id: dataId,
                   storeType: item.storeType,
                   metadata: item.metadata,
                   url: item.url,
@@ -586,16 +596,16 @@ export async function runTasks(opts) {
               } catch (error) {
                 printLog(
                   "error",
-                  `Failed to seed data id "${id}": ${error}. Skipping...`,
+                  `Failed to seed data id "${dataId}": ${error}. Skipping...`,
                 );
               }
             }
 
             printLog(
               "info",
-              `Completed seed ${ids.length} datas after: ${
-                (Date.now() - startTime) / 1000
-              }s!`,
+              `Completed seed ${dataIds.length} datas after: ${getDuration(
+                startTime,
+              )}s!`,
             );
           }
         } catch (error) {
@@ -673,6 +683,8 @@ async function seedTileDatas({
       log += `\n\tRefresh before: Check MD5`;
     }
 
+    const skipExistingTiles = refreshTimestamp === undefined;
+
     printLog("info", log);
 
     let getTileExtraInfoFunc;
@@ -692,7 +704,8 @@ async function seedTileDatas({
       case "mbtiles": {
         const filePath = path.join(
           process.env.DATA_DIR,
-          "caches/mbtiles",
+          "caches",
+          "mbtiles",
           id,
           `${id}.mbtiles`,
         );
@@ -789,7 +802,12 @@ async function seedTileDatas({
       }
 
       case "xyz": {
-        const sourcePath = path.join(process.env.DATA_DIR, "caches/xyzs", id);
+        const sourcePath = path.join(
+          process.env.DATA_DIR,
+          "caches",
+          "xyzs",
+          id,
+        );
         const filePath = path.join(sourcePath, `${id}.sqlite`);
 
         /* Create database */
@@ -877,8 +895,9 @@ async function seedTileDatas({
                   refreshTimestamp === true
                     ? currentTileExtraInfo &&
                       currentTileExtraInfo === currentTargetTileExtraInfo
-                    : refreshTimestamp &&
-                      currentTileExtraInfo >= refreshTimestamp
+                    : refreshTimestamp
+                      ? currentTileExtraInfo >= refreshTimestamp
+                      : skipExistingTiles && currentTileExtraInfo !== undefined
                 ) {
                   return;
                 }
@@ -995,14 +1014,17 @@ async function seedTileDatas({
           targetTileExtraInfo = {};
           tileExtraInfo = {};
         }
-      } else if (refreshTimestamp) {
+      } else if (refreshTimestamp || skipExistingTiles) {
         try {
           printLog(
             "info",
             `Getting local tile extra info for ${batchDescription}...`,
           );
 
-          tileExtraInfo = await getTileExtraInfoFunc(batchTileBounds, true);
+          tileExtraInfo = await getTileExtraInfoFunc(
+            batchTileBounds,
+            refreshTimestamp !== true,
+          );
 
           printLog(
             "info",
@@ -1030,9 +1052,9 @@ async function seedTileDatas({
 
     printLog(
       "info",
-      `Completed seed ${total} tiles of ${storeType} "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`,
+      `Completed seed ${total} tiles of ${storeType} "${id}" after ${getDuration(
+        startTime,
+      )}s!`,
     );
   } catch (error) {
     throw error;
@@ -1083,7 +1105,7 @@ async function seedGeoJSON({
   printLog("info", log);
 
   /* Download and store GeoJSON file */
-  const sourcePath = path.join(process.env.DATA_DIR, "caches/geojsons", id);
+  const sourcePath = path.join(process.env.DATA_DIR, "caches", "geojsons", id);
   const filePath = path.join(sourcePath, `${id}.geojson`);
 
   printLog("info", "Get extra info...");
@@ -1107,7 +1129,7 @@ async function seedGeoJSON({
         needDownload = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needDownload = true;
       } else {
         throw error;
@@ -1121,7 +1143,7 @@ async function seedGeoJSON({
         needDownload = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needDownload = true;
       } else {
         throw error;
@@ -1164,7 +1186,7 @@ async function seedGeoJSON({
 
   printLog(
     "info",
-    `Completed seed geojson id "${id}" after ${(Date.now() - startTime) / 1000}s!`,
+    `Completed seed geojson id "${id}" after ${getDuration(startTime)}s!`,
   );
 }
 
@@ -1207,7 +1229,7 @@ async function seedSprite({
   printLog("info", log);
 
   /* Download and store sprite files */
-  const sourcePath = path.join(process.env.DATA_DIR, "caches/sprites", id);
+  const sourcePath = path.join(process.env.DATA_DIR, "caches", "sprites", id);
 
   printLog("info", "Get extra info...");
 
@@ -1230,7 +1252,7 @@ async function seedSprite({
         needDownload = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needDownload = true;
       } else {
         throw error;
@@ -1244,7 +1266,7 @@ async function seedSprite({
         needDownload = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needDownload = true;
       } else {
         throw error;
@@ -1298,7 +1320,7 @@ async function seedSprite({
 
   printLog(
     "info",
-    `Completed seed sprite id "${id}" after ${(Date.now() - startTime) / 1000}s!`,
+    `Completed seed sprite id "${id}" after ${getDuration(startTime)}s!`,
   );
 }
 
@@ -1345,7 +1367,7 @@ async function seedFont({
   printLog("info", log);
 
   /* Download and store font files */
-  const sourcePath = path.join(process.env.DATA_DIR, "caches/fonts", id);
+  const sourcePath = path.join(process.env.DATA_DIR, "caches", "fonts", id);
 
   printLog("info", "Get extra info...");
 
@@ -1368,7 +1390,7 @@ async function seedFont({
         needDownload = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needDownload = true;
       } else {
         throw error;
@@ -1382,7 +1404,7 @@ async function seedFont({
         needDownload = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needDownload = true;
       } else {
         throw error;
@@ -1478,9 +1500,9 @@ async function seedFont({
 
   printLog(
     "info",
-    `Completed seed ${total} fonts of font id "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`,
+    `Completed seed ${total} fonts of font id "${id}" after ${getDuration(
+      startTime,
+    )}s!`,
   );
 }
 
@@ -1523,7 +1545,7 @@ async function seedStyle({
   printLog("info", log);
 
   /* Download and store StyleJSON file */
-  const sourcePath = path.join(process.env.DATA_DIR, "caches/styles", id);
+  const sourcePath = path.join(process.env.DATA_DIR, "caches", "styles", id);
   const filePath = path.join(sourcePath, "style.json");
 
   printLog("info", "Get extra info...");
@@ -1546,7 +1568,7 @@ async function seedStyle({
         needDownload = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needDownload = true;
       } else {
         throw error;
@@ -1560,7 +1582,7 @@ async function seedStyle({
         needDownload = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needDownload = true;
       } else {
         throw error;
@@ -1603,7 +1625,7 @@ async function seedStyle({
 
   printLog(
     "info",
-    `Completed seed style id "${id}" after ${(Date.now() - startTime) / 1000}s!`,
+    `Completed seed style id "${id}" after ${getDuration(startTime)}s!`,
   );
 }
 
@@ -1653,6 +1675,8 @@ async function cleanUpTileDatas({
       log += `\n\tOld than: ${cleanUpBefore} days`;
     }
 
+    const cleanExistingTilesOnly = cleanUpTimestamp === undefined;
+
     printLog("info", log);
 
     let getTileExtraInfoFunc;
@@ -1668,7 +1692,8 @@ async function cleanUpTileDatas({
       case "mbtiles": {
         const filePath = path.join(
           process.env.DATA_DIR,
-          "caches/mbtiles",
+          "caches",
+          "mbtiles",
           id,
           `${id}.mbtiles`,
         );
@@ -1747,7 +1772,12 @@ async function cleanUpTileDatas({
       }
 
       case "xyz": {
-        const sourcePath = path.join(process.env.DATA_DIR, "caches/xyzs", id);
+        const sourcePath = path.join(
+          process.env.DATA_DIR,
+          "caches",
+          "xyzs",
+          id,
+        );
         const filePath = path.join(sourcePath, `${id}.sqlite`);
 
         /* Open database */
@@ -1822,8 +1852,9 @@ async function cleanUpTileDatas({
 
               try {
                 if (
-                  cleanUpTimestamp &&
-                  currentTileExtraInfo >= cleanUpTimestamp
+                  (cleanUpTimestamp &&
+                    currentTileExtraInfo >= cleanUpTimestamp) ||
+                  (cleanExistingTilesOnly && currentTileExtraInfo === undefined)
                 ) {
                   return;
                 }
@@ -1875,7 +1906,7 @@ async function cleanUpTileDatas({
     for (const batchTileBounds of getTileBoundsBatches(tileBounds, batch)) {
       let tileExtraInfo = {};
 
-      if (cleanUpTimestamp) {
+      if (cleanUpTimestamp || cleanExistingTilesOnly) {
         try {
           tileExtraInfo = await getTileExtraInfoFunc(batchTileBounds);
         } catch (error) {
@@ -1899,9 +1930,9 @@ async function cleanUpTileDatas({
 
     printLog(
       "info",
-      `Completed cleanup ${total} tiles of ${storeType} "${id}" after ${
-        (Date.now() - startTime) / 1000
-      }s!`,
+      `Completed cleanup ${total} tiles of ${storeType} "${id}" after ${getDuration(
+        startTime,
+      )}s!`,
     );
   } catch (error) {
     throw error;
@@ -1940,7 +1971,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove GeoJSON file */
-  const sourcePath = path.join(process.env.DATA_DIR, "caches/geojsons", id);
+  const sourcePath = path.join(process.env.DATA_DIR, "caches", "geojsons", id);
   const filePath = path.join(sourcePath, `${id}.geojson`);
 
   printLog("info", "Get extra info...");
@@ -1955,7 +1986,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
         needRemove = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needRemove = true;
       } else {
         throw error;
@@ -1984,9 +2015,7 @@ async function cleanUpGeoJSON(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup geojson id "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`,
+    `Completed cleanup geojson id "${id}" after ${getDuration(startTime)}s!`,
   );
 }
 
@@ -2017,7 +2046,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove sprite files */
-  const sourcePath = path.join(process.env.DATA_DIR, "caches/sprites", id);
+  const sourcePath = path.join(process.env.DATA_DIR, "caches", "sprites", id);
 
   printLog("info", "Get extra info...");
 
@@ -2031,7 +2060,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
         needRemove = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needRemove = true;
       } else {
         throw error;
@@ -2066,9 +2095,7 @@ async function cleanUpSprite(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup sprite id "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`,
+    `Completed cleanup sprite id "${id}" after ${getDuration(startTime)}s!`,
   );
 }
 
@@ -2104,7 +2131,7 @@ async function cleanUpFont(id, concurrency, skipWhenError, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove font files */
-  const sourcePath = path.join(process.env.DATA_DIR, "caches/fonts", id);
+  const sourcePath = path.join(process.env.DATA_DIR, "caches", "fonts", id);
 
   printLog("info", "Get extra info...");
 
@@ -2118,7 +2145,7 @@ async function cleanUpFont(id, concurrency, skipWhenError, cleanUpBefore) {
         needRemove = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needRemove = true;
       } else {
         throw error;
@@ -2200,9 +2227,9 @@ async function cleanUpFont(id, concurrency, skipWhenError, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup ${total} fonts of font id "${id}" after ${
-      (Date.now() - startTime) / 1000
-    }s!`,
+    `Completed cleanup ${total} fonts of font id "${id}" after ${getDuration(
+      startTime,
+    )}s!`,
   );
 }
 
@@ -2233,7 +2260,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
   printLog("info", log);
 
   /* Remove StyleJSON file */
-  const sourcePath = path.join(process.env.DATA_DIR, "caches/styles", id);
+  const sourcePath = path.join(process.env.DATA_DIR, "caches", "styles", id);
   const filePath = path.join(sourcePath, "style.json");
 
   printLog("info", "Get extra info...");
@@ -2248,7 +2275,7 @@ async function cleanUpStyle(id, cleanUpBefore) {
         needRemove = true;
       }
     } catch (error) {
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         needRemove = true;
       } else {
         throw error;
@@ -2279,6 +2306,6 @@ async function cleanUpStyle(id, cleanUpBefore) {
 
   printLog(
     "info",
-    `Completed cleanup style id "${id}" after ${(Date.now() - startTime) / 1000}s!`,
+    `Completed cleanup style id "${id}" after ${getDuration(startTime)}s!`,
   );
 }

@@ -2,7 +2,6 @@
 
 import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { getVectorTileProto } from "./vector_tile.js";
-import { limitValue } from "../utils/number.js";
 import { config } from "../configs/index.js";
 import {
   FALLBACK_VECTOR_LAYERS,
@@ -14,12 +13,14 @@ import {
   getCenterFromBBox,
   getBBoxFromTiles,
   runSingleFlight,
+  isErrorNotFound,
   getDataFromURL,
   FALLBACK_BBOX,
   getTileBounds,
   calculateMD5,
   closeSQLite,
   getFileSize,
+  limitValue,
   openSQLite,
   printLog,
   MAX_LON,
@@ -27,6 +28,7 @@ import {
 } from "../utils/index.js";
 
 const BATCH_SIZE = 1000;
+
 const tileStatementCaches = new WeakMap();
 
 /** Upserts a tile and its content hash into an MBTiles database. @type {string} */
@@ -42,6 +44,7 @@ function getTileStatement(source, name, query) {
   let statements = tileStatementCaches.get(source);
   if (!statements) {
     statements = {};
+
     tileStatementCaches.set(source, statements);
   }
 
@@ -692,7 +695,7 @@ export async function getAndCacheMBTilesTileData(id, z, x, y) {
   try {
     return getMBTilesTile(item.source, z, x, y);
   } catch (error) {
-    if (item.sourceURL && error.message.includes("Not Found")) {
+    if (item.sourceURL && isErrorNotFound(error)) {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL

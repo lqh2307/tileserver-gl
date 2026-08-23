@@ -7,6 +7,7 @@ import {
   removeFileWithLock,
   createFileWithLock,
   calculateMD5OfFile,
+  isErrorNotFound,
   getDataFromURL,
   getFileCreated,
   getFileSize,
@@ -266,7 +267,7 @@ export async function getAndCacheDataGeoJSON(id, layer) {
   try {
     return await getGeoJSON(item.path);
   } catch (error) {
-    if (item.sourceURL && error.message.includes("Not Found")) {
+    if (item.sourceURL && isErrorNotFound(error)) {
       printLog(
         "info",
         `Forwarding GeoJSON "${id}" - To "${item.sourceURL}"...`,

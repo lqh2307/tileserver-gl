@@ -1,7 +1,6 @@
 "use strict";
 
 import { getVectorTileProto } from "./vector_tile.js";
-import { maxs, mins } from "../utils/number.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -19,6 +18,7 @@ import {
   createFileWithLock,
   getCenterFromBBox,
   getBBoxFromTiles,
+  isErrorNotFound,
   runAllWithLimit,
   runSingleFlight,
   getDataFromURL,
@@ -31,13 +31,17 @@ import {
   findFiles,
   walkFiles,
   printLog,
+  maxs,
+  mins,
 } from "../utils/index.js";
 
 const BATCH_SIZE = 1000;
+
+const tileStatementCaches = new WeakMap();
+
 const NUMERIC_PATH_REGEX = /^\d+$/;
 const PBF_TILE_FILE_REGEX = /^\d+\.pbf$/;
 const TILE_FILE_REGEX = /^\d+\.(png|jpg|jpeg|webp|pbf)$/;
-const tileStatementCaches = new WeakMap();
 
 /** Upserts the MD5 metadata associated with an XYZ tile. @type {string} */
 export const XYZ_INSERT_MD5_QUERY =
@@ -50,6 +54,7 @@ function getTileStatement(source, name, query) {
   let statements = tileStatementCaches.get(source);
   if (!statements) {
     statements = {};
+
     tileStatementCaches.set(source, statements);
   }
 
@@ -314,9 +319,14 @@ export async function calculateXYZTileExtraInfo(sourcePath, source) {
           const z = Number(relativeParts[0]);
           const x = Number(relativeParts[1]);
           const y = Number.parseInt(relativeParts[2], 10);
-          const data = await readFile(filePath);
 
-          updates[index] = [z, x, y, calculateMD5(data), created];
+          updates[index] = [
+            z,
+            x,
+            y,
+            calculateMD5(await readFile(filePath)),
+            created,
+          ];
         };
       }),
       DEFAULT_CONCURRENCY,
@@ -780,7 +790,7 @@ export async function getAndCacheXYZTileData(id, z, x, y) {
   try {
     return await getXYZTile(item.source, z, x, y, item.tileJSON.format);
   } catch (error) {
-    if (item.sourceURL && error.message.includes("Not Found")) {
+    if (item.sourceURL && isErrorNotFound(error)) {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL

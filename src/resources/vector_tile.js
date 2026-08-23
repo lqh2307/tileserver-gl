@@ -13,7 +13,7 @@ let vectorTileProtoPromise;
 export function getVectorTileProto() {
   if (!vectorTileProtoPromise) {
     vectorTileProtoPromise = readFile(
-      path.join("public/protos", "vector_tile.proto"),
+      path.join("public", "protos", "vector_tile.proto"),
     )
       .then(protobuf)
       .catch((error) => {

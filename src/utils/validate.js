@@ -46,7 +46,7 @@ export function getJSONSchema(schema) {
   let schemaPromise = schemaCache.get(schema);
   if (!schemaPromise) {
     schemaPromise = readFile(
-      path.join("public/schemas", `${schema}.json`),
+      path.join("public", "schemas", `${schema}.json`),
       "utf8",
     ).then(JSON.parse);
 

@@ -2,7 +2,7 @@
 
 import { getBBoxFromTiles, lonLat4326ToXY3857 } from "./spatial.js";
 import { base64ToBuffer, createFileWithLock } from "./file.js";
-import { DEFAULT_QUERY_TIMEOUT } from "../defaults/default.js";
+import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { convertLength, toPixel } from "./util.js";
 import { mkdir } from "node:fs/promises";
 import { jsPDF } from "jspdf";

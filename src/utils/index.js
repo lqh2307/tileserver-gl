@@ -17,6 +17,7 @@ export * from "./logger.js";
 export * from "./sqlite.js";
 export * from "./number.js";
 export * from "./object.js";
+export * from "./error.js";
 export * from "./image.js";
 export * from "./shape.js";
 export * from "./util.js";

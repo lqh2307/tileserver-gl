@@ -21,6 +21,7 @@ import {
   isFileNotModified,
   sendTextResponse,
   runAllWithLimit,
+  isErrorNotFound,
   getRequestHost,
   TILE_SIZES,
   isLocalURL,
@@ -196,7 +197,7 @@ function getStyleHandler() {
     } catch (error) {
       printLog("error", `Failed to get style id "${id}": ${error}`);
 
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
@@ -427,7 +428,7 @@ function getStyleMD5Handler() {
     } catch (error) {
       printLog("error", `Failed to get md5 of style id "${id}": ${error}`);
 
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
@@ -892,7 +893,8 @@ export const serve_style = {
               if (item.cache) {
                 styleInfo.path = path.join(
                   process.env.DATA_DIR,
-                  "caches/styles",
+                  "caches",
+                  "styles",
                   item.style,
                   "style.json",
                 );
@@ -933,7 +935,7 @@ export const serve_style = {
                 /* Mark to serve rendered */
                 isCanServeRendered = true;
               } catch (error) {
-                if (item.cache && error.message.includes("Not Found")) {
+                if (item.cache && isErrorNotFound(error)) {
                   const styleSeed = seed.styles[item.style];
 
                   styleInfo.name = styleSeed.metadata.name ?? "Unknown";

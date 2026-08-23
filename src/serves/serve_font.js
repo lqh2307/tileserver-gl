@@ -14,6 +14,7 @@ import {
   detectFormatAndHeaders,
   isFileNotModified,
   sendTextResponse,
+  isErrorNotFound,
   runAllWithLimit,
   getRequestHost,
   gzipAsync,
@@ -91,7 +92,7 @@ function getFontMD5Handler() {
     } catch (error) {
       printLog("error", `Failed to get md5 of font id "${id}": ${error}`);
 
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
@@ -398,7 +399,8 @@ export const serve_font = {
               if (item.cache) {
                 fontInfo.path = path.join(
                   process.env.DATA_DIR,
-                  "caches/fonts",
+                  "caches",
+                  "fonts",
                   item.font,
                 );
 

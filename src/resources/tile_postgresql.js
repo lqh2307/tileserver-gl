@@ -2,7 +2,6 @@
 
 import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { getVectorTileProto } from "./vector_tile.js";
-import { limitValue } from "../utils/number.js";
 import { config } from "../configs/index.js";
 import {
   closePostgreSQLTransaction,
@@ -13,11 +12,13 @@ import {
   getBBoxFromTiles,
   closePostgreSQL,
   runSingleFlight,
+  isErrorNotFound,
   openPostgreSQL,
   getDataFromURL,
   FALLBACK_BBOX,
   getTileBounds,
   calculateMD5,
+  limitValue,
   printLog,
   MAX_LON,
   MAX_LAT,
@@ -43,6 +44,7 @@ export const POSTGRESQL_DELETE_TILE_QUERY =
  */
 async function getPostgreSQLLayersFromTiles(source) {
   const layerNames = new Set();
+
   let lastTile;
 
   const vectorTileProto = await getVectorTileProto();
@@ -668,7 +670,7 @@ export async function getAndCachePostgreSQLTileData(id, z, x, y) {
   try {
     return await getPostgreSQLTile(item.source, z, x, y);
   } catch (error) {
-    if (item.sourceURL && error.message.includes("Not Found")) {
+    if (item.sourceURL && isErrorNotFound(error)) {
       const tmpY = item.scheme === "tms" ? (1 << z) - 1 - y : y;
 
       const targetURL = item.sourceURL

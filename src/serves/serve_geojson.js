@@ -15,6 +15,7 @@ import {
   isFileNotModified,
   sendTextResponse,
   runAllWithLimit,
+  isErrorNotFound,
   getRequestHost,
   gzipAsync,
   printLog,
@@ -252,7 +253,7 @@ function getGeoJSONHandler() {
         `Failed to get GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`,
       );
 
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
@@ -304,7 +305,7 @@ function getGeoJSONMD5Handler() {
         `Failed to get md5 of GeoJSON group "${id}" - Layer "${req.params.layer}": ${error}`,
       );
 
-      if (error.message.includes("Not Found")) {
+      if (isErrorNotFound(error)) {
         return sendTextResponse(res, StatusCodes.NO_CONTENT, error.message);
       } else {
         return res
@@ -728,7 +729,8 @@ export const serve_geojson = {
                       if (item.cache) {
                         geojsonInfo.path = path.join(
                           process.env.DATA_DIR,
-                          "caches/geojsons",
+                          "caches",
+                          "geojsons",
                           item.geojson,
                           `${item.geojson}.geojson`,
                         );
@@ -767,7 +769,7 @@ export const serve_geojson = {
 
                         geojsonsInfo[layer] = geojsonInfo;
                       } catch (error) {
-                        if (item.cache && error.message.includes("Not Found")) {
+                        if (item.cache && isErrorNotFound(error)) {
                           geojsonInfo.geometryTypes = [
                             "polygon",
                             "line",

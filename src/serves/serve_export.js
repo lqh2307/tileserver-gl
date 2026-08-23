@@ -74,7 +74,7 @@ function exportAllHandler() {
       }
 
       exportAll(
-        path.join(process.env.DATA_DIR, "exports/alls", req.body.id),
+        path.join(process.env.DATA_DIR, "exports", "alls", req.body.id),
         req.body,
       );
 
@@ -159,7 +159,9 @@ function exportDataHandler() {
             case "xyz": {
               storePath = path.join(
                 process.env.DATA_DIR,
-                "exports/datas/xyzs",
+                "exports",
+                "datas",
+                "xyzs",
                 req.body.id,
               );
 
@@ -169,7 +171,9 @@ function exportDataHandler() {
             case "mbtiles": {
               storePath = path.join(
                 process.env.DATA_DIR,
-                "exports/datas/mbtiles",
+                "exports",
+                "datas",
+                "mbtiles",
                 req.body.id,
                 `${req.body.id}.mbtiles`,
               );
@@ -286,7 +290,9 @@ function renderStyleHandler() {
             case "xyz": {
               storePath = path.join(
                 process.env.DATA_DIR,
-                "exports/style_renders/xyzs",
+                "exports",
+                "style_renders",
+                "xyzs",
                 req.body.id,
               );
 
@@ -296,7 +302,9 @@ function renderStyleHandler() {
             case "mbtiles": {
               storePath = path.join(
                 process.env.DATA_DIR,
-                "exports/style_renders/mbtiles",
+                "exports",
+                "style_renders",
+                "mbtiles",
                 req.body.id,
                 `${req.body.id}.mbtiles`,
               );

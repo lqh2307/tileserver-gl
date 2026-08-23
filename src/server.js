@@ -38,7 +38,7 @@ import {
 const taskJobs = new Map();
 const taskQueue = [];
 let currentTaskKey;
-let restartAfterTasks = false;
+let restartAfterTasks;
 
 /** Start the next queued resource-level task. */
 function startNextTaskWorker() {
@@ -70,7 +70,7 @@ function startNextTaskWorker() {
 
   printLog("info", `Starting sync task "${job.key}"...`);
 
-  job.worker = new Worker("./src/task_worker.js", {
+  job.worker = new Worker(path.join("src", "task_worker.js"), {
     workerData: job.target,
   })
     .on("error", (error) => {
@@ -115,6 +115,7 @@ function startNextTaskWorker() {
  */
 export function startTaskInWorker(opts) {
   const targets = getTaskTargets(opts, seed, cleanUp);
+
   let queuedTasks = 0;
 
   for (const target of targets) {
@@ -230,7 +231,7 @@ async function loadData() {
 function setupStaticFolders(app) {
   printLog("info", "Setting statics...");
 
-  app.use(express.static("public/resources"));
+  app.use(express.static(path.join("public", "resources")));
   app.use(
     "/statics",
     express.static(path.join(process.env.DATA_DIR, "statics")),

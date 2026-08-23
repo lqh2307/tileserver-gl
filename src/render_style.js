@@ -55,11 +55,13 @@ import {
   calculateSize,
   getTileBounds,
   calculateMD5,
+  getDuration,
   unzipAsync,
   printLog,
   min,
 } from "./utils/index.js";
 
+/** Register maplibre-gl-native message handler */
 mlgl.on("message", (msg) => {
   switch (msg.severity) {
     case "ERROR": {
@@ -82,8 +84,18 @@ mlgl.on("message", (msg) => {
   }
 });
 
+/** Persistent renderer pools */
 const tileRendererPools = new Map();
 const staticRendererPools = new Map();
+
+/** PBF source pattern */
+const PBF_DATA_PATTERN = /([^/]+\/\d+-\d+\.pbf)/g;
+
+/** Tile data pattern */
+const TILE_DATA_PATTERN = /(png|jpg|jpeg|webp|pbf)/g;
+
+/** Max tile size */
+const MAX_TILE_PX = 8192;
 
 /**
  * Create render
@@ -91,9 +103,11 @@ const staticRendererPools = new Map();
  * @returns {{ mode: "tile"|"static", styleJSON: object, ratio: number, render: function, load: function, release: function }} Renderer
  */
 function createRenderer(option) {
+  const { mode, ratio = 1, styleJSON } = option;
+
   const renderer = new mlgl.Map({
-    mode: option.mode,
-    ratio: option.ratio ?? 1,
+    mode,
+    ratio,
     request: async (req, callback) => {
       const scheme = req.url.slice(0, req.url.indexOf(":"));
 
@@ -239,7 +253,8 @@ function createRenderer(option) {
             });
           } catch (error) {
             if (req.kind === 3) {
-              const result = req.url.match(/(png|jpg|jpeg|webp|pbf)/g);
+              const result = req.url.match(TILE_DATA_PATTERN);
+
               if (result) {
                 printLog(
                   "warn",
@@ -253,7 +268,8 @@ function createRenderer(option) {
                 err = error;
               }
             } else if (req.kind === 4) {
-              const result = req.url.match(/([^/]+\/\d+-\d+\.pbf)/g);
+              const result = req.url.match(PBF_DATA_PATTERN);
+
               if (result) {
                 printLog(
                   "warn",
@@ -328,9 +344,17 @@ function createRenderer(option) {
   });
 
   // Load style
-  renderer.load(option.styleJSON);
+  renderer.load(styleJSON);
 
   return renderer;
+}
+
+/**
+ * Release renderer
+ * @param {object} renderer Renderer
+ */
+function releaseRenderer(renderer) {
+  renderer.release();
 }
 
 /**
@@ -357,12 +381,25 @@ function createRendererPool(option) {
       create: () => {
         return createRenderer(option);
       },
-      destroy: (renderer) => {
-        return renderer.release();
-      },
+      destroy: releaseRenderer,
     },
     poolOption,
   );
+}
+
+/**
+ * Drain and clear a renderer pool after it is replaced.
+ * @param {object} pool Renderer pool
+ * @param {string} label Pool label for logging
+ * @returns {Promise<void>}
+ */
+async function disposeRendererPool(pool, label) {
+  try {
+    await pool.drain();
+    await pool.clear();
+  } catch (error) {
+    printLog("error", `Failed to clear renderer pool "${label}": ${error}`);
+  }
 }
 
 /**
@@ -378,7 +415,11 @@ export function getTileRendererPool({
 }) {
   const current = tileRendererPools.get(key);
 
-  if (current?.styleJSON === styleJSON) {
+  if (
+    current?.styleJSON === styleJSON &&
+    current.tileScale === tileScale &&
+    current.max === max
+  ) {
     return current.pool;
   }
 
@@ -392,18 +433,13 @@ export function getTileRendererPool({
 
   tileRendererPools.set(key, {
     styleJSON,
+    tileScale,
+    max,
     pool,
   });
 
   if (current) {
-    current.pool
-      .drain()
-      .then(() => {
-        return current.pool.clear();
-      })
-      .catch((error) => {
-        printLog("error", `Failed to clear renderer pool "${key}": ${error}`);
-      });
+    disposeRendererPool(current.pool, `tile:${key}`);
   }
 
   return pool;
@@ -423,7 +459,11 @@ export function getStaticRendererPool({
 }) {
   const current = staticRendererPools.get(key);
 
-  if (current?.styleJSON === styleJSON) {
+  if (
+    current?.styleJSON === styleJSON &&
+    current.tileScale === tileScale &&
+    current.max === max
+  ) {
     return current.pool;
   }
 
@@ -437,21 +477,13 @@ export function getStaticRendererPool({
 
   staticRendererPools.set(key, {
     styleJSON,
+    tileScale,
+    max,
     pool,
   });
 
   if (current) {
-    current.pool
-      .drain()
-      .then(() => {
-        return current.pool.clear();
-      })
-      .catch((error) => {
-        printLog(
-          "error",
-          `Failed to clear static renderer pool "${key}": ${error}`,
-        );
-      });
+    disposeRendererPool(current.pool, `static:${key}`);
   }
 
   return pool;
@@ -628,24 +660,35 @@ export async function renderImageStaticData(option) {
  * @returns {Promise<string>}
  */
 export async function renderStyleJSON(option) {
-  const MAX_TILE_PX = 8192;
+  const {
+    styleJSON,
+    tileScale,
+    tileSize,
+    zoom,
+    bbox,
+    format,
+    grayscale,
+    width,
+    height,
+  } = option;
 
   const sizes = calculateSize({
-    zoom: option.zoom,
-    bounds: option.bbox,
-    tileSize: option.tileSize,
+    zoom,
+    bounds: bbox,
+    tileSize,
   });
-  const totalWidth = Math.round(option.tileScale * sizes.width);
-  const totalHeight = Math.round(option.tileScale * sizes.height);
+  const totalWidth = Math.round(tileScale * sizes.width);
+  const totalHeight = Math.round(tileScale * sizes.height);
 
   const id = nanoid();
   const dirPath = path.join(
     process.env.DATA_DIR,
-    "exports/style_renders",
-    `${option.format}s`,
+    "exports",
+    "style_renders",
+    `${format}s`,
     id,
   );
-  const filePath = path.join(dirPath, `${id}.${option.format}`);
+  const filePath = path.join(dirPath, `${id}.${format}`);
 
   if (totalWidth <= MAX_TILE_PX && totalHeight <= MAX_TILE_PX) {
     return await renderImageStaticData({
@@ -653,8 +696,8 @@ export async function renderStyleJSON(option) {
       filePath,
     });
   } else {
-    const [minX, minY] = lonLat4326ToXY3857(option.bbox[0], option.bbox[1]);
-    const [maxX, maxY] = lonLat4326ToXY3857(option.bbox[2], option.bbox[3]);
+    const [minX, minY] = lonLat4326ToXY3857(bbox[0], bbox[1]);
+    const [maxX, maxY] = lonLat4326ToXY3857(bbox[2], bbox[3]);
 
     const xSplits = Math.ceil(totalWidth / MAX_TILE_PX);
     const ySplits = Math.ceil(totalHeight / MAX_TILE_PX);
@@ -671,8 +714,8 @@ export async function renderStyleJSON(option) {
 
     const pool = createRendererPool({
       mode: "static",
-      ratio: option.tileScale,
-      styleJSON: option.styleJSON,
+      ratio: tileScale,
+      styleJSON,
       max: min(DEFAULT_CONCURRENCY, total),
     });
 
@@ -684,22 +727,22 @@ export async function renderStyleJSON(option) {
 
           const subMinX = minX + xi * xStep;
           const subMinY = minY + yi * yStep;
-          const subFilePath = path.join(dirPath, `${idx}.${option.format}`);
+          const subFilePath = path.join(dirPath, `${idx}.${format}`);
 
           await renderImageStaticData({
             pool,
-            styleJSON: option.styleJSON,
-            tileScale: option.tileScale,
-            tileSize: option.tileSize,
-            format: option.format,
-            pitch: option.pitch,
-            bearing: option.bearing,
+            styleJSON,
+            tileScale,
+            tileSize,
+            format,
+            pitch,
+            bearing,
             bbox: [
               ...xy3857ToLonLat4326(subMinX, subMinY),
               ...xy3857ToLonLat4326(subMinX + xStep, subMinY + yStep),
             ],
             filePath: subFilePath,
-            zoom: option.zoom,
+            zoom,
           });
 
           compositesOption[idx] = {
@@ -729,14 +772,13 @@ export async function renderStyleJSON(option) {
         },
         filePath,
         compositesOption,
-        format: option.format,
-        width: option.width,
-        height: option.height,
-        grayscale: option.grayscale,
+        format,
+        width,
+        height,
+        grayscale,
       });
     } finally {
-      await pool.drain();
-      await pool.clear();
+      await disposeRendererPool(pool, "renderStyleJSON");
     }
   }
 }
@@ -801,6 +843,8 @@ export async function renderTileDatas({
       log += `\n\tRefresh before: Check MD5`;
     }
 
+    const skipExistingTiles = refreshTimestamp === undefined;
+
     printLog("info", log);
 
     let getTileExtraInfoFunc;
@@ -842,7 +886,7 @@ export async function renderTileDatas({
           return getMBTilesTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
-            isCreated: refreshTimestamp === true,
+            isCreated: refreshTimestamp === true || skipExistingTiles,
           });
         };
 
@@ -886,7 +930,7 @@ export async function renderTileDatas({
           return await getPostgreSQLTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
-            isCreated: refreshTimestamp === true,
+            isCreated: refreshTimestamp === true || skipExistingTiles,
           });
         };
 
@@ -939,7 +983,7 @@ export async function renderTileDatas({
           return getXYZTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
-            isCreated: refreshTimestamp === true,
+            isCreated: refreshTimestamp === true || skipExistingTiles,
           });
         };
 
@@ -1008,8 +1052,9 @@ export async function renderTileDatas({
                   await storeTileDataFunc(z, xCount, yCount, data);
                 } else {
                   if (
-                    refreshTimestamp &&
-                    currentTileExtraInfo >= refreshTimestamp
+                    (refreshTimestamp &&
+                      currentTileExtraInfo >= refreshTimestamp) ||
+                    (skipExistingTiles && currentTileExtraInfo !== undefined)
                   ) {
                     return;
                   }
@@ -1063,7 +1108,7 @@ export async function renderTileDatas({
         return sum + tileBound.total;
       }, 0);
 
-      if (refreshTimestamp) {
+      if (refreshTimestamp || skipExistingTiles) {
         try {
           printLog(
             "info",
@@ -1088,22 +1133,21 @@ export async function renderTileDatas({
 
     printLog(
       "info",
-      `Completed render ${total} tiles of style id "${id}" to ${storeType} after ${
-        (Date.now() - startTime) / 1000
-      }s!`,
+      `Completed render ${total} tiles of style id "${id}" to ${storeType} after ${getDuration(
+        startTime,
+      )}s!`,
     );
   } catch (error) {
     printLog(
       "error",
-      `Failed to render style id "${id}" to ${storeType} after ${
-        (Date.now() - startTime) / 1000
-      }s: ${error}`,
+      `Failed to render style id "${id}" to ${storeType} after ${getDuration(
+        startTime,
+      )}s: ${error}`,
     );
   } finally {
     /* Destroy renderer pool */
     if (pool) {
-      await pool.drain();
-      await pool.clear();
+      await disposeRendererPool(pool, "renderTileDatas");
     }
 
     /* Close database */
