@@ -120,7 +120,10 @@ export async function validateSprite(spriteDirPath) {
   }
 
   const fileNameWoExts = jsonSpriteFileNames.map((jsonSpriteFileName) => {
-    return jsonSpriteFileName.split(".")[0];
+    return path.join(
+      path.dirname(jsonSpriteFileName),
+      path.basename(jsonSpriteFileName, ".json"),
+    );
   });
 
   await Promise.all(
@@ -128,11 +131,24 @@ export async function validateSprite(spriteDirPath) {
       /* Validate JSON sprite */
       validateJSON(
         await getJSONSchema("sprite"),
-        JSON.parse(await readFile(`${fileNameWoExt}.json`, "utf8")),
+        JSON.parse(
+          await readFile(
+            path.join(
+              path.dirname(fileNameWoExt),
+              `${path.basename(fileNameWoExt)}.json`,
+            ),
+            "utf8",
+          ),
+        ),
       );
 
       /* Validate PNG sprite */
-      const pngMetadata = await getImageMetadata(`${fileNameWoExt}.png`);
+      const pngMetadata = await getImageMetadata(
+        path.join(
+          path.dirname(fileNameWoExt),
+          `${path.basename(fileNameWoExt)}.png`,
+        ),
+      );
 
       if (pngMetadata.format !== "png") {
         throw new Error(`Invalid PNG file: ${fileNameWoExt}.png`);

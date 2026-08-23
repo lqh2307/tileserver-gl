@@ -9,12 +9,15 @@ import {
   getRenderedStyleJSON,
 } from "../resources/index.js";
 import {
+  getNearestPointOnSegment,
   calculateMaxZoom,
   transformBBoxSRS,
+  isPointInPolygon,
   getGeometryBBox,
   getRequestHost,
   splitParameter,
   getParameter,
+  getDistance,
   xmlEscape,
   min,
   max,
@@ -431,48 +434,6 @@ function styleToSLD(styleJSON, layerName, title) {
   return `<?xml version="1.0" encoding="UTF-8"?><StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><NamedLayer><Name>${xmlEscape(layerName)}</Name><UserStyle><Name>default</Name><Title>${xmlEscape(title)}</Title><FeatureTypeStyle>${rules}</FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>`;
 }
 
-function distanceToSegment(point, start, end) {
-  const dx = end[0] - start[0];
-  const dy = end[1] - start[1];
-  if (!dx && !dy) {
-    return Math.hypot(point[0] - start[0], point[1] - start[1]);
-  }
-  const t = max(
-    0,
-    min(
-      1,
-      ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) /
-        (dx * dx + dy * dy),
-    ),
-  );
-  return Math.hypot(
-    point[0] - (start[0] + t * dx),
-    point[1] - (start[1] + t * dy),
-  );
-}
-
-function pointInRing(point, ring) {
-  let inside = false;
-  for (
-    let index = 0, previous = ring.length - 1;
-    index < ring.length;
-    previous = index++
-  ) {
-    const currentPoint = ring[index];
-    const previousPoint = ring[previous];
-    const intersects =
-      currentPoint[1] > point[1] !== previousPoint[1] > point[1] &&
-      point[0] <
-        ((previousPoint[0] - currentPoint[0]) * (point[1] - currentPoint[1])) /
-          (previousPoint[1] - currentPoint[1]) +
-          currentPoint[0];
-    if (intersects) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
 function pointHitsGeometry(point, geometry, tolerance) {
   if (!geometry) {
     return false;
@@ -491,9 +452,11 @@ function pointHitsGeometry(point, geometry, tolerance) {
   const hitLine = (line) => {
     return line.some((coordinate, index) => {
       return index === 0
-        ? Math.hypot(point[0] - coordinate[0], point[1] - coordinate[1]) <=
-            tolerance
-        : distanceToSegment(point, line[index - 1], coordinate) <= tolerance;
+        ? getDistance(point, coordinate) <= tolerance
+        : getDistance(
+            point,
+            getNearestPointOnSegment(point, line[index - 1], coordinate),
+          ) <= tolerance;
     });
   };
 
@@ -517,20 +480,10 @@ function pointHitsGeometry(point, geometry, tolerance) {
     case "MultiLineString":
       return geometry.coordinates.some(hitLine);
     case "Polygon":
-      return (
-        pointInRing(point, geometry.coordinates[0]) &&
-        !geometry.coordinates.slice(1).some((ring) => {
-          return pointInRing(point, ring);
-        })
-      );
+      return isPointInPolygon(point, geometry.coordinates);
     case "MultiPolygon":
       return geometry.coordinates.some((polygon) => {
-        return (
-          pointInRing(point, polygon[0]) &&
-          !polygon.slice(1).some((ring) => {
-            return pointInRing(point, ring);
-          })
-        );
+        return isPointInPolygon(point, polygon);
       });
     case "GeometryCollection":
       return geometry.geometries.some((child) => {

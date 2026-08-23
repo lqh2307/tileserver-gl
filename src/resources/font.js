@@ -23,7 +23,7 @@ const PBF_RANGE_FILE_REGEX = /^\d{1,5}-\d{1,5}\.pbf$/;
 let glyphsProto;
 
 if (!cluster.isPrimary) {
-  readFile("public/protos/glyphs.proto")
+  readFile(path.join("public/protos", "glyphs.proto"))
     .then((data) => {
       glyphsProto = protobuf(data);
     })

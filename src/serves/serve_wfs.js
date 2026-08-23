@@ -1,12 +1,7 @@
 "use strict";
 
+import { getAndCacheDataGeoJSON } from "../resources/index.js";
 import { config } from "../configs/index.js";
-import { nanoid } from "nanoid";
-import express from "express";
-import {
-  getAndCacheDataGeoJSON,
-  storeGeoJSONFile,
-} from "../resources/index.js";
 import {
   transformPointSRS,
   transformBBoxSRS,
@@ -40,9 +35,6 @@ class WFSException extends Error {
     this.code = code;
   }
 }
-
-const locks = new Map();
-const storedQueries = new Map();
 
 function xmlName(value) {
   const name = String(value ?? "value").replace(/[^a-zA-Z0-9_.-]/g, "_");
@@ -620,17 +612,10 @@ async function capabilities(version, baseURL) {
     "DescribeFeatureType",
     "GetPropertyValue",
     "GetFeature",
-    "GetFeatureWithLock",
-    "LockFeature",
-    "Transaction",
-    "CreateStoredQuery",
-    "DropStoredQuery",
-    "ListStoredQueries",
-    "DescribeStoredQueries",
   ];
   const operationXML = operations
     .map((operation) => {
-      return `<ows:Operation name="${operation}"><ows:DCP><ows:HTTP><ows:Get xlink:href="${xmlEscape(baseURL)}"/><ows:Post xlink:href="${xmlEscape(baseURL)}"/></ows:HTTP></ows:DCP></ows:Operation>`;
+      return `<ows:Operation name="${operation}"><ows:DCP><ows:HTTP><ows:Get xlink:href="${xmlEscape(baseURL)}"/></ows:HTTP></ows:DCP></ows:Operation>`;
     })
     .join("");
   const typeXML = types
@@ -639,55 +624,15 @@ async function capabilities(version, baseURL) {
     })
     .join("");
   if (version === WFS_1_0_0) {
-    return `<?xml version="1.0" encoding="UTF-8"?><WFS_Capabilities version="1.0.0" xmlns="${WFS_NAMESPACE}" xmlns:ogc="http://www.opengis.net/ogc" xmlns:xlink="http://www.w3.org/1999/xlink"><Service><Name>WFS</Name><Title>Tile Server WFS</Title><OnlineResource>${xmlEscape(baseURL)}</OnlineResource></Service><Capability><Request><GetCapabilities><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></GetCapabilities><DescribeFeatureType><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></DescribeFeatureType><GetFeature><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></GetFeature><Transaction><DCPType><HTTP><Post onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></Transaction></Request><ogc:Filter_Capabilities/></Capability></WFS_Capabilities>`;
+    return `<?xml version="1.0" encoding="UTF-8"?><WFS_Capabilities version="1.0.0" xmlns="${WFS_NAMESPACE}" xmlns:ogc="http://www.opengis.net/ogc" xmlns:xlink="http://www.w3.org/1999/xlink"><Service><Name>WFS</Name><Title>Tile Server WFS</Title><OnlineResource>${xmlEscape(baseURL)}</OnlineResource></Service><Capability><Request><GetCapabilities><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></GetCapabilities><DescribeFeatureType><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></DescribeFeatureType><GetFeature><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></GetFeature></Request><ogc:Filter_Capabilities/></Capability></WFS_Capabilities>`;
   }
   return `<?xml version="1.0" encoding="UTF-8"?><wfs:WFS_Capabilities version="${version}" xmlns:wfs="${WFS_NAMESPACE}" xmlns:ows="${OWS_NAMESPACE}" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fes="${FES_NAMESPACE}" xmlns:gml="${version === WFS_2_0_0 ? GML32_NAMESPACE : GML_NAMESPACE}"><ows:ServiceIdentification><ows:Title>Tile Server WFS</ows:Title><ows:ServiceType>WFS</ows:ServiceType><ows:ServiceTypeVersion>${version}</ows:ServiceType></ows:ServiceIdentification><ows:OperationsMetadata>${operationXML}</ows:OperationsMetadata><wfs:FeatureTypeList>${typeXML}</wfs:FeatureTypeList><fes:Filter_Capabilities><fes:Conformance><fes:Constraint name="ImplementsQuery"><ows:NoValues/></fes:Constraint></fes:Conformance><fes:Id_Capabilities><fes:ResourceId/></fes:Id_Capabilities><fes:Scalar_Capabilities><fes:ComparisonOperators><fes:ComparisonOperator name="PropertyIsEqualTo"/><fes:ComparisonOperator name="PropertyIsNotEqualTo"/><fes:ComparisonOperator name="PropertyIsLessThan"/><fes:ComparisonOperator name="PropertyIsGreaterThan"/></fes:ComparisonOperators></fes:Scalar_Capabilities><fes:Spatial_Capabilities><fes:SpatialOperator name="BBOX"/></fes:Spatial_Capabilities></fes:Filter_Capabilities></wfs:WFS_Capabilities>`;
 }
 
-function parseXMLRequest(xml) {
-  const source = String(xml ?? "");
-  const operation = source.match(/<\s*(?:[\w.-]+:)?([A-Za-z]+)(?:\s|>)/)?.[1];
-  const rootAttrs = {};
-  const root = source.match(/<\s*(?:[\w.-]+:)?[A-Za-z]+([^>]*)>/)?.[1] ?? "";
-  for (const match of root.matchAll(/([\w:-]+)=["']([^"']*)["']/g)) {
-    rootAttrs[localName(match[1])] = match[2];
-  }
-  const query =
-    source.match(
-      /<(?:[\w.-]+:)?Query\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?Query>/i,
-    )?.[1] ?? source;
-  const attributes = {
-    ...rootAttrs,
-  };
-  for (const match of query.matchAll(
-    /<(?:[\w.-]+:)?(PropertyName|ValueReference|Filter|BBOX|SortBy|SortProperty)\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?\1>/gi,
-  )) {
-    attributes[match[1]] = match[2];
-  }
-  const queryAttrs = query.match(/<(?:[\w.-]+:)?Query([^>]*)>/i)?.[1] ?? "";
-  for (const match of queryAttrs.matchAll(/([\w:-]+)=["']([^"']*)["']/g)) {
-    attributes[localName(match[1])] = match[2];
-  }
-  if (attributes.Filter) {
-    attributes.FILTER = attributes.Filter;
-  }
-  return {
-    operation,
-    parameters: attributes,
-    xml: source,
-  };
-}
-
 function getRequestData(req) {
-  if (typeof req.body === "string" && req.body.trim()) {
-    return parseXMLRequest(req.body);
-  }
   return {
     operation: getParameter(req.query, "REQUEST", "GetCapabilities"),
-    parameters: {
-      ...(req.body ?? {}),
-      ...(req.query ?? {}),
-    },
+    parameters: req.query ?? {},
     xml: "",
   };
 }
@@ -769,158 +714,6 @@ function describeFeatureType(type, version) {
   return `<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:gml="${gml}" xmlns:feature="${WFS_FEATURE_NAMESPACE}" targetNamespace="${WFS_FEATURE_NAMESPACE}" elementFormDefault="qualified"><xsd:element name="${xmlEscape(xmlName(type.layer))}" type="feature:${xmlName(type.layer)}Type" substitutionGroup="gml:AbstractFeature"/><xsd:complexType name="${xmlEscape(xmlName(type.layer))}Type"><xsd:complexContent><xsd:extension base="gml:AbstractFeatureType"><xsd:sequence>${fields}<xsd:element name="geometry" type="gml:GeometryPropertyType" minOccurs="0"/></xsd:sequence></xsd:extension></xsd:complexContent></xsd:complexType></xsd:schema>`;
 }
 
-function transactionFeature(xml, type) {
-  const feature = {
-    type: "Feature",
-    properties: {},
-    geometry: undefined,
-  };
-  const body = xml.replace(/^<[^>]+>|<\/[^>]+>$/g, "");
-  const geometry = body.match(
-    /<(?:[\w.-]+:)?(Point|LineString|Polygon|MultiPoint|MultiLineString|MultiPolygon)[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?\1>/i,
-  );
-  if (geometry) {
-    const coordinates =
-      tagValue(geometry[2], "pos") ?? tagValue(geometry[2], "posList");
-    const values = coordinates?.trim().split(/\s+/).map(Number) ?? [];
-    if (geometry[1].toLowerCase() === "point") {
-      feature.geometry = {
-        type: "Point",
-        coordinates: values.slice(0, 2),
-      };
-    }
-  }
-  for (const match of body.matchAll(/<([\w.-]+)(?:\s[^>]*)?>([^<]*)<\/\1>/g)) {
-    const name = localName(match[1]);
-    if (
-      ![
-        "Point",
-        "LineString",
-        "Polygon",
-        "MultiPoint",
-        "MultiLineString",
-        "MultiPolygon",
-        "pos",
-        "posList",
-      ].includes(name)
-    ) {
-      feature.properties[name] = match[2];
-    }
-  }
-  return feature;
-}
-
-async function saveFeatures(type, features) {
-  if (type.item.sourceURL) {
-    throw new WFSException(
-      "OperationNotSupported",
-      "Transactions are disabled for forwarded GeoJSON sources.",
-    );
-  }
-  await storeGeoJSONFile(
-    type.item.path,
-    Buffer.from(
-      JSON.stringify(
-        {
-          type: "FeatureCollection",
-          features,
-        },
-        null,
-        2,
-      ),
-    ),
-  );
-}
-
-async function transaction(xml, version) {
-  const inserted = [];
-  const updated = [];
-  const deleted = [];
-  for (const match of String(xml).matchAll(
-    /<(?:[\w.-]+:)?Insert[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?Insert>/gi,
-  )) {
-    const child = match[1].match(/<([\w.:-]+)(?:\s[^>]*)?>[\s\S]*<\/\1>/);
-    if (!child) {
-      continue;
-    }
-    const type = resolveFeatureType(localName(child[1]));
-    const features = await readFeatures(type);
-    const feature = transactionFeature(child[0], type);
-    feature.id = `${type.group}.${type.layer}.${nanoid()}`;
-    features.push(feature);
-    await saveFeatures(type, features);
-    inserted.push(feature.id);
-  }
-  for (const match of String(xml).matchAll(
-    /<(?:[\w.-]+:)?Update([^>]*)>([\s\S]*?)<\/(?:[\w.-]+:)?Update>/gi,
-  )) {
-    const typeName = match[1].match(/typeName[s]?=["']([^"']+)["']/i)?.[1];
-    const type = resolveFeatureType(typeName);
-    const properties = [];
-    for (const property of match[2].matchAll(
-      /<(?:[\w.-]+:)?Property[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?Property>/gi,
-    )) {
-      const name =
-        tagValue(property[1], "ValueReference") ??
-        tagValue(property[1], "PropertyName");
-      const value = tagValue(property[1], "Value");
-      if (name) {
-        properties.push({
-          name: localName(name),
-          value,
-        });
-      }
-    }
-    const filterBody = match[2].match(
-      /<(?:[\w.-]+:)?Filter[^>]*>[\s\S]*?<\/(?:[\w.-]+:)?Filter>/i,
-    )?.[0];
-    const filter = filterFromXML(filterBody);
-    const features = await readFeatures(type);
-    let count = 0;
-    features.forEach((feature, index) => {
-      if (!matchesFilter(feature, filter, type, index)) {
-        return;
-      }
-      for (const property of properties) {
-        feature.properties = feature.properties ?? {};
-        feature.properties[property.name] = property.value;
-      }
-      count++;
-    });
-    await saveFeatures(type, features);
-    updated.push(count);
-  }
-  for (const match of String(xml).matchAll(
-    /<(?:[\w.-]+:)?Delete([^>]*)>([\s\S]*?)<\/(?:[\w.-]+:)?Delete>/gi,
-  )) {
-    const typeName = match[1].match(/typeName[s]?=["']([^"']+)["']/i)?.[1];
-    const type = resolveFeatureType(typeName);
-    const filter = filterFromXML(match[2]);
-    const features = await readFeatures(type);
-    const keep = features.filter((feature, index) => {
-      return !matchesFilter(feature, filter, type, index);
-    });
-    deleted.push(features.length - keep.length);
-    await saveFeatures(type, keep);
-  }
-  return `<?xml version="1.0" encoding="UTF-8"?><wfs:TransactionResponse xmlns:wfs="${WFS_NAMESPACE}" version="${version}"><wfs:TransactionSummary><wfs:totalInserted>${inserted.length}</wfs:totalInserted><wfs:totalUpdated>${updated.reduce(
-    (sum, item) => {
-      return sum + item;
-    },
-    0,
-  )}</wfs:totalUpdated><wfs:totalDeleted>${deleted.reduce((sum, item) => {
-    return sum + item;
-  }, 0)}</wfs:totalDeleted></wfs:TransactionSummary>${
-    inserted.length
-      ? `<wfs:InsertResults>${inserted
-          .map((id) => {
-            return `<wfs:Feature><fes:ResourceId xmlns:fes="${FES_NAMESPACE}" rid="${xmlEscape(id)}"/></wfs:Feature>`;
-          })
-          .join("")}</wfs:InsertResults>`
-      : ""
-  }</wfs:TransactionResponse>`;
-}
-
 async function handleWFS(req, res, pathName) {
   const request = getRequestData(req);
   const parameters = request.parameters;
@@ -937,6 +730,19 @@ async function handleWFS(req, res, pathName) {
       request.operation ??
         getParameter(parameters, "REQUEST", "GetCapabilities"),
     ).toLowerCase();
+    if (
+      ![
+        "getcapabilities",
+        "describefeaturetype",
+        "getpropertyvalue",
+        "getfeature",
+      ].includes(operation)
+    ) {
+      throw new WFSException(
+        "OperationNotSupported",
+        `Request "${operation}" is not supported for GET-only WFS.`,
+      );
+    }
     const baseURL = `${getRequestHost(req)}/wfs`;
 
     if (operation === "getcapabilities") {
@@ -952,108 +758,6 @@ async function handleWFS(req, res, pathName) {
       );
       res.type("text/xml").status(200).send(describeFeatureType(type, version));
       return;
-    }
-    if (operation === "liststoredqueries") {
-      const values = [...storedQueries.entries()]
-        .map(([id, item]) => {
-          return `<wfs:StoredQuery><wfs:Id>${xmlEscape(id)}</wfs:Id><wfs:Title>${xmlEscape(item.title ?? id)}</wfs:Title></wfs:StoredQuery>`;
-        })
-        .join("");
-      res
-        .type("text/xml")
-        .status(200)
-        .send(
-          `<?xml version="1.0" encoding="UTF-8"?><wfs:ListStoredQueriesResponse xmlns:wfs="${WFS_NAMESPACE}">${values}</wfs:ListStoredQueriesResponse>`,
-        );
-      return;
-    }
-    if (operation === "describestoredqueries") {
-      const requested = splitParameter(
-        getParameter(parameters, "STOREDQUERY_ID"),
-      );
-      const selected = requested.length
-        ? requested.filter((id) => {
-            return storedQueries.has(id);
-          })
-        : [...storedQueries.keys()];
-      const values = selected
-        .map((id) => {
-          const item = storedQueries.get(id);
-          return `<wfs:StoredQueryDescription id="${xmlEscape(id)}"><wfs:Title>${xmlEscape(item.title ?? id)}</wfs:Title></wfs:StoredQueryDescription>`;
-        })
-        .join("");
-      res
-        .type("text/xml")
-        .status(200)
-        .send(
-          `<?xml version="1.0" encoding="UTF-8"?><wfs:DescribeStoredQueriesResponse xmlns:wfs="${WFS_NAMESPACE}">${values}</wfs:DescribeStoredQueriesResponse>`,
-        );
-      return;
-    }
-    if (operation === "dropstoredquery") {
-      storedQueries.delete(getParameter(parameters, "STOREDQUERY_ID"));
-      res
-        .type("text/xml")
-        .status(200)
-        .send(
-          `<?xml version="1.0" encoding="UTF-8"?><wfs:DropStoredQueryResponse xmlns:wfs="${WFS_NAMESPACE}"/>`,
-        );
-      return;
-    }
-    if (operation === "createstoredquery") {
-      const id =
-        request.xml.match(/id=["']([^"']+)["']/i)?.[1] ??
-        getParameter(parameters, "ID", nanoid());
-      storedQueries.set(id, {
-        title: request.xml.match(/<[^>]*Title[^>]*>([^<]+)/i)?.[1] ?? id,
-        xml: request.xml,
-      });
-      res
-        .type("text/xml")
-        .status(200)
-        .send(
-          `<?xml version="1.0" encoding="UTF-8"?><wfs:CreateStoredQueryResponse xmlns:wfs="${WFS_NAMESPACE}"><wfs:StoredQueryDefinition id="${xmlEscape(id)}"/></wfs:CreateStoredQueryResponse>`,
-        );
-      return;
-    }
-    if (operation === "transaction") {
-      if (!request.xml) {
-        throw new WFSException(
-          "OperationNotSupported",
-          "Transaction requires XML POST.",
-        );
-      }
-      res
-        .type("text/xml")
-        .status(200)
-        .send(await transaction(request.xml, version));
-      return;
-    }
-    if (operation === "lockfeature" || operation === "getfeaturewithlock") {
-      const types = resolveFeatureTypes(parameters, pathName);
-      const lockId = `lock-${nanoid()}`;
-      const ids = [];
-      for (const type of types) {
-        for (const [index, feature] of (await readFeatures(type)).entries()) {
-          ids.push(featureId(feature, type, index));
-        }
-      }
-      locks.set(lockId, {
-        ids,
-        expires:
-          Date.now() + Number(getParameter(parameters, "EXPIRY", 300)) * 1000,
-      });
-      if (operation === "lockfeature") {
-        res
-          .type("text/xml")
-          .status(200)
-          .send(
-            `<?xml version="1.0" encoding="UTF-8"?><wfs:LockFeatureResponse xmlns:wfs="${WFS_NAMESPACE}" lockId="${lockId}"><wfs:FeaturesLocked>${ids.length}</wfs:FeaturesLocked></wfs:LockFeatureResponse>`,
-          );
-        return;
-      }
-      parameters.LOCKID = lockId;
-      operation = "getfeature";
     }
     if (operation === "getpropertyvalue") {
       const types = await Promise.all(
@@ -1086,17 +790,6 @@ async function handleWFS(req, res, pathName) {
       return;
     }
     if (operation === "getfeature") {
-      const storedQueryId = getParameter(parameters, "STOREDQUERY_ID");
-      if (storedQueryId) {
-        const stored = storedQueries.get(storedQueryId);
-        if (!stored) {
-          throw new WFSException(
-            "InvalidParameterValue",
-            `Stored query "${storedQueryId}" does not exist.`,
-          );
-        }
-        Object.assign(parameters, parseXMLRequest(stored.xml).parameters);
-      }
       const types = await Promise.all(
         resolveFeatureTypes(parameters, pathName).map(descriptor),
       );
@@ -1195,7 +888,7 @@ async function handleWFS(req, res, pathName) {
               version,
               srsName,
               matched,
-              parameters.LOCKID,
+              undefined,
               output,
             ),
           );
@@ -1232,7 +925,7 @@ export const serve_wfs = {
      *   get:
      *     tags: [WFS]
      *     summary: Execute a WFS request
-     *     description: Supports GetCapabilities, DescribeFeatureType, GetFeature, GetPropertyValue, locking, stored queries, and transactions.
+     *     description: Read-only WFS endpoint supporting GetCapabilities, DescribeFeatureType, GetFeature, and GetPropertyValue.
      *     parameters:
      *       - { in: query, name: REQUEST, required: true, schema: { type: string, example: GetFeature } }
      *       - { in: query, name: VERSION, schema: { type: string, enum: ['1.0.0', '1.1.0', '2.0.0'], default: '2.0.0' } }
@@ -1249,42 +942,9 @@ export const serve_wfs = {
      *           application/xml: { schema: { type: string } }
      *       400:
      *         description: OGC exception report.
-     *   post:
-     *     tags: [WFS]
-     *     summary: Execute a WFS XML request
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/xml:
-     *           schema: { type: string }
-     *     responses:
-     *       200:
-     *         description: WFS XML response.
-     *         content:
-     *           application/xml: { schema: { type: string } }
-     *       400:
-     *         description: OGC exception report.
      */
-    const bodyParser = [
-      express.urlencoded({
-        extended: false,
-      }),
-      express.text({
-        type: ["application/xml", "text/xml", "application/vnd.ogc.wfs_xml"],
-        limit: "20mb",
-      }),
-    ];
     const register = (route) => {
       app.get(route, (req, res) => {
-        return handleWFS(
-          req,
-          res,
-          req.params.group && req.params.layer
-            ? `${req.params.group}:${req.params.layer}`
-            : undefined,
-        );
-      });
-      app.post(route, bodyParser, (req, res) => {
         return handleWFS(
           req,
           res,

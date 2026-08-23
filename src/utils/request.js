@@ -6,7 +6,6 @@ import { createCache } from "cache-manager";
 import { getFileCreated } from "./file.js";
 import axios, { isCancel } from "axios";
 import { printLog } from "./logger.js";
-import { min } from "./number.js";
 import https from "node:https";
 import http from "node:http";
 

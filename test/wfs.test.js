@@ -117,27 +117,11 @@ test("WFS GetFeature supports GeoJSON output, BBOX and pagination", async () => 
   });
 });
 
-test("WFS Transaction INSERT persists a local GeoJSON feature", async () => {
+test("WFS is read-only and rejects POST requests", async () => {
   await withWFSApp(async (baseURL) => {
-    const transaction = `<?xml version="1.0"?><wfs:Transaction service="WFS" version="2.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:feature="http://example.com/feature"><wfs:Insert><feature:points><name>Hue</name><geometry><gml:Point xmlns:gml="http://www.opengis.net/gml/3.2"><gml:pos>107.6 16.4</gml:pos></gml:Point></geometry></feature:points></wfs:Insert></wfs:Transaction>`;
     const response = await fetch(`${baseURL}/wfs`, {
       method: "POST",
-      headers: {
-        "content-type": "application/xml",
-      },
-      body: transaction,
     });
-    assert.equal(response.status, 200);
-    assert.match(await response.text(), /totalInserted>1/);
-
-    const query = new URLSearchParams({
-      SERVICE: "WFS",
-      VERSION: "2.0.0",
-      REQUEST: "GetFeature",
-      TYPENAMES: "test:points",
-      OUTPUTFORMAT: "application/json",
-    });
-    const features = await (await fetch(`${baseURL}/wfs?${query}`)).json();
-    assert.equal(features.numberMatched, 2);
+    assert.equal(response.status, 404);
   });
 });
