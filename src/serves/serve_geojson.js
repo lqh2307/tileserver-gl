@@ -325,15 +325,13 @@ function getGeoJSONGroupsListHandler() {
     try {
       const requestHost = getRequestHost(req);
 
-      const result = await Promise.all(
-        Object.keys(config.geojsons).map(async (id) => {
-          return {
-            id,
-            name: id,
-            url: `${requestHost}/geojsons/${id}.json`,
-          };
-        }),
-      );
+      let result = Object.keys(config.geojsons).map((id) => {
+        return {
+          id,
+          name: id,
+          url: `${requestHost}/geojsons/${id}.json`,
+        };
+      });
 
       const headers = {
         "content-type": "application/json",

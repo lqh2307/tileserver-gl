@@ -25,7 +25,7 @@ handlebars.registerHelper("urlSegment", (value) => {
 
 /**
  * Compile handlebars template
- * @param {"index"|"viewer"|"vector_data"|"raster_data"|"geojson_data"|"wmts"} template Template
+ * @param {"index"|"viewer"|"vector_data"|"raster_data"|"geojson_data"|"wmts"|"wms"|"wfs"|"ows_exception"|"wms_exception"} template Template
  * @param {{ [key: string]: any }} data Data to fill to template
  * @returns {Promise<string>}
  */

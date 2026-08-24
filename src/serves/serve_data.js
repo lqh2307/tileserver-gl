@@ -521,29 +521,23 @@ function getDatasListHandler() {
     try {
       const requestHost = getRequestHost(req);
 
-      const result = await Promise.all(
-        Object.keys(config.datas).map(async (id) => {
-          const { name, center, format } = config.datas[id].tileJSON;
+      let result = Object.keys(config.datas).map((id) => {
+        const { name, center, format } = config.datas[id].tileJSON;
 
-          const data = {
-            id,
-            name,
-            url: `${requestHost}/datas/${id}.json`,
-          };
+        const data = {
+          id,
+          name,
+          url: `${requestHost}/datas/${id}.json`,
+        };
 
-          if (format !== "pbf") {
-            const [x, y, z] = getXYZFromLonLatZ(
-              center[0],
-              center[1],
-              center[2],
-            );
+        if (format !== "pbf") {
+          const [x, y, z] = getXYZFromLonLatZ(center[0], center[1], center[2]);
 
-            data.thumbnail = `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`;
-          }
+          data.thumbnail = `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`;
+        }
 
-          return data;
-        }),
-      );
+        return data;
+      });
 
       const headers = {
         "content-type": "application/json",

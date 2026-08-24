@@ -27,7 +27,17 @@ const renderedStyleJSONCaches = createCache({
 });
 
 async function getCachedRenderedStyleJSON(filePath) {
-  return await renderedStyleJSONCaches.wrap(filePath, async () => {
+  let cacheKey = filePath;
+
+  try {
+    cacheKey += `:${await getFileCreated(filePath)}`;
+  } catch (error) {
+    if (!isErrorNotFound(error)) {
+      throw error;
+    }
+  }
+
+  return await renderedStyleJSONCaches.wrap(cacheKey, async () => {
     try {
       return await createRenderedStyleJSON(filePath);
     } catch (error) {

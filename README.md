@@ -222,7 +222,7 @@ location /tile-server/ {
 
 ## OGC Web Map Service (WMS)
 
-The server exposes WMS 1.3.0 and the compatible WMS 1.1.1 profile:
+The server exposes WMS 1.3.0:
 
 - `GET /wms` serves all configured styles as WMS layers.
 - `GET /styles/{id}/wms` serves one style and is convenient for clients that use a per-layer endpoint.
@@ -270,9 +270,6 @@ curl -fsS 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabi
 # Map in EPSG:4326. WMS 1.3.0 uses latitude,longitude axis order for this CRS.
 curl -fsS -o map.png 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=asia_full&STYLES=&CRS=EPSG:4326&BBOX=20,100,25,110&WIDTH=1024&HEIGHT=768&FORMAT=image/png&TRANSPARENT=TRUE'
 
-# The same map using the WMS 1.1.1 longitude,latitude order.
-curl -fsS -o map.jpg 'http://localhost:8080/styles/asia_full/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=asia_full&STYLES=&SRS=EPSG:4326&BBOX=100,20,110,25&WIDTH=1024&HEIGHT=768&FORMAT=image/jpeg'
-
 # Legend
 curl -fsS -o legend.png 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=asia_full&FORMAT=image/png'
 
@@ -289,7 +286,6 @@ data sources are also published when their native format is supported.
 - `GET /wmts?SERVICE=WMTS&REQUEST=GetCapabilities&VERSION=1.0.0`
 - `GET /wmts?SERVICE=WMTS&REQUEST=GetTile...` for KVP requests
 - `GET /wmts/{layer}/default/{tileMatrixSet}/{tileMatrix}/{tileRow}/{tileCol}.{format}` for RESTful tiles
-- `GET /styles/{id}/wmts.xml` for capabilities of one rendered style
 - `GoogleMapsCompatible_256` and `GoogleMapsCompatible_512` TileMatrixSets use EPSG:3857 and zoom levels 0–22.
 
 The WMTS layer metadata can be customized in a style entry:
@@ -319,9 +315,8 @@ curl -fsS -o tile.png 'http://localhost:8080/wmts?SERVICE=WMTS&VERSION=1.0.0&REQ
 # RESTful GetTile
 curl -fsS -o tile.jpg 'http://localhost:8080/wmts/roads/default/GoogleMapsCompatible_256/10/511/806.jpg'
 
-# Per-style capabilities and RESTful tile URL
-curl -fsS 'http://localhost:8080/styles/roads/wmts.xml'
-curl -fsS -o tile.png 'http://localhost:8080/styles/roads/wmts/GoogleMapsCompatible_256/10/511/806.png'
+# RESTful tile URL
+curl -fsS -o tile.png 'http://localhost:8080/wmts/roads/default/GoogleMapsCompatible_256/10/511/806.png'
 ```
 
 The implementation follows the mandatory WMTS 1.0.0 `GetCapabilities` and
@@ -332,8 +327,8 @@ service can actually serve.
 
 WFS is exposed at `GET/POST /wfs`; a single feature type can also be addressed at
 `GET/POST /geojsons/{group}/{layer}/wfs`. Every configured GeoJSON layer is published
-as the feature type `{group}:{layer}`. The implementation supports WFS 2.0.0,
-1.1.0, and 1.0.0 discovery/query profiles and the following operations:
+as the feature type `{group}:{layer}`. The implementation supports WFS 2.0.0
+and the following operations:
 
 `GetCapabilities`, `DescribeFeatureType`, `GetFeature`, `GetPropertyValue`,
 `GetFeatureWithLock`, `LockFeature`, `Transaction`, `ListStoredQueries`,

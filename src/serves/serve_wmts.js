@@ -11,6 +11,7 @@ import {
   getPMTilesTile,
 } from "../resources/index.js";
 import {
+  compileHandleBarsTemplate,
   isFileNotModified,
   getRequestHost,
   getParameter,
@@ -20,16 +21,18 @@ import {
 } from "../utils/index.js";
 
 const WMTS_VERSION = "1.0.0";
-const WMTS_NAMESPACE = "http://www.opengis.net/wmts/1.0";
-const OWS_NAMESPACE = "http://www.opengis.net/ows/1.1";
-const XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
-const XML_SCHEMA_INSTANCE_NAMESPACE =
-  "http://www.w3.org/2001/XMLSchema-instance";
 const WEB_MERCATOR_HALF_WORLD = 20037508.342789244;
 const WEB_MERCATOR_SCALE_256 = 559082264.0287178;
 const DEFAULT_MAX_ZOOM = 22;
 const DEFAULT_BBOX = [-180, -85.051129, 180, 85.051129];
 const CAPABILITIES_UPDATE_SEQUENCE = String(Date.now());
+const DEFAULT_STYLE_FORMATS = ["image/png", "image/jpeg", "image/webp"];
+const TILE_MATRIX_ALIASES = {
+  256: "GoogleMapsCompatible_256",
+  512: "GoogleMapsCompatible_512",
+  GoogleMapsCompatible: "GoogleMapsCompatible_256",
+  WebMercatorQuad: "GoogleMapsCompatible_256",
+};
 
 const TILE_FORMATS = new Map([
   [
@@ -215,13 +218,7 @@ const TILE_MATRIX_SETS = new Map([
 ]);
 
 function getTileMatrixSet(id) {
-  const aliases = {
-    256: "GoogleMapsCompatible_256",
-    512: "GoogleMapsCompatible_512",
-    GoogleMapsCompatible: "GoogleMapsCompatible_256",
-    WebMercatorQuad: "GoogleMapsCompatible_256",
-  };
-  const identifier = aliases[id] ?? id;
+  const identifier = TILE_MATRIX_ALIASES[id] ?? id;
 
   const matrixSet = TILE_MATRIX_SETS.get(identifier);
   if (!matrixSet) {
@@ -244,7 +241,7 @@ function getLayerFormats(layer) {
     const configured = layer.item.wmts?.formats;
     const formats = Array.isArray(configured)
       ? configured
-      : ["image/png", "image/jpeg", "image/webp"];
+      : DEFAULT_STYLE_FORMATS;
 
     return formats.map(normalizeFormat);
   }
@@ -347,22 +344,8 @@ function getWMTSRegistry() {
   return wmtsRegistry;
 }
 
-export function getWMTSLayers(pathLayerId) {
+export function getWMTSLayers() {
   const registry = getWMTSRegistry();
-
-  if (pathLayerId) {
-    const layer = registry.byId.get(pathLayerId);
-    if (!layer || layer.kind !== "style") {
-      throw new WMTSError(
-        "LayerNotDefined",
-        `WMTS layer "${pathLayerId}" does not exist.`,
-        StatusCodes.NOT_FOUND,
-      );
-    }
-
-    return [layer];
-  }
-
   return registry.layers;
 }
 
@@ -453,61 +436,11 @@ function validateTileCoordinates(matrix, row, col) {
   };
 }
 
-function operationXML(name, href, encodings) {
-  return `<ows:Operation name="${name}"><ows:DCP><ows:HTTP><ows:Get xlink:href="${xmlEscape(href)}"><ows:Constraint name="GetEncoding"><ows:AllowedValues>${encodings
-    .map((encoding) => {
-      return `<ows:Value>${encoding}</ows:Value>`;
-    })
-    .join(
-      "",
-    )}</ows:AllowedValues></ows:Constraint></ows:Get></ows:HTTP></ows:DCP></ows:Operation>`;
-}
-
-function tileMatrixXML(matrixSet) {
-  return matrixSet.matrices
-    .map((matrix) => {
-      return `<TileMatrix><ows:Identifier>${matrix.identifier}</ows:Identifier><ScaleDenominator>${matrix.scaleDenominator}</ScaleDenominator><TopLeftCorner>${matrixSet.topLeft[0]} ${matrixSet.topLeft[1]}</TopLeftCorner><TileWidth>${matrixSet.tileSize}</TileWidth><TileHeight>${matrixSet.tileSize}</TileHeight><MatrixWidth>${matrix.matrixWidth}</MatrixWidth><MatrixHeight>${matrix.matrixHeight}</MatrixHeight></TileMatrix>`;
-    })
-    .join("");
-}
-
-function layerXML(layer, baseURL, pathLayerId) {
-  const restBase = pathLayerId
-    ? `${baseURL}/styles/${encodeURIComponent(layer.id)}/wmts`
-    : `${baseURL}/wmts/${encodeURIComponent(layer.id)}/default`;
-  const bbox = layer.bbox;
-  const formats = layer.formats
-    .map((format) => {
-      return `<Format>${xmlEscape(format.mime)}</Format>`;
-    })
-    .join("");
-  const links = layer.matrixSets
-    .map((matrixSet) => {
-      const limits = matrixSet.matrices
-        .slice(layer.minZoom, layer.maxZoom + 1)
-        .map((matrix) => {
-          return `<TileMatrixLimits><TileMatrix>${matrix.identifier}</TileMatrix><MinTileRow>0</MinTileRow><MaxTileRow>${matrix.matrixHeight - 1}</MaxTileRow><MinTileCol>0</MinTileCol><MaxTileCol>${matrix.matrixWidth - 1}</MaxTileCol></TileMatrixLimits>`;
-        })
-        .join("");
-
-      return `<TileMatrixSetLink><TileMatrixSet>${matrixSet.identifier}</TileMatrixSet><TileMatrixSetLimits>${limits}</TileMatrixSetLimits></TileMatrixSetLink>`;
-    })
-    .join("");
-  const resources = layer.formats
-    .map((format) => {
-      return `<ResourceURL format="${xmlEscape(format.mime)}" resourceType="tile" template="${xmlEscape(`${restBase}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.${format.extension}`)}"/>`;
-    })
-    .join("");
-
-  return `<Layer><ows:Title>${xmlEscape(layer.title)}</ows:Title><ows:Abstract>${xmlEscape(layer.abstract)}</ows:Abstract><ows:Identifier>${xmlEscape(layer.id)}</ows:Identifier><ows:WGS84BoundingBox crs="urn:ogc:def:crs:OGC:2:84"><ows:LowerCorner>${bbox[0]} ${bbox[1]}</ows:LowerCorner><ows:UpperCorner>${bbox[2]} ${bbox[3]}</ows:UpperCorner></ows:WGS84BoundingBox><Style isDefault="true"><ows:Identifier>default</ows:Identifier><ows:Title>Default</ows:Title></Style>${formats}${links}${resources}</Layer>`;
-}
-
-export function buildCapabilities({
+export async function buildCapabilities({
   baseURL,
   layers = getWMTSLayers(),
   title = config.options?.wmts?.title ?? "Tile Server",
   abstract = config.options?.wmts?.abstract ?? "OGC Web Map Tile Service",
-  pathLayerId,
 }) {
   const matrixSets = [];
   for (const layer of layers) {
@@ -522,23 +455,63 @@ export function buildCapabilities({
     }
   }
 
-  const capabilitiesURL = `${baseURL}${pathLayerId ? `/styles/${encodeURIComponent(pathLayerId)}/wmts.xml` : "/wmts"}`;
-  const tileServiceURL = `${baseURL}/wmts`;
-  const layerContent = layers
-    .map((layer) => {
-      return layerXML(layer, baseURL, pathLayerId);
-    })
-    .join("");
-  const matrixContent = matrixSets
-    .map((matrixSet) => {
-      return `<TileMatrixSet><ows:Title>${matrixSet.identifier}</ows:Title><ows:Identifier>${matrixSet.identifier}</ows:Identifier><ows:SupportedCRS>${matrixSet.supportedCRS}</ows:SupportedCRS>${tileMatrixXML(matrixSet)}</TileMatrixSet>`;
-    })
-    .join("");
+  const capabilitiesURL = `${baseURL}/wmts`;
+  const layerData = layers.map((layer) => {
+    const restBase = `${baseURL}/wmts/${encodeURIComponent(layer.id)}/default`;
+    const formats = layer.formats.map((format) => {
+      return {
+        mime: xmlEscape(format.mime),
+        template: xmlEscape(
+          `${restBase}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.${format.extension}`,
+        ),
+      };
+    });
 
-  return `<?xml version="1.0" encoding="UTF-8"?><Capabilities xmlns="${WMTS_NAMESPACE}" xmlns:ows="${OWS_NAMESPACE}" xmlns:xlink="${XLINK_NAMESPACE}" xmlns:xsi="${XML_SCHEMA_INSTANCE_NAMESPACE}" version="${WMTS_VERSION}" updateSequence="${CAPABILITIES_UPDATE_SEQUENCE}"><ows:ServiceIdentification><ows:Title>${xmlEscape(title)}</ows:Title><ows:Abstract>${xmlEscape(abstract)}</ows:Abstract><ows:ServiceType codeSpace="OGC">WMTS</ows:ServiceType><ows:ServiceTypeVersion>${WMTS_VERSION}</ows:ServiceTypeVersion></ows:ServiceIdentification><ows:OperationsMetadata>${operationXML("GetCapabilities", capabilitiesURL, ["KVP", "RESTful"])}${operationXML("GetTile", tileServiceURL, ["KVP", "RESTful"])}</ows:OperationsMetadata><Contents>${layerContent}${matrixContent}</Contents><ServiceMetadataURL xlink:href="${xmlEscape(capabilitiesURL)}"/></Capabilities>`;
+    return {
+      title: xmlEscape(layer.title),
+      abstract: xmlEscape(layer.abstract),
+      identifier: xmlEscape(layer.id),
+      bbox: layer.bbox,
+      formats,
+      matrixSetLinks: layer.matrixSets.map((matrixSet) => {
+        return {
+          identifier: xmlEscape(matrixSet.identifier),
+          limits: matrixSet.matrices
+            .slice(layer.minZoom, layer.maxZoom + 1)
+            .map((matrix) => {
+              return {
+                identifier: xmlEscape(matrix.identifier),
+                maxTileRow: matrix.matrixHeight - 1,
+                maxTileCol: matrix.matrixWidth - 1,
+              };
+            }),
+        };
+      }),
+      resources: formats,
+    };
+  });
+
+  const matrixData = matrixSets.map((matrixSet) => {
+    return {
+      title: xmlEscape(matrixSet.identifier),
+      identifier: xmlEscape(matrixSet.identifier),
+      supportedCRS: xmlEscape(matrixSet.supportedCRS),
+      matrices: matrixSet.matrices,
+    };
+  });
+
+  return await compileHandleBarsTemplate("wmts", {
+    version: WMTS_VERSION,
+    updateSequence: CAPABILITIES_UPDATE_SEQUENCE,
+    title: xmlEscape(title),
+    abstract: xmlEscape(abstract),
+    capabilitiesURL: xmlEscape(capabilitiesURL),
+    layers: layerData,
+    matrixSets: matrixData,
+  });
 }
 
-function sendException(res, error) {
+async function sendException(res, error) {
   const status =
     error instanceof WMTSError
       ? error.status
@@ -546,7 +519,11 @@ function sendException(res, error) {
   const code = error instanceof WMTSError ? error.code : "NoApplicableCode";
   const message =
     error instanceof WMTSError ? error.message : "Internal server error";
-  const body = `<?xml version="1.0" encoding="UTF-8"?><ows:ExceptionReport xmlns:ows="${OWS_NAMESPACE}" version="1.1.0"><ows:Exception exceptionCode="${xmlEscape(code)}"><ows:ExceptionText>${xmlEscape(message)}</ows:ExceptionText></ows:Exception></ows:ExceptionReport>`;
+  const body = await compileHandleBarsTemplate("ows_exception", {
+    version: "1.1.0",
+    code: xmlEscape(code),
+    message: xmlEscape(message),
+  });
 
   return res.status(status).set("content-type", "application/xml").send(body);
 }
@@ -652,17 +629,13 @@ async function sendTile(req, res, layer, parameters) {
   return res.status(StatusCodes.OK).set(headers).send(tile.data);
 }
 
-function capabilitiesHandler(pathLayerId) {
-  return (req, res) => {
+function capabilitiesHandler() {
+  return async (req, res) => {
     try {
       normalizeVersion(getParameter(req.query, "VERSION", WMTS_VERSION));
       const baseURL = getRequestHost(req);
-      const actualLayerId = pathLayerId ?? req.params.id;
-      const layers = getWMTSLayers(actualLayerId);
-      const xml = buildCapabilities({
+      const xml = await buildCapabilities({
         baseURL,
-        layers,
-        pathLayerId: actualLayerId,
       });
 
       return res
@@ -709,16 +682,12 @@ function kvpHandler() {
   };
 }
 
-function restTileHandler({ pathStyle = false, compact = false } = {}) {
+function restTileHandler({ compact = false } = {}) {
   return async (req, res) => {
     try {
-      const layerId = pathStyle ? req.params.id : req.params.layer;
+      const layerId = req.params.layer;
       const layer = getLayer(getWMTSLayers(), layerId);
-      const style = pathStyle
-        ? "default"
-        : compact
-          ? "default"
-          : req.params.style;
+      const style = compact ? "default" : req.params.style;
       if (style !== "default") {
         throw new WMTSError(
           "StyleNotDefined",
@@ -789,6 +758,24 @@ export const serve_wmts = {
      */
     /**
      * @swagger
+     * /wmts/1.0.0/WMTSCapabilities.xml:
+     *   get:
+     *     tags: [WMTS]
+     *     summary: Get WMTS capabilities XML
+     *     parameters:
+     *       - in: query
+     *         name: VERSION
+     *         schema: { type: string, enum: ['1.0.0'], default: '1.0.0' }
+     *     responses:
+     *       200:
+     *         description: WMTS 1.0.0 capabilities document.
+     *         content:
+     *           application/xml: { schema: { type: string } }
+     *       400:
+     *         description: OGC exception report.
+     */
+    /**
+     * @swagger
      * /wmts/{layer}/{style}/{tileMatrixSet}/{tileMatrix}/{tileRow}/{tileCol}.{format}:
      *   get:
      *     tags: [WMTS]
@@ -810,21 +797,27 @@ export const serve_wmts = {
      *       400:
      *         description: OGC exception report.
      */
+    /**
+     * @swagger
+     * /wmts/{layer}/{tileMatrixSet}/{tileMatrix}/{tileRow}/{tileCol}.{format}:
+     *   get:
+     *     tags: [WMTS]
+     *     summary: Get a WMTS REST tile using the default style
+     *     parameters:
+     *       - { in: path, name: layer, required: true, schema: { type: string } }
+     *       - { in: path, name: tileMatrixSet, required: true, schema: { type: string } }
+     *       - { in: path, name: tileMatrix, required: true, schema: { type: string } }
+     *       - { in: path, name: tileRow, required: true, schema: { type: integer, minimum: 0 } }
+     *       - { in: path, name: tileCol, required: true, schema: { type: integer, minimum: 0 } }
+     *       - { in: path, name: format, required: true, schema: { type: string, enum: [png, jpg, jpeg, webp, pbf] } }
+     *     responses:
+     *       200:
+     *         description: Tile bytes.
+     *       400:
+     *         description: OGC exception report.
+     */
     app.get("/wmts", kvpHandler());
     app.get("/wmts/1.0.0/WMTSCapabilities.xml", capabilitiesHandler());
-    app.get("/styles/:id/wmts.xml", capabilitiesHandler());
-    app.get(
-      "/styles/:id/wmts/:tileMatrixSet/:tileMatrix/:tileRow/:tileCol.:format",
-      restTileHandler({
-        pathStyle: true,
-      }),
-    );
-    app.get(
-      "/styles/:id/:tileMatrixSet/:tileMatrix/:tileRow/:tileCol.:format",
-      restTileHandler({
-        pathStyle: true,
-      }),
-    );
     app.get(
       "/wmts/:layer/:style/:tileMatrixSet/:tileMatrix/:tileRow/:tileCol.:format",
       restTileHandler(),

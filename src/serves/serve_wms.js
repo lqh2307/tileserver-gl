@@ -9,6 +9,7 @@ import {
   getRenderedStyleJSON,
 } from "../resources/index.js";
 import {
+  compileHandleBarsTemplate,
   getNearestPointOnSegment,
   calculateMaxZoom,
   transformBBoxSRS,
@@ -27,8 +28,7 @@ import {
   renderImageStaticData,
 } from "../render_style.js";
 
-const WMS_1_1_1 = "1.1.1";
-const WMS_1_3_0 = "1.3.0";
+const WMS_VERSION = "1.3.0";
 const WGS84_BBOX = [-180, -85.051129, 180, 85.051129];
 const DEFAULT_MAX_SIZE = 4096;
 const CAPABILITIES_UPDATE_SEQUENCE = String(Date.now());
@@ -63,9 +63,9 @@ function getParameters(req) {
 }
 
 function normalizeVersion(value) {
-  const version = String(value ?? WMS_1_3_0);
+  const version = String(value ?? WMS_VERSION);
 
-  if (version !== WMS_1_1_1 && version !== WMS_1_3_0) {
+  if (version !== WMS_VERSION) {
     throw new WMSException(
       "InvalidVersion",
       `Unsupported WMS version "${version}".`,
@@ -104,12 +104,8 @@ function projectionCRS(crs) {
   return crs === "CRS:84" ? "EPSG:4326" : crs;
 }
 
-function hasInvertedAxis(version, crs) {
-  return version === WMS_1_3_0 && crs === "EPSG:4326";
-}
-
 /** Parse a WMS BBOX and return WGS84 [west, south, east, north]. */
-export function parseWMSBBox(value, version, crsValue) {
+export function parseWMSBBox(value, crsValue) {
   const crs = normalizeCRS(crsValue);
   const values = String(value ?? "")
     .split(",")
@@ -127,10 +123,8 @@ export function parseWMSBBox(value, version, crsValue) {
     );
   }
 
-  let bounds = values;
-  if (hasInvertedAxis(version, crs)) {
-    bounds = [values[1], values[0], values[3], values[2]];
-  }
+  const bounds =
+    crs === "EPSG:4326" ? [values[1], values[0], values[3], values[2]] : values;
 
   if (bounds[0] >= bounds[2] || bounds[1] >= bounds[3]) {
     throw new WMSException(
@@ -229,87 +223,56 @@ function getServiceMetadata() {
     keywords: options.keywords ?? ["WMS", "OGC", "MapLibre"],
     fees: options.fees ?? "none",
     accessConstraints: options.accessConstraints ?? "none",
-    contact: options.contact ?? {},
   };
 }
 
-function operationURL(url, operation, formats) {
-  const formatXML = formats
-    .map((format) => {
-      return `<Format>${xmlEscape(format)}</Format>`;
-    })
-    .join("");
-
-  return `<${operation}>${formatXML}<DCPType><HTTP><Get><OnlineResource xlink:href="${xmlEscape(url)}"/></Get></HTTP></DCPType></${operation}>`;
-}
-
-function dimensionXML(layer) {
-  return Object.entries(layer.dimensions)
-    .map(([name, value]) => {
-      const dimension =
-        typeof value === "string"
-          ? {
-              values: value,
-            }
-          : value;
-      return `<Dimension name="${xmlEscape(name)}" units="${xmlEscape(dimension.units ?? "ISO8601")}"${dimension.unitSymbol ? ` unitSymbol="${xmlEscape(dimension.unitSymbol)}"` : ""}>${xmlEscape(dimension.values ?? "")}</Dimension>`;
-    })
-    .join("");
-}
-
-function capabilitiesLayer(layer, version, baseURL) {
-  const bbox = layer.bbox;
-  const style = `<Style><Name>default</Name><Title>Default</Title><LegendURL width="24" height="24"><Format>image/png</Format><OnlineResource xlink:href="${xmlEscape(`${baseURL}?SERVICE=WMS&VERSION=${version}&REQUEST=GetLegendGraphic&FORMAT=image/png&LAYER=${encodeURIComponent(layer.id)}`)}"/></LegendURL></Style>`;
-
-  if (version === WMS_1_1_1) {
-    return `<Layer queryable="${layer.queryable ? 1 : 0}"><Name>${xmlEscape(layer.id)}</Name><Title>${xmlEscape(layer.title)}</Title><Abstract>${xmlEscape(layer.abstract)}</Abstract><SRS>CRS:84</SRS><SRS>EPSG:4326</SRS><SRS>EPSG:3857</SRS><LatLonBoundingBox minx="${bbox[0]}" miny="${bbox[1]}" maxx="${bbox[2]}" maxy="${bbox[3]}"/>${style}${dimensionXML(layer)}</Layer>`;
-  }
-
-  return `<Layer queryable="${layer.queryable ? 1 : 0}"><Name>${xmlEscape(layer.id)}</Name><Title>${xmlEscape(layer.title)}</Title><Abstract>${xmlEscape(layer.abstract)}</Abstract><CRS>CRS:84</CRS><CRS>EPSG:4326</CRS><CRS>EPSG:3857</CRS><EX_GeographicBoundingBox><westBoundLongitude>${bbox[0]}</westBoundLongitude><eastBoundLongitude>${bbox[2]}</eastBoundLongitude><southBoundLatitude>${bbox[1]}</southBoundLatitude><northBoundLatitude>${bbox[3]}</northBoundLatitude></EX_GeographicBoundingBox><BoundingBox CRS="EPSG:3857" minx="-20037508.34" miny="-20037508.34" maxx="20037508.34" maxy="20037508.34"/>${style}${dimensionXML(layer)}</Layer>`;
-}
-
 /** Build a WMS capabilities document for the supplied layer set. */
-export function buildCapabilities({ version, baseURL, layers }) {
+export async function buildCapabilities({ version, baseURL, layers }) {
+  const normalizedVersion = normalizeVersion(version);
   const service = getServiceMetadata();
-  const layerXML = layers
-    .map((layer) => {
-      return capabilitiesLayer(layer, version, baseURL);
-    })
-    .join("");
-  const formats = ["image/png", "image/jpeg", "image/webp"];
-  const infoFormats = Array.from(SUPPORTED_INFO_FORMATS);
-  const commonRequest = [
-    operationURL(baseURL, "GetCapabilities", [
-      "text/xml",
-      "application/vnd.ogc.wms_xml",
-    ]),
-    operationURL(baseURL, "GetMap", formats),
-    operationURL(baseURL, "GetFeatureInfo", infoFormats),
-    operationURL(baseURL, "GetLegendGraphic", formats.concat("image/svg+xml")),
-    operationURL(baseURL, "GetStyles", ["application/vnd.ogc.sld+xml"]),
-    operationURL(baseURL, "DescribeLayer", [
-      "text/xml",
-      "application/vnd.ogc.wms_xml",
-    ]),
-  ].join("");
+  const layerData = layers.map((layer) => {
+    return {
+      queryable: layer.queryable ? 1 : 0,
+      name: xmlEscape(layer.id),
+      title: xmlEscape(layer.title),
+      abstract: xmlEscape(layer.abstract),
+      bbox: layer.bbox,
+      legendURL: xmlEscape(
+        `${baseURL}?SERVICE=WMS&VERSION=${normalizedVersion}&REQUEST=GetLegendGraphic&FORMAT=image/png&LAYER=${encodeURIComponent(layer.id)}`,
+      ),
+      dimensions: Object.entries(layer.dimensions).map(([name, value]) => {
+        const dimension =
+          typeof value === "string"
+            ? {
+                values: value,
+              }
+            : value;
 
-  if (version === WMS_1_1_1) {
-    return `<?xml version="1.0" encoding="UTF-8"?><WMT_MS_Capabilities version="1.1.1" updateSequence="${xmlEscape(CAPABILITIES_UPDATE_SEQUENCE)}" xmlns="http://www.opengis.net/wms" xmlns:xlink="http://www.w3.org/1999/xlink"><Service><Name>WMS</Name><Title>${xmlEscape(service.title)}</Title><Abstract>${xmlEscape(service.abstract)}</Abstract><KeywordList>${service.keywords
-      .map((keyword) => {
-        return `<Keyword>${xmlEscape(keyword)}</Keyword>`;
-      })
-      .join(
-        "",
-      )}</KeywordList><OnlineResource xlink:href="${xmlEscape(baseURL)}"/><Fees>${xmlEscape(service.fees)}</Fees><AccessConstraints>${xmlEscape(service.accessConstraints)}</AccessConstraints></Service><Capability><Request>${commonRequest}</Request><Exception><Format>application/vnd.ogc.se_xml</Format><Format>application/vnd.ogc.se_inimage</Format><Format>application/vnd.ogc.se_blank</Format></Exception><Layer><Title>${xmlEscape(service.title)}</Title><SRS>CRS:84</SRS><SRS>EPSG:4326</SRS><SRS>EPSG:3857</SRS>${layerXML}</Layer></Capability></WMT_MS_Capabilities>`;
-  }
+        return {
+          name: xmlEscape(name),
+          units: xmlEscape(dimension.units ?? "ISO8601"),
+          unitSymbol: dimension.unitSymbol
+            ? xmlEscape(dimension.unitSymbol)
+            : undefined,
+          values: xmlEscape(dimension.values ?? ""),
+        };
+      }),
+    };
+  });
 
-  return `<?xml version="1.0" encoding="UTF-8"?><WMS_Capabilities version="1.3.0" updateSequence="${xmlEscape(CAPABILITIES_UPDATE_SEQUENCE)}" xmlns="http://www.opengis.net/wms" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wms http://schemas.opengis.net/wms/1.3.0/capabilities_1_3_0.xsd"><Service><Name>WMS</Name><Title>${xmlEscape(service.title)}</Title><Abstract>${xmlEscape(service.abstract)}</Abstract><KeywordList>${service.keywords
-    .map((keyword) => {
-      return `<Keyword>${xmlEscape(keyword)}</Keyword>`;
-    })
-    .join(
-      "",
-    )}</KeywordList><OnlineResource xlink:href="${xmlEscape(baseURL)}"/><Fees>${xmlEscape(service.fees)}</Fees><AccessConstraints>${xmlEscape(service.accessConstraints)}</AccessConstraints></Service><Capability><Request>${commonRequest}</Request><Exception><Format>XML</Format><Format>INIMAGE</Format><Format>BLANK</Format></Exception><Layer><Title>${xmlEscape(service.title)}</Title><CRS>CRS:84</CRS><CRS>EPSG:4326</CRS><CRS>EPSG:3857</CRS>${layerXML}</Layer></Capability></WMS_Capabilities>`;
+  return await compileHandleBarsTemplate("wms", {
+    version: normalizedVersion,
+    updateSequence: CAPABILITIES_UPDATE_SEQUENCE,
+    service: {
+      title: xmlEscape(service.title),
+      abstract: xmlEscape(service.abstract),
+      keywords: service.keywords.map(xmlEscape),
+      baseURL: xmlEscape(baseURL),
+      fees: xmlEscape(service.fees),
+      accessConstraints: xmlEscape(service.accessConstraints),
+    },
+    layers: layerData,
+  });
 }
 
 function parseImageFormat(value) {
@@ -619,11 +582,9 @@ function infoResponse(features, format) {
   };
 }
 
-function parseMapRequest(layers, parameters, version) {
-  const crs = normalizeCRS(
-    getParameter(parameters, version === WMS_1_3_0 ? "CRS" : "SRS"),
-  );
-  const bbox = parseWMSBBox(getParameter(parameters, "BBOX"), version, crs);
+function parseMapRequest(layers, parameters) {
+  const crs = normalizeCRS(getParameter(parameters, "CRS"));
+  const bbox = parseWMSBBox(getParameter(parameters, "BBOX"), crs);
   const width = parseInteger(
     getParameter(parameters, "WIDTH"),
     "WIDTH",
@@ -673,7 +634,7 @@ function parseMapRequest(layers, parameters, version) {
   };
 }
 
-async function renderMap(layers, parameters, version) {
+async function renderMap(layers, parameters) {
   const {
     bbox,
     width,
@@ -683,7 +644,7 @@ async function renderMap(layers, parameters, version) {
     background,
     tileScale,
     zoom,
-  } = parseMapRequest(layers, parameters, version);
+  } = parseMapRequest(layers, parameters);
   const rendered = await Promise.all(
     layers.map(async (layer) => {
       const styleJSON = await getRenderedStyleJSON(layer.item.path);
@@ -758,10 +719,10 @@ async function sendException(res, error, parameters) {
       ? error.message
       : "The WMS request could not be completed.";
   const exceptionFormat = String(
-    getParameter(parameters, "EXCEPTIONS", "application/vnd.ogc.se_xml"),
+    getParameter(parameters, "EXCEPTIONS", "XML"),
   ).toLowerCase();
 
-  if (exceptionFormat.includes("se_inimage") || exceptionFormat === "inimage") {
+  if (exceptionFormat === "inimage") {
     const width = min(
       max(Number(getParameter(parameters, "WIDTH", 256)) || 256, 1),
       DEFAULT_MAX_SIZE,
@@ -778,7 +739,7 @@ async function sendException(res, error, parameters) {
     return;
   }
 
-  if (exceptionFormat.includes("se_blank") || exceptionFormat === "blank") {
+  if (exceptionFormat === "blank") {
     res
       .status(400)
       .set("content-type", "image/png")
@@ -802,14 +763,16 @@ async function sendException(res, error, parameters) {
     return;
   }
 
-  const version = String(getParameter(parameters, "VERSION", WMS_1_3_0));
-  const root =
-    version === WMS_1_1_1 ? "ServiceExceptionReport" : "ServiceExceptionReport";
+  const version = String(getParameter(parameters, "VERSION", WMS_VERSION));
   res
     .status(400)
     .set("content-type", "text/xml; charset=utf-8")
     .send(
-      `<?xml version="1.0" encoding="UTF-8"?><${root} version="${xmlEscape(version)}" xmlns="http://www.opengis.net/ogc"><ServiceException code="${xmlEscape(code)}">${xmlEscape(message)}</ServiceException></${root}>`,
+      await compileHandleBarsTemplate("wms_exception", {
+        version: xmlEscape(version),
+        code: xmlEscape(code),
+        message: xmlEscape(message),
+      }),
     );
 }
 
@@ -817,7 +780,9 @@ async function handleWMS(req, res, pathId) {
   const parameters = getParameters(req);
   let version;
   try {
-    version = normalizeVersion(getParameter(parameters, "VERSION", WMS_1_3_0));
+    version = normalizeVersion(
+      getParameter(parameters, "VERSION", WMS_VERSION),
+    );
     const service = String(
       getParameter(parameters, "SERVICE", "WMS"),
     ).toUpperCase();
@@ -854,13 +819,16 @@ async function handleWMS(req, res, pathId) {
       const layers = pathId
         ? [getLayer(pathId)]
         : Object.keys(config.styles ?? {}).map(getLayer);
-      res.status(200).set("content-type", "text/xml; charset=utf-8").send(
-        buildCapabilities({
-          version,
-          baseURL,
-          layers,
-        }),
-      );
+      res
+        .status(200)
+        .set("content-type", "text/xml; charset=utf-8")
+        .send(
+          await buildCapabilities({
+            version,
+            baseURL,
+            layers,
+          }),
+        );
       return;
     }
 
@@ -868,7 +836,6 @@ async function handleWMS(req, res, pathId) {
       const result = await renderMap(
         resolveLayers(pathId, parameters),
         parameters,
-        version,
       );
       res.status(200).set("content-type", result.contentType).send(result.data);
       return;
@@ -892,16 +859,16 @@ async function handleWMS(req, res, pathId) {
           `INFO_FORMAT "${infoFormat}" is not supported.`,
         );
       }
-      const mapResult = parseMapRequest(layers, parameters, version);
+      const mapResult = parseMapRequest(layers, parameters);
       const x = parseInteger(
-        getParameter(parameters, version === WMS_1_3_0 ? "I" : "X"),
-        version === WMS_1_3_0 ? "I" : "X",
+        getParameter(parameters, "I"),
+        "I",
         0,
         mapResult.width - 1,
       );
       const y = parseInteger(
-        getParameter(parameters, version === WMS_1_3_0 ? "J" : "Y"),
-        version === WMS_1_3_0 ? "J" : "Y",
+        getParameter(parameters, "J"),
+        "J",
         0,
         mapResult.height - 1,
       );
@@ -1020,9 +987,12 @@ export const serve_wms = {
      * /wms:
      *   get:
      *     tags: [WMS]
-     *     summary: Execute a WMS request
-     *     description: Supports GetCapabilities, GetMap, GetFeatureInfo, GetLegendGraphic, GetStyles, and DescribeLayer.
+     *     summary: Execute a WMS 1.3.0 request
+     *     description: Handles GetCapabilities, GetMap, GetFeatureInfo, GetLegendGraphic, GetStyles, and DescribeLayer for all configured styles.
      *     parameters:
+     *       - in: query
+     *         name: SERVICE
+     *         schema: { type: string, enum: [WMS], default: WMS }
      *       - in: query
      *         name: REQUEST
      *         required: true
@@ -1033,16 +1003,24 @@ export const serve_wms = {
      *         name: VERSION
      *         schema:
      *           type: string
-     *           enum: ['1.1.1', '1.3.0']
+     *           enum: ['1.3.0']
      *           default: '1.3.0'
      *       - in: query
      *         name: LAYERS
      *         schema: { type: string }
      *         description: Comma-separated style layer IDs.
      *       - in: query
+     *         name: QUERY_LAYERS
+     *         schema: { type: string }
+     *         description: Layers queried by GetFeatureInfo.
+     *       - in: query
      *         name: BBOX
      *         schema: { type: string }
      *         description: Four comma-separated coordinates.
+     *       - in: query
+     *         name: CRS
+     *         schema: { type: string, example: EPSG:4326 }
+     *         description: Coordinate reference system.
      *       - in: query
      *         name: WIDTH
      *         schema: { type: integer, minimum: 1 }
@@ -1053,7 +1031,20 @@ export const serve_wms = {
      *         name: FORMAT
      *         schema:
      *           type: string
-     *           enum: [image/png, image/jpeg, image/webp, application/json, text/plain, text/html]
+     *           enum: [image/png, image/jpeg, image/webp]
+     *       - in: query
+     *         name: INFO_FORMAT
+     *         schema:
+     *           type: string
+     *           enum: [application/json, application/geo+json, text/plain, text/html]
+     *       - in: query
+     *         name: I
+     *         schema: { type: integer, minimum: 0 }
+     *         description: Pixel column for GetFeatureInfo.
+     *       - in: query
+     *         name: J
+     *         schema: { type: integer, minimum: 0 }
+     *         description: Pixel row for GetFeatureInfo.
      *     responses:
      *       200:
      *         description: WMS XML, raster image, or feature information.
@@ -1063,6 +1054,60 @@ export const serve_wms = {
      *           application/json: { schema: { type: object } }
      *       400:
      *         description: OGC service exception.
+     */
+    /**
+     * @swagger
+     * /wms/{id}:
+     *   get:
+     *     tags: [WMS]
+     *     summary: Execute WMS for one style
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *         description: Style ID.
+     *       - in: query
+     *         name: REQUEST
+     *         required: true
+     *         schema: { type: string, enum: [GetCapabilities, GetMap, GetFeatureInfo, GetLegendGraphic, GetStyles, DescribeLayer] }
+     *       - in: query
+     *         name: VERSION
+     *         schema: { type: string, enum: ['1.3.0'], default: '1.3.0' }
+     *     responses:
+     *       200:
+     *         description: WMS XML, raster image, or feature information for the style.
+     *       400:
+     *         description: OGC service exception.
+     *       404:
+     *         description: Style not found.
+     */
+    /**
+     * @swagger
+     * /styles/{id}/wms:
+     *   get:
+     *     tags: [WMS]
+     *     summary: Execute WMS for one style
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *         description: Style ID.
+     *       - in: query
+     *         name: REQUEST
+     *         required: true
+     *         schema: { type: string, enum: [GetCapabilities, GetMap, GetFeatureInfo, GetLegendGraphic, GetStyles, DescribeLayer] }
+     *       - in: query
+     *         name: VERSION
+     *         schema: { type: string, enum: ['1.3.0'], default: '1.3.0' }
+     *     responses:
+     *       200:
+     *         description: WMS XML, raster image, or feature information for the style.
+     *       400:
+     *         description: OGC service exception.
+     *       404:
+     *         description: Style not found.
      */
     const register = (route) => {
       app.get(route, (req, res) => {

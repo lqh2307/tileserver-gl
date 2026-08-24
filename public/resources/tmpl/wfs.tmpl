@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<wfs:WFS_Capabilities version="2.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fes="http://www.opengis.net/fes/2.0" xmlns:gml="http://www.opengis.net/gml/3.2">
+  <ows:ServiceIdentification>
+    <ows:Title>Tile Server WFS</ows:Title>
+    <ows:ServiceType>WFS</ows:ServiceType>
+    <ows:ServiceTypeVersion>2.0.0</ows:ServiceTypeVersion>
+  </ows:ServiceIdentification>
+  <ows:OperationsMetadata>
+    <ows:Operation name="GetCapabilities"><ows:DCP><ows:HTTP><ows:Get xlink:href="{{{baseURL}}}"/></ows:HTTP></ows:DCP></ows:Operation>
+    <ows:Operation name="DescribeFeatureType"><ows:DCP><ows:HTTP><ows:Get xlink:href="{{{baseURL}}}"/></ows:HTTP></ows:DCP></ows:Operation>
+    <ows:Operation name="GetPropertyValue"><ows:DCP><ows:HTTP><ows:Get xlink:href="{{{baseURL}}}"/></ows:HTTP></ows:DCP></ows:Operation>
+    <ows:Operation name="GetFeature"><ows:DCP><ows:HTTP><ows:Get xlink:href="{{{baseURL}}}"/></ows:HTTP></ows:DCP></ows:Operation>
+  </ows:OperationsMetadata>
+  <wfs:FeatureTypeList>
+    {{#each types}}
+    <wfs:FeatureType>
+      <wfs:Name>{{{name}}}</wfs:Name>
+      <wfs:Title>{{{title}}}</wfs:Title>
+      <wfs:DefaultCRS>urn:ogc:def:crs:OGC:1.3:CRS84</wfs:DefaultCRS>
+      <wfs:OtherCRS>urn:ogc:def:crs:EPSG::3857</wfs:OtherCRS>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>{{bbox.[0]}} {{bbox.[1]}}</ows:LowerCorner>
+        <ows:UpperCorner>{{bbox.[2]}} {{bbox.[3]}}</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <wfs:OutputFormats>
+        <wfs:Format>application/json</wfs:Format>
+        <wfs:Format>application/gml+xml; version=3.2</wfs:Format>
+      </wfs:OutputFormats>
+    </wfs:FeatureType>
+    {{/each}}
+  </wfs:FeatureTypeList>
+  <fes:Filter_Capabilities>
+    <fes:Conformance>
+      <fes:Constraint name="ImplementsQuery"><ows:NoValues/></fes:Constraint>
+    </fes:Conformance>
+    <fes:Id_Capabilities><fes:ResourceId/></fes:Id_Capabilities>
+    <fes:Scalar_Capabilities>
+      <fes:ComparisonOperators>
+        <fes:ComparisonOperator name="PropertyIsEqualTo"/>
+        <fes:ComparisonOperator name="PropertyIsNotEqualTo"/>
+        <fes:ComparisonOperator name="PropertyIsLessThan"/>
+        <fes:ComparisonOperator name="PropertyIsGreaterThan"/>
+      </fes:ComparisonOperators>
+    </fes:Scalar_Capabilities>
+    <fes:Spatial_Capabilities><fes:SpatialOperator name="BBOX"/></fes:Spatial_Capabilities>
+  </fes:Filter_Capabilities>
+</wfs:WFS_Capabilities>

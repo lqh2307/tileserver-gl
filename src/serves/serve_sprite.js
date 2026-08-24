@@ -122,18 +122,16 @@ function getSpritesListHandler() {
     try {
       const requestHost = getRequestHost(req);
 
-      const result = await Promise.all(
-        Object.keys(config.sprites).map(async (id) => {
-          return {
-            id,
-            name: id,
-            urls: [
-              `${requestHost}/sprites/${id}/sprite.json`,
-              `${requestHost}/sprites/${id}/sprite.png`,
-            ],
-          };
-        }),
-      );
+      let result = Object.keys(config.sprites).map((id) => {
+        return {
+          id,
+          name: id,
+          urls: [
+            `${requestHost}/sprites/${id}/sprite.json`,
+            `${requestHost}/sprites/${id}/sprite.png`,
+          ],
+        };
+      });
 
       const headers = {
         "content-type": "application/json",

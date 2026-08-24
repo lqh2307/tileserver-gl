@@ -12,18 +12,11 @@ import {
 } from "../src/serves/serve_wms.js";
 
 test("WMS 1.3.0 applies the EPSG:4326 latitude/longitude axis order", () => {
-  assert.deepEqual(
-    parseWMSBBox("10,20,30,40", "1.3.0", "EPSG:4326"),
-    [20, 10, 40, 30],
-  );
-  assert.deepEqual(
-    parseWMSBBox("20,10,40,30", "1.1.1", "EPSG:4326"),
-    [20, 10, 40, 30],
-  );
+  assert.deepEqual(parseWMSBBox("10,20,30,40", "EPSG:4326"), [20, 10, 40, 30]);
 });
 
-test("WMS capabilities expose the supported operations and XML formats", () => {
-  const capabilities = buildCapabilities({
+test("WMS capabilities expose the supported operations and XML formats", async () => {
+  const capabilities = await buildCapabilities({
     version: "1.3.0",
     baseURL: "https://example.test/wms",
     layers: [],
@@ -59,8 +52,8 @@ test("WMS returns an OGC exception for unsupported operations", async () => {
     const post = await fetch(
       `http://127.0.0.1:${address.port}/wms?SERVICE=WMS&REQUEST=GetCapabilities`,
       {
- method: "POST" 
-},
+        method: "POST",
+      },
     );
     assert.notEqual(post.status, 200);
   } finally {
@@ -72,8 +65,8 @@ test("WMS returns an OGC exception for unsupported operations", async () => {
   }
 });
 
-test("WMS rejects versions outside the implemented profiles", () => {
+test("WMS rejects versions other than 1.3.0", () => {
   assert.throws(() => {
-    return normalizeVersion("1.0.0");
+    return normalizeVersion("1.1.1");
   }, /Unsupported WMS version/);
 });

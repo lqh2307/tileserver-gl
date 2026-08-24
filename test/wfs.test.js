@@ -8,7 +8,7 @@ import path from "node:path";
 import test from "node:test";
 import express from "express";
 import { config } from "../src/configs/index.js";
-import { serve_wfs } from "../src/serves/serve_wfs.js";
+import { normalizeWFSVersion, serve_wfs } from "../src/serves/serve_wfs.js";
 
 async function withWFSApp(callback) {
   const root = await mkdtemp(path.join(os.tmpdir(), "tileserver-wfs-test-"));
@@ -64,6 +64,12 @@ async function withWFSApp(callback) {
     });
   }
 }
+
+test("WFS rejects versions other than 2.0.0", () => {
+  assert.throws(() => {
+    return normalizeWFSVersion("1.1.0");
+  }, /Unsupported WFS version/);
+});
 
 test("WFS capabilities and DescribeFeatureType publish GeoJSON layers", async () => {
   await withWFSApp(async (baseURL) => {

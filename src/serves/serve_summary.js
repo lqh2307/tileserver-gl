@@ -6,6 +6,7 @@ import { StatusCodes } from "http-status-codes";
 import { createCache } from "cache-manager";
 import path from "node:path";
 import {
+  runSingleFlight,
   getTileBounds,
   HTTP_SCHEMES,
   isExistFile,
@@ -38,360 +39,371 @@ function serveSummaryHandler() {
     try {
       const summaryType = req.query.type === "seed" ? "seed" : "service";
 
-      const cached = await summaryCache.get(summaryType);
-      if (cached) {
-        res.set("content-type", "application/json");
+      const result = await runSingleFlight(
+        `summary:${summaryType}`,
+        async () => {
+          const cached = await summaryCache.get(summaryType);
+          if (cached) {
+            return cached;
+          }
 
-        return res.status(StatusCodes.OK).send(cached);
-      }
+          let result;
 
-      let result;
+          if (summaryType === "seed") {
+            result = {
+              styles: {},
+              geojsons: {},
+              datas: {},
+              sprites: {},
+              fonts: {},
+            };
 
-      if (summaryType === "seed") {
-        result = {
-          styles: {},
-          geojsons: {},
-          datas: {},
-          sprites: {},
-          fonts: {},
-        };
-
-        await Promise.all([
-          ...Object.keys(seed.styles ?? {}).map(async (id) => {
-            if (
-              await isExistFile(
-                path.join(process.env.DATA_DIR, "caches", "styles", id),
-                true,
-              )
-            ) {
-              result.styles[id] = {
-                actual: 1,
-                expect: 1,
-              };
-            } else {
-              result.styles[id] = {
-                actual: 0,
-                expect: 1,
-              };
-            }
-          }),
-          ...Object.keys(seed.geojsons ?? {}).map(async (id) => {
-            if (
-              await isExistFile(
-                path.join(process.env.DATA_DIR, "caches", "geojsons", id),
-                true,
-              )
-            ) {
-              result.geojsons[id] = {
-                actual: 1,
-                expect: 1,
-              };
-            } else {
-              result.geojsons[id] = {
-                actual: 0,
-                expect: 1,
-              };
-            }
-          }),
-          ...Object.keys(seed.datas ?? {}).map(async (id) => {
-            const item = seed.datas[id];
-
-            switch (item.storeType) {
-              case "mbtiles": {
-                const expect = getTileBounds({
-                  coverages: item.coverages,
-                  limitedBBox: item.metadata.bounds,
-                  scheme: "tms",
-                }).total;
-
-                try {
-                  result.datas[id] = {
-                    actual: await countMBTilesTiles(
-                      path.join(
-                        process.env.DATA_DIR,
-                        "caches",
-                        "mbtiles",
-                        id,
-                        `${id}.mbtiles`,
-                      ),
-                    ),
-                    expect,
-                  };
-                } catch (error) {
-                  if (error.code !== "ENOENT") {
-                    throw error;
-                  } else {
-                    result.datas[id] = {
-                      actual: 0,
-                      expect,
-                    };
-                  }
-                }
-
-                break;
-              }
-
-              case "xyz": {
-                const expect = getTileBounds({
-                  coverages: item.coverages,
-                  limitedBBox: item.metadata.bounds,
-                }).total;
-
-                try {
-                  result.datas[id] = {
-                    actual: await countXYZTiles(
-                      path.join(process.env.DATA_DIR, "caches", "xyzs", id),
-                    ),
-                    expect,
-                  };
-                } catch (error) {
-                  if (error.code !== "ENOENT") {
-                    throw error;
-                  } else {
-                    result.datas[id] = {
-                      actual: 0,
-                      expect,
-                    };
-                  }
-                }
-
-                break;
-              }
-
-              case "pg": {
-                const expect = getTileBounds({
-                  coverages: item.coverages,
-                  limitedBBox: item.metadata.bounds,
-                }).total;
-
-                result.datas[id] = {
-                  actual: await countPostgreSQLTiles(
-                    `${process.env.POSTGRESQL_BASE_URI}/${id}`,
-                  ),
-                  expect,
-                };
-
-                break;
-              }
-            }
-          }),
-          ...Object.keys(seed.sprites ?? {}).map(async (id) => {
-            if (
-              await isExistFile(
-                path.join(process.env.DATA_DIR, "caches", "sprites", id),
-                true,
-              )
-            ) {
-              result.sprites[id] = {
-                actual: 1,
-                expect: 1,
-              };
-            } else {
-              result.sprites[id] = {
-                actual: 0,
-                expect: 1,
-              };
-            }
-          }),
-          ...Object.keys(seed.fonts ?? {}).map(async (id) => {
-            if (
-              await isExistFile(
-                path.join(process.env.DATA_DIR, "caches", "fonts", id),
-                true,
-              )
-            ) {
-              result.fonts[id] = {
-                actual: 1,
-                expect: 1,
-              };
-            } else {
-              result.fonts[id] = {
-                actual: 0,
-                expect: 1,
-              };
-            }
-          }),
-        ]);
-      } else {
-        result = {
-          styles: {
-            count: 0,
-            size: 0,
-            rendereds: {
-              count: 0,
-            },
-          },
-          geojsonGroups: {
-            count: 0,
-            geojsons: {
-              count: 0,
-              size: 0,
-            },
-          },
-          datas: {
-            count: 0,
-            size: 0,
-            mbtiles: {
-              count: 0,
-              size: 0,
-            },
-            pmtiles: {
-              count: 0,
-              size: 0,
-            },
-            xyzs: {
-              count: 0,
-              size: 0,
-            },
-            pgs: {
-              count: 0,
-              size: 0,
-            },
-          },
-          sprites: {
-            count: 0,
-            size: 0,
-          },
-          fonts: {
-            count: 0,
-            size: 0,
-          },
-        };
-
-        await Promise.all([
-          ...Object.keys(config.styles).map(async (id) => {
-            const item = config.styles[id];
-
-            try {
-              result.styles.size += await getStyleSize(item.path);
-            } catch (error) {
-              if (!item.cache || error.code !== "ENOENT") {
-                throw error;
-              }
-            }
-
-            result.styles.count += 1;
-
-            // Rendereds info
-            if (item.tileJSON) {
-              result.styles.rendereds.count += 1;
-            }
-          }),
-          ...Object.keys(config.geojsons).map(async (id) => {
-            for (const layer in config.geojsons[id]) {
-              const item = config.geojsons[id][layer];
-
-              try {
-                result.geojsonGroups.geojsons.size += await getGeoJSONSize(
-                  item.path,
-                );
-              } catch (error) {
-                if (!item.cache || error.code !== "ENOENT") {
-                  throw error;
-                }
-              }
-
-              result.geojsonGroups.geojsons.count += 1;
-            }
-
-            result.geojsonGroups.count += 1;
-          }),
-          ...Object.keys(config.datas).map(async (id) => {
-            const item = config.datas[id];
-
-            switch (item.sourceType) {
-              case "mbtiles": {
-                try {
-                  result.datas.mbtiles.size += await getMBTilesSize(item.path);
-                } catch (error) {
-                  if (!item.cache || error.code !== "ENOENT") {
-                    throw error;
-                  }
-                }
-
-                result.datas.mbtiles.count += 1;
-
-                break;
-              }
-
-              case "pmtiles": {
+            await Promise.all([
+              ...Object.keys(seed.styles ?? {}).map(async (id) => {
                 if (
-                  !HTTP_SCHEMES.some((scheme) => {
-                    return item.path.startsWith(scheme);
-                  })
+                  await isExistFile(
+                    path.join(process.env.DATA_DIR, "caches", "styles", id),
+                    true,
+                  )
                 ) {
-                  result.datas.pmtiles.size += await getPMTilesSize(item.path);
+                  result.styles[id] = {
+                    actual: 1,
+                    expect: 1,
+                  };
+                } else {
+                  result.styles[id] = {
+                    actual: 0,
+                    expect: 1,
+                  };
                 }
+              }),
+              ...Object.keys(seed.geojsons ?? {}).map(async (id) => {
+                if (
+                  await isExistFile(
+                    path.join(process.env.DATA_DIR, "caches", "geojsons", id),
+                    true,
+                  )
+                ) {
+                  result.geojsons[id] = {
+                    actual: 1,
+                    expect: 1,
+                  };
+                } else {
+                  result.geojsons[id] = {
+                    actual: 0,
+                    expect: 1,
+                  };
+                }
+              }),
+              ...Object.keys(seed.datas ?? {}).map(async (id) => {
+                const item = seed.datas[id];
 
-                result.datas.pmtiles.count += 1;
+                switch (item.storeType) {
+                  case "mbtiles": {
+                    const expect = getTileBounds({
+                      coverages: item.coverages,
+                      limitedBBox: item.metadata.bounds,
+                      scheme: "tms",
+                    }).total;
 
-                break;
-              }
+                    try {
+                      result.datas[id] = {
+                        actual: await countMBTilesTiles(
+                          path.join(
+                            process.env.DATA_DIR,
+                            "caches",
+                            "mbtiles",
+                            id,
+                            `${id}.mbtiles`,
+                          ),
+                        ),
+                        expect,
+                      };
+                    } catch (error) {
+                      if (error.code !== "ENOENT") {
+                        throw error;
+                      } else {
+                        result.datas[id] = {
+                          actual: 0,
+                          expect,
+                        };
+                      }
+                    }
 
-              case "xyz": {
+                    break;
+                  }
+
+                  case "xyz": {
+                    const expect = getTileBounds({
+                      coverages: item.coverages,
+                      limitedBBox: item.metadata.bounds,
+                    }).total;
+
+                    try {
+                      result.datas[id] = {
+                        actual: await countXYZTiles(
+                          path.join(process.env.DATA_DIR, "caches", "xyzs", id),
+                        ),
+                        expect,
+                      };
+                    } catch (error) {
+                      if (error.code !== "ENOENT") {
+                        throw error;
+                      } else {
+                        result.datas[id] = {
+                          actual: 0,
+                          expect,
+                        };
+                      }
+                    }
+
+                    break;
+                  }
+
+                  case "pg": {
+                    const expect = getTileBounds({
+                      coverages: item.coverages,
+                      limitedBBox: item.metadata.bounds,
+                    }).total;
+
+                    result.datas[id] = {
+                      actual: await countPostgreSQLTiles(
+                        `${process.env.POSTGRESQL_BASE_URI}/${id}`,
+                      ),
+                      expect,
+                    };
+
+                    break;
+                  }
+                }
+              }),
+              ...Object.keys(seed.sprites ?? {}).map(async (id) => {
+                if (
+                  await isExistFile(
+                    path.join(process.env.DATA_DIR, "caches", "sprites", id),
+                    true,
+                  )
+                ) {
+                  result.sprites[id] = {
+                    actual: 1,
+                    expect: 1,
+                  };
+                } else {
+                  result.sprites[id] = {
+                    actual: 0,
+                    expect: 1,
+                  };
+                }
+              }),
+              ...Object.keys(seed.fonts ?? {}).map(async (id) => {
+                if (
+                  await isExistFile(
+                    path.join(process.env.DATA_DIR, "caches", "fonts", id),
+                    true,
+                  )
+                ) {
+                  result.fonts[id] = {
+                    actual: 1,
+                    expect: 1,
+                  };
+                } else {
+                  result.fonts[id] = {
+                    actual: 0,
+                    expect: 1,
+                  };
+                }
+              }),
+            ]);
+          } else {
+            result = {
+              styles: {
+                count: 0,
+                size: 0,
+                rendereds: {
+                  count: 0,
+                },
+              },
+              geojsonGroups: {
+                count: 0,
+                geojsons: {
+                  count: 0,
+                  size: 0,
+                },
+              },
+              datas: {
+                count: 0,
+                size: 0,
+                mbtiles: {
+                  count: 0,
+                  size: 0,
+                },
+                pmtiles: {
+                  count: 0,
+                  size: 0,
+                },
+                xyzs: {
+                  count: 0,
+                  size: 0,
+                },
+                pgs: {
+                  count: 0,
+                  size: 0,
+                },
+              },
+              sprites: {
+                count: 0,
+                size: 0,
+              },
+              fonts: {
+                count: 0,
+                size: 0,
+              },
+            };
+
+            await Promise.all([
+              ...Object.keys(config.styles).map(async (id) => {
+                const item = config.styles[id];
+
                 try {
-                  result.datas.xyzs.size += await getXYZSize(item.path);
+                  result.styles.size += await getStyleSize(item.path);
                 } catch (error) {
                   if (!item.cache || error.code !== "ENOENT") {
                     throw error;
                   }
                 }
 
-                result.datas.xyzs.count += 1;
+                result.styles.count += 1;
 
-                break;
-              }
+                // Rendereds info
+                if (item.tileJSON) {
+                  result.styles.rendereds.count += 1;
+                }
+              }),
+              ...Object.keys(config.geojsons).map(async (id) => {
+                for (const layer in config.geojsons[id]) {
+                  const item = config.geojsons[id][layer];
 
-              case "pg": {
-                result.datas.pgs.size += await getPostgreSQLSize(
-                  item.source,
-                  id,
-                );
-                result.datas.pgs.count += 1;
+                  try {
+                    result.geojsonGroups.geojsons.size += await getGeoJSONSize(
+                      item.path,
+                    );
+                  } catch (error) {
+                    if (!item.cache || error.code !== "ENOENT") {
+                      throw error;
+                    }
+                  }
 
-                break;
-              }
-            }
-          }),
-          ...Object.keys(config.sprites).map(async (id) => {
-            const item = config.sprites[id];
+                  result.geojsonGroups.geojsons.count += 1;
+                }
 
-            try {
-              result.sprites.size += await getSpriteSize(item.path);
-            } catch (error) {
-              if (!item.cache || error.code !== "ENOENT") {
-                throw error;
-              }
-            }
+                result.geojsonGroups.count += 1;
+              }),
+              ...Object.keys(config.datas).map(async (id) => {
+                const item = config.datas[id];
 
-            result.sprites.count += 1;
-          }),
-          ...Object.keys(config.fonts).map(async (id) => {
-            const item = config.fonts[id];
+                switch (item.sourceType) {
+                  case "mbtiles": {
+                    try {
+                      result.datas.mbtiles.size += await getMBTilesSize(
+                        item.path,
+                      );
+                    } catch (error) {
+                      if (!item.cache || error.code !== "ENOENT") {
+                        throw error;
+                      }
+                    }
 
-            try {
-              result.fonts.size += await getPBFFontSize(item.path);
-            } catch (error) {
-              if (!item.cache || error.code !== "ENOENT") {
-                throw error;
-              }
-            }
+                    result.datas.mbtiles.count += 1;
 
-            result.fonts.count += 1;
-          }),
-        ]);
+                    break;
+                  }
 
-        result.datas.count =
-          result.datas.mbtiles.count +
-          result.datas.pmtiles.count +
-          result.datas.xyzs.count +
-          result.datas.pgs.count;
-        result.datas.size =
-          result.datas.mbtiles.size +
-          result.datas.pmtiles.size +
-          result.datas.xyzs.size +
-          result.datas.pgs.size;
-      }
+                  case "pmtiles": {
+                    if (
+                      !HTTP_SCHEMES.some((scheme) => {
+                        return item.path.startsWith(scheme);
+                      })
+                    ) {
+                      result.datas.pmtiles.size += await getPMTilesSize(
+                        item.path,
+                      );
+                    }
+
+                    result.datas.pmtiles.count += 1;
+
+                    break;
+                  }
+
+                  case "xyz": {
+                    try {
+                      result.datas.xyzs.size += await getXYZSize(item.path);
+                    } catch (error) {
+                      if (!item.cache || error.code !== "ENOENT") {
+                        throw error;
+                      }
+                    }
+
+                    result.datas.xyzs.count += 1;
+
+                    break;
+                  }
+
+                  case "pg": {
+                    result.datas.pgs.size += await getPostgreSQLSize(
+                      item.source,
+                      id,
+                    );
+                    result.datas.pgs.count += 1;
+
+                    break;
+                  }
+                }
+              }),
+              ...Object.keys(config.sprites).map(async (id) => {
+                const item = config.sprites[id];
+
+                try {
+                  result.sprites.size += await getSpriteSize(item.path);
+                } catch (error) {
+                  if (!item.cache || error.code !== "ENOENT") {
+                    throw error;
+                  }
+                }
+
+                result.sprites.count += 1;
+              }),
+              ...Object.keys(config.fonts).map(async (id) => {
+                const item = config.fonts[id];
+
+                try {
+                  result.fonts.size += await getPBFFontSize(item.path);
+                } catch (error) {
+                  if (!item.cache || error.code !== "ENOENT") {
+                    throw error;
+                  }
+                }
+
+                result.fonts.count += 1;
+              }),
+            ]);
+
+            result.datas.count =
+              result.datas.mbtiles.count +
+              result.datas.pmtiles.count +
+              result.datas.xyzs.count +
+              result.datas.pgs.count;
+            result.datas.size =
+              result.datas.mbtiles.size +
+              result.datas.pmtiles.size +
+              result.datas.xyzs.size +
+              result.datas.pgs.size;
+          }
+
+          await summaryCache.set(summaryType, result);
+
+          return result;
+        },
+      );
 
       res.set("content-type", "application/json");
 

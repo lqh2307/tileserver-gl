@@ -52,8 +52,11 @@ export function getParameter(parameters, name, fallback) {
 }
 
 async function getCachedLastModified(fileOrFolderPath) {
-  return await lastModifiedCaches.wrap(fileOrFolderPath, async () => {
-    return new Date(await getFileCreated(fileOrFolderPath)).toUTCString();
+  const created = await getFileCreated(fileOrFolderPath);
+  const cacheKey = `${fileOrFolderPath}:${created}`;
+
+  return await lastModifiedCaches.wrap(cacheKey, async () => {
+    return new Date(created).toUTCString();
   });
 }
 

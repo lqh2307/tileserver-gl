@@ -164,6 +164,9 @@
 
     const utilityItems = [
       { title: "Swagger", description: "Open API documentation", buttons: [{ text: "Swagger", href: `${baseURL}/swagger` }] },
+      { title: "WMS", description: "Open WMS capabilities", buttons: [{ text: "WMS", href: `${baseURL}/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities` }] },
+      { title: "WFS", description: "Open WFS capabilities", buttons: [{ text: "WFS", href: `${baseURL}/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities` }] },
+      { title: "WMTS", description: "Open WMTS capabilities", buttons: [{ text: "WMTS", href: `${baseURL}/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities` }] },
       { title: "Export image", description: "Export a static map image", buttons: [{ text: "Export image", onClick: "handleExportImage(event)" }] },
       { title: "Kill server", description: "Stop the server process", buttons: [{ text: "Kill server", onClick: "handleConfig(event, 'kill')" }] },
       { title: "Restart server", description: "Restart the server process", buttons: [{ text: "Restart server", onClick: "handleConfig(event, 'restart')" }] },
@@ -357,7 +360,6 @@
                     services: <a href="${baseURL}/styles/${pathSegment({{{js @key}}})}/style.json">StyleJSON</a>
                     {{#if thumbnail}}
                       | <a href="${baseURL}/styles/${pathSegment({{{js @key}}})}.json">TileJSON</a>
-                      | <a href="${baseURL}/styles/${pathSegment({{{js @key}}})}/wmts.xml">WMTS</a>
                       | <a href="#" data-target="${escapeAttr(domId("xyz_style", {{{js @key}}}))}" onclick="toggleURL(this.dataset.target, event)">XYZ</a>
                       <input id="${escapeAttr(domId("xyz_style", {{{js @key}}}))}" style="display:none;cursor:pointer;" type="text" value="${baseURL}/styles/${pathSegment({{{js @key}}})}/{z}/{x}/{y}.png" onclick="copyToClipboard(this)" />
                     {{/if}}

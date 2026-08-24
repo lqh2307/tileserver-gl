@@ -15,8 +15,8 @@ import {
   serve_wmts,
 } from "../src/serves/serve_wmts.js";
 
-test("WMTS builds capabilities with TileMatrixSets and REST templates", () => {
-  const capabilities = buildCapabilities({
+test("WMTS builds capabilities with TileMatrixSets and REST templates", async () => {
+  const capabilities = await buildCapabilities({
     baseURL: "https://example.test",
     layers: [
       {
@@ -104,17 +104,21 @@ test("WMTS serves KVP and RESTful vector tiles", async () => {
     assert.equal(rest.status, 200);
     assert.equal(await rest.text(), "tile");
 
+    const capabilities = await fetch(
+      `${baseURL}/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities`,
+    );
+    const capabilitiesText = await capabilities.text();
+    assert.equal(capabilities.status, 200);
+    assert.match(capabilitiesText, /<ows:Identifier>roads<\/ows:Identifier>/);
+    assert.match(capabilitiesText, /href="http:\/\/127\.0\.0\.1:[0-9]+\/wmts"/);
+
     const styleCapabilities = await fetch(`${baseURL}/styles/roads/wmts.xml`);
-    const styleCapabilitiesText = await styleCapabilities.text();
-    assert.equal(styleCapabilities.status, 200);
-    assert.match(
-      styleCapabilitiesText,
-      /<ows:Identifier>roads<\/ows:Identifier>/,
+    assert.equal(styleCapabilities.status, 404);
+
+    const styleTile = await fetch(
+      `${baseURL}/styles/roads/GoogleMapsCompatible_256/0/0/0.png`,
     );
-    assert.match(
-      styleCapabilitiesText,
-      /href="http:\/\/127\.0\.0\.1:[0-9]+\/wmts"/,
-    );
+    assert.equal(styleTile.status, 404);
   } finally {
     config.datas = previous;
     config.styles = previousStyles;

@@ -217,31 +217,27 @@ function getStylesListHandler() {
     try {
       const requestHost = getRequestHost(req);
 
-      const result = await Promise.all(
-        Object.keys(config.styles).map(async (id) => {
-          const data = {
-            id,
-            url: `${requestHost}/styles/${id}/style.json`,
-          };
+      let result = Object.keys(config.styles).map((id) => {
+        const style = config.styles[id];
 
-          if (config.styles[id].tileJSON) {
-            const { name, center } = config.styles[id].tileJSON;
+        const data = {
+          id,
+          url: `${requestHost}/styles/${id}/style.json`,
+        };
 
-            const [x, y, z] = getXYZFromLonLatZ(
-              center[0],
-              center[1],
-              center[2],
-            );
+        if (style.tileJSON) {
+          const { name, center } = style.tileJSON;
 
-            data.name = name;
-            data.thumbnail = `${requestHost}/styles/${id}/${z}/${x}/${y}.png`;
-          } else {
-            data.name = config.styles[id].name;
-          }
+          const [x, y, z] = getXYZFromLonLatZ(center[0], center[1], center[2]);
 
-          return data;
-        }),
-      );
+          data.name = name;
+          data.thumbnail = `${requestHost}/styles/${id}/${z}/${x}/${y}.png`;
+        } else {
+          data.name = style.name;
+        }
+
+        return data;
+      });
 
       const headers = {
         "content-type": "application/json",
@@ -448,9 +444,9 @@ function getRenderedsListHandler() {
     try {
       const requestHost = getRequestHost(req);
 
-      const result = [];
+      let result = [];
 
-      Object.keys(config.styles).map((id) => {
+      for (const id of Object.keys(config.styles)) {
         const item = config.styles[id].tileJSON;
 
         if (item) {
@@ -463,7 +459,7 @@ function getRenderedsListHandler() {
             ],
           });
         }
-      });
+      }
 
       const headers = {
         "content-type": "application/json",

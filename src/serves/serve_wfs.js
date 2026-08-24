@@ -3,6 +3,7 @@
 import { getAndCacheParsedDataGeoJSON } from "../resources/index.js";
 import { config } from "../configs/index.js";
 import {
+  compileHandleBarsTemplate,
   transformPointSRS,
   transformBBoxSRS,
   getGeometryBBox,
@@ -14,15 +15,10 @@ import {
   max,
 } from "../utils/index.js";
 
-const WFS_1_0_0 = "1.0.0";
-const WFS_1_1_0 = "1.1.0";
-const WFS_2_0_0 = "2.0.0";
+const WFS_VERSION = "2.0.0";
 const WFS_NAMESPACE = "http://www.opengis.net/wfs";
 const WFS_FEATURE_NAMESPACE = "http://www.example.com/wfs";
-const GML_NAMESPACE = "http://www.opengis.net/gml";
 const GML32_NAMESPACE = "http://www.opengis.net/gml/3.2";
-const OWS_NAMESPACE = "http://www.opengis.net/ows/1.1";
-const FES_NAMESPACE = "http://www.opengis.net/fes/2.0";
 const MAX_FEATURES = 10000;
 const DEFAULT_COUNT = 1000;
 
@@ -46,8 +42,8 @@ function localName(value) {
 }
 
 function normalizeVersion(value) {
-  const version = String(value ?? WFS_2_0_0);
-  if (![WFS_1_0_0, WFS_1_1_0, WFS_2_0_0].includes(version)) {
+  const version = String(value ?? WFS_VERSION);
+  if (version !== WFS_VERSION) {
     throw new WFSException(
       "VersionNegotiationFailed",
       `Unsupported WFS version "${version}".`,
@@ -514,8 +510,7 @@ function gmlGeometry(geometry, gmlNS, srsName) {
   }
 }
 
-function featureToGML(feature, type, index, version, srsName) {
-  const gmlNS = version === WFS_2_0_0 ? GML32_NAMESPACE : GML_NAMESPACE;
+function featureToGML(feature, type, index, srsName) {
   const featureName = xmlName(type.layer);
   const properties = Object.entries(feature.properties ?? {})
     .map(([name, value]) => {
@@ -523,36 +518,19 @@ function featureToGML(feature, type, index, version, srsName) {
     })
     .join("");
   const geometry = feature.geometry
-    ? `<geometry>${gmlGeometry(geometryTransform(feature.geometry, "EPSG:4326", srsName), gmlNS, srsName)}</geometry>`
+    ? `<geometry>${gmlGeometry(geometryTransform(feature.geometry, "EPSG:4326", srsName), GML32_NAMESPACE, srsName)}</geometry>`
     : "";
   return `<feature:${featureName} gml:id="${xmlEscape(featureId(feature, type, index))}" xmlns:feature="${WFS_FEATURE_NAMESPACE}">${properties}${geometry}</feature:${featureName}>`;
 }
 
-function featureCollectionGML(
-  items,
-  version,
-  srsName,
-  matched,
-  lockId,
-  output,
-) {
-  const gmlNS =
-    output === "gml2"
-      ? GML_NAMESPACE
-      : version === WFS_2_0_0
-        ? GML32_NAMESPACE
-        : GML_NAMESPACE;
-  const memberTag = version === WFS_2_0_0 ? "wfs:member" : "gml:featureMember";
+function featureCollectionGML(items, srsName, matched, lockId) {
+  const memberTag = "wfs:member";
   const members = items
     .map(({ feature, type, index }) => {
-      return `<${memberTag}>${featureToGML(feature, type, index, version, srsName)}</${memberTag}>`;
+      return `<${memberTag}>${featureToGML(feature, type, index, srsName)}</${memberTag}>`;
     })
     .join("");
-  const count =
-    version === WFS_2_0_0
-      ? `numberMatched="${matched}" numberReturned="${items.length}"`
-      : `numberOfFeatures="${items.length}"`;
-  return `<?xml version="1.0" encoding="UTF-8"?><wfs:FeatureCollection xmlns:wfs="${WFS_NAMESPACE}" xmlns:gml="${gmlNS}" xmlns:feature="${WFS_FEATURE_NAMESPACE}" timeStamp="${new Date().toISOString()}" ${count}${lockId ? ` lockId="${xmlEscape(lockId)}"` : ""}>${members}</wfs:FeatureCollection>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><wfs:FeatureCollection xmlns:wfs="${WFS_NAMESPACE}" xmlns:gml="${GML32_NAMESPACE}" xmlns:feature="${WFS_FEATURE_NAMESPACE}" timeStamp="${new Date().toISOString()}" numberMatched="${matched}" numberReturned="${items.length}"${lockId ? ` lockId="${xmlEscape(lockId)}"` : ""}>${members}</wfs:FeatureCollection>`;
 }
 
 function featureCollectionJSON(features, matched, startIndex) {
@@ -596,28 +574,18 @@ async function descriptor(type) {
   };
 }
 
-async function capabilities(version, baseURL) {
+async function capabilities(baseURL) {
   const types = await Promise.all(getFeatureTypes().map(descriptor));
-  const operations = [
-    "GetCapabilities",
-    "DescribeFeatureType",
-    "GetPropertyValue",
-    "GetFeature",
-  ];
-  const operationXML = operations
-    .map((operation) => {
-      return `<ows:Operation name="${operation}"><ows:DCP><ows:HTTP><ows:Get xlink:href="${xmlEscape(baseURL)}"/></ows:HTTP></ows:DCP></ows:Operation>`;
-    })
-    .join("");
-  const typeXML = types
-    .map((type) => {
-      return `<wfs:FeatureType><wfs:Name>${xmlEscape(type.name)}</wfs:Name><wfs:Title>${xmlEscape(type.title)}</wfs:Title><wfs:DefaultCRS>urn:ogc:def:crs:OGC:1.3:CRS84</wfs:DefaultCRS><wfs:OtherCRS>urn:ogc:def:crs:EPSG::3857</wfs:OtherCRS><ows:WGS84BoundingBox><ows:LowerCorner>${type.bbox[0]} ${type.bbox[1]}</ows:LowerCorner><ows:UpperCorner>${type.bbox[2]} ${type.bbox[3]}</ows:UpperCorner></ows:WGS84BoundingBox><wfs:OutputFormats><wfs:Format>application/json</wfs:Format><wfs:Format>application/gml+xml; version=3.2</wfs:Format><wfs:Format>GML2</wfs:Format></wfs:OutputFormats></wfs:FeatureType>`;
-    })
-    .join("");
-  if (version === WFS_1_0_0) {
-    return `<?xml version="1.0" encoding="UTF-8"?><WFS_Capabilities version="1.0.0" xmlns="${WFS_NAMESPACE}" xmlns:ogc="http://www.opengis.net/ogc" xmlns:xlink="http://www.w3.org/1999/xlink"><Service><Name>WFS</Name><Title>Tile Server WFS</Title><OnlineResource>${xmlEscape(baseURL)}</OnlineResource></Service><Capability><Request><GetCapabilities><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></GetCapabilities><DescribeFeatureType><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></DescribeFeatureType><GetFeature><DCPType><HTTP><Get onlineResource="${xmlEscape(baseURL)}"/></HTTP></DCPType></GetFeature></Request><ogc:Filter_Capabilities/></Capability></WFS_Capabilities>`;
-  }
-  return `<?xml version="1.0" encoding="UTF-8"?><wfs:WFS_Capabilities version="${version}" xmlns:wfs="${WFS_NAMESPACE}" xmlns:ows="${OWS_NAMESPACE}" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fes="${FES_NAMESPACE}" xmlns:gml="${version === WFS_2_0_0 ? GML32_NAMESPACE : GML_NAMESPACE}"><ows:ServiceIdentification><ows:Title>Tile Server WFS</ows:Title><ows:ServiceType>WFS</ows:ServiceType><ows:ServiceTypeVersion>${version}</ows:ServiceType></ows:ServiceIdentification><ows:OperationsMetadata>${operationXML}</ows:OperationsMetadata><wfs:FeatureTypeList>${typeXML}</wfs:FeatureTypeList><fes:Filter_Capabilities><fes:Conformance><fes:Constraint name="ImplementsQuery"><ows:NoValues/></fes:Constraint></fes:Conformance><fes:Id_Capabilities><fes:ResourceId/></fes:Id_Capabilities><fes:Scalar_Capabilities><fes:ComparisonOperators><fes:ComparisonOperator name="PropertyIsEqualTo"/><fes:ComparisonOperator name="PropertyIsNotEqualTo"/><fes:ComparisonOperator name="PropertyIsLessThan"/><fes:ComparisonOperator name="PropertyIsGreaterThan"/></fes:ComparisonOperators></fes:Scalar_Capabilities><fes:Spatial_Capabilities><fes:SpatialOperator name="BBOX"/></fes:Spatial_Capabilities></fes:Filter_Capabilities></wfs:WFS_Capabilities>`;
+  return await compileHandleBarsTemplate("wfs", {
+    baseURL: xmlEscape(baseURL),
+    types: types.map((type) => {
+      return {
+        name: xmlEscape(type.name),
+        title: xmlEscape(type.title),
+        bbox: type.bbox,
+      };
+    }),
+  });
 }
 
 function getRequestData(req) {
@@ -683,9 +651,6 @@ function outputFormat(parameters) {
   if (format.includes("json") || format === "geojson") {
     return "json";
   }
-  if (format === "gml2") {
-    return "gml2";
-  }
   if (format.includes("gml") || format === "text/xml") {
     return "gml";
   }
@@ -695,23 +660,20 @@ function outputFormat(parameters) {
   );
 }
 
-function describeFeatureType(type, version) {
-  const gml = version === WFS_2_0_0 ? GML32_NAMESPACE : GML_NAMESPACE;
+function describeFeatureType(type) {
   const fields = [...type.fields.entries()]
     .map(([name, fieldType]) => {
       return `<xsd:element name="${xmlEscape(xmlName(name))}" type="xsd:${fieldType}" minOccurs="0"/>`;
     })
     .join("");
-  return `<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:gml="${gml}" xmlns:feature="${WFS_FEATURE_NAMESPACE}" targetNamespace="${WFS_FEATURE_NAMESPACE}" elementFormDefault="qualified"><xsd:element name="${xmlEscape(xmlName(type.layer))}" type="feature:${xmlName(type.layer)}Type" substitutionGroup="gml:AbstractFeature"/><xsd:complexType name="${xmlEscape(xmlName(type.layer))}Type"><xsd:complexContent><xsd:extension base="gml:AbstractFeatureType"><xsd:sequence>${fields}<xsd:element name="geometry" type="gml:GeometryPropertyType" minOccurs="0"/></xsd:sequence></xsd:extension></xsd:complexContent></xsd:complexType></xsd:schema>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:gml="${GML32_NAMESPACE}" xmlns:feature="${WFS_FEATURE_NAMESPACE}" targetNamespace="${WFS_FEATURE_NAMESPACE}" elementFormDefault="qualified"><xsd:element name="${xmlEscape(xmlName(type.layer))}" type="feature:${xmlName(type.layer)}Type" substitutionGroup="gml:AbstractFeature"/><xsd:complexType name="${xmlEscape(xmlName(type.layer))}Type"><xsd:complexContent><xsd:extension base="gml:AbstractFeatureType"><xsd:sequence>${fields}<xsd:element name="geometry" type="gml:GeometryPropertyType" minOccurs="0"/></xsd:sequence></xsd:extension></xsd:complexContent></xsd:complexType></xsd:schema>`;
 }
 
 async function handleWFS(req, res, pathName) {
   const request = getRequestData(req);
   const parameters = request.parameters;
   try {
-    const version = normalizeVersion(
-      getParameter(parameters, "VERSION", WFS_2_0_0),
-    );
+    normalizeVersion(getParameter(parameters, "VERSION", WFS_VERSION));
     if (
       String(getParameter(parameters, "SERVICE", "WFS")).toUpperCase() !== "WFS"
     ) {
@@ -740,14 +702,14 @@ async function handleWFS(req, res, pathName) {
       res
         .type("text/xml")
         .status(200)
-        .send(await capabilities(version, baseURL));
+        .send(await capabilities(baseURL));
       return;
     }
     if (operation === "describefeaturetype") {
       const type = await descriptor(
         resolveFeatureTypes(parameters, pathName)[0],
       );
-      res.type("text/xml").status(200).send(describeFeatureType(type, version));
+      res.type("text/xml").status(200).send(describeFeatureType(type));
       return;
     }
     if (operation === "getpropertyvalue") {
@@ -873,16 +835,7 @@ async function handleWFS(req, res, pathName) {
         res
           .type("text/xml")
           .status(200)
-          .send(
-            featureCollectionGML(
-              projected,
-              version,
-              srsName,
-              matched,
-              undefined,
-              output,
-            ),
-          );
+          .send(featureCollectionGML(projected, srsName, matched, undefined));
       }
       return;
     }
@@ -900,7 +853,11 @@ async function handleWFS(req, res, pathName) {
       .status(400)
       .type("text/xml")
       .send(
-        `<?xml version="1.0" encoding="UTF-8"?><ows:ExceptionReport xmlns:ows="${OWS_NAMESPACE}" version="${xmlEscape(getParameter(parameters, "VERSION", WFS_2_0_0))}"><ows:Exception exceptionCode="${xmlEscape(code)}"><ows:ExceptionText>${xmlEscape(message)}</ows:ExceptionText></ows:Exception></ows:ExceptionReport>`,
+        await compileHandleBarsTemplate("ows_exception", {
+          version: xmlEscape(getParameter(parameters, "VERSION", WFS_VERSION)),
+          code: xmlEscape(code),
+          message: xmlEscape(message),
+        }),
       );
   }
 }
@@ -916,13 +873,17 @@ export const serve_wfs = {
      *   get:
      *     tags: [WFS]
      *     summary: Execute a WFS request
-     *     description: Read-only WFS endpoint supporting GetCapabilities, DescribeFeatureType, GetFeature, and GetPropertyValue.
+     *     description: Read-only WFS 2.0.0 endpoint supporting GetCapabilities, DescribeFeatureType, GetFeature, and GetPropertyValue.
      *     parameters:
-     *       - { in: query, name: REQUEST, required: true, schema: { type: string, example: GetFeature } }
-     *       - { in: query, name: VERSION, schema: { type: string, enum: ['1.0.0', '1.1.0', '2.0.0'], default: '2.0.0' } }
+     *       - { in: query, name: SERVICE, schema: { type: string, enum: [WFS], default: WFS } }
+     *       - { in: query, name: REQUEST, required: true, schema: { type: string, enum: [GetCapabilities, DescribeFeatureType, GetPropertyValue, GetFeature], example: GetFeature } }
+     *       - { in: query, name: VERSION, schema: { type: string, enum: ['2.0.0'], default: '2.0.0' } }
      *       - { in: query, name: TYPENAMES, schema: { type: string }, description: Comma-separated feature type names. }
-     *       - { in: query, name: OUTPUTFORMAT, schema: { type: string, example: application/json } }
+     *       - { in: query, name: OUTPUTFORMAT, schema: { type: string, enum: [application/json, application/gml+xml; version=3.2], example: application/json } }
      *       - { in: query, name: BBOX, schema: { type: string }, description: Four coordinates with optional CRS. }
+     *       - { in: query, name: SRSNAME, schema: { type: string, example: EPSG:4326 } }
+     *       - { in: query, name: PROPERTYNAME, schema: { type: string }, description: Comma-separated properties to return. }
+     *       - { in: query, name: RESULTTYPE, schema: { type: string, enum: [results, hits], default: results } }
      *       - { in: query, name: COUNT, schema: { type: integer, minimum: 0 } }
      *       - { in: query, name: STARTINDEX, schema: { type: integer, minimum: 0 } }
      *     responses:
@@ -931,6 +892,28 @@ export const serve_wfs = {
      *         content:
      *           application/json: { schema: { type: object } }
      *           application/xml: { schema: { type: string } }
+     *       400:
+     *         description: OGC exception report.
+     */
+    /**
+     * @swagger
+     * /geojsons/{group}/{layer}/wfs:
+     *   get:
+     *     tags: [WFS]
+     *     summary: Execute WFS for one GeoJSON layer
+     *     parameters:
+     *       - { in: path, name: group, required: true, schema: { type: string }, description: GeoJSON group. }
+     *       - { in: path, name: layer, required: true, schema: { type: string }, description: GeoJSON layer. }
+     *       - { in: query, name: REQUEST, required: true, schema: { type: string, enum: [GetCapabilities, DescribeFeatureType, GetPropertyValue, GetFeature] } }
+     *       - { in: query, name: VERSION, schema: { type: string, enum: ['2.0.0'], default: '2.0.0' } }
+     *       - { in: query, name: TYPENAMES, schema: { type: string }, description: Optional feature type name. }
+     *       - { in: query, name: OUTPUTFORMAT, schema: { type: string, enum: [application/json, application/gml+xml; version=3.2] } }
+     *       - { in: query, name: BBOX, schema: { type: string } }
+     *       - { in: query, name: COUNT, schema: { type: integer, minimum: 0 } }
+     *       - { in: query, name: STARTINDEX, schema: { type: integer, minimum: 0 } }
+     *     responses:
+     *       200:
+     *         description: WFS XML or GeoJSON response for the selected layer.
      *       400:
      *         description: OGC exception report.
      */

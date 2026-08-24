@@ -48,97 +48,80 @@ function serveFrontPageHandler() {
 
       const requestHost = getRequestHost(req);
 
-      await Promise.all([
-        ...Object.keys(config.styles).map(async (id) => {
-          const style = config.styles[id];
+      for (const id of Object.keys(config.styles)) {
+        const style = config.styles[id];
 
-          if (style.tileJSON) {
-            // Rendered StyleJSONs
-            const { name, center } = style.tileJSON;
+        if (style.tileJSON) {
+          // Rendered StyleJSONs
+          const { name, center } = style.tileJSON;
 
-            const [x, y, z] = getXYZFromLonLatZ(
-              center[0],
-              center[1],
-              center[2],
-            );
+          const [x, y, z] = getXYZFromLonLatZ(center[0], center[1], center[2]);
 
-            styles[id] = {
-              name,
-              viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
-              thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
-              cache: style.storeCache,
-              cancel_render: style.export,
-            };
-          } else {
-            // StyleJSON
-            const { name, zoom, center } = style;
-
-            styles[id] = {
-              name,
-              viewer_hash: `#${zoom}/${center[1]}/${center[0]}`,
-              cache: style.storeCache,
-            };
-          }
-        }),
-        ...Object.keys(config.geojsons).map(async (id) => {
-          geojsonGroups[id] = true;
-
-          Object.keys(config.geojsons[id]).map(async (layer) => {
-            const geojson = config.geojsons[id][layer];
-
-            geojsons[`${id}/${layer}`] = {
-              group: id,
-              layer,
-              cache: geojson.storeCache,
-            };
-          });
-        }),
-        ...Object.keys(config.datas).map(async (id) => {
-          const data = config.datas[id];
-          const { name, center, format } = data.tileJSON;
-
-          if (format !== "pbf") {
-            const [x, y, z] = getXYZFromLonLatZ(
-              center[0],
-              center[1],
-              center[2],
-            );
-
-            datas[id] = {
-              name,
-              format,
-              viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
-              thumbnail: `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`,
-              source_type: data.sourceType,
-              cache: data.storeCache,
-              cancel_export: data.export,
-            };
-          } else {
-            datas[id] = {
-              name,
-              format,
-              viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
-              source_type: data.sourceType,
-              cache: data.storeCache,
-              cancel_export: data.export,
-            };
-          }
-        }),
-        ...Object.keys(config.sprites).map(async (id) => {
-          const sprite = config.sprites[id];
-
-          sprites[id] = {
-            cache: sprite.storeCache,
+          styles[id] = {
+            name,
+            viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
+            thumbnail: `${requestHost}/styles/${id}/${z}/${x}/${y}.png`,
+            cache: style.storeCache,
+            cancel_render: style.export,
           };
-        }),
-        ...Object.keys(config.fonts).map(async (id) => {
-          const font = config.fonts[id];
+        } else {
+          // StyleJSON
+          const { name, zoom, center } = style;
 
-          fonts[id] = {
-            cache: font.storeCache,
+          styles[id] = {
+            name,
+            viewer_hash: `#${zoom}/${center[1]}/${center[0]}`,
+            cache: style.storeCache,
           };
-        }),
-      ]);
+        }
+      }
+
+      for (const id of Object.keys(config.geojsons)) {
+        geojsonGroups[id] = true;
+
+        for (const layer of Object.keys(config.geojsons[id])) {
+          const geojson = config.geojsons[id][layer];
+
+          geojsons[`${id}/${layer}`] = {
+            group: id,
+            layer,
+            cache: geojson.storeCache,
+          };
+        }
+      }
+
+      for (const id of Object.keys(config.datas)) {
+        const data = config.datas[id];
+        const { name, center, format } = data.tileJSON;
+        const info = {
+          name,
+          format,
+          viewer_hash: `#${center[2]}/${center[1]}/${center[0]}`,
+          source_type: data.sourceType,
+          cache: data.storeCache,
+          cancel_export: data.export,
+        };
+
+        if (format !== "pbf") {
+          const [x, y, z] = getXYZFromLonLatZ(center[0], center[1], center[2]);
+
+          info.thumbnail = `${requestHost}/datas/${id}/${z}/${x}/${y}.${format}`;
+        }
+
+        datas[id] = info;
+      }
+
+      for (const id of Object.keys(config.sprites)) {
+        sprites[id] = {
+          cache: config.sprites[id].storeCache,
+        };
+      }
+
+      for (const id of Object.keys(config.fonts)) {
+        fonts[id] = {
+          cache: config.fonts[id].storeCache,
+        };
+      }
 
       const compiled = await compileHandleBarsTemplate("index", {
         styles,
@@ -293,7 +276,7 @@ function serveConfigDeleteHandler() {
 
         printLog("info", `Removing ${ids.length} styles in ${type}...`);
 
-        ids.map((id) => {
+        ids.forEach((id) => {
           delete configJSON.styles[id];
 
           const style = config.styles[id];
@@ -318,7 +301,7 @@ function serveConfigDeleteHandler() {
 
         printLog("info", `Removing ${ids.length} GeoJSONs in ${type}...`);
 
-        ids.map((id) => {
+        ids.forEach((id) => {
           delete configJSON.geojsons[id];
 
           Object.values(config.geojsons[id] ?? {}).forEach((geojson) => {
@@ -344,7 +327,7 @@ function serveConfigDeleteHandler() {
 
         printLog("info", `Removing ${ids.length} datas in ${type}...`);
 
-        ids.map((id) => {
+        ids.forEach((id) => {
           delete configJSON.datas[id];
 
           const data = config.datas[id];
@@ -369,7 +352,7 @@ function serveConfigDeleteHandler() {
 
         printLog("info", `Removing ${ids.length} sprites in ${type}...`);
 
-        ids.map((id) => {
+        ids.forEach((id) => {
           delete configJSON.sprites[id];
 
           const sprite = config.sprites[id];
@@ -394,7 +377,7 @@ function serveConfigDeleteHandler() {
 
         printLog("info", `Removing ${ids.length} fonts in ${type}...`);
 
-        ids.map((id) => {
+        ids.forEach((id) => {
           delete configJSON.fonts[id];
 
           const font = config.fonts[id];
