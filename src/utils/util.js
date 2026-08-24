@@ -1,5 +1,6 @@
 "use strict";
 
+import { resolveProjectPath } from "./path.js";
 import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { DEFAULT_PPI } from "./spatial.js";
@@ -54,7 +55,7 @@ export async function retry(fn, maxTry, after = 0) {
  */
 export function getVersion() {
   if (!versionPromise) {
-    versionPromise = readFile("package.json", "utf8")
+    versionPromise = readFile(resolveProjectPath("package.json"), "utf8")
       .then(JSON.parse)
       .then((packageJSON) => {
         return packageJSON.version;

@@ -2,19 +2,23 @@
 
 import pretty from "pino-pretty";
 import pino from "pino";
+import {
+  getEnvironmentLogLevel,
+  getEnvironmentBoolean,
+} from "../configs/index.js";
 
 let logger;
 
 if (!logger) {
   logger = pino(
     {
-      level: process.env.LOG_LEVEL || "info",
+      level: getEnvironmentLogLevel(process.env.LOG_LEVEL),
       base: {
         pid: process.pid,
       },
       timestamp: pino.stdTimeFunctions.isoTime,
     },
-    process.env.LOG_PRETTY !== "false"
+    getEnvironmentBoolean(process.env.LOG_PRETTY, true)
       ? pretty({
           colorize: true,
           translateTime: "SYS:standard",

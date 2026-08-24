@@ -1,9 +1,9 @@
 "use strict";
 
 import { MAX_LON, MAX_LAT } from "./spatial.js";
+import { resolveProjectPath } from "./path.js";
 import { readFile } from "node:fs/promises";
 import { isSameNumber } from "./number.js";
-import path from "node:path";
 import Ajv from "ajv";
 
 const ajv = new Ajv({
@@ -46,7 +46,7 @@ export function getJSONSchema(schema) {
   let schemaPromise = schemaCache.get(schema);
   if (!schemaPromise) {
     schemaPromise = readFile(
-      path.join("public", "schemas", `${schema}.json`),
+      resolveProjectPath("public", "schemas", `${schema}.json`),
       "utf8",
     ).then(JSON.parse);
 

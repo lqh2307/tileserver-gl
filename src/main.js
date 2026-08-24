@@ -9,12 +9,16 @@
  */
 
 import { removeOldLocks, printLog } from "./utils/index.js";
-import { validateConfig, config } from "./configs/index.js";
 import cluster from "node:cluster";
 import chokidar from "chokidar";
 import path from "node:path";
 import cron from "node-cron";
 import os from "node:os";
+import {
+  configureRuntimeEnvironment,
+  validateConfig,
+  config,
+} from "./configs/index.js";
 import {
   cancelTaskInWorker,
   startTaskInWorker,
@@ -31,19 +35,6 @@ import {
  */
 async function startClusterServer() {
   if (cluster.isPrimary) {
-    /* Set default ENVs */
-    process.env.DATA_DIR = process.env.DATA_DIR || "data"; // Data dir
-    process.env.SERVICE_NAME = process.env.SERVICE_NAME || "tile-server"; // Service name
-    process.env.RESTART_AFTER_CONFIG_CHANGE =
-      process.env.RESTART_AFTER_CONFIG_CHANGE || "true"; // Restart server after config change
-    process.env.LOG_LEVEL = process.env.LOG_LEVEL || "info"; // Log level
-
-    let log = `Starting ${process.env.SERVICE_NAME} server with:`;
-    log += `\n\tData dir: ${process.env.DATA_DIR}`;
-    log += `\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}`;
-
-    printLog("info", log);
-
     /* Validate config files */
     printLog("info", "Validate config files...");
 
@@ -61,17 +52,13 @@ async function startClusterServer() {
 
     const configOptions = config.options || {};
 
-    // Store ENVs
-    process.env.NUM_OF_PROCESS =
-      process.env.NUM_OF_PROCESS || configOptions.process || 1; // Number of process
-    process.env.UV_THREADPOOL_SIZE =
-      process.env.NUM_OF_THREAD || configOptions.thread || os.cpus().length; // For libuv (Number of thread)
-    process.env.POSTGRESQL_BASE_URI =
-      configOptions.postgreSQLBaseURI || "postgresql://localhost:5432"; // PostgreSQL base URI
-    process.env.SERVE_FRONT_PAGE = configOptions.serveFrontPage || "true"; // Serve front page
-    process.env.SERVE_SWAGGER = configOptions.serveSwagger || "true"; // Serve swagger
-    process.env.LISTEN_PORT =
-      process.env.LISTEN_PORT || configOptions.listenPort || 8080; // Server port
+    configureRuntimeEnvironment(configOptions, os.cpus().length);
+
+    let log = `Starting ${process.env.SERVICE_NAME} server with:`;
+    log += `\n\tData dir: ${process.env.DATA_DIR}`;
+    log += `\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}`;
+
+    printLog("info", log);
 
     // Check MLGL
     try {

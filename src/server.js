@@ -12,6 +12,7 @@ import path from "node:path";
 import cors from "cors";
 import {
   isTaskTargetMatched,
+  resolveProjectPath,
   getTaskTargets,
   setupWSServer,
   getTaskKey,
@@ -70,7 +71,7 @@ function startNextTaskWorker() {
 
   printLog("info", `Starting sync task "${job.key}"...`);
 
-  job.worker = new Worker(path.join("src", "task_worker.js"), {
+  job.worker = new Worker(resolveProjectPath("src", "task_worker.js"), {
     workerData: job.target,
   })
     .on("error", (error) => {
@@ -97,7 +98,7 @@ function startNextTaskWorker() {
           `Sync task "${job.key}" worker exited with code: ${code}`,
         );
       } else {
-        printLog("info", `Completed sync task "${job.key}".`);
+        printLog("info", `Completed sync task "${job.key}"!`);
 
         if (job.restart) {
           restartAfterTasks = true;
@@ -231,7 +232,7 @@ async function loadData() {
 function setupStaticFolders(app) {
   printLog("info", "Setting statics...");
 
-  app.use(express.static(path.join("public", "resources")));
+  app.use(express.static(resolveProjectPath("public", "resources")));
   app.use(
     "/statics",
     express.static(path.join(process.env.DATA_DIR, "statics")),

@@ -1,5 +1,6 @@
 "use strict";
 
+import { resolveDataDir } from "./environment.js";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
@@ -8,6 +9,9 @@ import {
   validateJSON,
   printLog,
 } from "../utils/index.js";
+
+/* Keep the normalized value available to every primary/worker module. */
+process.env.DATA_DIR = resolveDataDir();
 
 /** In-memory representation of config.json. @type {Record<string, any>} */
 let config;
@@ -71,7 +75,7 @@ if (cleanUp === undefined) {
  */
 function readConfigFile(type, isParse) {
   const data = readFileSync(
-    path.join(process.env.DATA_DIR || "data", `${type}.json`),
+    path.join(process.env.DATA_DIR, `${type}.json`),
     "utf8",
   );
 
@@ -91,7 +95,7 @@ function readConfigFile(type, isParse) {
  */
 async function updateConfigFile(type, configObj, timeout) {
   await createFileWithLock(
-    path.join(process.env.DATA_DIR || "data", `${type}.json`),
+    path.join(process.env.DATA_DIR, `${type}.json`),
     JSON.stringify(configObj, null, 2),
     timeout,
   );

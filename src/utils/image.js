@@ -3,17 +3,12 @@
 import { getBBoxFromTiles, lonLat4326ToXY3857 } from "./spatial.js";
 import { base64ToBuffer, createFileWithLock } from "./file.js";
 import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
+import { getEnvironmentInteger } from "../configs/index.js";
 import { convertLength, toPixel } from "./util.js";
 import { mkdir } from "node:fs/promises";
 import { jsPDF } from "jspdf";
 import path from "node:path";
 import sharp from "sharp";
-
-function getPositiveIntegerEnv(name, fallback) {
-  const value = Number.parseInt(process.env[name], 10);
-
-  return Number.isInteger(value) && value > 0 ? value : fallback;
-}
 
 export const BACKGROUND_COLOR = {
   r: 255,
@@ -23,11 +18,21 @@ export const BACKGROUND_COLOR = {
 };
 
 sharp.cache({
-  memory: getPositiveIntegerEnv("SHARP_CACHE_MEMORY_MB", 32),
-  files: getPositiveIntegerEnv("SHARP_CACHE_FILES", 20),
-  items: getPositiveIntegerEnv("SHARP_CACHE_ITEMS", 100),
+  memory: getEnvironmentInteger(process.env.SHARP_CACHE_MEMORY_MB, 32, {
+    min: 1,
+  }),
+  files: getEnvironmentInteger(process.env.SHARP_CACHE_FILES, 20, {
+    min: 1,
+  }),
+  items: getEnvironmentInteger(process.env.SHARP_CACHE_ITEMS, 100, {
+    min: 1,
+  }),
 });
-sharp.concurrency(getPositiveIntegerEnv("SHARP_CONCURRENCY", 2));
+sharp.concurrency(
+  getEnvironmentInteger(process.env.SHARP_CONCURRENCY, 2, {
+    min: 1,
+  }),
+);
 
 /**
  * Format degree

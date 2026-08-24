@@ -10,6 +10,7 @@ import {
   calculateMD5OfFiles,
   removeFileWithLock,
   createFileWithLock,
+  resolveProjectPath,
   isErrorNotFound,
   getDataFromURL,
   getFileCreated,
@@ -24,7 +25,7 @@ const PBF_RANGE_FILE_REGEX = /^\d{1,5}-\d{1,5}\.pbf$/;
 let glyphsProto;
 
 if (!cluster.isPrimary) {
-  readFile(path.join("public", "protos", "glyphs.proto"))
+  readFile(resolveProjectPath("public", "protos", "glyphs.proto"))
     .then((data) => {
       glyphsProto = protobuf(data);
     })
@@ -145,7 +146,7 @@ export function getFallbackFont(fontName, fileName) {
   }
 
   return readFile(
-    path.join("public", "resources", "fonts", fallbackFont, fileName),
+    resolveProjectPath("public", "resources", "fonts", fallbackFont, fileName),
   );
 }
 

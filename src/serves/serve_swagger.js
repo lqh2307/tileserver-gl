@@ -1,9 +1,13 @@
 "use strict";
 
-import { getRequestHost, getRequestPrefix } from "../utils/index.js";
 import { createRequire } from "node:module";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
+import {
+  resolveProjectPath,
+  getRequestPrefix,
+  getRequestHost,
+} from "../utils/index.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../../package.json");
@@ -116,7 +120,7 @@ Important behavior:
       schemas,
     },
   },
-  apis: ["src/**/*.js"],
+  apis: [resolveProjectPath("src", "**/*.js")],
 });
 
 for (const [path, pathItem] of Object.entries(swaggerDocument.paths || {})) {

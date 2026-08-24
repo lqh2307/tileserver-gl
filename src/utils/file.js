@@ -221,10 +221,7 @@ export async function removeEmptyFolders(folderPath, regex) {
  * @returns {Promise<void>}
  */
 export async function removeOldLocks() {
-  for await (const fileName of walkFiles(
-    process.env.DATA_DIR || "data",
-    /^.*\.lock$/,
-  )) {
+  for await (const fileName of walkFiles(process.env.DATA_DIR, /^.*\.lock$/)) {
     await rm(fileName, {
       force: true,
     });

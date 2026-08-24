@@ -24,5 +24,6 @@ export * from "./util.js";
 export * from "./file.js";
 export * from "./tile.js";
 export * from "./task.js";
+export * from "./path.js";
 export * from "./xml.js";
 export * from "./ws.js";

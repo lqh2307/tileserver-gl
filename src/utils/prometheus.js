@@ -1,4 +1,5 @@
 import { collectDefaultMetrics, Registry, Histogram } from "prom-client";
+import { getEnvironmentString } from "../configs/index.js";
 
 const register = new Registry();
 
@@ -10,7 +11,7 @@ const httpRequestDuration = new Histogram({
 });
 
 register.setDefaultLabels({
-  service_name: process.env.SERVICE_NAME || "tile-server",
+  service_name: getEnvironmentString(process.env.SERVICE_NAME, "tile-server"),
 });
 
 register.registerMetric(httpRequestDuration);

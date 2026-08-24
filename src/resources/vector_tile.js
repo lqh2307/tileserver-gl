@@ -1,8 +1,8 @@
 "use strict";
 
+import { resolveProjectPath } from "../utils/index.js";
 import { readFile } from "node:fs/promises";
 import protobuf from "protocol-buffers";
-import path from "node:path";
 
 let vectorTileProtoPromise;
 
@@ -13,7 +13,7 @@ let vectorTileProtoPromise;
 export function getVectorTileProto() {
   if (!vectorTileProtoPromise) {
     vectorTileProtoPromise = readFile(
-      path.join("public", "protos", "vector_tile.proto"),
+      resolveProjectPath("public", "protos", "vector_tile.proto"),
     )
       .then(protobuf)
       .catch((error) => {
