@@ -253,7 +253,9 @@ export function getXYZTileExtraInfo(options) {
 
   const extraInfoType = options.isCreated ? "created" : "hash";
 
-  const querySQL = options.source.prepare(
+  const querySQL = getTileStatement(
+    options.source,
+    `extra-info-${extraInfoType}`,
     `
       SELECT
         tile_column, tile_row, ${extraInfoType}
@@ -705,9 +707,10 @@ export function updateXYZMetadata(source, metadataAdds) {
  * @param {number} y Y tile index
  * @param {Buffer} data Tile data
  * @param {{ statement: BetterSqlite3.Statement, sourcePath: string, source: Database, format: "jpeg"|"jpg"|"pbf"|"png"|"webp", storeTransparent: boolean, created: number }} option Option
+ * @param {string} [dataHash] Precomputed content hash
  * @returns {Promise<void>}
  */
-export async function storeXYZTileFile(z, x, y, data, option) {
+export async function storeXYZTileFile(z, x, y, data, option, dataHash) {
   if (
     option.storeTransparent === false &&
     (await isFullTransparentImage(data))
@@ -722,13 +725,19 @@ export async function storeXYZTileFile(z, x, y, data, option) {
   );
 
   if (option.statement) {
-    option.statement.run([z, x, y, calculateMD5(data), option.created]);
+    option.statement.run([
+      z,
+      x,
+      y,
+      dataHash ?? calculateMD5(data),
+      option.created,
+    ]);
   } else {
     getTileStatement(option.source, "insert", XYZ_INSERT_MD5_QUERY).run([
       z,
       x,
       y,
-      calculateMD5(data),
+      dataHash ?? calculateMD5(data),
       Date.now(),
     ]);
   }

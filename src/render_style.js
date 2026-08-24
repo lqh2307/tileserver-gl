@@ -903,8 +903,15 @@ export async function renderTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storeMBtilesTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data, dataHash) => {
+          return await storeMBtilesTileData(
+            z,
+            x,
+            y,
+            data,
+            tileOption,
+            dataHash,
+          );
         };
 
         /* Close database function */
@@ -947,8 +954,15 @@ export async function renderTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storePostgreSQLTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data, dataHash) => {
+          return await storePostgreSQLTileData(
+            z,
+            x,
+            y,
+            data,
+            tileOption,
+            dataHash,
+          );
         };
 
         /* Close database function */
@@ -1001,8 +1015,8 @@ export async function renderTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storeXYZTileFile(z, x, y, data, tileOption);
+        storeTileDataFunc = async (z, x, y, data, dataHash) => {
+          return await storeXYZTileFile(z, x, y, data, tileOption, dataHash);
         };
 
         /* Close database function */
@@ -1032,7 +1046,7 @@ export async function renderTileDatas({
               try {
                 if (refreshTimestamp === true) {
                   printLog(
-                    "info",
+                    "debug",
                     `Rendering style id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}...`,
                   );
 
@@ -1044,12 +1058,14 @@ export async function renderTileDatas({
                     y: yCount,
                   });
 
-                  if (currentTileExtraInfo === calculateMD5(data)) {
+                  const dataHash = calculateMD5(data);
+
+                  if (currentTileExtraInfo === dataHash) {
                     return;
                   }
 
                   // Store tile data
-                  await storeTileDataFunc(z, xCount, yCount, data);
+                  await storeTileDataFunc(z, xCount, yCount, data, dataHash);
                 } else {
                   if (
                     (refreshTimestamp &&
@@ -1060,7 +1076,7 @@ export async function renderTileDatas({
                   }
 
                   printLog(
-                    "info",
+                    "debug",
                     `Rendering style id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}...`,
                   );
 

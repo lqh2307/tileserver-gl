@@ -4,8 +4,8 @@ import { DEFAULT_CONCURRENCY } from "../defaults/index.js";
 import { config } from "../configs/index.js";
 import sharp from "sharp";
 import {
+  getAndCacheParsedDataGeoJSON,
   getAndCacheDataStyleJSON,
-  getAndCacheDataGeoJSON,
   getRenderedStyleJSON,
 } from "../resources/index.js";
 import {
@@ -527,7 +527,7 @@ async function getGeoJSONForSource(source) {
   if (!parts[2] || !parts[3]) {
     return;
   }
-  return JSON.parse(await getAndCacheDataGeoJSON(parts[2], parts[3]));
+  return await getAndCacheParsedDataGeoJSON(parts[2], parts[3]);
 }
 
 async function queryGeoJSONLayers(layerIds, point, tolerance, featureCount) {

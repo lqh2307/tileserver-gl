@@ -122,11 +122,13 @@ function* getTileBoundsBatches(
   let batch = [];
   let batchTotal = 0;
 
+  const baseChunkHeight = Math.floor(Math.sqrt(batchSize));
+
   function* splitTileBound(tileBound) {
     const width = tileBound.x[1] - tileBound.x[0] + 1;
     const height = tileBound.y[1] - tileBound.y[0] + 1;
 
-    let chunkHeight = min(height, Math.floor(Math.sqrt(batchSize)));
+    let chunkHeight = min(height, baseChunkHeight);
     let chunkWidth = min(width, Math.floor(batchSize / chunkHeight));
 
     chunkHeight = min(height, Math.floor(batchSize / chunkWidth));

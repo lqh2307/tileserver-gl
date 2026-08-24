@@ -870,6 +870,8 @@ async function seedTileDatas({
       tileExtraInfo,
     ) {
       for (const { z, x, y } of batchTileBounds) {
+        const maxTileRow = scheme === "tms" ? (1 << z) - 1 : undefined;
+
         for (let xCount = x[0]; xCount <= x[1]; xCount++) {
           for (let yCount = y[0]; yCount <= y[1]; yCount++) {
             completeTasks++;
@@ -902,7 +904,7 @@ async function seedTileDatas({
                   return;
                 }
 
-                const tmpY = scheme === "tms" ? (1 << z) - 1 - yCount : yCount;
+                const tmpY = scheme === "tms" ? maxTileRow - yCount : yCount;
 
                 const targetURL = url
                   .replace("{z}", `${z}`)
@@ -910,7 +912,7 @@ async function seedTileDatas({
                   .replace("{y}", `${tmpY}`);
 
                 printLog(
-                  "info",
+                  "debug",
                   `Downloading data id "${id}" - Tile "${tileName}" - From "${targetURL}" - ${taskNumber}/${total}...`,
                 );
 
@@ -1860,7 +1862,7 @@ async function cleanUpTileDatas({
                 }
 
                 printLog(
-                  "info",
+                  "debug",
                   `Removing data id "${id}" - Tile "${tileName}" - ${taskNumber}/${total}...`,
                 );
 

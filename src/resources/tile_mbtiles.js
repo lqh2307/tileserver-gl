@@ -186,7 +186,9 @@ export function getMBTilesTileExtraInfo(options) {
 
   const extraInfoType = options.isCreated ? "created" : "hash";
 
-  const querySQL = options.source.prepare(
+  const querySQL = getTileStatement(
+    options.source,
+    `extra-info-${extraInfoType}`,
     `
       SELECT
         tile_column, tile_row, ${extraInfoType}
@@ -619,9 +621,10 @@ export function updateMBTilesMetadata(source, metadataAdds) {
  * @param {number} y Y tile index
  * @param {Buffer} data Tile data
  * @param {{ statement: BetterSqlite3.Statement, source: Database, storeTransparent: boolean, created: number }} option Option
+ * @param {string} [dataHash] Precomputed content hash
  * @returns {Promise<void>}
  */
-export async function storeMBtilesTileData(z, x, y, data, option) {
+export async function storeMBtilesTileData(z, x, y, data, option, dataHash) {
   if (
     option.storeTransparent === false &&
     (await isFullTransparentImage(data))
@@ -635,7 +638,7 @@ export async function storeMBtilesTileData(z, x, y, data, option) {
       x,
       (1 << z) - 1 - y,
       data,
-      calculateMD5(data),
+      dataHash ?? calculateMD5(data),
       option.created,
     ]);
   } else {
@@ -644,7 +647,7 @@ export async function storeMBtilesTileData(z, x, y, data, option) {
       x,
       (1 << z) - 1 - y,
       data,
-      calculateMD5(data),
+      dataHash ?? calculateMD5(data),
       Date.now(),
     ]);
   }

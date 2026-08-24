@@ -557,18 +557,22 @@ export function getTileBounds(options) {
       });
     }
   } else {
-    for (let zoom = options.minZoom; zoom <= options.maxZoom; zoom++) {
-      let bbox = options.bbox;
+    let bbox = options.bbox;
 
-      if (options.limitedBBox) {
-        const intersecBBox = getIntersectBBox(bbox, options.limitedBBox);
-        if (intersecBBox) {
-          bbox = intersecBBox;
-        } else {
-          continue;
-        }
+    if (options.limitedBBox) {
+      bbox = getIntersectBBox(bbox, options.limitedBBox);
+
+      if (!bbox) {
+        return {
+          targetCoverages,
+          realBBox,
+          total: totalTile,
+          tileBounds,
+        };
       }
+    }
 
+    for (let zoom = options.minZoom; zoom <= options.maxZoom; zoom++) {
       const [xMin, yMin, xMax, yMax] = getTilesFromBBox(
         bbox,
         zoom,

@@ -180,38 +180,46 @@ export async function getPostgreSQLTileExtraInfo(options) {
 
   const extraInfoType = options.isCreated ? "created" : "hash";
 
-  const querySQL = `
-      SELECT
-        tile_column, tile_row, ${extraInfoType}
-      FROM
-        md5s
-      WHERE
-        zoom_level = $1
-      AND
-        tile_column BETWEEN $2 AND $3
-      AND
-        tile_row BETWEEN $4 AND $5;
-    `;
-
   const result = {};
 
-  for (const tileBound of tileBounds) {
-    const data = await options.source.query(querySQL, [
+  if (!tileBounds.length) {
+    return result;
+  }
+
+  const clauses = [];
+  const values = [];
+
+  tileBounds.forEach((tileBound, index) => {
+    const offset = index * 5;
+
+    clauses.push(
+      `(zoom_level = $${offset + 1} AND tile_column BETWEEN $${offset + 2} AND $${offset + 3} AND tile_row BETWEEN $${offset + 4} AND $${offset + 5})`,
+    );
+    values.push(
       tileBound.z,
       tileBound.x[0],
       tileBound.x[1],
       tileBound.y[0],
       tileBound.y[1],
-    ]);
+    );
+  });
 
-    data.rows.forEach((row) => {
-      if (row[extraInfoType]) {
-        // XYZ
-        result[`${tileBound.z}/${row.tile_column}/${row.tile_row}`] =
-          row[extraInfoType];
-      }
-    });
-  }
+  const data = await options.source.query(
+    `
+      SELECT zoom_level, tile_column, tile_row, ${extraInfoType}
+      FROM tiles
+      WHERE ${clauses.join(" OR ")};
+    `,
+    values,
+  );
+
+  data.rows.forEach((row) => {
+    if (row[extraInfoType]) {
+      // XYZ
+      result[`${row.zoom_level}/${row.tile_column}/${row.tile_row}`] =
+        row[extraInfoType];
+    }
+  });
 
   return result;
 }
@@ -599,9 +607,10 @@ export async function updatePostgreSQLMetadata(source, metadataAdds) {
  * @param {number} y Y tile index
  * @param {Buffer} data Tile data
  * @param {{ source: pg.Client, storeTransparent: boolean, created: number }} option Option
+ * @param {string} [dataHash] Precomputed content hash
  * @returns {Promise<void>}
  */
-export async function storePostgreSQLTileData(z, x, y, data, option) {
+export async function storePostgreSQLTileData(z, x, y, data, option, dataHash) {
   if (
     option.storeTransparent === false &&
     (await isFullTransparentImage(data))
@@ -612,7 +621,14 @@ export async function storePostgreSQLTileData(z, x, y, data, option) {
   await option.source.query({
     name: "upsert-tile",
     text: POSTGRESQL_INSERT_TILE_QUERY,
-    values: [z, x, y, data, calculateMD5(data), option.created ?? Date.now()],
+    values: [
+      z,
+      x,
+      y,
+      data,
+      dataHash ?? calculateMD5(data),
+      option.created ?? Date.now(),
+    ],
   });
 }
 

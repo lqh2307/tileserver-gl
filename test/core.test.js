@@ -175,16 +175,13 @@ test("task API validates selectors and accepts empty type groups", async () => {
       invalidRestartResponse,
       emptyTypeResponse,
       missingIdResponse,
-    ] =
-      await Promise.all([
-        fetch(`http://127.0.0.1:${port}/tasks/start?seedDatas=true`),
-        fetch(`http://127.0.0.1:${port}/tasks/start?id=osm`),
-        fetch(`http://127.0.0.1:${port}/tasks/start?restart=yes`),
-        fetch(`http://127.0.0.1:${port}/tasks/start?type=style`),
-        fetch(
-          `http://127.0.0.1:${port}/tasks/start?type=style&id=__missing__`,
-        ),
-      ]);
+    ] = await Promise.all([
+      fetch(`http://127.0.0.1:${port}/tasks/start?seedDatas=true`),
+      fetch(`http://127.0.0.1:${port}/tasks/start?id=osm`),
+      fetch(`http://127.0.0.1:${port}/tasks/start?restart=yes`),
+      fetch(`http://127.0.0.1:${port}/tasks/start?type=style`),
+      fetch(`http://127.0.0.1:${port}/tasks/start?type=style&id=__missing__`),
+    ]);
 
     assert.equal(legacyResponse.status, StatusCodes.BAD_REQUEST);
     assert.equal(incompleteResponse.status, StatusCodes.BAD_REQUEST);
@@ -371,6 +368,44 @@ test("MBTiles reuses its prepared tile statement", async () => {
   assert.equal(prepareCount, 1);
 });
 
+test("PostgreSQL extra-info uses one query over the tile bounds batch", async () => {
+  const calls = [];
+  const source = {
+    query: async (text, values) => {
+      calls.push({ text, values });
+
+      return {
+        rows: [
+          {
+            zoom_level: 2,
+            tile_column: 1,
+            tile_row: 0,
+            hash: "hash-1",
+          },
+        ],
+      };
+    },
+  };
+
+  const { getPostgreSQLTileExtraInfo } =
+    await import("../src/resources/tile_postgresql.js");
+  const result = await getPostgreSQLTileExtraInfo({
+    source,
+    tileBounds: [
+      { z: 2, x: [0, 1], y: [0, 1] },
+      { z: 3, x: [2, 3], y: [4, 5] },
+    ],
+  });
+
+  assert.deepEqual(result, {
+    "2/1/0": "hash-1",
+  });
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].text, /FROM tiles/);
+  assert.doesNotMatch(calls[0].text, /FROM md5s/);
+  assert.equal(calls[0].values.length, 10);
+});
+
 test("XYZ extra-info is built from tile files in bounded batches", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "tileserver-xyz-test-"));
   const sourcePath = path.join(root, "tiles");
@@ -519,6 +554,47 @@ test("HTTP 400 includes response detail and is not retried", async () => {
       },
     );
     assert.equal(requests, 1);
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => {
+        return error ? reject(error) : resolve();
+      });
+    });
+  }
+});
+
+test("HTTP 204 and 404 are not retried", async () => {
+  const requests = new Map();
+  const server = http.createServer((req, res) => {
+    requests.set(req.url, (requests.get(req.url) ?? 0) + 1);
+    res.writeHead(req.url === "/no-content" ? 204 : 404);
+    res.end();
+  });
+
+  await new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  try {
+    const address = server.address();
+
+    for (const endpoint of ["/no-content", "/not-found"]) {
+      await assert.rejects(
+        getDataFromURL(`http://127.0.0.1:${address.port}${endpoint}`, {
+          method: "GET",
+          timeout: 1000,
+          responseType: "arraybuffer",
+          headers: {},
+          decompress: false,
+          maxTry: 3,
+        }),
+      );
+    }
+
+    assert.deepEqual(Object.fromEntries(requests), {
+      "/no-content": 1,
+      "/not-found": 1,
+    });
   } finally {
     await new Promise((resolve, reject) => {
       server.close((error) => {

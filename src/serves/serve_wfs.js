@@ -1,6 +1,6 @@
 "use strict";
 
-import { getAndCacheDataGeoJSON } from "../resources/index.js";
+import { getAndCacheParsedDataGeoJSON } from "../resources/index.js";
 import { config } from "../configs/index.js";
 import {
   transformPointSRS,
@@ -10,8 +10,6 @@ import {
   getRequestHost,
   getParameter,
   xmlEscape,
-  mins,
-  maxs,
   min,
   max,
 } from "../utils/index.js";
@@ -145,13 +143,15 @@ function resolveFeatureTypes(parameters, pathName) {
 }
 
 async function readFeatures(type) {
-  const data = JSON.parse(await getAndCacheDataGeoJSON(type.group, type.layer));
+  const data = await getAndCacheParsedDataGeoJSON(type.group, type.layer);
   if (data.type === "FeatureCollection") {
     return data.features ?? [];
   }
+
   if (data.type === "Feature") {
     return [data];
   }
+
   return [
     {
       type: "Feature",
@@ -568,35 +568,26 @@ function featureCollectionJSON(features, matched, startIndex) {
 
 async function descriptor(type) {
   const features = await readFeatures(type);
-  const points = features
-    .map((feature) => {
-      return getGeometryBBox(feature.geometry);
-    })
-    .filter(Boolean);
-  const bbox = points.length
-    ? [
-        mins(
-          points.map((item) => {
-            return item[0];
-          }),
-        ),
-        mins(
-          points.map((item) => {
-            return item[1];
-          }),
-        ),
-        maxs(
-          points.map((item) => {
-            return item[2];
-          }),
-        ),
-        maxs(
-          points.map((item) => {
-            return item[3];
-          }),
-        ),
-      ]
-    : [-180, -90, 180, 90];
+  let bbox;
+
+  for (const feature of features) {
+    const geometryBBox = getGeometryBBox(feature.geometry);
+    if (!geometryBBox) {
+      continue;
+    }
+
+    if (!bbox) {
+      bbox = geometryBBox.slice();
+      continue;
+    }
+
+    bbox[0] = min(bbox[0], geometryBBox[0]);
+    bbox[1] = min(bbox[1], geometryBBox[1]);
+    bbox[2] = max(bbox[2], geometryBBox[2]);
+    bbox[3] = max(bbox[3], geometryBBox[3]);
+  }
+
+  bbox ??= [-180, -90, 180, 90];
   return {
     ...type,
     features,

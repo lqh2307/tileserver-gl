@@ -1,8 +1,12 @@
 "use strict";
 
-import { DEFAULT_QUERY_TIMEOUT } from "../defaults/index.js";
 import { config } from "../configs/index.js";
 import { readFile } from "node:fs/promises";
+import { createCache } from "cache-manager";
+import {
+  DEFAULT_CACHE_TIMEOUT,
+  DEFAULT_QUERY_TIMEOUT,
+} from "../defaults/index.js";
 import {
   removeFileWithLock,
   createFileWithLock,
@@ -24,6 +28,10 @@ const GEOMETRY_TYPES = new Set([
   "Point",
   "MultiPoint",
 ]);
+
+const parsedGeoJSONCaches = createCache({
+  ttl: DEFAULT_CACHE_TIMEOUT,
+});
 
 /**
  * Remove GeoJSON data file with lock
@@ -297,4 +305,29 @@ export async function getAndCacheDataGeoJSON(id, layer) {
 
     throw error;
   }
+}
+
+/**
+ * Get and cache parsed GeoJSON data.
+ * @param {string} id GeoJSON group id
+ * @param {string} layer GeoJSON group layer
+ * @returns {Promise<object>}
+ */
+export async function getAndCacheParsedDataGeoJSON(id, layer) {
+  const item = config.geojsons[id]?.[layer];
+  if (!item) {
+    throw new Error(`GeoJSON id "${id}" - Layer "${layer}" does not exist`);
+  }
+
+  let cacheKey = item.path;
+
+  try {
+    cacheKey += `:${await getFileCreated(item.path)}`;
+  } catch {
+    // Remote sources may not have a local cache file yet.
+  }
+
+  return await parsedGeoJSONCaches.wrap(cacheKey, async () => {
+    return JSON.parse(await getAndCacheDataGeoJSON(id, layer));
+  });
 }

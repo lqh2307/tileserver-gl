@@ -32,7 +32,7 @@ export function getEnvironmentString(value, fallback) {
  * @param {string} fallback Fallback log level
  * @returns {string}
  */
-export function getEnvironmentLogLevel(value, fallback = "info") {
+export function getEnvironmentLogLevel(value, fallback = "debug") {
   const level = getEnvironmentString(value, fallback).toLowerCase();
 
   return LOG_LEVELS.has(level) ? level : fallback;
