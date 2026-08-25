@@ -1,6 +1,5 @@
 "use strict";
 
-import { jsonBodyMiddleware, loggerMiddleware } from "./middlewares/index.js";
 import { cleanUp, config, seed } from "./configs/index.js";
 import { setupPrimary } from "@socket.io/cluster-adapter";
 import { setupMaster } from "@socket.io/sticky";
@@ -10,6 +9,11 @@ import express from "express";
 import http from "node:http";
 import path from "node:path";
 import cors from "cors";
+import {
+  responseCompressionMiddleware,
+  jsonBodyMiddleware,
+  loggerMiddleware,
+} from "./middlewares/index.js";
 import {
   isTaskTargetMatched,
   resolveProjectPath,
@@ -245,10 +249,12 @@ function setupStaticFolders(app) {
  */
 export async function startServer() {
   try {
+    const enableSocket = config.options?.enableSocket;
+
     if (cluster.isPrimary) {
       const server = http.createServer();
 
-      if (config.enableSocket) {
+      if (enableSocket) {
         setupMaster(server, {
           loadBalancingMethod: "least-connection",
         });
@@ -272,7 +278,7 @@ export async function startServer() {
         );
       }
     } else {
-      const serverType = config.enableSocket ? "HTTP/WS" : "HTTP";
+      const serverType = enableSocket ? "HTTP/WS" : "HTTP";
 
       /* Start HTTP/WS server */
       printLog("info", `Starting ${serverType} server...`);
@@ -286,13 +292,14 @@ export async function startServer() {
           }),
         )
         .use(jsonBodyMiddleware())
+        .use(responseCompressionMiddleware())
         .use(loggerMiddleware());
 
       setupStaticFolders(app);
 
       const server = http.createServer(app);
 
-      if (config.enableSocket) {
+      if (enableSocket) {
         setupWSServer(server);
       }
 

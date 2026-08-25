@@ -12,9 +12,11 @@ import {
 } from "../resources/index.js";
 import {
   compileHandleBarsTemplate,
+  normalizeResponseEncoding,
   isFileNotModified,
   getRequestHost,
   getParameter,
+  isValidBBox,
   xmlEscape,
   printLog,
   min,
@@ -171,7 +173,7 @@ function normalizeBBox(value) {
   }
 
   const bbox = value.map(Number);
-  return bbox.every(Number.isFinite) ? bbox : DEFAULT_BBOX;
+  return isValidBBox(bbox, true) ? bbox : DEFAULT_BBOX;
 }
 
 function clampZoom(value, fallback) {
@@ -349,19 +351,8 @@ export function getWMTSLayers() {
   return registry.layers;
 }
 
-function getLayer(layers, id) {
-  const registry = getWMTSRegistry();
-  if (layers === registry.layers) {
-    const layer = registry.byId.get(id);
-    if (layer) {
-      return layer;
-    }
-  }
-
-  const layer = layers.find((item) => {
-    return item.id === id;
-  });
-
+function getRegistryLayer(id) {
+  const layer = getWMTSRegistry().byId.get(id);
   if (!layer) {
     throw new WMTSError(
       "LayerNotDefined",
@@ -443,13 +434,11 @@ export async function buildCapabilities({
   abstract = config.options?.wmts?.abstract ?? "OGC Web Map Tile Service",
 }) {
   const matrixSets = [];
+  const matrixSetIds = new Set();
   for (const layer of layers) {
     for (const matrixSet of layer.matrixSets) {
-      if (
-        !matrixSets.some((item) => {
-          return item.identifier === matrixSet.identifier;
-        })
-      ) {
+      if (!matrixSetIds.has(matrixSet.identifier)) {
+        matrixSetIds.add(matrixSet.identifier);
         matrixSets.push(matrixSet);
       }
     }
@@ -500,7 +489,7 @@ export async function buildCapabilities({
     };
   });
 
-  return await compileHandleBarsTemplate("wmts", {
+  return compileHandleBarsTemplate("wmts", {
     version: WMTS_VERSION,
     updateSequence: CAPABILITIES_UPDATE_SEQUENCE,
     title: xmlEscape(title),
@@ -509,6 +498,44 @@ export async function buildCapabilities({
     layers: layerData,
     matrixSets: matrixData,
   });
+}
+
+let capabilitiesCache;
+
+async function getCapabilitiesXML(baseURL) {
+  const registry = getWMTSRegistry();
+  const options = config.options?.wmts;
+  if (
+    !capabilitiesCache ||
+    capabilitiesCache.registry !== registry ||
+    capabilitiesCache.options !== options
+  ) {
+    capabilitiesCache = {
+      registry,
+      options,
+      entries: new Map(),
+    };
+  }
+
+  let promise = capabilitiesCache.entries.get(baseURL);
+  if (!promise) {
+    promise = buildCapabilities({
+      baseURL,
+      layers: registry.layers,
+    });
+    const entries = capabilitiesCache.entries;
+    entries.set(baseURL, promise);
+
+    if (entries.size > 32) {
+      entries.delete(entries.keys().next().value);
+    }
+
+    promise.catch(() => {
+      entries.delete(baseURL);
+    });
+  }
+
+  return promise;
 }
 
 async function sendException(res, error) {
@@ -621,32 +648,31 @@ async function sendTile(req, res, layer, parameters) {
     tileCol,
     tileRow,
   );
+  let data = tile.data;
   const headers = {
     ...(tile.headers ?? {}),
     "content-type": format.mime,
   };
 
-  return res.status(StatusCodes.OK).set(headers).send(tile.data);
+  if (format.tileFormat === "pbf" && headers["content-encoding"]) {
+    res.vary("Accept-Encoding");
+    data = await normalizeResponseEncoding(data, headers, req);
+  }
+
+  return res.status(StatusCodes.OK).set(headers).send(data);
 }
 
-function capabilitiesHandler() {
-  return async (req, res) => {
-    try {
-      normalizeVersion(getParameter(req.query, "VERSION", WMTS_VERSION));
-      const baseURL = getRequestHost(req);
-      const xml = await buildCapabilities({
-        baseURL,
-      });
+async function sendCapabilities(req, res) {
+  try {
+    normalizeVersion(getParameter(req.query, "VERSION", WMTS_VERSION));
+    const baseURL = getRequestHost(req);
+    const xml = await getCapabilitiesXML(baseURL);
 
-      return res
-        .status(StatusCodes.OK)
-        .set("content-type", "text/xml")
-        .send(xml);
-    } catch (error) {
-      printLog("error", `Failed to build WMTS capabilities: ${error}`);
-      return sendException(res, error);
-    }
-  };
+    return res.status(StatusCodes.OK).set("content-type", "text/xml").send(xml);
+  } catch (error) {
+    printLog("error", `Failed to build WMTS capabilities: ${error}`);
+    return sendException(res, error);
+  }
 }
 
 function kvpHandler() {
@@ -654,18 +680,19 @@ function kvpHandler() {
     try {
       const parameters = req.query ?? {};
       const operation = normalizeOperation(getParameter(parameters, "REQUEST"));
-      normalizeVersion(getParameter(parameters, "VERSION", WMTS_VERSION));
 
       if (operation === "GetCapabilities") {
-        return capabilitiesHandler()(req, res);
+        return await sendCapabilities(req, res);
       }
+
+      normalizeVersion(getParameter(parameters, "VERSION", WMTS_VERSION));
 
       const layerId = getParameter(parameters, "LAYER");
       if (!layerId) {
         throw new WMTSError("MissingParameterValue", "LAYER is required.");
       }
 
-      const layer = getLayer(getWMTSLayers(), layerId);
+      const layer = getRegistryLayer(layerId);
       const style = getParameter(parameters, "STYLE", "default");
       if (style !== "default") {
         throw new WMTSError(
@@ -686,7 +713,7 @@ function restTileHandler({ compact = false } = {}) {
   return async (req, res) => {
     try {
       const layerId = req.params.layer;
-      const layer = getLayer(getWMTSLayers(), layerId);
+      const layer = getRegistryLayer(layerId);
       const style = compact ? "default" : req.params.style;
       if (style !== "default") {
         throw new WMTSError(
@@ -817,7 +844,7 @@ export const serve_wmts = {
      *         description: OGC exception report.
      */
     app.get("/wmts", kvpHandler());
-    app.get("/wmts/1.0.0/WMTSCapabilities.xml", capabilitiesHandler());
+    app.get("/wmts/1.0.0/WMTSCapabilities.xml", sendCapabilities);
     app.get(
       "/wmts/:layer/:style/:tileMatrixSet/:tileMatrix/:tileRow/:tileCol.:format",
       restTileHandler(),

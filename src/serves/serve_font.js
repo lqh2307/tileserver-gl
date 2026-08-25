@@ -11,13 +11,13 @@ import {
   getFont,
 } from "../resources/index.js";
 import {
+  normalizeResponseEncoding,
   detectFormatAndHeaders,
   isFileNotModified,
   sendTextResponse,
   isErrorNotFound,
   runAllWithLimit,
   getRequestHost,
-  gzipAsync,
   printLog,
 } from "../utils/index.js";
 
@@ -44,12 +44,12 @@ function getFontHandler() {
       /* Get and cache Fonts */
       let data = await getAndCacheDataFonts(ids, fileName);
 
-      /* Gzip pbf font */
+      /* Normalize upstream pbf encoding */
       const headers = detectFormatAndHeaders(data).headers;
-      if (!headers["content-encoding"]) {
-        data = await gzipAsync(data);
+      if (headers["content-encoding"]) {
+        res.vary("Accept-Encoding");
 
-        headers["content-encoding"] = "gzip";
+        data = await normalizeResponseEncoding(data, headers, req);
       }
 
       res.set(headers);
@@ -157,17 +157,7 @@ function getFontsListHandler() {
         };
       });
 
-      const headers = {
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

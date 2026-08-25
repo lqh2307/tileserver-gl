@@ -246,7 +246,7 @@ export async function calculateResolution(input, unit) {
  * @returns {Promise<sharp.Metadata>}
  */
 export async function getImageMetadata(filePath) {
-  return await sharp(filePath, {
+  return sharp(filePath, {
     limitInputPixels: false,
   }).metadata();
 }
@@ -383,7 +383,7 @@ export async function createImageOutput(options) {
 
     return filePath;
   } else {
-    return await targetImage.toBuffer();
+    return targetImage.toBuffer();
   }
 }
 
@@ -1124,7 +1124,7 @@ export async function addFrameToImage(input, overlays, frame, grid, output) {
     : undefined;
 
   // Create image
-  return await createImageOutput({
+  return createImageOutput({
     data: image ?? input.image,
     extendOption,
     compositesOption,
@@ -1199,7 +1199,7 @@ export async function mergeTilesToImage(input, output) {
   }
 
   // Return image
-  return await createImageOutput({
+  return createImageOutput({
     createOption: {
       width: targetWidth,
       height: targetHeight,

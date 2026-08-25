@@ -37,7 +37,7 @@ async function getCachedRenderedStyleJSON(filePath) {
     }
   }
 
-  return await renderedStyleJSONCaches.wrap(cacheKey, async () => {
+  return renderedStyleJSONCaches.wrap(cacheKey, async () => {
     try {
       return await createRenderedStyleJSON(filePath);
     } catch (error) {
@@ -192,9 +192,7 @@ export async function createRenderedStyleJSON(filePath) {
  * @param {string} filePath Style file path to render
  * @returns {Promise<object>}
  */
-export async function getRenderedStyleJSON(filePath) {
-  return await getCachedRenderedStyleJSON(filePath);
-}
+export const getRenderedStyleJSON = getCachedRenderedStyleJSON;
 
 /**
  * Get created time of Style file

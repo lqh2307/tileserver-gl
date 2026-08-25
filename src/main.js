@@ -57,6 +57,7 @@ async function startClusterServer() {
     let log = `Starting ${process.env.SERVICE_NAME} server with:`;
     log += `\n\tData dir: ${process.env.DATA_DIR}`;
     log += `\n\tRestart server after config change: ${process.env.RESTART_AFTER_CONFIG_CHANGE}`;
+    log += `\n\tCompress responses: ${process.env.COMPRESS_RESPONSE}`;
 
     printLog("info", log);
 

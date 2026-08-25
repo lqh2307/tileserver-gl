@@ -720,7 +720,7 @@ async function seedTileDatas({
 
         updateMBTilesMetadata(source, metadata);
 
-        getTileExtraInfoFunc = async (batchTileBounds, isCreated) => {
+        getTileExtraInfoFunc = (batchTileBounds, isCreated) => {
           return getMBTilesTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
@@ -742,12 +742,12 @@ async function seedTileDatas({
         };
 
         /* Store tile data function */
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storeMBtilesTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = (z, x, y, data) => {
+          return storeMBtilesTileData(z, x, y, data, tileOption);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
+        closeDatabaseFunc = () => {
           return closeMBTilesDB(source);
         };
 
@@ -767,8 +767,8 @@ async function seedTileDatas({
 
         await updatePostgreSQLMetadata(source, metadata);
 
-        getTileExtraInfoFunc = async (batchTileBounds, isCreated) => {
-          return await getPostgreSQLTileExtraInfo({
+        getTileExtraInfoFunc = (batchTileBounds, isCreated) => {
+          return getPostgreSQLTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
             isCreated,
@@ -789,13 +789,13 @@ async function seedTileDatas({
         };
 
         /* Store tile data function */
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storePostgreSQLTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = (z, x, y, data) => {
+          return storePostgreSQLTileData(z, x, y, data, tileOption);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
-          return await closePostgreSQLDB(source);
+        closeDatabaseFunc = () => {
+          return closePostgreSQLDB(source);
         };
 
         break;
@@ -820,7 +820,7 @@ async function seedTileDatas({
 
         updateXYZMetadata(source, metadata);
 
-        getTileExtraInfoFunc = async (batchTileBounds, isCreated) => {
+        getTileExtraInfoFunc = (batchTileBounds, isCreated) => {
           return getXYZTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
@@ -843,12 +843,12 @@ async function seedTileDatas({
           decompress: false,
         };
 
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storeXYZTileFile(z, x, y, data, tileOption);
+        storeTileDataFunc = (z, x, y, data) => {
+          return storeXYZTileFile(z, x, y, data, tileOption);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
+        closeDatabaseFunc = () => {
           return closeXYZMD5DB(source);
         };
 
@@ -1705,7 +1705,7 @@ async function cleanUpTileDatas({
 
         source = await openMBTilesDB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
-        getTileExtraInfoFunc = async (batchTileBounds) => {
+        getTileExtraInfoFunc = (batchTileBounds) => {
           return getMBTilesTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
@@ -1719,17 +1719,17 @@ async function cleanUpTileDatas({
         };
 
         /* Remove tile data function */
-        removeTileDataFunc = async (z, x, y) => {
+        removeTileDataFunc = (z, x, y) => {
           return removeMBTilesTile(z, x, y, tileOption);
         };
 
         /* Compact database function */
-        compactDatabase = async () => {
+        compactDatabase = () => {
           return compactMBTiles(source);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
+        closeDatabaseFunc = () => {
           return closeMBTilesDB(source);
         };
 
@@ -1744,8 +1744,8 @@ async function cleanUpTileDatas({
 
         source = await openPostgreSQLDB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
-        getTileExtraInfoFunc = async (batchTileBounds) => {
-          return await getPostgreSQLTileExtraInfo({
+        getTileExtraInfoFunc = (batchTileBounds) => {
+          return getPostgreSQLTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
             isCreated: true,
@@ -1758,16 +1758,16 @@ async function cleanUpTileDatas({
         };
 
         /* Remove tile data function */
-        removeTileDataFunc = async (z, x, y) => {
-          return await removePostgreSQLTile(z, x, y, tileOption);
+        removeTileDataFunc = (z, x, y) => {
+          return removePostgreSQLTile(z, x, y, tileOption);
         };
 
         /* Compact database function */
-        compactDatabase = async () => {};
+        compactDatabase = () => {};
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
-          return await closePostgreSQLDB(source);
+        closeDatabaseFunc = () => {
+          return closePostgreSQLDB(source);
         };
 
         break;
@@ -1787,7 +1787,7 @@ async function cleanUpTileDatas({
 
         source = await openXYZMD5DB(filePath, true, DEFAULT_QUERY_TIMEOUT);
 
-        getTileExtraInfoFunc = async (batchTileBounds) => {
+        getTileExtraInfoFunc = (batchTileBounds) => {
           return getXYZTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
@@ -1804,8 +1804,8 @@ async function cleanUpTileDatas({
         };
 
         /* Remove tile data function */
-        removeTileDataFunc = async (z, x, y) => {
-          return await removeXYZTile(z, x, y, tileOption);
+        removeTileDataFunc = (z, x, y) => {
+          return removeXYZTile(z, x, y, tileOption);
         };
 
         /* Compact database function */
@@ -1818,7 +1818,7 @@ async function cleanUpTileDatas({
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
+        closeDatabaseFunc = () => {
           return closeXYZMD5DB(source);
         };
 

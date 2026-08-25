@@ -327,7 +327,7 @@ export async function getAndCacheParsedDataGeoJSON(id, layer) {
     // Remote sources may not have a local cache file yet.
   }
 
-  return await parsedGeoJSONCaches.wrap(cacheKey, async () => {
+  return parsedGeoJSONCaches.wrap(cacheKey, async () => {
     return JSON.parse(await getAndCacheDataGeoJSON(id, layer));
   });
 }

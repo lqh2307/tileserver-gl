@@ -228,7 +228,7 @@ The server exposes WMS 1.3.0:
 - `GET /styles/{id}/wms` serves one style and is convenient for clients that use a per-layer endpoint.
 - Implemented requests: `GetCapabilities`, `GetMap`, `GetFeatureInfo`, `GetLegendGraphic`, `GetStyles`, and `DescribeLayer`.
 - Supported map formats are `image/png`, `image/jpeg`, and `image/webp`. Feature information is available as GeoJSON, JSON, plain text, or HTML for GeoJSON sources.
-- `EPSG:4326`, `CRS:84`, `EPSG:3857`, and any CRS registered with `proj4` are accepted. WMS 1.3.0 correctly applies the latitude/longitude axis order for `EPSG:4326`.
+- `EPSG:4326`, `CRS:84`, `EPSG:3857`, and any CRS registered with `proj4` are accepted. BBOX values consistently use `minLon,minLat,maxLon,maxLat` order across WMS, WFS, and WMTS layer metadata.
 
 Optional service metadata can be configured under `options.wms`, and layer metadata under a style entry's `wms` object:
 
@@ -267,8 +267,8 @@ WMS KVP examples (all parameters are sent on the GET query string):
 # Capabilities
 curl -fsS 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities'
 
-# Map in EPSG:4326. WMS 1.3.0 uses latitude,longitude axis order for this CRS.
-curl -fsS -o map.png 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=asia_full&STYLES=&CRS=EPSG:4326&BBOX=20,100,25,110&WIDTH=1024&HEIGHT=768&FORMAT=image/png&TRANSPARENT=TRUE'
+# Map in EPSG:4326. BBOX always uses minLon,minLat,maxLon,maxLat order.
+curl -fsS -o map.png 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=asia_full&STYLES=&CRS=EPSG:4326&BBOX=100,20,110,25&WIDTH=1024&HEIGHT=768&FORMAT=image/png&TRANSPARENT=TRUE'
 
 # Legend
 curl -fsS -o legend.png 'http://localhost:8080/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=asia_full&FORMAT=image/png'
@@ -780,6 +780,7 @@ Biến môi trường:
 | `DATA_DIR`                    | `data`          | Thư mục chứa config và resource                                                                 |
 | `SERVICE_NAME`                | `tile-server`   | Tên service dùng trong log/metrics                                                              |
 | `RESTART_AFTER_CONFIG_CHANGE` | `true`          | Restart khi `config.json`, `seed.json` hoặc `cleanup.json` thay đổi                             |
+| `COMPRESS_RESPONSE`           | `true`          | Gzip response phù hợp; request có thể ghi đè bằng `compression=true` hoặc `compression=false` |
 | `NUM_OF_THREAD`               | Số CPU          | Ghi đè `options.thread` và đặt `UV_THREADPOOL_SIZE`                                             |
 | `NUM_OF_PROCESS`              | `1`             | Ghi đè `options.process`                                                                        |
 | `LOG_LEVEL`                   | `info`          | Mức log runtime                                                                                 |

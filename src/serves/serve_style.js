@@ -25,7 +25,6 @@ import {
   getRequestHost,
   TILE_SIZES,
   isLocalURL,
-  gzipAsync,
   printLog,
 } from "../utils/index.js";
 
@@ -178,20 +177,7 @@ function getStyleHandler() {
         );
       }
 
-      const headers = {
-        // "content-disposition": `attachment; filename="${path.basename(item.path)}"`,
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        styleJSON = await gzipAsync(
-          req.query.raw !== "true" ? JSON.stringify(styleJSON) : styleJSON,
-        );
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(styleJSON);
     } catch (error) {
@@ -239,17 +225,7 @@ function getStylesListHandler() {
         return data;
       });
 
-      const headers = {
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {
@@ -461,17 +437,7 @@ function getRenderedsListHandler() {
         }
       }
 
-      const headers = {
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

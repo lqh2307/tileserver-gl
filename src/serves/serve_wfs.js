@@ -2,14 +2,15 @@
 
 import { getAndCacheParsedDataGeoJSON } from "../resources/index.js";
 import { config } from "../configs/index.js";
+import proj4 from "proj4";
 import {
   compileHandleBarsTemplate,
-  transformPointSRS,
   transformBBoxSRS,
   getGeometryBBox,
   splitParameter,
   getRequestHost,
   getParameter,
+  isValidBBox,
   xmlEscape,
   min,
   max,
@@ -21,6 +22,12 @@ const WFS_FEATURE_NAMESPACE = "http://www.example.com/wfs";
 const GML32_NAMESPACE = "http://www.opengis.net/gml/3.2";
 const MAX_FEATURES = 10000;
 const DEFAULT_COUNT = 1000;
+const SUPPORTED_OPERATIONS = new Set([
+  "getcapabilities",
+  "describefeaturetype",
+  "getpropertyvalue",
+  "getfeature",
+]);
 
 class WFSException extends Error {
   constructor(code, message) {
@@ -140,6 +147,10 @@ function resolveFeatureTypes(parameters, pathName) {
 
 async function readFeatures(type) {
   const data = await getAndCacheParsedDataGeoJSON(type.group, type.layer);
+  return featuresFromData(data);
+}
+
+function featuresFromData(data) {
   if (data.type === "FeatureCollection") {
     return data.features ?? [];
   }
@@ -188,12 +199,25 @@ function parseBBox(value) {
     );
   }
   const crs = normalizeCRS(parts[4] ?? "EPSG:4326");
+  if (!isValidBBox(values, false)) {
+    throw new WFSException(
+      "InvalidParameterValue",
+      "BBOX coordinates are not ordered.",
+    );
+  }
+
   try {
-    return transformBBoxSRS({
+    const transformed = transformBBoxSRS({
       srcSRS: crs,
       dstSRS: "EPSG:4326",
-      bounds: values.slice(0, 4),
+      bounds: values,
     });
+
+    if (!isValidBBox(transformed, false)) {
+      throw new Error("invalid transformed bounds");
+    }
+
+    return transformed;
   } catch (error) {
     throw new WFSException(
       "InvalidParameterValue",
@@ -357,11 +381,10 @@ function matchesFilter(feature, filter, type, index) {
   switch (filter.type) {
     case "id":
       return featureId(feature, type, index) === filter.value;
-    case "bbox":
-      return Boolean(
-        getGeometryBBox(feature.geometry) &&
-        bboxIntersects(getGeometryBBox(feature.geometry), filter.value),
-      );
+    case "bbox": {
+      const bbox = getGeometryBBox(feature.geometry);
+      return Boolean(bbox && bboxIntersects(bbox, filter.value));
+    }
     case "comparison":
       return compareValue(
         propertyValue(feature, filter.property),
@@ -393,39 +416,33 @@ function matchesFilter(feature, filter, type, index) {
   }
 }
 
-function geometryTransform(geometry, srcCRS, dstCRS) {
-  if (!geometry || srcCRS === dstCRS) {
+function transformCoordinates(value, transform) {
+  if (Array.isArray(value) && typeof value[0] === "number") {
+    return transform(value.slice(0, 2)).concat(value.slice(2));
+  }
+
+  return value?.map((item) => {
+    return transformCoordinates(item, transform);
+  });
+}
+
+function transformGeometry(geometry, transform) {
+  if (!geometry || !transform) {
     return geometry;
   }
-  const coordinates = (value) => {
-    if (Array.isArray(value) && typeof value[0] === "number") {
-      return transformPointSRS({
-        srcSRS: srcCRS,
-        dstSRS: dstCRS,
-        point: value.slice(0, 2),
-      }).concat(value.slice(2));
-    }
-    return value?.map(coordinates);
-  };
+
   if (geometry.type === "GeometryCollection") {
     return {
       ...geometry,
       geometries: geometry.geometries.map((item) => {
-        return geometryTransform(item, srcCRS, dstCRS);
+        return transformGeometry(item, transform);
       }),
     };
   }
+
   return {
     ...geometry,
-    coordinates: coordinates(geometry.coordinates),
-  };
-}
-
-function projectFeature(feature, type, index, srsName) {
-  return {
-    ...feature,
-    id: featureId(feature, type, index),
-    geometry: geometryTransform(feature.geometry, "EPSG:4326", srsName),
+    coordinates: transformCoordinates(geometry.coordinates, transform),
   };
 }
 
@@ -454,7 +471,7 @@ function positionText(coordinate) {
   return coordinate.slice(0, 2).join(" ");
 }
 
-function gmlGeometry(geometry, gmlNS, srsName) {
+function gmlGeometry(geometry, srsName) {
   if (!geometry) {
     return "";
   }
@@ -488,7 +505,6 @@ function gmlGeometry(geometry, gmlNS, srsName) {
               type: "Polygon",
               coordinates: item,
             },
-            gmlNS,
             srsName,
           )}</gml:surfaceMember>`;
         })
@@ -502,7 +518,7 @@ function gmlGeometry(geometry, gmlNS, srsName) {
     case "GeometryCollection":
       return `<gml:MultiGeometry${attr}>${geometry.geometries
         .map((item) => {
-          return `<gml:geometryMember>${gmlGeometry(item, gmlNS, srsName)}</gml:geometryMember>`;
+          return `<gml:geometryMember>${gmlGeometry(item, srsName)}</gml:geometryMember>`;
         })
         .join("")}</gml:MultiGeometry>`;
     default:
@@ -510,7 +526,7 @@ function gmlGeometry(geometry, gmlNS, srsName) {
   }
 }
 
-function featureToGML(feature, type, index, srsName) {
+function featureToGML(feature, type, srsName) {
   const featureName = xmlName(type.layer);
   const properties = Object.entries(feature.properties ?? {})
     .map(([name, value]) => {
@@ -518,19 +534,19 @@ function featureToGML(feature, type, index, srsName) {
     })
     .join("");
   const geometry = feature.geometry
-    ? `<geometry>${gmlGeometry(geometryTransform(feature.geometry, "EPSG:4326", srsName), GML32_NAMESPACE, srsName)}</geometry>`
+    ? `<geometry>${gmlGeometry(feature.geometry, srsName)}</geometry>`
     : "";
-  return `<feature:${featureName} gml:id="${xmlEscape(featureId(feature, type, index))}" xmlns:feature="${WFS_FEATURE_NAMESPACE}">${properties}${geometry}</feature:${featureName}>`;
+  return `<feature:${featureName} gml:id="${xmlEscape(feature.id)}" xmlns:feature="${WFS_FEATURE_NAMESPACE}">${properties}${geometry}</feature:${featureName}>`;
 }
 
-function featureCollectionGML(items, srsName, matched, lockId) {
+function featureCollectionGML(items, srsName, matched) {
   const memberTag = "wfs:member";
   const members = items
-    .map(({ feature, type, index }) => {
-      return `<${memberTag}>${featureToGML(feature, type, index, srsName)}</${memberTag}>`;
+    .map(({ feature, type }) => {
+      return `<${memberTag}>${featureToGML(feature, type, srsName)}</${memberTag}>`;
     })
     .join("");
-  return `<?xml version="1.0" encoding="UTF-8"?><wfs:FeatureCollection xmlns:wfs="${WFS_NAMESPACE}" xmlns:gml="${GML32_NAMESPACE}" xmlns:feature="${WFS_FEATURE_NAMESPACE}" timeStamp="${new Date().toISOString()}" numberMatched="${matched}" numberReturned="${items.length}"${lockId ? ` lockId="${xmlEscape(lockId)}"` : ""}>${members}</wfs:FeatureCollection>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><wfs:FeatureCollection xmlns:wfs="${WFS_NAMESPACE}" xmlns:gml="${GML32_NAMESPACE}" xmlns:feature="${WFS_FEATURE_NAMESPACE}" timeStamp="${new Date().toISOString()}" numberMatched="${matched}" numberReturned="${items.length}">${members}</wfs:FeatureCollection>`;
 }
 
 function featureCollectionJSON(features, matched, startIndex) {
@@ -544,8 +560,16 @@ function featureCollectionJSON(features, matched, startIndex) {
   });
 }
 
+const descriptorCache = new WeakMap();
+
 async function descriptor(type) {
-  const features = await readFeatures(type);
+  const data = await getAndCacheParsedDataGeoJSON(type.group, type.layer);
+  const cached = descriptorCache.get(type.item);
+  if (cached?.data === data && cached.type === type) {
+    return cached.descriptor;
+  }
+
+  const features = featuresFromData(data);
   let bbox;
 
   for (const feature of features) {
@@ -566,17 +590,36 @@ async function descriptor(type) {
   }
 
   bbox ??= [-180, -90, 180, 90];
-  return {
+  const result = {
     ...type,
     features,
     bbox,
     fields: fieldSchema(features),
   };
+
+  descriptorCache.set(type.item, {
+    data,
+    type,
+    descriptor: result,
+  });
+  return result;
 }
+
+let capabilitiesCache;
 
 async function capabilities(baseURL) {
   const types = await Promise.all(getFeatureTypes().map(descriptor));
-  return await compileHandleBarsTemplate("wfs", {
+  if (
+    capabilitiesCache?.baseURL === baseURL &&
+    capabilitiesCache.types.length === types.length &&
+    capabilitiesCache.types.every((type, index) => {
+      return type === types[index];
+    })
+  ) {
+    return capabilitiesCache.xml;
+  }
+
+  const xml = await compileHandleBarsTemplate("wfs", {
     baseURL: xmlEscape(baseURL),
     types: types.map((type) => {
       return {
@@ -586,17 +629,16 @@ async function capabilities(baseURL) {
       };
     }),
   });
-}
 
-function getRequestData(req) {
-  return {
-    operation: getParameter(req.query, "REQUEST", "GetCapabilities"),
-    parameters: req.query ?? {},
-    xml: "",
+  capabilitiesCache = {
+    baseURL,
+    types,
+    xml,
   };
+  return xml;
 }
 
-function applyQuery(features, type, parameters) {
+function createFeatureQuery(parameters) {
   const filter =
     filterFromXML(getParameter(parameters, "FILTER")) ??
     filterFromCQL(getParameter(parameters, "CQL_FILTER")) ??
@@ -615,30 +657,50 @@ function applyQuery(features, type, parameters) {
         }
       : undefined);
   const bbox = parseBBox(getParameter(parameters, "BBOX"));
-  let result = features.filter((feature, index) => {
-    if (!matchesFilter(feature, filter, type, index)) {
-      return false;
-    }
-    if (!bbox) {
-      return true;
-    }
-    const geometry = getGeometryBBox(feature.geometry);
-
-    return Boolean(geometry && bboxIntersects(geometry, bbox));
-  });
   const sort = getParameter(parameters, "SORTBY");
+  let sortBy;
   if (sort) {
     const parts = String(sort).trim().split(/\s+/);
-    const field = localName(parts[0]);
-    const descending =
-      String(parts[1] ?? "").toUpperCase() === "D" ||
-      String(parts[1] ?? "").toUpperCase() === "DESC";
-    result = result.sort((first, second) => {
-      const direction = descending ? -1 : 1;
-      return (
-        (propertyValue(first, field) > propertyValue(second, field) ? 1 : -1) *
-        direction
-      );
+    sortBy = {
+      field: localName(parts[0]),
+      direction:
+        String(parts[1] ?? "").toUpperCase() === "D" ||
+        String(parts[1] ?? "").toUpperCase() === "DESC"
+          ? -1
+          : 1,
+    };
+  }
+
+  return {
+    filter,
+    bbox,
+    sortBy,
+  };
+}
+
+function applyQuery(features, type, query) {
+  const { filter, bbox, sortBy } = query;
+  let result =
+    filter || bbox
+      ? features.filter((feature, index) => {
+          if (!matchesFilter(feature, filter, type, index)) {
+            return false;
+          }
+          if (!bbox) {
+            return true;
+          }
+          const geometry = getGeometryBBox(feature.geometry);
+
+          return Boolean(geometry && bboxIntersects(geometry, bbox));
+        })
+      : features;
+  if (sortBy) {
+    result = result.slice().sort((first, second) => {
+      const firstValue = propertyValue(first, sortBy.field);
+      const secondValue = propertyValue(second, sortBy.field);
+      return firstValue === secondValue
+        ? 0
+        : (firstValue > secondValue ? 1 : -1) * sortBy.direction;
     });
   }
   return result;
@@ -670,8 +732,7 @@ function describeFeatureType(type) {
 }
 
 async function handleWFS(req, res, pathName) {
-  const request = getRequestData(req);
-  const parameters = request.parameters;
+  const parameters = req.query ?? {};
   try {
     normalizeVersion(getParameter(parameters, "VERSION", WFS_VERSION));
     if (
@@ -679,18 +740,10 @@ async function handleWFS(req, res, pathName) {
     ) {
       throw new WFSException("InvalidParameterValue", "SERVICE must be WFS.");
     }
-    let operation = String(
-      request.operation ??
-        getParameter(parameters, "REQUEST", "GetCapabilities"),
+    const operation = String(
+      getParameter(parameters, "REQUEST", "GetCapabilities"),
     ).toLowerCase();
-    if (
-      ![
-        "getcapabilities",
-        "describefeaturetype",
-        "getpropertyvalue",
-        "getfeature",
-      ].includes(operation)
-    ) {
+    if (!SUPPORTED_OPERATIONS.has(operation)) {
       throw new WFSException(
         "OperationNotSupported",
         `Request "${operation}" is not supported for GET-only WFS.`,
@@ -714,7 +767,12 @@ async function handleWFS(req, res, pathName) {
     }
     if (operation === "getpropertyvalue") {
       const types = await Promise.all(
-        resolveFeatureTypes(parameters, pathName).map(descriptor),
+        resolveFeatureTypes(parameters, pathName).map(async (type) => {
+          return {
+            ...type,
+            features: await readFeatures(type),
+          };
+        }),
       );
       const property = getParameter(
         parameters,
@@ -744,23 +802,20 @@ async function handleWFS(req, res, pathName) {
     }
     if (operation === "getfeature") {
       const types = await Promise.all(
-        resolveFeatureTypes(parameters, pathName).map(descriptor),
+        resolveFeatureTypes(parameters, pathName).map(async (type) => {
+          return {
+            ...type,
+            features: await readFeatures(type),
+          };
+        }),
       );
       const srsName = normalizeCRS(
         getParameter(parameters, "SRSNAME", "EPSG:4326"),
       );
-      const all = types.flatMap((type) => {
-        return applyQuery(type.features, type, parameters).map(
-          (feature, index) => {
-            return {
-              feature,
-              type,
-              index,
-            };
-          },
-        );
-      });
-      const matched = all.length;
+      const transform =
+        srsName === "EPSG:4326"
+          ? undefined
+          : proj4("EPSG:4326", srsName).forward;
       const startIndex = max(
         0,
         Number(getParameter(parameters, "STARTINDEX", 0)) || 0,
@@ -778,12 +833,33 @@ async function handleWFS(req, res, pathName) {
           ) || DEFAULT_COUNT,
         ),
       );
-      const selected =
+      const hitsOnly =
         String(
           getParameter(parameters, "RESULTTYPE", "results"),
-        ).toLowerCase() === "hits"
-          ? []
-          : all.slice(startIndex, startIndex + count);
+        ).toLowerCase() === "hits";
+      const query = createFeatureQuery(parameters);
+      const selected = [];
+      let matched = 0;
+
+      for (const type of types) {
+        const features = applyQuery(type.features, type, query);
+        const offset = matched;
+        matched += features.length;
+
+        if (hitsOnly || selected.length >= count) {
+          continue;
+        }
+
+        const from = max(0, startIndex - offset);
+        const to = min(features.length, startIndex + count - offset);
+        for (let index = from; index < to; index++) {
+          selected.push({
+            feature: features[index],
+            type,
+            index,
+          });
+        }
+      }
       const propertyNames = splitParameter(
         getParameter(
           parameters,
@@ -793,7 +869,13 @@ async function handleWFS(req, res, pathName) {
       );
       const output = outputFormat(parameters);
       const projected = selected.map(({ feature, type, index }) => {
-        const result = projectFeature(feature, type, index, srsName);
+        const result = {
+          ...feature,
+          id: featureId(feature, type, index),
+          geometry: transform
+            ? transformGeometry(feature.geometry, transform)
+            : feature.geometry,
+        };
         if (!propertyNames.length) {
           return {
             feature: result,
@@ -835,7 +917,7 @@ async function handleWFS(req, res, pathName) {
         res
           .type("text/xml")
           .status(200)
-          .send(featureCollectionGML(projected, srsName, matched, undefined));
+          .send(featureCollectionGML(projected, srsName, matched));
       }
       return;
     }
@@ -880,7 +962,7 @@ export const serve_wfs = {
      *       - { in: query, name: VERSION, schema: { type: string, enum: ['2.0.0'], default: '2.0.0' } }
      *       - { in: query, name: TYPENAMES, schema: { type: string }, description: Comma-separated feature type names. }
      *       - { in: query, name: OUTPUTFORMAT, schema: { type: string, enum: [application/json, application/gml+xml; version=3.2], example: application/json } }
-     *       - { in: query, name: BBOX, schema: { type: string }, description: Four coordinates with optional CRS. }
+     *       - { in: query, name: BBOX, schema: { type: string }, description: minLon,minLat,maxLon,maxLat with an optional fifth CRS value. }
      *       - { in: query, name: SRSNAME, schema: { type: string, example: EPSG:4326 } }
      *       - { in: query, name: PROPERTYNAME, schema: { type: string }, description: Comma-separated properties to return. }
      *       - { in: query, name: RESULTTYPE, schema: { type: string, enum: [results, hits], default: results } }
@@ -908,7 +990,7 @@ export const serve_wfs = {
      *       - { in: query, name: VERSION, schema: { type: string, enum: ['2.0.0'], default: '2.0.0' } }
      *       - { in: query, name: TYPENAMES, schema: { type: string }, description: Optional feature type name. }
      *       - { in: query, name: OUTPUTFORMAT, schema: { type: string, enum: [application/json, application/gml+xml; version=3.2] } }
-     *       - { in: query, name: BBOX, schema: { type: string } }
+     *       - { in: query, name: BBOX, schema: { type: string }, description: minLon,minLat,maxLon,maxLat with an optional fifth CRS value. }
      *       - { in: query, name: COUNT, schema: { type: integer, minimum: 0 } }
      *       - { in: query, name: STARTINDEX, schema: { type: integer, minimum: 0 } }
      *     responses:

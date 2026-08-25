@@ -80,6 +80,11 @@ test("WFS capabilities and DescribeFeatureType publish GeoJSON layers", async ()
     assert.equal(capabilities.status, 200);
     assert.match(capabilitiesText, /<wfs:Name>test:points<\/wfs:Name>/);
 
+    const cachedCapabilities = await fetch(
+      `${baseURL}/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities`,
+    );
+    assert.equal(await cachedCapabilities.text(), capabilitiesText);
+
     const schema = await fetch(
       `${baseURL}/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=DescribeFeatureType&TYPENAMES=test%3Apoints`,
     );
@@ -108,6 +113,13 @@ test("WFS GetFeature supports GeoJSON output, BBOX and pagination", async () => 
     assert.equal(body.numberReturned, 1);
     assert.equal(body.features[0].properties.name, "Hanoi");
 
+    const invalidParams = new URLSearchParams(params);
+    invalidParams.set("BBOX", "106,20,105,22");
+    const invalid = await fetch(`${baseURL}/wfs?${invalidParams}`);
+    const invalidBody = await invalid.text();
+    assert.equal(invalid.status, 400);
+    assert.match(invalidBody, /BBOX coordinates are not ordered/);
+
     const gmlParams = new URLSearchParams({
       SERVICE: "WFS",
       VERSION: "2.0.0",
@@ -120,6 +132,26 @@ test("WFS GetFeature supports GeoJSON output, BBOX and pagination", async () => 
     assert.equal(gml.status, 200);
     assert.match(gmlBody, /FeatureCollection/);
     assert.match(gmlBody, /Hanoi/);
+
+    const projectedParams = new URLSearchParams(params);
+    projectedParams.delete("BBOX");
+    projectedParams.set("SRSNAME", "EPSG:3857");
+    const projectedResponse = await fetch(
+      `${baseURL}/wfs?${projectedParams}`,
+    );
+    const projectedBody = await projectedResponse.json();
+    const projectedPoint = projectedBody.features[0].geometry.coordinates;
+    assert.ok(projectedPoint[0] > 10_000_000);
+    assert.ok(projectedPoint[1] > 2_000_000);
+
+    projectedParams.set("OUTPUTFORMAT", "GML2");
+    const projectedGML = await fetch(`${baseURL}/wfs?${projectedParams}`);
+    const projectedGMLBody = await projectedGML.text();
+    const position = projectedGMLBody.match(/<gml:pos>([^<]+)<\/gml:pos>/);
+    assert.ok(position);
+    const [gmlX, gmlY] = position[1].split(" ").map(Number);
+    assert.ok(Math.abs(gmlX - projectedPoint[0]) < 1e-6);
+    assert.ok(Math.abs(gmlY - projectedPoint[1]) < 1e-6);
   });
 });
 

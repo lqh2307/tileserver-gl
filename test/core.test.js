@@ -8,6 +8,8 @@ import http from "node:http";
 import test from "node:test";
 import express from "express";
 import { StatusCodes } from "http-status-codes";
+import { deflateSync } from "node:zlib";
+import { responseCompressionMiddleware } from "../src/middlewares/index.js";
 import { serve_swagger } from "../src/serves/serve_swagger.js";
 import { serve_task } from "../src/serves/serve_task.js";
 import {
@@ -27,6 +29,8 @@ import {
   removeEmptyFolders,
   runAllWithLimit,
   runSingleFlight,
+  normalizeResponseEncoding,
+  shouldCompressResponse,
   walkFiles,
   max,
 } from "../src/utils/index.js";
@@ -62,6 +66,183 @@ test("tile bounds use the 10000 tile default batch", () => {
     }, 0),
     501 * 51,
   );
+});
+
+test("response compression uses the environment default and query override", () => {
+  const previous = process.env.COMPRESS_RESPONSE;
+
+  try {
+    process.env.COMPRESS_RESPONSE = "true";
+
+    assert.equal(shouldCompressResponse({ query: {} }), true);
+    assert.equal(shouldCompressResponse({ query: { compression: "false" } }), false);
+    assert.equal(shouldCompressResponse({ query: { compression: "true" } }), true);
+
+    process.env.COMPRESS_RESPONSE = "false";
+
+    assert.equal(shouldCompressResponse({ query: {} }), false);
+    assert.equal(shouldCompressResponse({ query: { compression: "true" } }), true);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.COMPRESS_RESPONSE;
+    } else {
+      process.env.COMPRESS_RESPONSE = previous;
+    }
+  }
+});
+
+test("response compression middleware negotiates gzip for eligible responses", async () => {
+  const previous = process.env.COMPRESS_RESPONSE;
+  process.env.COMPRESS_RESPONSE = "true";
+
+  const app = express()
+    .use(responseCompressionMiddleware())
+    .get("/json", (_req, res) => {
+      res.json({ payload: "x".repeat(2000) });
+    })
+    .get("/small", (_req, res) => {
+      res.json({ payload: "small" });
+    })
+    .get("/vendor-pbf", (_req, res) => {
+      res
+        .type("application/vnd.mapbox-vector-tile")
+        .send(Buffer.alloc(2000, 97));
+    })
+    .get("/no-transform", (_req, res) => {
+      res.set("cache-control", "no-transform");
+      res.json({ payload: "x".repeat(2000) });
+    })
+    .use("/assets", express.static(path.resolve("public", "resources")));
+  const server = http.createServer(app);
+
+  await new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  try {
+    const port = server.address().port;
+    const response = await fetch(`http://127.0.0.1:${port}/json`, {
+      headers: {
+        "accept-encoding": "gzip",
+      },
+    });
+
+    assert.equal(response.headers.get("content-encoding"), "gzip");
+    assert.equal(response.headers.get("content-length"), null);
+    assert.equal(response.headers.get("vary"), "Accept-Encoding");
+    assert.equal((await response.json()).payload.length, 2000);
+
+    const identityResponse = await fetch(`http://127.0.0.1:${port}/json`, {
+      headers: {
+        "accept-encoding": "identity",
+      },
+    });
+
+    assert.equal(identityResponse.headers.get("content-encoding"), null);
+    assert.equal(identityResponse.headers.get("vary"), "Accept-Encoding");
+    assert.equal((await identityResponse.json()).payload.length, 2000);
+
+    const small = await fetch(`http://127.0.0.1:${port}/small`, {
+      headers: {
+        "accept-encoding": "gzip",
+      },
+    });
+    assert.equal(small.headers.get("content-encoding"), "gzip");
+
+    const vendorPbf = await fetch(
+      `http://127.0.0.1:${port}/vendor-pbf`,
+      {
+        headers: {
+          "accept-encoding": "gzip",
+        },
+      },
+    );
+    assert.equal(vendorPbf.headers.get("content-encoding"), "gzip");
+    assert.equal((await vendorPbf.arrayBuffer()).byteLength, 2000);
+
+    const disabled = await fetch(
+      `http://127.0.0.1:${port}/small?compression=false`,
+      {
+        headers: {
+          "accept-encoding": "gzip",
+        },
+      },
+    );
+    assert.equal(disabled.headers.get("content-encoding"), null);
+
+    const noTransform = await fetch(
+      `http://127.0.0.1:${port}/no-transform`,
+      {
+        headers: {
+          "accept-encoding": "gzip",
+        },
+      },
+    );
+    assert.equal(noTransform.headers.get("content-encoding"), null);
+
+    const staticAsset = await fetch(
+      `http://127.0.0.1:${port}/assets/maplibre-gl.js`,
+      {
+        headers: {
+          "accept-encoding": "gzip",
+        },
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    assert.equal(staticAsset.headers.get("content-encoding"), "gzip");
+    assert.ok((await staticAsset.arrayBuffer()).byteLength > 1_000_000);
+
+    const rangedAsset = await fetch(
+      `http://127.0.0.1:${port}/assets/maplibre-gl.js`,
+      {
+        headers: {
+          "accept-encoding": "gzip",
+          range: "bytes=0-99",
+        },
+      },
+    );
+    assert.equal(rangedAsset.status, 206);
+    assert.equal(rangedAsset.headers.get("content-encoding"), null);
+    assert.equal((await rangedAsset.arrayBuffer()).byteLength, 100);
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    if (previous === undefined) {
+      delete process.env.COMPRESS_RESPONSE;
+    } else {
+      process.env.COMPRESS_RESPONSE = previous;
+    }
+  }
+});
+
+test("response encoding normalization mutates disposable headers", async () => {
+  const data = deflateSync("vector tile");
+  const headers = {
+    "content-type": "application/x-protobuf",
+    "content-encoding": "deflate",
+    "content-length": String(data.length),
+  };
+  const normalized = await normalizeResponseEncoding(data, headers, {
+    query: {
+      compression: "false",
+    },
+    acceptsEncodings: () => {
+      return false;
+    },
+  });
+
+  assert.equal(normalized.toString(), "vector tile");
+  assert.equal(headers["content-encoding"], undefined);
+  assert.equal(headers["content-length"], undefined);
+  assert.equal(data[0], 0x78);
 });
 
 test("task selectors expand and match individual sync resources", () => {

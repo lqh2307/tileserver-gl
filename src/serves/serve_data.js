@@ -9,6 +9,7 @@ import {
 } from "../defaults/index.js";
 import {
   compileHandleBarsTemplate,
+  normalizeResponseEncoding,
   validateTileMetadata,
   createTileMetadata,
   isFileNotModified,
@@ -22,9 +23,6 @@ import {
   getJSONSchema,
   validateJSON,
   HTTP_SCHEMES,
-  inflateAsync,
-  unzipAsync,
-  gzipAsync,
   printLog,
 } from "../utils/index.js";
 import {
@@ -174,25 +172,18 @@ function getTileDataHandler() {
         }
       }
 
-      /* Gzip pbf tile data */
-      if (tileData.headers["content-type"] === "application/x-protobuf") {
-        const acceptsGzip = req.acceptsEncodings("gzip") === "gzip";
-        const contentEncoding = tileData.headers["content-encoding"];
-
+      /* Normalize upstream pbf encoding. */
+      if (
+        tileData.headers["content-type"] === "application/x-protobuf" &&
+        tileData.headers["content-encoding"]
+      ) {
         res.vary("Accept-Encoding");
 
-        if (!contentEncoding && acceptsGzip) {
-          tileData.data = await gzipAsync(tileData.data);
-
-          tileData.headers["content-encoding"] = "gzip";
-        } else if (contentEncoding && !acceptsGzip) {
-          tileData.data =
-            contentEncoding === "gzip"
-              ? await unzipAsync(tileData.data)
-              : await inflateAsync(tileData.data);
-
-          delete tileData.headers["content-encoding"];
-        }
+        tileData.data = await normalizeResponseEncoding(
+          tileData.data,
+          tileData.headers,
+          req,
+        );
       }
 
       res.set(tileData.headers);
@@ -404,18 +395,7 @@ function getTileDataExtraInfoHandler() {
         }
       }
 
-      const headers = {
-        // "content-disposition": `attachment; filename="extra-info.json"`,
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        extraInfo = await gzipAsync(JSON.stringify(extraInfo));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(extraInfo);
     } catch (error) {
@@ -457,7 +437,7 @@ function calculateDataExtraInfoHandler() {
 
       switch (item.sourceType) {
         case "mbtiles": {
-          calculateTileExtraInfoFunc = async () => {
+          calculateTileExtraInfoFunc = () => {
             return calculateMBTilesTileExtraInfo(item.source);
           };
 
@@ -465,22 +445,22 @@ function calculateDataExtraInfoHandler() {
         }
 
         case "pmtiles": {
-          calculateTileExtraInfoFunc = async () => {};
+          calculateTileExtraInfoFunc = () => {};
 
           break;
         }
 
         case "xyz": {
-          calculateTileExtraInfoFunc = async () => {
-            return await calculateXYZTileExtraInfo(item.source, item.md5Source);
+          calculateTileExtraInfoFunc = () => {
+            return calculateXYZTileExtraInfo(item.source, item.md5Source);
           };
 
           break;
         }
 
         case "pg": {
-          calculateTileExtraInfoFunc = async () => {
-            return await calculatePostgreSQLTileExtraInfo(item.source);
+          calculateTileExtraInfoFunc = () => {
+            return calculatePostgreSQLTileExtraInfo(item.source);
           };
 
           break;
@@ -539,17 +519,7 @@ function getDatasListHandler() {
         return data;
       });
 
-      const headers = {
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

@@ -875,7 +875,7 @@ export async function exportTileDatas({
         updateMBTilesMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async (batchTileBounds, isCreated) => {
+        getTileExtraInfo = (batchTileBounds, isCreated) => {
           return getMBTilesTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
@@ -891,12 +891,12 @@ export async function exportTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storeMBtilesTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = (z, x, y, data) => {
+          return storeMBtilesTileData(z, x, y, data, tileOption);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
+        closeDatabaseFunc = () => {
           return closeMBTilesDB(source);
         };
 
@@ -915,8 +915,8 @@ export async function exportTileDatas({
         await updatePostgreSQLMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async (batchTileBounds, isCreated) => {
-          return await getPostgreSQLTileExtraInfo({
+        getTileExtraInfo = (batchTileBounds, isCreated) => {
+          return getPostgreSQLTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
             isCreated,
@@ -931,13 +931,13 @@ export async function exportTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storePostgreSQLTileData(z, x, y, data, tileOption);
+        storeTileDataFunc = (z, x, y, data) => {
+          return storePostgreSQLTileData(z, x, y, data, tileOption);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
-          return await closePostgreSQLDB(source);
+        closeDatabaseFunc = () => {
+          return closePostgreSQLDB(source);
         };
 
         break;
@@ -964,7 +964,7 @@ export async function exportTileDatas({
         updateXYZMetadata(source, newMetadata);
 
         /* Get tile extra info function */
-        getTileExtraInfo = async (batchTileBounds, isCreated) => {
+        getTileExtraInfo = (batchTileBounds, isCreated) => {
           return getXYZTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
@@ -982,12 +982,12 @@ export async function exportTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data) => {
-          return await storeXYZTileFile(z, x, y, data, tileOption);
+        storeTileDataFunc = (z, x, y, data) => {
+          return storeXYZTileFile(z, x, y, data, tileOption);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
+        closeDatabaseFunc = () => {
           return closeXYZMD5DB(source);
         };
 
@@ -997,7 +997,7 @@ export async function exportTileDatas({
 
     switch (item.sourceType) {
       case "mbtiles": {
-        getTargetTileExtraInfo = async (batchTileBounds) => {
+        getTargetTileExtraInfo = (batchTileBounds) => {
           return getMBTilesTileExtraInfo({
             source: item.source,
             tileBounds: batchTileBounds,
@@ -1015,8 +1015,8 @@ export async function exportTileDatas({
       }
 
       case "pg": {
-        getTargetTileExtraInfo = async (batchTileBounds) => {
-          return await getPostgreSQLTileExtraInfo({
+        getTargetTileExtraInfo = (batchTileBounds) => {
+          return getPostgreSQLTileExtraInfo({
             source: item.source,
             tileBounds: batchTileBounds,
           });
@@ -1033,7 +1033,7 @@ export async function exportTileDatas({
       }
 
       case "xyz": {
-        getTargetTileExtraInfo = async (batchTileBounds) => {
+        getTargetTileExtraInfo = (batchTileBounds) => {
           return getXYZTileExtraInfo({
             source: item.md5Source,
             tileBounds: batchTileBounds,

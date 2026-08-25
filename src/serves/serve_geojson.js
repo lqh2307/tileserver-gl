@@ -17,7 +17,6 @@ import {
   runAllWithLimit,
   isErrorNotFound,
   getRequestHost,
-  gzipAsync,
   printLog,
 } from "../utils/index.js";
 
@@ -233,18 +232,7 @@ function getGeoJSONHandler() {
       /* Get and cache GeoJSON */
       let geoJSON = await getAndCacheDataGeoJSON(id, req.params.layer);
 
-      const headers = {
-        // "content-disposition": `attachment; filename="${path.basename(geoJSONLayer.path)}"`,
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        geoJSON = await gzipAsync(geoJSON);
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(geoJSON);
     } catch (error) {
@@ -333,17 +321,7 @@ function getGeoJSONGroupsListHandler() {
         };
       });
 
-      const headers = {
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

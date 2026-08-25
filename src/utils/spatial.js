@@ -1,6 +1,6 @@
 "use strict";
 
-import { limitValue, max, maxs, min, mins } from "./number.js";
+import { limitValue, max, min } from "./number.js";
 import proj4 from "proj4";
 
 /**
@@ -860,7 +860,7 @@ export function getTileFromPixelsZ(scale, ppi = 96, tileSize = 256) {
 /**
  * Transform a point between any two coordinate reference systems.
  * Accepts EPSG codes (e.g. `"EPSG:4326"`, `"EPSG:3857"`) or proj4 definition strings.
- * @param {{ dstSRS: string, srcSRS: string, bounds: number[] }} option Options for transformation
+ * @param {{ dstSRS: string, srcSRS: string, point: number[] }} option Options for transformation
  * @returns {number[]} Transformed [x, y]
  */
 export function transformPointSRS(option) {
@@ -878,32 +878,35 @@ export function transformPointSRS(option) {
  * @returns {number[]} Transformed bbox
  */
 export function transformBBoxSRS(option) {
-  if (option.dstSRS === option.srcSRS) {
-    return option.bounds;
+  const { srcSRS, dstSRS, bounds } = option;
+
+  if (dstSRS === srcSRS) {
+    return bounds;
   }
 
-  // Two corners are not sufficient for projections whose meridians or
-  // parallels are curved.  Transform all corners and calculate the envelope
-  // in the destination CRS.  This is particularly important for WMS BBOXes.
-  const points = [
-    [option.bounds[0], option.bounds[1]],
-    [option.bounds[0], option.bounds[3]],
-    [option.bounds[2], option.bounds[1]],
-    [option.bounds[2], option.bounds[3]],
-  ].map((point) => {
-    return transformPointSRS({
-      srcSRS: option.srcSRS,
-      dstSRS: option.dstSRS,
-      point,
-    });
-  });
+  const transform = proj4(srcSRS, dstSRS).forward;
 
-  const xs = points.map((point) => {
-    return point[0];
-  });
-  const ys = points.map((point) => {
-    return point[1];
-  });
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
 
-  return [mins(xs), mins(ys), maxs(xs), maxs(ys)];
+  // Reuse one initialized projection for every corner and build the
+  // destination envelope without allocating intermediate point arrays.
+  for (let xIndex = 0; xIndex < 2; xIndex++) {
+    const x = bounds[xIndex * 2];
+
+    for (let yIndex = 0; yIndex < 2; yIndex++) {
+      const y = bounds[yIndex * 2 + 1];
+
+      const point = transform([x, y]);
+
+      minX = min(minX, point[0]);
+      minY = min(minY, point[1]);
+      maxX = max(maxX, point[0]);
+      maxY = max(maxY, point[1]);
+    }
+  }
+
+  return [minX, minY, maxX, maxY];
 }

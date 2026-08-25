@@ -36,11 +36,46 @@ const lastModifiedCaches = createCache({
   ttl: DEFAULT_CACHE_TIMEOUT,
 });
 
+const parameterKeysCache = new WeakMap();
+
 /** Read a case-insensitive parameter from a query/body object. */
 export function getParameter(parameters, name, fallback) {
-  const key = Object.keys(parameters ?? {}).find((item) => {
-    return item.toLowerCase() === String(name).toLowerCase();
-  });
+  if (!parameters || typeof parameters !== "object") {
+    return fallback;
+  }
+
+  const parameterName = String(name);
+  let key;
+  if (Object.prototype.hasOwnProperty.call(parameters, parameterName)) {
+    key = parameterName;
+  } else {
+    let keys = parameterKeysCache.get(parameters);
+    if (!keys) {
+      keys = new Map(
+        Object.keys(parameters).map((item) => {
+          return [item.toLowerCase(), item];
+        }),
+      );
+      parameterKeysCache.set(parameters, keys);
+    }
+    const normalizedName = parameterName.toLowerCase();
+    key = keys.get(normalizedName);
+    if (
+      key !== undefined &&
+      !Object.prototype.hasOwnProperty.call(parameters, key)
+    ) {
+      keys.delete(normalizedName);
+      key = undefined;
+    }
+    if (key === undefined) {
+      key = Object.keys(parameters).find((item) => {
+        return item.toLowerCase() === normalizedName;
+      });
+      if (key !== undefined) {
+        keys.set(normalizedName, key);
+      }
+    }
+  }
 
   if (key === undefined) {
     return fallback;
@@ -55,7 +90,7 @@ async function getCachedLastModified(fileOrFolderPath) {
   const created = await getFileCreated(fileOrFolderPath);
   const cacheKey = `${fileOrFolderPath}:${created}`;
 
-  return await lastModifiedCaches.wrap(cacheKey, async () => {
+  return lastModifiedCaches.wrap(cacheKey, async () => {
     return new Date(created).toUTCString();
   });
 }

@@ -5,7 +5,6 @@ import { config } from "../configs/index.js";
 import sharp from "sharp";
 import {
   getAndCacheParsedDataGeoJSON,
-  getAndCacheDataStyleJSON,
   getRenderedStyleJSON,
 } from "../resources/index.js";
 import {
@@ -19,6 +18,7 @@ import {
   splitParameter,
   getParameter,
   getDistance,
+  isValidBBox,
   xmlEscape,
   min,
   max,
@@ -51,15 +51,6 @@ class WMSException extends Error {
     this.name = "WMSException";
     this.code = code;
   }
-}
-
-function getParameters(req) {
-  const parameters = {
-    ...(req.body && typeof req.body === "object" ? req.body : {}),
-    ...(req.query ?? {}),
-  };
-
-  return parameters;
 }
 
 function normalizeVersion(value) {
@@ -100,11 +91,7 @@ function normalizeCRS(value) {
   return crs;
 }
 
-function projectionCRS(crs) {
-  return crs === "CRS:84" ? "EPSG:4326" : crs;
-}
-
-/** Parse a WMS BBOX and return WGS84 [west, south, east, north]. */
+/** Parse a WMS BBOX in [minLon, minLat, maxLon, maxLat] order. */
 export function parseWMSBBox(value, crsValue) {
   const crs = normalizeCRS(crsValue);
   const values = String(value ?? "")
@@ -123,10 +110,7 @@ export function parseWMSBBox(value, crsValue) {
     );
   }
 
-  const bounds =
-    crs === "EPSG:4326" ? [values[1], values[0], values[3], values[2]] : values;
-
-  if (bounds[0] >= bounds[2] || bounds[1] >= bounds[3]) {
+  if (!isValidBBox(values, false)) {
     throw new WMSException(
       "InvalidParameterValue",
       "BBOX coordinates are not ordered.",
@@ -135,18 +119,12 @@ export function parseWMSBBox(value, crsValue) {
 
   try {
     const transformed = transformBBoxSRS({
-      srcSRS: projectionCRS(crs),
+      srcSRS: crs === "CRS:84" ? "EPSG:4326" : crs,
       dstSRS: "EPSG:4326",
-      bounds,
+      bounds: values,
     });
 
-    if (
-      transformed[0] >= transformed[2] ||
-      transformed[1] >= transformed[3] ||
-      transformed.some((item) => {
-        return !Number.isFinite(item);
-      })
-    ) {
+    if (!isValidBBox(transformed, false)) {
       throw new Error("invalid transformed bounds");
     }
 
@@ -201,10 +179,18 @@ function getLayer(id) {
   return layer;
 }
 
-function resolveLayers(pathId, parameters) {
+function resolveLayers(pathId, parameters, parameterName = "LAYERS") {
   const layerIds = pathId
     ? [pathId]
-    : splitParameter(getParameter(parameters, "LAYERS"));
+    : splitParameter(
+        getParameter(
+          parameters,
+          parameterName,
+          parameterName === "LAYERS"
+            ? undefined
+            : getParameter(parameters, "LAYERS"),
+        ),
+      );
 
   if (!layerIds.length) {
     throw new WMSException("LayerNotDefined", "LAYERS is required.");
@@ -213,10 +199,11 @@ function resolveLayers(pathId, parameters) {
   return layerIds.map(getLayer);
 }
 
-function getServiceMetadata() {
+/** Build a WMS capabilities document for the supplied layer set. */
+export async function buildCapabilities({ version, baseURL, layers }) {
+  const normalizedVersion = normalizeVersion(version);
   const options = config.options?.wms ?? {};
-
-  return {
+  const service = {
     title: options.title ?? "Tile Server WMS",
     abstract:
       options.abstract ?? "Web Map Service generated from MapLibre styles.",
@@ -224,12 +211,6 @@ function getServiceMetadata() {
     fees: options.fees ?? "none",
     accessConstraints: options.accessConstraints ?? "none",
   };
-}
-
-/** Build a WMS capabilities document for the supplied layer set. */
-export async function buildCapabilities({ version, baseURL, layers }) {
-  const normalizedVersion = normalizeVersion(version);
-  const service = getServiceMetadata();
   const layerData = layers.map((layer) => {
     return {
       queryable: layer.queryable ? 1 : 0,
@@ -260,7 +241,7 @@ export async function buildCapabilities({ version, baseURL, layers }) {
     };
   });
 
-  return await compileHandleBarsTemplate("wms", {
+  return compileHandleBarsTemplate("wms", {
     version: normalizedVersion,
     updateSequence: CAPABILITIES_UPDATE_SEQUENCE,
     service: {
@@ -273,6 +254,49 @@ export async function buildCapabilities({ version, baseURL, layers }) {
     },
     layers: layerData,
   });
+}
+
+let capabilitiesCache;
+
+async function getCapabilities(version, baseURL, pathId) {
+  const styles = config.styles ?? {};
+  const options = config.options?.wms;
+  if (
+    !capabilitiesCache ||
+    capabilitiesCache.styles !== styles ||
+    capabilitiesCache.options !== options
+  ) {
+    capabilitiesCache = {
+      styles,
+      options,
+      entries: new Map(),
+    };
+  }
+
+  const key = `${baseURL}\0${pathId ?? ""}`;
+  let promise = capabilitiesCache.entries.get(key);
+  if (!promise) {
+    const layers = pathId
+      ? [getLayer(pathId)]
+      : Object.keys(styles).map(getLayer);
+    promise = buildCapabilities({
+      version,
+      baseURL,
+      layers,
+    });
+    const entries = capabilitiesCache.entries;
+    entries.set(key, promise);
+
+    if (entries.size > 32) {
+      entries.delete(entries.keys().next().value);
+    }
+
+    promise.catch(() => {
+      entries.delete(key);
+    });
+  }
+
+  return promise;
 }
 
 function parseImageFormat(value) {
@@ -490,7 +514,7 @@ async function getGeoJSONForSource(source) {
   if (!parts[2] || !parts[3]) {
     return;
   }
-  return await getAndCacheParsedDataGeoJSON(parts[2], parts[3]);
+  return getAndCacheParsedDataGeoJSON(parts[2], parts[3]);
 }
 
 async function queryGeoJSONLayers(layerIds, point, tolerance, featureCount) {
@@ -498,7 +522,7 @@ async function queryGeoJSONLayers(layerIds, point, tolerance, featureCount) {
   for (const layer of layerIds) {
     let styleJSON;
     try {
-      styleJSON = JSON.parse(await getAndCacheDataStyleJSON(layer.item.path));
+      styleJSON = await getRenderedStyleJSON(layer.item.path);
     } catch {
       continue;
     }
@@ -583,19 +607,21 @@ function infoResponse(features, format) {
 }
 
 function parseMapRequest(layers, parameters) {
-  const crs = normalizeCRS(getParameter(parameters, "CRS"));
-  const bbox = parseWMSBBox(getParameter(parameters, "BBOX"), crs);
+  const bbox = parseWMSBBox(
+    getParameter(parameters, "BBOX"),
+    getParameter(parameters, "CRS"),
+  );
   const width = parseInteger(
     getParameter(parameters, "WIDTH"),
     "WIDTH",
     1,
-    getWMSOptions().maxWidth ?? DEFAULT_MAX_SIZE,
+    config.options?.wms?.maxWidth ?? DEFAULT_MAX_SIZE,
   );
   const height = parseInteger(
     getParameter(parameters, "HEIGHT"),
     "HEIGHT",
     1,
-    getWMSOptions().maxHeight ?? DEFAULT_MAX_SIZE,
+    config.options?.wms?.maxHeight ?? DEFAULT_MAX_SIZE,
   );
   const image = parseImageFormat(getParameter(parameters, "FORMAT"));
   const styles = splitParameter(getParameter(parameters, "STYLES"));
@@ -696,6 +722,16 @@ async function renderMap(layers, parameters) {
       .toBuffer();
   }
 
+  if (transparent && image.output === "png") {
+    return {
+      data: output,
+      contentType: image.format,
+      bbox,
+      width,
+      height,
+    };
+  }
+
   let outputImage = sharp(output);
   if (!transparent || image.output !== "png") {
     outputImage = outputImage.flatten({
@@ -777,7 +813,7 @@ async function sendException(res, error, parameters) {
 }
 
 async function handleWMS(req, res, pathId) {
-  const parameters = getParameters(req);
+  const parameters = req.query ?? {};
   let version;
   try {
     version = normalizeVersion(
@@ -816,19 +852,10 @@ async function handleWMS(req, res, pathId) {
           );
         }
       }
-      const layers = pathId
-        ? [getLayer(pathId)]
-        : Object.keys(config.styles ?? {}).map(getLayer);
       res
         .status(200)
         .set("content-type", "text/xml; charset=utf-8")
-        .send(
-          await buildCapabilities({
-            version,
-            baseURL,
-            layers,
-          }),
-        );
+        .send(await getCapabilities(version, baseURL, pathId));
       return;
     }
 
@@ -842,14 +869,7 @@ async function handleWMS(req, res, pathId) {
     }
 
     if (request === "getfeatureinfo") {
-      const layers = resolveLayers(pathId, {
-        ...parameters,
-        LAYERS: getParameter(
-          parameters,
-          "QUERY_LAYERS",
-          getParameter(parameters, "LAYERS"),
-        ),
-      });
+      const layers = resolveLayers(pathId, parameters, "QUERY_LAYERS");
       const infoFormat = String(
         getParameter(parameters, "INFO_FORMAT", "text/plain"),
       ).toLowerCase();
@@ -946,9 +966,7 @@ async function handleWMS(req, res, pathId) {
 
     if (request === "getstyles") {
       const layer = getLayer(pathId ?? getParameter(parameters, "LAYER"));
-      const styleJSON = JSON.parse(
-        await getAndCacheDataStyleJSON(layer.item.path),
-      );
+      const styleJSON = await getRenderedStyleJSON(layer.item.path);
       res
         .status(200)
         .set("content-type", "application/vnd.ogc.sld+xml")
@@ -1016,7 +1034,7 @@ export const serve_wms = {
      *       - in: query
      *         name: BBOX
      *         schema: { type: string }
-     *         description: Four comma-separated coordinates.
+     *         description: Four comma-separated coordinates in minLon,minLat,maxLon,maxLat order for every CRS.
      *       - in: query
      *         name: CRS
      *         schema: { type: string, example: EPSG:4326 }

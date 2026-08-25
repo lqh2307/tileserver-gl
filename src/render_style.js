@@ -691,7 +691,7 @@ export async function renderStyleJSON(option) {
   const filePath = path.join(dirPath, `${id}.${format}`);
 
   if (totalWidth <= MAX_TILE_PX && totalHeight <= MAX_TILE_PX) {
-    return await renderImageStaticData({
+    return renderImageStaticData({
       ...option,
       filePath,
     });
@@ -882,7 +882,7 @@ export async function renderTileDatas({
 
         updateMBTilesMetadata(source, newMetadata);
 
-        getTileExtraInfoFunc = async (batchTileBounds) => {
+        getTileExtraInfoFunc = (batchTileBounds) => {
           return getMBTilesTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
@@ -903,19 +903,12 @@ export async function renderTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data, dataHash) => {
-          return await storeMBtilesTileData(
-            z,
-            x,
-            y,
-            data,
-            tileOption,
-            dataHash,
-          );
+        storeTileDataFunc = (z, x, y, data, dataHash) => {
+          return storeMBtilesTileData(z, x, y, data, tileOption, dataHash);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
+        closeDatabaseFunc = () => {
           return closeMBTilesDB(source);
         };
 
@@ -933,8 +926,8 @@ export async function renderTileDatas({
 
         await updatePostgreSQLMetadata(source, newMetadata);
 
-        getTileExtraInfoFunc = async (batchTileBounds) => {
-          return await getPostgreSQLTileExtraInfo({
+        getTileExtraInfoFunc = (batchTileBounds) => {
+          return getPostgreSQLTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
             isCreated: refreshTimestamp === true || skipExistingTiles,
@@ -954,20 +947,13 @@ export async function renderTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data, dataHash) => {
-          return await storePostgreSQLTileData(
-            z,
-            x,
-            y,
-            data,
-            tileOption,
-            dataHash,
-          );
+        storeTileDataFunc = (z, x, y, data, dataHash) => {
+          return storePostgreSQLTileData(z, x, y, data, tileOption, dataHash);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
-          return await closePostgreSQLDB(source);
+        closeDatabaseFunc = () => {
+          return closePostgreSQLDB(source);
         };
 
         break;
@@ -993,7 +979,7 @@ export async function renderTileDatas({
 
         updateXYZMetadata(source, newMetadata);
 
-        getTileExtraInfoFunc = async (batchTileBounds) => {
+        getTileExtraInfoFunc = (batchTileBounds) => {
           return getXYZTileExtraInfo({
             source,
             tileBounds: batchTileBounds,
@@ -1015,12 +1001,12 @@ export async function renderTileDatas({
         };
 
         /* Store data function */
-        storeTileDataFunc = async (z, x, y, data, dataHash) => {
-          return await storeXYZTileFile(z, x, y, data, tileOption, dataHash);
+        storeTileDataFunc = (z, x, y, data, dataHash) => {
+          return storeXYZTileFile(z, x, y, data, tileOption, dataHash);
         };
 
         /* Close database function */
-        closeDatabaseFunc = async () => {
+        closeDatabaseFunc = () => {
           return closeXYZMD5DB(source);
         };
 

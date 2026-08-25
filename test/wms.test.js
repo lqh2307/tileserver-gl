@@ -11,8 +11,11 @@ import {
   serve_wms,
 } from "../src/serves/serve_wms.js";
 
-test("WMS 1.3.0 applies the EPSG:4326 latitude/longitude axis order", () => {
-  assert.deepEqual(parseWMSBBox("10,20,30,40", "EPSG:4326"), [20, 10, 40, 30]);
+test("WMS uses minLon,minLat,maxLon,maxLat for EPSG:4326", () => {
+  assert.deepEqual(parseWMSBBox("10,20,30,40", "EPSG:4326"), [10, 20, 30, 40]);
+  assert.throws(() => {
+    return parseWMSBBox("30,20,10,40", "EPSG:4326");
+  }, /BBOX coordinates are not ordered/);
 });
 
 test("WMS capabilities expose the supported operations and XML formats", async () => {

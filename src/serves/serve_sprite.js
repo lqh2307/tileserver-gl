@@ -17,7 +17,6 @@ import {
   isErrorNotFound,
   runAllWithLimit,
   getRequestHost,
-  gzipAsync,
   printLog,
 } from "../utils/index.js";
 
@@ -133,17 +132,7 @@ function getSpritesListHandler() {
         };
       });
 
-      const headers = {
-        "content-type": "application/json",
-      };
-
-      if (req.query.compression === "true") {
-        result = await gzipAsync(JSON.stringify(result));
-
-        headers["content-encoding"] = "gzip";
-      }
-
-      res.set(headers);
+      res.set("content-type", "application/json");
 
       return res.status(StatusCodes.OK).send(result);
     } catch (error) {

@@ -137,6 +137,12 @@ export function configureRuntimeEnvironment(configOptions = {}, cpuCount = 1) {
   )
     ? "true"
     : "false";
+  process.env.COMPRESS_RESPONSE = getEnvironmentBoolean(
+    process.env.COMPRESS_RESPONSE,
+    true,
+  )
+    ? "true"
+    : "false";
   process.env.LOG_LEVEL = getEnvironmentLogLevel(process.env.LOG_LEVEL);
 
   process.env.NUM_OF_PROCESS = String(

@@ -112,7 +112,7 @@ Important behavior:
 - Binary tile and render endpoints return the media type requested by the URL or body.
 - A \`201\` export/render response acknowledges an asynchronous job; monitor logs or summaries for completion.
 - A \`204\` tile response means no tile content is available.
-- List and extra-info endpoints support gzip where the \`compression\` query parameter is documented.
+- Eligible responses use gzip by default when \`COMPRESS_RESPONSE=true\` and the client advertises gzip; the \`compression\` query parameter can override this per request where documented.
 - When deployed behind a reverse proxy, forward \`X-Forwarded-Proto\`, \`X-Forwarded-Host\`, and \`X-Forwarded-Prefix\` so Try it out uses the public URL. The \`referer\` query parameter has highest priority.`,
     },
     tags,

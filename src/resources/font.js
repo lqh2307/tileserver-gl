@@ -241,7 +241,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
           `Font id "${id}" does not exist. Using fallback font "Open Sans"...`,
         );
 
-        return await getFallbackFont(id, fileName);
+        return getFallbackFont(id, fileName);
       }
 
       const filePath = path.join(item.path, fileName);
@@ -292,7 +292,7 @@ export async function getAndCacheDataFonts(ids, fileName) {
             `Failed to get font id "${id}": ${error}. Using fallback font "Open Sans"...`,
           );
 
-          return await getFallbackFont(id, fileName);
+          return getFallbackFont(id, fileName);
         }
       }
     }),
