@@ -267,7 +267,7 @@ function serveSummaryHandler() {
                 try {
                   result.styles.size += await getStyleSize(item.path);
                 } catch (error) {
-                  if (!item.cache || error.code !== "ENOENT") {
+                  if (error.code !== "ENOENT") {
                     throw error;
                   }
                 }
@@ -288,7 +288,7 @@ function serveSummaryHandler() {
                       item.path,
                     );
                   } catch (error) {
-                    if (!item.cache || error.code !== "ENOENT") {
+                    if (error.code !== "ENOENT") {
                       throw error;
                     }
                   }
@@ -308,7 +308,7 @@ function serveSummaryHandler() {
                         item.path,
                       );
                     } catch (error) {
-                      if (!item.cache || error.code !== "ENOENT") {
+                      if (error.code !== "ENOENT") {
                         throw error;
                       }
                     }
@@ -338,7 +338,7 @@ function serveSummaryHandler() {
                     try {
                       result.datas.xyzs.size += await getXYZSize(item.path);
                     } catch (error) {
-                      if (!item.cache || error.code !== "ENOENT") {
+                      if (error.code !== "ENOENT") {
                         throw error;
                       }
                     }
@@ -351,7 +351,7 @@ function serveSummaryHandler() {
                   case "pg": {
                     result.datas.pgs.size += await getPostgreSQLSize(
                       item.source,
-                      id,
+                      item.database ?? id,
                     );
                     result.datas.pgs.count += 1;
 
@@ -365,7 +365,7 @@ function serveSummaryHandler() {
                 try {
                   result.sprites.size += await getSpriteSize(item.path);
                 } catch (error) {
-                  if (!item.cache || error.code !== "ENOENT") {
+                  if (error.code !== "ENOENT") {
                     throw error;
                   }
                 }
@@ -378,7 +378,7 @@ function serveSummaryHandler() {
                 try {
                   result.fonts.size += await getPBFFontSize(item.path);
                 } catch (error) {
-                  if (!item.cache || error.code !== "ENOENT") {
+                  if (error.code !== "ENOENT") {
                     throw error;
                   }
                 }

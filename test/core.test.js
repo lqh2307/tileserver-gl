@@ -587,6 +587,106 @@ test("PostgreSQL extra-info uses one query over the tile bounds batch", async ()
   assert.equal(calls[0].values.length, 10);
 });
 
+test("summary uses the PostgreSQL database name and caches the result", async () => {
+  const { config } = await import("../src/configs/index.js");
+  const { serve_summary } = await import("../src/serves/serve_summary.js");
+  const root = await mkdtemp(path.join(tmpdir(), "tileserver-summary-test-"));
+  const stylePath = path.join(root, "style.json");
+  const calls = [];
+  const previous = {
+    styles: config.styles,
+    geojsons: config.geojsons,
+    datas: config.datas,
+    sprites: config.sprites,
+    fonts: config.fonts,
+  };
+
+  await writeFile(stylePath, "a");
+
+  config.styles = {
+    style: {
+      path: stylePath,
+    },
+  };
+  config.geojsons = {};
+  config.datas = {
+    display_id: {
+      sourceType: "pg",
+      database: "actual_database",
+      source: {
+        query: async (text, values) => {
+          calls.push({ text, values });
+
+          return {
+            rows: [{ size: "4096" }],
+          };
+        },
+      },
+    },
+  };
+  config.sprites = {};
+  config.fonts = {};
+
+  const app = express();
+  serve_summary.init(app);
+  const server = http.createServer(app);
+
+  await new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  try {
+    const address = server.address();
+    const response = await fetch(
+      `http://127.0.0.1:${address.port}/summary?type=service`,
+    );
+
+    assert.equal(response.status, StatusCodes.OK);
+    assert.deepEqual((await response.json()).styles, {
+      count: 1,
+      size: 1,
+      rendereds: {
+        count: 0,
+      },
+    });
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].values, ["actual_database"]);
+
+    await writeFile(stylePath, "ab");
+
+    const cachedResponse = await fetch(
+      `http://127.0.0.1:${address.port}/summary?type=service`,
+    );
+    const cachedSummary = await cachedResponse.json();
+
+    assert.equal(cachedResponse.status, StatusCodes.OK);
+    assert.equal(cachedSummary.styles.size, 1);
+    assert.equal(cachedSummary.datas.pgs.size, 4096);
+    assert.equal(cachedSummary.datas.size, 4096);
+    assert.equal(calls.length, 1);
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    config.styles = previous.styles;
+    config.geojsons = previous.geojsons;
+    config.datas = previous.datas;
+    config.sprites = previous.sprites;
+    config.fonts = previous.fonts;
+    await rm(root, {
+      recursive: true,
+      force: true,
+    });
+  }
+});
+
 test("XYZ extra-info is built from tile files in bounded batches", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "tileserver-xyz-test-"));
   const sourcePath = path.join(root, "tiles");
